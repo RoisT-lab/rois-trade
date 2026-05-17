@@ -1,805 +1,1169 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ROIS CAPITAL — Capital & Markets</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100;200;300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-:root {
-  --navy:       #1a2744;
-  --navy-deep:  #111c38;
-  --navy-mid:   #1e2f52;
-  --navy-light: #243460;
-  --navy-card:  #162040;
-  --white:      #ffffff;
-  --off:        #e8edf5;
-  --text:       #b8c8e0;
-  --muted:      #6a80a8;
-  --dim:        #3a4a6a;
-  --border:     rgba(255,255,255,0.09);
-  --border-md:  rgba(255,255,255,0.15);
-  --border-hi:  rgba(255,255,255,0.22);
-  --serif:  'Cormorant Garamond', Georgia, serif;
-  --body:   'Inter', system-ui, sans-serif;
-  --display:'Raleway', 'Helvetica Neue', sans-serif;
-  --nav-h:  72px;
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body { background: var(--navy); color: var(--text); font-family: var(--body);
-       overflow-x: hidden; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROIS TRADE — Strategic Business Advisory</title>
+  <meta name="description" content="Firma de consultoría estratégica enfocada en estructuración empresarial, expansión comercial y desarrollo de negocios." />
 
-/* ─── NAV ─── */
-nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 300;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 60px; height: var(--nav-h);
-  transition: background .5s, border-bottom .5s;
-}
-nav.scrolled { background: rgba(17,28,56,.97); border-bottom: 1px solid var(--border); backdrop-filter: blur(16px); }
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-.logo { display: flex; align-items: center; gap: 13px; text-decoration: none; }
-.logo-icon {
-  height: 44px; width: 44px; object-fit: contain;
-  background: rgba(255,255,255,0.12);
-  border-radius: 50%;
-  padding: 6px;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-.logo-text { display: flex; flex-direction: column; gap: 2px; }
-.logo-name { font-family: var(--display); font-size: 13px; font-weight: 600; letter-spacing: .28em; color: var(--white); text-transform: uppercase; }
-.logo-tag  { font-family: var(--display); font-size: 7px;  font-weight: 300; letter-spacing: .28em; color: var(--muted); text-transform: uppercase; }
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-nav ul { list-style: none; display: flex; gap: 36px; align-items: center; }
-nav ul li a { text-decoration: none; font-family: var(--display); font-size: 10px; font-weight: 400; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); transition: color .3s; }
-nav ul li a:hover { color: var(--white); }
-.nav-btn { color: var(--white) !important; border: 1px solid rgba(255,255,255,.28); padding: 9px 22px; transition: all .3s !important; }
-.nav-btn:hover { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.55) !important; }
+    :root {
+      --white: #ffffff;
+      --off-white: #f8f8f6;
+      --light-gray: #e8e8e4;
+      --mid-gray: #b0b0a8;
+      --dark-gray: #3a3a36;
+      --charcoal: #1c1c1a;
+      --black: #0a0a09;
+      --navy: #1a2744;
+      --navy-light: #253358;
 
-.lang-wrap { display: flex; align-items: center; gap: 12px; }
-.lang-toggle { display: flex; border: 1px solid var(--border); overflow: hidden; }
-.lang-btn { font-family: var(--display); font-size: 9px; font-weight: 500; letter-spacing: .15em; color: var(--muted); background: none; border: none; cursor: pointer; padding: 6px 12px; text-transform: uppercase; transition: all .25s; }
-.lang-btn.on { background: rgba(255,255,255,.14); color: var(--white); }
+      --font: 'Montserrat', sans-serif;
 
-.hbg { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 8px; }
-.hbg span { display: block; width: 22px; height: 1px; background: var(--text); transition: all .3s; }
-.hbg.open span:nth-child(1) { transform: rotate(45deg) translate(4px,4px); }
-.hbg.open span:nth-child(2) { opacity: 0; }
-.hbg.open span:nth-child(3) { transform: rotate(-45deg) translate(4px,-4px); }
+      --section-pad: 120px 0;
+      --container: 1200px;
+      --gutter: 48px;
+    }
 
-.mob-menu { display: none; position: fixed; top: var(--nav-h); left: 0; right: 0; bottom: 0;
-  background: rgba(17,28,56,.98); z-index: 200; flex-direction: column;
-  align-items: center; justify-content: center; gap: 36px; backdrop-filter: blur(20px); }
-.mob-menu.open { display: flex; }
-.mob-menu a { font-family: var(--serif); font-size: 30px; font-weight: 300; color: var(--white); text-decoration: none; }
-.mob-cta { font-family: var(--display); font-size: 10px; font-weight: 500; letter-spacing: .28em; text-transform: uppercase;
-  color: var(--white); background: transparent; border: 1px solid rgba(255,255,255,.35); padding: 14px 36px; cursor: pointer; margin-top: 8px; }
+    html { scroll-behavior: smooth; }
 
-/* ─── BUTTON ─── */
-.btn { display: inline-block; font-family: var(--display); font-size: 10px; font-weight: 500; letter-spacing: .3em; text-transform: uppercase;
-  color: var(--white); background: transparent; border: 1px solid rgba(255,255,255,.4); padding: 15px 38px; cursor: pointer; transition: all .3s; }
-.btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.8); }
+    body {
+      font-family: var(--font);
+      background: var(--white);
+      color: var(--charcoal);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
 
-/* ─── HERO ─── */
-.hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
-  padding: 0 84px; position: relative; overflow: hidden;
-  background: linear-gradient(135deg, var(--navy-deep) 0%, var(--navy) 55%, var(--navy-mid) 100%); }
-.hero-frame { position: absolute; inset: 28px; border: 1px solid rgba(255,255,255,.07); pointer-events: none; }
-.hero-ey { font-family: var(--display); font-size: 9px; font-weight: 400; letter-spacing: .45em; color: var(--muted); text-transform: uppercase; margin-bottom: 24px; opacity: 0; animation: fu .9s ease .2s forwards; }
-.hero-box { border: 1px solid rgba(255,255,255,.18); padding: 28px 40px; display: inline-block; margin-bottom: 28px; opacity: 0; animation: fu .9s ease .4s forwards; max-width: 820px; }
-.hero-h1 { font-family: var(--display); font-size: clamp(38px,5.5vw,80px); font-weight: 200; line-height: 1.08; letter-spacing: .15em; color: var(--white); text-transform: uppercase; }
-.hero-sub { font-family: var(--display); font-size: 11px; font-weight: 300; letter-spacing: .28em; color: var(--muted); text-transform: uppercase; max-width: 680px; margin-bottom: 52px; line-height: 2.1; opacity: 0; animation: fu .9s ease .6s forwards; }
-.hero-row { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; opacity: 0; animation: fu .9s ease .8s forwards; }
-.hero-note { font-family: var(--display); font-size: 9px; font-weight: 300; letter-spacing: .3em; color: var(--dim); text-transform: uppercase; }
+    /* ─── UTILITIES ─── */
+    .container {
+      max-width: var(--container);
+      margin: 0 auto;
+      padding: 0 var(--gutter);
+    }
 
-.ticker { position: absolute; bottom: 0; left: 0; right: 0; border-top: 1px solid var(--border); overflow: hidden; padding: 11px 0; background: rgba(17,28,56,.55); }
-.ticker-track { display: flex; animation: tk 38s linear infinite; white-space: nowrap; }
-.ti { font-family: var(--display); font-size: 9px; font-weight: 300; letter-spacing: .3em; color: var(--dim); text-transform: uppercase; padding: 0 52px; flex-shrink: 0; }
-.ti-dot { color: var(--muted); margin-left: 6px; }
+    .label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--mid-gray);
+    }
 
-/* ─── SECTIONS ─── */
-section { padding: clamp(80px,10vw,140px) clamp(24px,5vw,72px); position: relative; }
-.inner { max-width: 1180px; margin: 0 auto; }
-.s-label { font-family: var(--display); font-size: 9px; font-weight: 400; letter-spacing: .42em; color: var(--muted); text-transform: uppercase; margin-bottom: 40px; display: flex; align-items: center; gap: 16px; }
-.s-label::before { content: ''; display: block; width: 22px; height: 1px; background: var(--muted); opacity: .45; flex-shrink: 0; }
-.s-h { font-family: var(--display); font-size: clamp(30px,3.8vw,60px); font-weight: 200; letter-spacing: .13em; line-height: 1.08; color: var(--white); text-transform: uppercase; margin-bottom: 20px; }
-.s-h em { font-style: italic; font-family: var(--serif); font-weight: 300; letter-spacing: .04em; text-transform: none; color: rgba(255,255,255,.72); }
-.s-p { font-family: var(--body); font-size: 15px; font-weight: 300; line-height: 1.9; color: var(--text); max-width: 560px; }
+    .divider {
+      width: 40px;
+      height: 1px;
+      background: var(--charcoal);
+      display: block;
+      margin: 0;
+    }
 
-/* ─── INTRO ─── */
-.intro { background: var(--navy-deep); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-.intro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
-.intro-quote { font-family: var(--serif); font-size: clamp(22px,2.8vw,36px); font-weight: 300; font-style: italic; line-height: 1.45; color: var(--white); margin-bottom: 28px; }
-.intro-note  { font-family: var(--display); font-size: 10px; font-weight: 400; letter-spacing: .28em; color: var(--muted); text-transform: uppercase; }
-.intro-right { border-left: 1px solid var(--border); padding-left: 64px; }
-.intro-right p { font-family: var(--body); font-size: 15px; font-weight: 300; line-height: 1.9; color: var(--text); margin-bottom: 22px; }
-.intro-right p:last-child { margin-bottom: 0; }
-.tag-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
-.tag { font-family: var(--display); font-size: 9px; font-weight: 400; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); padding: 7px 16px; }
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--light-gray);
+      transition: border-color 0.3s;
+    }
 
-/* ─── SERVICES ─── */
-.services { background: var(--navy); }
-.srv-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 60px; }
-.srv-card { background: var(--navy-card); padding: 48px 40px; position: relative; transition: background .3s; }
-.srv-card:hover { background: var(--navy-mid); }
-.srv-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: var(--white); opacity: 0; transition: opacity .3s; }
-.srv-card:hover::after { opacity: .15; }
-.srv-n { font-family: var(--display); font-size: 10px; font-weight: 400; letter-spacing: .25em; color: var(--muted); display: block; margin-bottom: 22px; }
-.srv-name { font-family: var(--display); font-size: 16px; font-weight: 400; letter-spacing: .14em; color: var(--white); text-transform: uppercase; margin-bottom: 20px; line-height: 1.35; }
-.srv-list { list-style: none; }
-.srv-list li { font-family: var(--body); font-size: 13px; font-weight: 300; color: var(--text); padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.05); display: flex; align-items: center; gap: 14px; line-height: 1.55; }
-.srv-list li:last-child { border-bottom: none; }
-.srv-list li::before { content: ''; width: 14px; height: 1px; background: var(--muted); flex-shrink: 0; opacity: .5; }
+    .nav-inner {
+      max-width: var(--container);
+      margin: 0 auto;
+      padding: 0 var(--gutter);
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
-/* ─── VISION ─── */
-.vision { background: var(--navy-deep); }
-.vision-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 48px; margin-top: 60px; }
-.v-item { border-top: 1px solid var(--border); padding-top: 32px; }
-.v-n { font-family: var(--display); font-size: 40px; font-weight: 200; color: rgba(255,255,255,.12); line-height: 1; margin-bottom: 20px; display: block; letter-spacing: -.02em; }
-.v-t { font-family: var(--body); font-size: 14px; font-weight: 300; line-height: 1.8; color: var(--text); }
+    .nav-logo {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-decoration: none;
+    }
 
-/* ─── MISSION ─── */
-.mission { background: var(--navy); }
-.mission-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 60px; }
-.m-card { background: var(--navy-card); padding: 44px 40px; transition: background .3s; }
-.m-card:hover { background: var(--navy-mid); }
-.m-n { font-family: var(--display); font-size: 38px; font-weight: 200; color: rgba(255,255,255,.1); line-height: 1; margin-bottom: 18px; display: block; }
-.m-t { font-family: var(--body); font-size: 14px; font-weight: 300; line-height: 1.8; color: var(--text); }
+    .nav-logo-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--black);
+      line-height: 1;
+    }
 
-/* ─── TARGET ─── */
-.target { background: var(--navy-deep); }
-.tgt-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 60px; }
-.tgt-card { background: var(--navy-deep); padding: 44px 36px; transition: background .3s; }
-.tgt-card:hover { background: var(--navy); }
-.tgt-n { font-family: var(--display); font-size: 38px; font-weight: 200; color: rgba(255,255,255,.1); display: block; margin-bottom: 20px; }
-.tgt-t { font-family: var(--body); font-size: 14px; font-weight: 300; line-height: 1.8; color: var(--text); }
+    .nav-logo-sub {
+      font-size: 8px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--mid-gray);
+      line-height: 1;
+    }
 
-/* ─── EVOLUTION ─── */
-.evolution { background: var(--navy); }
-.evo-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 60px; }
-.evo-card { background: var(--navy-card); padding: 44px 36px; transition: background .3s; }
-.evo-card:hover { background: var(--navy-mid); }
-.evo-year { font-family: var(--display); font-size: 42px; font-weight: 200; color: var(--white); opacity: .9; display: block; margin-bottom: 6px; letter-spacing: .02em; }
-.evo-phase { font-family: var(--serif); font-size: 18px; font-weight: 300; font-style: italic; color: var(--muted); margin-bottom: 22px; display: block; }
-.evo-title { font-family: var(--display); font-size: 9px; font-weight: 600; letter-spacing: .25em; color: rgba(255,255,255,.5); text-transform: uppercase; margin-bottom: 14px; }
-.evo-list { list-style: none; }
-.evo-list li { font-family: var(--body); font-size: 13px; font-weight: 300; color: var(--text); padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.05); display: flex; align-items: flex-start; gap: 10px; line-height: 1.55; }
-.evo-list li:last-child { border-bottom: none; }
-.evo-list li::before { content: '·'; color: var(--muted); flex-shrink: 0; margin-top: 1px; }
+    .nav-links {
+      display: flex;
+      gap: 40px;
+      list-style: none;
+    }
 
-/* ─── NEWS & EVENTS ─── */
-.ne { background: var(--navy-mid); border-top: 1px solid var(--border); }
-.ne-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 52px; margin-top: 56px; }
-.ne-col-label { font-family: var(--display); font-size: 9px; font-weight: 500; letter-spacing: .3em; color: var(--muted); text-transform: uppercase; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-.ne-empty { font-family: var(--body); font-size: 13px; color: var(--dim); font-style: italic; padding: 20px 0; }
-.news-card { border-bottom: 1px solid var(--border); padding: 22px 0; transition: padding-left .3s; cursor: default; }
-.news-card:first-child { border-top: 1px solid var(--border); }
-.news-card:hover { padding-left: 8px; }
-.news-date  { font-family: var(--display); font-size: 9px; font-weight: 400; letter-spacing: .25em; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
-.news-title { font-family: var(--display); font-size: 16px; font-weight: 400; letter-spacing: .1em; color: var(--white); margin-bottom: 8px; line-height: 1.3; text-transform: uppercase; }
-.news-body  { font-family: var(--body); font-size: 13px; font-weight: 300; color: var(--text); line-height: 1.75; }
-.ev-card { border-bottom: 1px solid var(--border); padding: 22px 0; display: flex; gap: 20px; transition: padding-left .3s; cursor: default; }
-.ev-card:first-child { border-top: 1px solid var(--border); }
-.ev-card:hover { padding-left: 8px; }
-.ev-datebox { background: rgba(255,255,255,.06); border: 1px solid var(--border); padding: 10px 12px; text-align: center; flex-shrink: 0; min-width: 54px; }
-.ev-day   { font-family: var(--display); font-size: 22px; font-weight: 200; color: var(--white); line-height: 1; }
-.ev-month { font-family: var(--display); font-size: 8px; font-weight: 400; letter-spacing: .18em; color: var(--muted); text-transform: uppercase; margin-top: 3px; }
-.ev-title { font-family: var(--display); font-size: 15px; font-weight: 400; letter-spacing: .1em; color: var(--white); margin-bottom: 5px; text-transform: uppercase; line-height: 1.3; }
-.ev-loc   { font-family: var(--display); font-size: 9px; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; margin-bottom: 7px; }
-.ev-desc  { font-family: var(--body); font-size: 13px; font-weight: 300; color: var(--text); line-height: 1.75; }
-.ev-link  { display: inline-block; margin-top: 8px; font-family: var(--display); font-size: 9px; font-weight: 400; letter-spacing: .2em; color: var(--muted); text-decoration: none; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 1px; transition: color .3s; }
-.ev-link:hover { color: var(--white); }
+    .nav-links a {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--dark-gray);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
 
-/* ─── PROCESS ─── */
-.process { background: var(--navy-deep); }
-.proc-steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 60px; }
-.step { background: var(--navy-deep); padding: 44px 32px; position: relative; transition: background .35s; }
-.step:hover { background: var(--navy); }
-.step-n { font-family: var(--display); font-size: 52px; font-weight: 200; color: rgba(255,255,255,.08); line-height: 1; margin-bottom: 16px; display: block; }
-.step-name { font-family: var(--display); font-size: 12px; font-weight: 500; letter-spacing: .2em; color: var(--white); text-transform: uppercase; margin-bottom: 10px; }
-.step-desc { font-family: var(--body); font-size: 12px; font-weight: 300; color: var(--text); line-height: 1.75; }
-.step-line { position: absolute; right: -1px; top: 50%; transform: translateY(-50%); width: 1px; height: 24px; background: var(--white); opacity: .09; }
-.step:last-child .step-line { display: none; }
+    .nav-links a:hover { color: var(--black); }
 
-/* ─── CTA ─── */
-.cta { background: var(--navy); border-top: 1px solid var(--border); min-height: 72vh; display: flex; align-items: center; justify-content: center; text-align: center; position: relative; overflow: hidden; }
-.cta::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 55% 50% at 50% 50%, rgba(255,255,255,.03) 0%, transparent 70%); pointer-events: none; }
-.cta-inner { max-width: 660px; padding: 0 24px; position: relative; z-index: 1; }
-.cta-h { font-family: var(--display); font-size: clamp(34px,4.2vw,62px); font-weight: 200; letter-spacing: .15em; text-transform: uppercase; color: var(--white); margin-bottom: 22px; line-height: 1.1; }
-.cta-p { font-family: var(--body); font-size: 15px; font-weight: 300; line-height: 1.9; color: var(--text); margin-bottom: 44px; }
+    .nav-cta {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--white) !important;
+      background: var(--black);
+      padding: 10px 22px;
+      border: 1px solid var(--black);
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s !important;
+    }
 
-/* ─── LEGAL BLOCK ─── */
-.legal-sec { background: var(--navy-deep); border-top: 1px solid var(--border); }
-.legal-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 48px; }
-.legal-card { background: var(--navy-deep); padding: 36px 30px; }
-.legal-card-t { font-family: var(--display); font-size: 9px; font-weight: 600; letter-spacing: .25em; color: var(--muted); text-transform: uppercase; margin-bottom: 14px; }
-.legal-card-b { font-family: var(--body); font-size: 12px; font-weight: 300; line-height: 1.85; color: var(--dim); }
+    .nav-cta:hover {
+      background: var(--navy) !important;
+      border-color: var(--navy) !important;
+      color: var(--white) !important;
+    }
 
-/* ─── FOOTER ─── */
-footer { background: var(--navy-deep); border-top: 1px solid var(--border); padding: clamp(40px,5vw,64px); }
-.ft-inner { max-width: 1180px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 40px; flex-wrap: wrap; }
-.ft-legal { font-family: var(--body); font-size: 11px; font-weight: 300; color: var(--dim); line-height: 1.85; max-width: 500px; }
-.ft-right { text-align: right; font-family: var(--display); font-size: 9px; font-weight: 300; letter-spacing: .2em; color: var(--dim); text-transform: uppercase; line-height: 2.2; flex-shrink: 0; }
-.ft-links { display: flex; gap: 24px; margin-top: 8px; justify-content: flex-end; }
-.ft-links a { font-family: var(--display); font-size: 9px; letter-spacing: .15em; color: var(--dim); text-decoration: none; text-transform: uppercase; transition: color .3s; cursor: pointer; }
-.ft-links a:hover { color: var(--white); }
+    /* hamburger */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 4px;
+      background: none;
+      border: none;
+    }
 
-/* ─── REVEAL ─── */
-.reveal { opacity: 0; transform: translateY(18px); transition: opacity .75s ease, transform .75s ease; }
-.reveal.on { opacity: 1; transform: translateY(0); }
+    .hamburger span {
+      display: block;
+      width: 22px;
+      height: 1.5px;
+      background: var(--black);
+      transition: all 0.3s;
+    }
 
-/* ─── MODAL ─── */
-.modal-overlay { position: fixed; inset: 0; background: rgba(12,20,44,.95); backdrop-filter: blur(14px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .35s; padding: 16px; }
-.modal-overlay.open { opacity: 1; pointer-events: all; }
-.modal { background: var(--navy-mid); border: 1px solid var(--border-hi); padding: clamp(36px,5vw,60px) clamp(28px,5vw,52px); max-width: 500px; width: 100%; position: relative; transform: translateY(14px); transition: transform .35s; max-height: 90vh; overflow-y: auto; }
-.modal-overlay.open .modal { transform: translateY(0); }
-.m-close { position: absolute; top: 20px; right: 24px; font-family: var(--display); font-size: 10px; font-weight: 400; letter-spacing: .18em; color: var(--muted); cursor: pointer; background: none; border: none; text-transform: uppercase; transition: color .25s; }
-.m-close:hover { color: var(--white); }
-.m-tag   { font-family: var(--display); font-size: 9px; font-weight: 400; letter-spacing: .38em; color: var(--muted); text-transform: uppercase; margin-bottom: 14px; }
-.m-title { font-family: var(--display); font-size: 26px; font-weight: 300; letter-spacing: .1em; text-transform: uppercase; color: var(--white); margin-bottom: 12px; line-height: 1.2; }
-.m-body  { font-family: var(--body); font-size: 13px; font-weight: 300; line-height: 1.85; color: var(--text); margin-bottom: 28px; }
-.m-form input, .m-form select {
-  width: 100%; background: rgba(255,255,255,.05); border: 1px solid var(--border);
-  padding: 14px 16px; font-family: var(--body); font-size: 14px; font-weight: 300;
-  color: var(--white); margin-bottom: 8px; outline: none; transition: border-color .3s;
-  appearance: none; -webkit-appearance: none; border-radius: 0; }
-.m-form input::placeholder { color: var(--dim); }
-.m-form input:focus, .m-form select:focus { border-color: rgba(255,255,255,.38); }
-.m-form select { color: var(--muted); cursor: pointer; }
-.m-form select option { background: var(--navy-mid); color: var(--white); }
-#f-err { font-family: var(--body); font-size: 12px; color: #b06060; margin-bottom: 8px; display: none; }
-.m-submit { width: 100%; background: transparent; border: 1px solid rgba(255,255,255,.35); color: var(--white); padding: 15px; font-family: var(--display); font-size: 10px; font-weight: 500; letter-spacing: .3em; text-transform: uppercase; cursor: pointer; transition: all .3s; margin-top: 4px; }
-.m-submit:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.7); }
-.m-submit:disabled { opacity: .5; cursor: not-allowed; }
-.m-note { font-family: var(--display); font-size: 9px; letter-spacing: .22em; color: var(--dim); text-align: center; margin-top: 14px; text-transform: uppercase; }
-#m-confirm, #m-err { display: none; text-align: center; padding: 12px 0; }
-.c-line { width: 40px; height: 1px; background: var(--white); margin: 0 auto 28px; opacity: .18; }
-.lg-modal { max-width: 680px; max-height: 82vh; overflow-y: auto; }
-.lg-body { font-family: var(--body); font-size: 13px; font-weight: 300; line-height: 1.9; color: var(--text); }
-.lg-body h4 { font-family: var(--display); font-size: 9px; font-weight: 600; letter-spacing: .22em; color: var(--muted); text-transform: uppercase; margin: 22px 0 8px; }
-.lg-body p { margin-bottom: 12px; }
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 68px; left: 0; right: 0;
+      background: var(--white);
+      border-bottom: 1px solid var(--light-gray);
+      padding: 32px var(--gutter) 40px;
+      z-index: 99;
+      flex-direction: column;
+      gap: 28px;
+    }
 
-/* ─── ANIMATIONS ─── */
-@keyframes fu { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-@keyframes tk { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+    .mobile-menu.open { display: flex; }
 
-/* ─── RESPONSIVE ─── */
-@media(max-width:960px){
-  nav ul, .lang-toggle { display: none; }
-  .hbg { display: flex; }
-  .hero { padding: var(--nav-h) 32px 90px; }
-  .hero-frame { inset: 16px; }
-  .intro-grid, .ne-grid { grid-template-columns: 1fr; }
-  .intro-right { border-left: none; border-top: 1px solid var(--border); padding-left: 0; padding-top: 32px; }
-  .srv-grid, .mission-grid { grid-template-columns: 1fr; }
-  .vision-grid, .tgt-grid, .evo-grid { grid-template-columns: 1fr; }
-  .proc-steps { grid-template-columns: 1fr 1fr; }
-  .step-line { display: none; }
-  .legal-grid { grid-template-columns: 1fr; }
-  .ft-inner { flex-direction: column; align-items: flex-start; }
-  .ft-right { text-align: left; }
-  .ft-links { justify-content: flex-start; }
-}
-@media(max-width:560px){
-  nav { padding: 0 22px; }
-  .hero { padding: var(--nav-h) 20px 90px; }
-  .hero-box { padding: 18px 22px; }
-  .proc-steps { grid-template-columns: 1fr; }
-  section { padding: 72px 20px; }
-}
-</style>
+    .mobile-menu a {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--charcoal);
+      text-decoration: none;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 120px 0 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-bg-line {
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 45%;
+      background: var(--off-white);
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 680px;
+    }
+
+    .hero-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .hero-eyebrow .label { color: var(--dark-gray); }
+
+    .hero-title {
+      font-size: clamp(56px, 7vw, 96px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 0.95;
+      color: var(--black);
+      margin-bottom: 16px;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(13px, 1.5vw, 16px);
+      font-weight: 400;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mid-gray);
+      margin-bottom: 40px;
+    }
+
+    .hero-text {
+      font-size: clamp(15px, 1.6vw, 18px);
+      font-weight: 300;
+      color: var(--dark-gray);
+      line-height: 1.75;
+      max-width: 500px;
+      margin-bottom: 56px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn-primary {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      background: var(--black);
+      color: var(--white);
+      padding: 16px 36px;
+      text-decoration: none;
+      border: 1px solid var(--black);
+      transition: background 0.25s, color 0.25s;
+      display: inline-block;
+    }
+
+    .btn-primary:hover {
+      background: var(--navy);
+      border-color: var(--navy);
+    }
+
+    .btn-secondary {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      background: transparent;
+      color: var(--charcoal);
+      padding: 16px 36px;
+      text-decoration: none;
+      border: 1px solid var(--charcoal);
+      transition: background 0.25s, color 0.25s, border-color 0.25s;
+      display: inline-block;
+    }
+
+    .btn-secondary:hover {
+      background: var(--charcoal);
+      color: var(--white);
+    }
+
+    .hero-scroll {
+      position: absolute;
+      bottom: 48px;
+      left: var(--gutter);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--mid-gray);
+    }
+
+    .hero-scroll .label { color: var(--mid-gray); }
+
+    .scroll-line {
+      width: 32px;
+      height: 1px;
+      background: var(--mid-gray);
+    }
+
+    /* ─── SECTION BASE ─── */
+    section { padding: var(--section-pad); }
+
+    .section-header {
+      margin-bottom: 72px;
+    }
+
+    .section-header .label {
+      display: block;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 3.5vw, 44px);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--black);
+    }
+
+    .section-text {
+      font-size: 15px;
+      font-weight: 300;
+      color: var(--dark-gray);
+      line-height: 1.85;
+      max-width: 640px;
+    }
+
+    /* ─── QUIÉNES SOMOS ─── */
+    .about { background: var(--white); }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: start;
+    }
+
+    .about-left .section-title { margin-bottom: 0; }
+
+    .about-right { padding-top: 8px; }
+
+    .about-right p {
+      font-size: 15px;
+      font-weight: 300;
+      color: var(--dark-gray);
+      line-height: 1.9;
+      margin-bottom: 24px;
+    }
+
+    .about-right p:last-child { margin-bottom: 0; }
+
+    .about-stats {
+      display: flex;
+      gap: 48px;
+      margin-top: 56px;
+      padding-top: 40px;
+      border-top: 1px solid var(--light-gray);
+    }
+
+    .stat-item { }
+
+    .stat-number {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--black);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mid-gray);
+    }
+
+    /* ─── SERVICIOS ─── */
+    .services { background: var(--off-white); }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border: 1px solid var(--light-gray);
+    }
+
+    .service-card {
+      padding: 44px 40px;
+      border-right: 1px solid var(--light-gray);
+      border-bottom: 1px solid var(--light-gray);
+      background: var(--white);
+      transition: background 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .service-card::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 0; height: 2px;
+      background: var(--navy);
+      transition: width 0.35s ease;
+    }
+
+    .service-card:hover::before { width: 100%; }
+    .service-card:hover { background: var(--off-white); }
+
+    .service-card:nth-child(3n) { border-right: none; }
+    .service-card:nth-last-child(-n+3) { border-bottom: none; }
+
+    .service-number {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      color: var(--mid-gray);
+      margin-bottom: 24px;
+      display: block;
+    }
+
+    .service-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--black);
+      margin-bottom: 16px;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+
+    .service-desc {
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--dark-gray);
+      line-height: 1.8;
+    }
+
+    /* ─── CLIENTES ─── */
+    .clients { background: var(--white); }
+
+    .clients-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--light-gray);
+      border: 1px solid var(--light-gray);
+      margin-top: 72px;
+    }
+
+    .client-card {
+      background: var(--white);
+      padding: 56px 48px;
+      transition: background 0.2s;
+    }
+
+    .client-card:hover { background: var(--off-white); }
+
+    .client-icon {
+      width: 32px;
+      height: 1px;
+      background: var(--navy);
+      margin-bottom: 32px;
+      display: block;
+    }
+
+    .client-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--black);
+      margin-bottom: 16px;
+      line-height: 1.35;
+    }
+
+    .client-desc {
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--dark-gray);
+      line-height: 1.85;
+    }
+
+    /* ─── FILOSOFÍA ─── */
+    .philosophy {
+      background: var(--black);
+      color: var(--white);
+      text-align: center;
+      padding: 160px 0;
+    }
+
+    .philosophy .label { color: rgba(255,255,255,0.35); }
+
+    .philosophy-title {
+      font-size: clamp(32px, 4.5vw, 60px);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--white);
+      max-width: 800px;
+      margin: 24px auto 40px;
+    }
+
+    .philosophy-text {
+      font-size: 15px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.9;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .philosophy-text p { margin-bottom: 16px; }
+    .philosophy-text p:last-child { margin-bottom: 0; }
+
+    /* ─── CONTACTO ─── */
+    .contact { background: var(--white); }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 100px;
+      align-items: start;
+    }
+
+    .contact-left { }
+
+    .contact-left .section-title { margin-bottom: 20px; }
+
+    .contact-left p {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--dark-gray);
+      line-height: 1.9;
+      margin-bottom: 48px;
+      max-width: 380px;
+    }
+
+    .contact-info-item {
+      margin-bottom: 20px;
+    }
+
+    .contact-info-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--mid-gray);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .contact-info-value {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--charcoal);
+    }
+
+    /* FORM */
+    .contact-form { }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mid-gray);
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--black);
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--light-gray);
+      padding: 10px 0;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+      border-radius: 0;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      border-bottom-color: var(--black);
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+      color: var(--mid-gray);
+    }
+
+    .form-group textarea {
+      resize: none;
+      min-height: 100px;
+    }
+
+    .form-submit {
+      margin-top: 32px;
+    }
+
+    .btn-submit {
+      font-family: var(--font);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      background: var(--black);
+      color: var(--white);
+      padding: 16px 40px;
+      border: 1px solid var(--black);
+      cursor: pointer;
+      transition: background 0.25s;
+      display: inline-block;
+    }
+
+    .btn-submit:hover { background: var(--navy); border-color: var(--navy); }
+
+    .form-note {
+      font-size: 11px;
+      color: var(--mid-gray);
+      margin-top: 16px;
+      font-weight: 300;
+    }
+
+    .form-success {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--dark-gray);
+      padding: 16px 20px;
+      border-left: 2px solid var(--navy);
+      background: var(--off-white);
+    }
+
+    .form-error-global {
+      font-size: 12px;
+      font-weight: 400;
+      color: #8b2020;
+      padding: 14px 18px;
+      border-left: 2px solid #c0392b;
+      background: #fdf5f5;
+    }
+
+    .field-error {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: #8b2020;
+      margin-top: 5px;
+      min-height: 14px;
+    }
+
+    /* aria-invalid styling from Formspree SDK */
+    input[aria-invalid="true"],
+    textarea[aria-invalid="true"] {
+      border-bottom-color: #c0392b;
+    }
+
+    /* Disabled state while submitting */
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: var(--dark-gray);
+      border-color: var(--dark-gray);
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      background: var(--charcoal);
+      color: var(--white);
+      padding: 64px 0 40px;
+    }
+
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 48px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 32px;
+    }
+
+    .footer-brand { }
+
+    .footer-brand-name {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--white);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .footer-brand-sub {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+    }
+
+    .footer-links {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .footer-links a {
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--white); }
+
+    .footer-social {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-social a {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-social a:hover { color: var(--white); }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-copy {
+      font-size: 11px;
+      color: rgba(255,255,255,0.25);
+      font-weight: 300;
+    }
+
+    .footer-email {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+
+    .footer-email:hover { color: rgba(255,255,255,0.7); }
+
+    /* ─── FADE IN ─── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 1024px) {
+      :root { --gutter: 32px; }
+
+      .about-grid { grid-template-columns: 1fr; gap: 48px; }
+      .services-grid { grid-template-columns: repeat(2, 1fr); }
+      .service-card:nth-child(3n) { border-right: 1px solid var(--light-gray); }
+      .service-card:nth-child(2n) { border-right: none; }
+      .service-card:nth-last-child(-n+3) { border-bottom: 1px solid var(--light-gray); }
+      .service-card:nth-last-child(-n+2) { border-bottom: none; }
+
+      .clients-grid { grid-template-columns: repeat(2, 1fr); }
+      .clients-grid .client-card:last-child {
+        grid-column: span 2;
+        border-top: 1px solid var(--light-gray);
+      }
+
+      .contact-grid { grid-template-columns: 1fr; gap: 56px; }
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --gutter: 24px;
+        --section-pad: 80px 0;
+      }
+
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+
+      .hero-bg-line { display: none; }
+
+      .hero-title { font-size: clamp(44px, 12vw, 72px); }
+
+      .services-grid { grid-template-columns: 1fr; }
+      .service-card { border-right: none !important; border-bottom: 1px solid var(--light-gray) !important; }
+      .service-card:last-child { border-bottom: none !important; }
+
+      .clients-grid { grid-template-columns: 1fr; }
+      .clients-grid .client-card:last-child { grid-column: span 1; }
+
+      .form-row { grid-template-columns: 1fr; }
+
+      .footer-top { flex-direction: column; gap: 40px; }
+      .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+
+      .about-stats { flex-wrap: wrap; gap: 32px; }
+    }
+
+    @media (max-width: 480px) {
+      .hero-actions { flex-direction: column; align-items: flex-start; }
+      .btn-primary, .btn-secondary { width: 100%; text-align: center; }
+    }
+  </style>
 </head>
 <body>
 
-<!-- CMS DATA — actualiza este bloque desde el Panel de Admin -->
-<script>
-const CMS_DATA = {
-  "hero":{ "title":"Capital & Markets","subtitle":"Arquitectura financiera global para capital privado","cta":"Solicitar evaluación" },
-  "contenido":{ "what":"En ROIS CAPITAL estructuramos y gestionamos capital en mercados internacionales mediante infraestructura institucional, ejecución profesional y control de riesgo.","approach":"Nuestro enfoque está construido sobre principios que no negociamos." },
-  "noticias":[],
-  "eventos":[]
-};
-const LOGO_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAT4AAAFVCAYAAAB2C4OpAAAM3ElEQVR42u3d2ZIjtw5F0RJD///Lui/tcNm3u6whOQBn7VeHuzJBYPMwNd2+gIt5PB6Pd//f2+12U0HMRpNhusymNS9JgvjQUW6kCOIDyREiiA9ER4QgPhAdGYL4iA5ECOIjO5CgdVQCsgMREh/IDiRIfCA8kCDxgexAgsQHwgMBEh8IDyR4MEMJgD0bnk2P+AAChKOuIy8cg0F8RAjyA/GRIEgQxEeCIEAQHxmC/EB8ZAgCBPGRIQiQ+ECIIEDiA0iS/Ihv6XBZSEIEAUaI7/sAWUAC3CmGyjI3O4XER3oEeNoQV0+y5uj3jI6Dgh4Dd/uFapqrluKzOOSHufNlxg4TnwUBaZq1KPFZCBCF9BclPsWX3EDqUeIjPZwuy4QeTZ7DodhAdvJLnEm/uQHYnOPueZxYXM+FAPJrIT5HXMPket1/lPhID88i7ZNfC/GRHgx8zVp0rsfQSADSZngoGIC0WR4KBejZtPoMBQKQNtvewAwDbbOOqxXxAYiTH/EBiJMf8WEq3pBMfhHi0+gwvOp3OneLRdbAp/NUbYamHHWrFcHXcUsryKrlsEAEOBuJ2mwRX6EESIJAT/lNE1+XXZ4AgX7yu1um9xbT8c1woi7Ed+HgkCHw93ycPA+3FQU46ZjcZaevKNlnar/qviS+7D4dVQdEswMeKRwrPsc/iQV6VeKDYw+QID4NDwlEzSU+GGBS0q8J4pP6oA9wivwkPgBxLBWf3R7ACalvKA4cd5E230PTA0iTn2d8mkfqQxxD08NRG2kbt8SH4wTk+S75tRWfXRf6AFFH3V07gSGDXpD6totP80EfYIf8PONDrPwI11HXbg/JDzGpb2h4nCa/2+12WzUAek/iiz/3IzP9kV/ezI/ERtco0H/ZPT3Smk+DA/CqLvBtU7QxZqS+cWLzOcrBsRdxiU/jQQ9iZugZmhpw9JX4yAnQi81T36jScJ7zgfwQc9Sd1XAaGY6+ualvVGk4S68+6k1+UeIDpD/EJb5Zu6zGhR7KTH0SH0B+Eh8A8uue+oaG1bDQSxKfhgX0EvEBIL9ex13i06zQTxIfDBisTffUR3waFXpK4gOA7qmP+OzQ0FMSHzQq0D31EV9h+RG0foLEBwDEZ5cGHHeJj/ygl0B8dRvWEAHvpz7iIxpA4gP5AcSH/5PfbgESMPDZcZf4yAfIm18lWLfLEO6Za7Gqpiv7RCghvlbyI745dV9RV+I7R353Jbq20FWa+/F4PKpKlEDwKZ7xTRDgLKFc9e/+JY5qAnn8gkxBfIc29gmv/nZaO2LClfMu8W1+1rAr7REeJL4Q++8aIsmvhqBn/019QHwwMFIetm1kQzF6/s1nr+MkyZxwLVKfxAdpT8qzpsQn4dVNe9bnrGsiv71rKfGFJINUwUh+ID6DjcPWjvw2bTqpzXv6ZzOvvr7dtai6afgCg57JmvjCpVctdewQBPn1k1/bLynQRDm7d5e1vt1uN327Bt/OEp72yPD5Gq5IfuRHfOWPLuglw1Vf5UV+xBeVcqS9tfU9uT7kNxdvZzlEulLoHrm8+vVhKz9loifmzeXofoOpSVNaeF+CzwiH/CQ+IDINkh/xSTkaO1KC5FcTb2dxzMUHAvr+zG+2nLzgIfG9Peyn7Zx28j5p0Le61HGEZ3zhac8gkZLERzylB8UxiGARIj7SA/khMvHtbJaTf08D+hkNxWfYDY41tIZR4qssPc/2QH57vTEqX7xjrmEBIhJf9XQj7cFGRnwAyI/4ZqSbrsdcaQ/k11x8HYZcU0KfEd8S6XVtAmkP5NdYfCcO+CmvKgNoKD6pZl5d1FbqI76mw23hQX5m4HduGSdeVLc0cmXzSWogv2aJ78qhnrXYncRDouRHfKRHVCA/4jPQCc1GpuRHfA0GT9oDyO9o8VUbZvIBiO8jgcyQiF9QI3RIfUeKb9aQdV5IYoKZKSw+A0yuIL8o8c0crBWL5/dqQX7E95IwqksvJYlJfeSXwt0gAfU3uSvE9de/kTC3txMX8cRdatdRd0cTOqb3TPg/rWtaSLlXW7wKw1lZeiDVBMbVhe1Y3LSGMSD1N00sEt/KYdEc5Nddfnq8wFGX9IC5vW4juri2pHftPXZ7vld9o/mpjlXvjQQ3Jz4LkHHkrSaIZ/qystAlwU3i8xYLSELnSZAIn2dUaK6d0tNI59fg1XcTdN5EvTAyQXySXq5oTr0mn6EmwKlHXckHpzzv84Pur9+3+X0x8e18U3K1Zj3pejv+yty7vSj5qMFL4tvZ5Bbq7OS3+ltj3v17+kgtXhIf6Wnwnenv8Q19ZLaursGd9PCpoE5807Y+wk/cT5Ieag7895559e/rtz09kl73+0lNaJeuL4ITrl8f4b8YpNdXQokCID08LT7S63EP6UNPemr1cuKzADDIID7NCqCr+LyqJgm5R0h8mtXwu28075ehWQFIfKQHaQ/dxbeyeTQqQeAM0p/tD8MHMgfxAQDx2Z0lJPeCXn0zNCkRIAvv3f0lvlmDYyAJEog66hoy6CvEiQ/EAcfcKPEZLoD0Tt7wx+w/gPn1S/lRbb2FyxPfFU2lMQFpL/aoC+kJpBchPoMEoia9KPFpSjIB6VXq8/HpIBge8sN5wiO9RUddAFJehPikhXNS2CcNbx2lvLRZuhsWQMKLT3yEZmeEhOeoa0hidt5T11W/Ed528WnC3vK1vufKjvCu6+Xxyv9gKKQcSHexR12QLggvQnyGIee4a70Jr/vmPTS+5KUH+gjv9g2V/TN3A4D/Wnsp5Nx0/tNsfv9v1vBF8ZFezYGybj2F9+66Jm1gz9RokN5ZO7gjtx6ZdXy1jk+KD6RjaK4T3ivSm/Wszjo+edSF427icWl1yiOktWKX+KS+46+lsmx/uvZdr8CSrMQn9Ul+S6RHNsQHSOrYWm9H3SLHsneH6LTrAU6A+EB+1i7ufohPCjVAkPhglyY/EB+OSlinXtNs+XkVGVf2HvFJfZIfJD5IokD3IEB8kPog8aG3XFakvlnyk1hxVZ8Rn2Ol5AeJD1If+aE7PquL6fK7UrR/+uKFHd9qjLonCuILlUrlr6e/OrH+7t8jQ4kPOCr17ZIrGfZIe19fX18WcnKqOP0TDSuHudsLPpVFWHktrqi7FzcMn2v9QB7f0Y11eoj4JNtHxcY9XYQ662yIzy7oeidK0GZ3Zt8QH3wiQgqM2yyJT2M48galQAImPjjykk9onxCfBtk6kMnyW11vwiU+zQb9EXwqID5IfQE1J1jia90kVSVCfsS0sieID8cMIfnNqXtFqc7uBeKzU6Kx/CRJ4oPUF1V7n9AgPmj8KPlJesRHHoZH6rbpER8MAGFmrznxNd5lq6c+8nu9/lI68QEkKe0RnyOj1PfK3z0lcT5Tf9IjPpD3ZbKpcNwmPeKLbSC16Tecz9RfzxIfDh7c6vdwYg2rS29nTYkPZQZt9aD8+35PeuZHesQHRAys3+4gPseGwOPuCamvUy2Te5H4YINA3AZMfDA8wQk6tWbENznFnLTYhvXa/lDPur1HfCh53D1lkMivJsQHfCh78qu3OQwNnfWwvtOQeoxgjYgPNgyQHvEZXsO1tl+kvjq1kPgcf2DN42oQKz7fNuJ+kLsWEh9w8YZJxMQHqTkyaSTKr9I9DwMLIE30Ep9GUHM9EHefceKT9rCyh7rLr+r9SXwwiIirdZT4VqW9Cg1BEGqdfE8SH4A4kceIz7M9g7mzn3z1P/G1lp4jJGwoxAebChqIo9uGPgwmSAY/1bFjLSU+w4aFm2qlHuncz0NjAkjbxNuKb7X0qjVKwqYggauboy4MiZpZz87ic8QFSC9KfDukJ/UY5srX1fWVW0ddwOnCpt1VfNIeSEfKixKf53pqBZu1o64GgnVSiz9wl2AAwpP4SE8joVUf6dVm4pP09tbMQBEr8WkmhK7ZiRtw+qu2bcUn7YGUbczvUvLFjZ3Sq9xUNgsCRVHxGV6A8KKOurulp8HU4rR6WofmiU/SUz8QXuxRV6NBHyLmqLv7A93SXv16nH7dP12ft6eEis9uh8RER3iOuv9ojFXPrKQ92OAlPs1hKNUdxNd5CKU9gPii5CfZAMR3vPyIan7aU2MQX+P054gLEF+U/EhP2gPxOfoCIL7O6U/aA4gvKv2RXsYx10kAEeJ7puENA1GA+OLTn7QHEF/rFOOIK+0hj9jv4+sw1JIeIPFFMVt60h6ID5IeQHzwGACoi9/ckPQAiQ/Z0pP2QHxwxAUcdeF4C0h8aCK9lLRnIwHxGVBHXBAfpBKA+NBeetIeiA+kBxAfHG8B4kMT6Ul7ID6QHkB8ANAXn9zYzPf0tSL9SXsA8UVJkPQA4ouSIOkBxCcJQopOXjclqM0zIjScr9VLLYkPxQfboH4mPfUjPqC1+EguB8/4kLnjk1w0/wMNAkT3vQEg6QAAAABJRU5ErkJggg==";
-</script>
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="nav-logo-name">ROIS TRADE</span>
+        <span class="nav-logo-sub">Strategic Business Advisory</span>
+      </a>
 
-<!-- NAV -->
-<nav id="nav">
-  <a class="logo" href="#">
-    <img class="logo-icon" id="logo-nav" src="" alt="ROIS CAPITAL">
-    <div class="logo-text">
-      <span class="logo-name">ROIS CAPITAL</span>
-      <span class="logo-tag">Capital &amp; Markets</span>
+      <ul class="nav-links">
+        <li><a href="#quienes-somos">Nosotros</a></li>
+        <li><a href="#servicios">Servicios</a></li>
+        <li><a href="#clientes">Clientes</a></li>
+        <li><a href="#contacto" class="nav-cta">Agendar consulta</a></li>
+      </ul>
+
+      <button class="hamburger" onclick="toggleMenu()" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
     </div>
-  </a>
-  <ul>
-    <li><a href="#intro"    data-i18n="n_intro">Introducción</a></li>
-    <li><a href="#services" data-i18n="n_srv">Servicios</a></li>
-    <li><a href="#process"  data-i18n="n_proc">Proceso</a></li>
-    <li><a href="#cta" class="nav-btn" onclick="openM()" data-i18n="n_cta">Solicitar acceso</a></li>
-  </ul>
-  <div class="lang-wrap">
-    <div class="lang-toggle">
-      <button class="lang-btn on" onclick="setLang('es')">ES</button>
-      <button class="lang-btn"    onclick="setLang('en')">EN</button>
-    </div>
-    <button class="hbg" id="hbg" onclick="toggleMenu()"><span></span><span></span><span></span></button>
-  </div>
-</nav>
+  </nav>
 
-<div class="mob-menu" id="mob">
-  <a href="#intro"    onclick="closeMenu()" data-i18n="n_intro">Introducción</a>
-  <a href="#services" onclick="closeMenu()" data-i18n="n_srv">Servicios</a>
-  <a href="#process"  onclick="closeMenu()" data-i18n="n_proc">Proceso</a>
-  <button class="mob-cta" onclick="closeMenu();openM()" data-i18n="n_cta">Solicitar acceso</button>
-  <div class="lang-toggle" style="margin-top:20px">
-    <button class="lang-btn on" onclick="setLang('es')">ES</button>
-    <button class="lang-btn"    onclick="setLang('en')">EN</button>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#quienes-somos" onclick="closeMenu()">Nosotros</a>
+    <a href="#servicios" onclick="closeMenu()">Servicios</a>
+    <a href="#clientes" onclick="closeMenu()">Clientes</a>
+    <a href="#contacto" onclick="closeMenu()">Agendar consulta</a>
   </div>
-</div>
 
-<!-- HERO -->
-<section class="hero" id="hero">
-  <div class="hero-frame"></div>
-  <p class="hero-ey" data-i18n="ey">Firma financiera internacional · 2026</p>
-  <div class="hero-box">
-    <h1 class="hero-h1" data-i18n="h1">Capital &amp; Markets</h1>
-  </div>
-  <p class="hero-sub" data-i18n="h_sub">Arquitectura financiera global para capital privado</p>
-  <div class="hero-row">
-    <button class="btn" onclick="openM()" data-i18n="h_btn">Solicitar evaluación</button>
-    <span class="hero-note" data-i18n="h_note">Acceso bajo solicitud</span>
-  </div>
-  <div class="ticker">
-    <div class="ticker-track">
-      <span class="ti">Gestión de Capital<span class="ti-dot">·</span></span>
-      <span class="ti">Banca Offshore<span class="ti-dot">·</span></span>
-      <span class="ti">Mercados Globales<span class="ti-dot">·</span></span>
-      <span class="ti">FX &amp; Liquidez<span class="ti-dot">·</span></span>
-      <span class="ti">Estructuración Internacional<span class="ti-dot">·</span></span>
-      <span class="ti">Capital Privado<span class="ti-dot">·</span></span>
-      <span class="ti">Gestión de Capital<span class="ti-dot">·</span></span>
-      <span class="ti">Banca Offshore<span class="ti-dot">·</span></span>
-      <span class="ti">Mercados Globales<span class="ti-dot">·</span></span>
-      <span class="ti">FX &amp; Liquidez<span class="ti-dot">·</span></span>
-      <span class="ti">Estructuración Internacional<span class="ti-dot">·</span></span>
-      <span class="ti">Capital Privado<span class="ti-dot">·</span></span>
-    </div>
-  </div>
-</section>
-
-<!-- INTRO -->
-<section class="intro" id="intro">
-  <div class="inner">
-    <div class="intro-grid">
-      <div>
-        <div class="s-label reveal" data-i18n="lb_intro">Introduction</div>
-        <p class="intro-quote reveal" data-i18n="iq">La mayoría de los inversionistas no tiene un problema de capital. Tiene un problema de estructura.</p>
-        <p class="intro-note reveal" data-i18n="in">No operamos sobre especulación. Operamos sobre estructura.</p>
-      </div>
-      <div class="intro-right reveal">
-        <p data-i18n="ip1">En ROIS CAPITAL estructuramos y gestionamos capital en mercados internacionales mediante infraestructura institucional, ejecución profesional y control de riesgo.</p>
-        <p data-i18n="ip2">No ofrecemos productos aislados. Integramos una arquitectura completa para la gestión de capital.</p>
-        <div class="tag-row">
-          <span class="tag" data-i18n="tg1">Estructura</span>
-          <span class="tag" data-i18n="tg2">Ejecución</span>
-          <span class="tag" data-i18n="tg3">Custodia</span>
-          <span class="tag" data-i18n="tg4">Escalabilidad</span>
+  <!-- HERO -->
+  <section class="hero" id="inicio">
+    <div class="hero-bg-line"></div>
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-eyebrow">
+          <span class="divider"></span>
+          <span class="label">Consultoría Estratégica</span>
+        </div>
+        <h1 class="hero-title">ROIS<br>TRADE</h1>
+        <p class="hero-subtitle">Strategic Business Advisory</p>
+        <p class="hero-text">
+          Ayudamos a empresas, emprendedores y perfiles ejecutivos a construir operaciones más sólidas, escalables y preparadas para crecer.
+        </p>
+        <div class="hero-actions">
+          <a href="#contacto" class="btn-primary">Agendar consulta</a>
+          <a href="#servicios" class="btn-secondary">Conocer servicios</a>
         </div>
       </div>
     </div>
-  </div>
-</section>
+    <div class="hero-scroll">
+      <span class="scroll-line"></span>
+      <span class="label">Scroll</span>
+    </div>
+  </section>
 
-<!-- SERVICES -->
-<section class="services" id="services">
-  <div class="inner">
-    <div class="s-label reveal" data-i18n="lb_srv">Our Services</div>
-    <h2 class="s-h reveal" data-i18n="sh_srv">Lo que <em>ofrecemos</em></h2>
-    <div class="srv-grid reveal">
-      <div class="srv-card">
-        <span class="srv-n">01</span>
-        <div class="srv-name" data-i18n="s1n">Gestión de capital en mercados internacionales</div>
-        <ul class="srv-list">
-          <li data-i18n="s1a">Ejecución activa en equities, índices y derivados</li>
-          <li data-i18n="s1b">Estrategias con control de riesgo estructurado</li>
-          <li data-i18n="s1c">Operación sobre cuentas segregadas</li>
-        </ul>
-      </div>
-      <div class="srv-card">
-        <span class="srv-n">02</span>
-        <div class="srv-name" data-i18n="s2n">Infraestructura de ejecución</div>
-        <ul class="srv-list">
-          <li data-i18n="s2a">Plataforma institucional desarrollada internamente</li>
-          <li data-i18n="s2b">Ejecución profesional en tiempo real</li>
-          <li data-i18n="s2c">Herramientas avanzadas de análisis y riesgo</li>
-        </ul>
-      </div>
-      <div class="srv-card">
-        <span class="srv-n">03</span>
-        <div class="srv-name" data-i18n="s3n">Arquitectura financiera personalizada</div>
-        <ul class="srv-list">
-          <li data-i18n="s3a">Estructura según perfil de cliente</li>
-          <li data-i18n="s3b">Optimización de exposición y liquidez</li>
-          <li data-i18n="s3c">Integración con objetivos patrimoniales</li>
-        </ul>
-      </div>
-      <div class="srv-card">
-        <span class="srv-n">04</span>
-        <div class="srv-name" data-i18n="s4n">Servicios bancarios internacionales</div>
-        <ul class="srv-list">
-          <li data-i18n="s4a">Apertura de cuentas offshore en múltiples divisas</li>
-          <li data-i18n="s4b">Transferencias internacionales sin restricciones</li>
-          <li data-i18n="s4c">Acceso a banca global, tarjetas y liquidez internacional</li>
-        </ul>
+  <!-- QUIÉNES SOMOS -->
+  <section class="about" id="quienes-somos">
+    <div class="container">
+      <div class="about-grid">
+        <div class="about-left fade-up">
+          <span class="label" style="display:block; margin-bottom: 20px;">Quiénes somos</span>
+          <h2 class="section-title">Estrategia, estructura y crecimiento empresarial.</h2>
+          <div class="about-stats">
+            <div class="stat-item">
+              <div class="stat-number">7</div>
+              <div class="stat-label">Áreas de servicio</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">3</div>
+              <div class="stat-label">Perfiles de cliente</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">360°</div>
+              <div class="stat-label">Visión integral</div>
+            </div>
+          </div>
+        </div>
+        <div class="about-right fade-up" style="transition-delay: 0.15s;">
+          <p>ROIS TRADE es una firma de consultoría estratégica enfocada en estructuración empresarial, expansión comercial y desarrollo de negocios.</p>
+          <p>Trabajamos con empresas en crecimiento, fundadores y perfiles ejecutivos que buscan desarrollar nuevas oportunidades de negocio con una visión más sólida, profesional y escalable.</p>
+          <p>Nuestra firma combina estrategia comercial, modelado financiero y estructuración corporativa para ayudar a construir empresas preparadas para crecer.</p>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- VISIÓN -->
-<section class="vision">
-  <div class="inner">
-    <div class="s-label reveal" data-i18n="lb_vis">Our Vision</div>
-    <h2 class="s-h reveal" data-i18n="sh_vis">Nuestra <em>visión</em></h2>
-    <div class="vision-grid reveal">
-      <div class="v-item"><span class="v-n">01</span><p class="v-t" data-i18n="v1">Convertirnos en una firma de referencia en gestión de capital privado en Latinoamérica.</p></div>
-      <div class="v-item"><span class="v-n">02</span><p class="v-t" data-i18n="v2">Elevar el estándar de cómo se estructura y ejecuta el capital en mercados internacionales.</p></div>
-      <div class="v-item"><span class="v-n">03</span><p class="v-t" data-i18n="v3">Construir una arquitectura financiera independiente, escalable y profesional.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- MISIÓN -->
-<section class="mission">
-  <div class="inner">
-    <div class="s-label reveal" data-i18n="lb_mis">Our Mission</div>
-    <h2 class="s-h reveal" data-i18n="sh_mis">Nuestra <em>misión</em></h2>
-    <div class="mission-grid reveal">
-      <div class="m-card"><span class="m-n">01</span><p class="m-t" data-i18n="m1">Gestionar capital con disciplina, estructura y control de riesgo.</p></div>
-      <div class="m-card"><span class="m-n">02</span><p class="m-t" data-i18n="m2">Eliminar la improvisación en la toma de decisiones financieras.</p></div>
-      <div class="m-card"><span class="m-n">03</span><p class="m-t" data-i18n="m3">Integrar tecnología, ejecución y estrategia en una sola estructura.</p></div>
-      <div class="m-card"><span class="m-n">04</span><p class="m-t" data-i18n="m4">Generar consistencia en el tiempo, no resultados especulativos.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- TARGET -->
-<section class="target">
-  <div class="inner">
-    <div class="s-label reveal" data-i18n="lb_tgt">Target Audience</div>
-    <h2 class="s-h reveal" data-i18n="sh_tgt">A quién <em>servimos</em></h2>
-    <div class="tgt-grid reveal">
-      <div class="tgt-card"><span class="tgt-n">01</span><p class="tgt-t" data-i18n="t1">Empresarios con liquidez que buscan estructurar su capital.</p></div>
-      <div class="tgt-card"><span class="tgt-n">02</span><p class="tgt-t" data-i18n="t2">Inversionistas que buscan gestión profesional, no especulación.</p></div>
-      <div class="tgt-card"><span class="tgt-n">03</span><p class="tgt-t" data-i18n="t3">Perfiles que entienden disciplina financiera y visión de largo plazo.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- EVOLUTION -->
-<section class="evolution">
-  <div class="inner">
-    <div class="s-label reveal" data-i18n="lb_evo">Company Evolution</div>
-    <h2 class="s-h reveal" data-i18n="sh_evo">Evolución <em>institucional</em></h2>
-    <div class="evo-grid reveal">
-      <div class="evo-card">
-        <span class="evo-year">2024</span>
-        <span class="evo-phase" data-i18n="e1ph">Fundación</span>
-        <div class="evo-title" data-i18n="e1t">Strategic & financial structuring phase</div>
-        <ul class="evo-list">
-          <li data-i18n="e1a">Inicio en desarrollo de estructuras financieras y modelos de ejecución</li>
-          <li data-i18n="e1b">Diseño de estrategias orientadas a mercados internacionales</li>
-        </ul>
+  <!-- SERVICIOS -->
+  <section class="services" id="servicios">
+    <div class="container">
+      <div class="section-header fade-up">
+        <span class="label">Áreas de trabajo</span>
+        <h2 class="section-title" style="margin-top: 20px;">Servicios</h2>
       </div>
-      <div class="evo-card">
-        <span class="evo-year">2025</span>
-        <span class="evo-phase" data-i18n="e2ph">Integración</span>
-        <div class="evo-title" data-i18n="e2t">Institutional access & infrastructure integration</div>
-        <ul class="evo-list">
-          <li data-i18n="e2a">Integración con infraestructura institucional para ejecución en mercados globales</li>
-          <li data-i18n="e2b">Acceso a plataformas profesionales y liquidez internacional</li>
-          <li data-i18n="e2c">Desarrollo de relaciones estratégicas con partners financieros</li>
-        </ul>
-      </div>
-      <div class="evo-card">
-        <span class="evo-year">2026</span>
-        <span class="evo-phase" data-i18n="e3ph">Ejecución</span>
-        <div class="evo-title" data-i18n="e3t">Direct capital management model</div>
-        <ul class="evo-list">
-          <li data-i18n="e3a">Evolución hacia gestión directa de capital bajo ROIS CAPITAL</li>
-          <li data-i18n="e3b">Implementación de arquitectura financiera completa: ejecución + custodia + banca internacional</li>
-          <li data-i18n="e3c">Posicionamiento como firma de gestión, no asesoría</li>
-        </ul>
+      <div class="services-grid">
+        <div class="service-card fade-up">
+          <span class="service-number">01</span>
+          <h3 class="service-title">Planeación y estrategia comercial</h3>
+          <p class="service-desc">Diseño de estrategias comerciales enfocadas en crecimiento, expansión y posicionamiento empresarial.</p>
+        </div>
+        <div class="service-card fade-up" style="transition-delay:0.05s">
+          <span class="service-number">02</span>
+          <h3 class="service-title">Planes de negocio</h3>
+          <p class="service-desc">Estructuración profesional de modelos y planes de negocio para startups y empresas en crecimiento.</p>
+        </div>
+        <div class="service-card fade-up" style="transition-delay:0.1s">
+          <span class="service-number">03</span>
+          <h3 class="service-title">Pitch decks para inversión</h3>
+          <p class="service-desc">Desarrollo de presentaciones corporativas para levantamiento de capital e inversionistas.</p>
+        </div>
+        <div class="service-card fade-up" style="transition-delay:0.15s">
+          <span class="service-number">04</span>
+          <h3 class="service-title">Modelado financiero</h3>
+          <p class="service-desc">Construcción y evaluación de modelos financieros para análisis, expansión y proyecciones empresariales.</p>
+        </div>
+        <div class="service-card fade-up" style="transition-delay:0.2s">
+          <span class="service-number">05</span>
+          <h3 class="service-title">Contratos mercantiles</h3>
+          <p class="service-desc">Revisión y elaboración de contratos mercantiles y documentos corporativos.</p>
+        </div>
+        <div class="service-card fade-up" style="transition-delay:0.25s">
+          <span class="service-number">06</span>
+          <h3 class="service-title">Estructuras societarias</h3>
+          <p class="service-desc">Diseño de estructuras corporativas y estrategias de organización empresarial.</p>
+        </div>
+        <div class="service-card fade-up" style="transition-delay:0.3s; grid-column: 1 / -1; border-right: none;">
+          <span class="service-number">07</span>
+          <h3 class="service-title">Estrategias de expansión</h3>
+          <p class="service-desc">Planeación de crecimiento, expansión comercial y desarrollo estratégico para empresas que buscan escalar.</p>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- NOTICIAS & EVENTOS -->
-<section class="ne" id="news">
-  <div class="inner">
-    <div class="s-label reveal" data-i18n="lb_ne">Actualidad</div>
-    <h2 class="s-h reveal" data-i18n="sh_ne">Noticias &amp; <em>Eventos</em></h2>
-    <div class="ne-grid reveal">
-      <div>
-        <div class="ne-col-label" data-i18n="ne_n">Noticias</div>
-        <div id="news-list"><p class="ne-empty" data-i18n="ne_en">Sin noticias publicadas aún.</p></div>
+  <!-- CLIENTES -->
+  <section class="clients" id="clientes">
+    <div class="container">
+      <div class="section-header fade-up">
+        <span class="label">Perfil de clientes</span>
+        <h2 class="section-title" style="margin-top: 20px;">Trabajamos con</h2>
       </div>
-      <div>
-        <div class="ne-col-label" data-i18n="ne_e">Eventos</div>
-        <div id="ev-list"><p class="ne-empty" data-i18n="ne_ee">Sin eventos publicados aún.</p></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PROCESO -->
-<section class="process" id="process">
-  <div class="inner">
-    <div class="s-label reveal" data-i18n="lb_proc">Proceso</div>
-    <h2 class="s-h reveal" data-i18n="sh_proc">Acceso <em>estructurado</em></h2>
-    <div class="proc-steps reveal">
-      <div class="step"><span class="step-n">01</span><div class="step-name" data-i18n="p1n">Evaluación inicial</div><p class="step-desc" data-i18n="p1d">Análisis del perfil y objetivos de capital del cliente</p><div class="step-line"></div></div>
-      <div class="step"><span class="step-n">02</span><div class="step-name" data-i18n="p2n">Definición de estructura</div><p class="step-desc" data-i18n="p2d">Diseño de la arquitectura financiera adecuada</p><div class="step-line"></div></div>
-      <div class="step"><span class="step-n">03</span><div class="step-name" data-i18n="p3n">Implementación</div><p class="step-desc" data-i18n="p3d">Activación de la infraestructura y acceso operativo</p><div class="step-line"></div></div>
-      <div class="step"><span class="step-n">04</span><div class="step-name" data-i18n="p4n">Gestión continua</div><p class="step-desc" data-i18n="p4d">Monitoreo, ejecución y ajuste permanente</p><div class="step-line"></div></div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="cta" id="cta">
-  <div class="cta-inner reveal">
-    <div class="s-label" style="justify-content:center;margin-bottom:28px" data-i18n="lb_cta">Contacto</div>
-    <h2 class="cta-h" data-i18n="cta_h">Acceso bajo evaluación</h2>
-    <p class="cta-p" data-i18n="cta_p">Si estás buscando estructurar y gestionar tu capital en un entorno financiero internacional, puedes solicitar acceso a una evaluación inicial. El proceso es selectivo y confidencial.</p>
-    <button class="btn" onclick="openM()" data-i18n="cta_btn">Solicitar acceso</button>
-  </div>
-</section>
-
-<!-- LEGAL -->
-<section class="legal-sec" id="legal">
-  <div class="inner">
-    <div class="s-label reveal" data-i18n="lb_lg">Marco Legal</div>
-    <h2 class="s-h reveal" data-i18n="sh_lg">Respaldo <em>normativo</em></h2>
-    <div class="legal-grid reveal">
-      <div class="legal-card"><div class="legal-card-t" data-i18n="lg1t">Aviso de privacidad</div><p class="legal-card-b" data-i18n="lg1b">ROIS CAPITAL trata sus datos personales conforme a la LFPDPPP. Uso exclusivo para evaluación y contacto comercial. No se transfieren a terceros sin consentimiento.</p></div>
-      <div class="legal-card"><div class="legal-card-t" data-i18n="lg2t">Advertencia regulatoria</div><p class="legal-card-b" data-i18n="lg2b">Este sitio es informativo. No constituye oferta pública de valores ni captación de recursos del público. Las actividades se realizan bajo operaciones privadas.</p></div>
-      <div class="legal-card"><div class="legal-card-t" data-i18n="lg3t">Limitación de responsabilidad</div><p class="legal-card-b" data-i18n="lg3b">La gestión de capital en mercados internacionales conlleva riesgos. ROIS CAPITAL no garantiza resultados específicos. Toda operación se rige por acuerdos contractuales privados.</p></div>
-    </div>
-    <p style="font-family:var(--body);font-size:11px;color:var(--dim);margin-top:28px;line-height:1.8" data-i18n="lg_arco">Derechos ARCO (LFPDPPP): <span style="color:var(--muted)">contacto@roiscapital.com</span> · Última actualización: 2026</p>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="ft-inner">
-    <div>
-      <a class="logo" href="#" style="margin-bottom:20px;display:inline-flex">
-        <img class="logo-icon" id="logo-ft" src="" alt="ROIS CAPITAL">
-        <div class="logo-text"><span class="logo-name">ROIS CAPITAL</span><span class="logo-tag">Capital &amp; Markets</span></div>
-      </a>
-      <p class="ft-legal" data-i18n="ft_legal">ROIS CAPITAL es una firma privada de estructuración y gestión de capital en mercados financieros internacionales. El acceso está sujeto a evaluación previa. Este sitio no constituye oferta pública de inversión. Datos personales tratados conforme a la LFPDPPP.</p>
-    </div>
-    <div class="ft-right">
-      <p>© 2026 ROIS CAPITAL</p>
-      <p data-i18n="ft_r">Todos los derechos reservados</p>
-      <p data-i18n="ft_o">Operaciones internacionales</p>
-      <div class="ft-links">
-        <a onclick="openLG('privacy')"    data-i18n="ft_p">Aviso de privacidad</a>
-        <a onclick="openLG('terms')"      data-i18n="ft_t">Términos</a>
-        <a onclick="openLG('disclaimer')" data-i18n="ft_d">Disclaimer</a>
+      <div class="clients-grid">
+        <div class="client-card fade-up">
+          <span class="client-icon"></span>
+          <h3 class="client-title">Empresas en crecimiento</h3>
+          <p class="client-desc">Negocios que necesitan estructura para escalar profesionalmente y consolidar su operación.</p>
+        </div>
+        <div class="client-card fade-up" style="transition-delay:0.1s">
+          <span class="client-icon"></span>
+          <h3 class="client-title">Emprendedores y startups</h3>
+          <p class="client-desc">Fundadores que buscan desarrollar modelos más sólidos y atractivos para inversión.</p>
+        </div>
+        <div class="client-card fade-up" style="transition-delay:0.2s">
+          <span class="client-icon"></span>
+          <h3 class="client-title">Perfiles ejecutivos y directivos</h3>
+          <p class="client-desc">Profesionales con experiencia corporativa que desean desarrollar nuevas líneas de negocio sin abandonar sus actividades actuales.</p>
+        </div>
       </div>
     </div>
-  </div>
-</footer>
+  </section>
 
-<!-- MODAL FORMULARIO -->
-<div class="modal-overlay" id="M" onclick="closeOuter(event,'M')">
-  <div class="modal">
-    <button class="m-close" onclick="closeM()">✕ <span data-i18n="mc">Cerrar</span></button>
-    <div id="mf">
-      <p class="m-tag"   data-i18n="mt">Evaluación inicial</p>
-      <h3 class="m-title" data-i18n="mh">Solicitar acceso</h3>
-      <p class="m-body"  data-i18n="mb">Complete el formulario. Nuestro equipo revisará su perfil y se pondrá en contacto para coordinar una evaluación inicial.</p>
-      <form id="fs" class="m-form" action="https://formspree.io/f/xkokypkl" method="POST">
-        <input type="text"  name="nombre"  placeholder="Nombre completo *"    required autocomplete="name">
-        <input type="email" name="email"   placeholder="Correo electrónico *" required autocomplete="email">
-        <input type="text"  name="pais"    placeholder="País de residencia *" required>
-        <select name="capital" required>
-          <option value="" disabled selected data-i18n="m_cap">Volumen de capital aproximado *</option>
-          <option value="USD 100K – 500K">USD 100K – 500K</option>
-          <option value="USD 500K – 1M">USD 500K – 1M</option>
-          <option value="USD 1M – 5M">USD 1M – 5M</option>
-          <option value="USD 5M+">USD 5M+</option>
-          <option value="Prefiero no especificar" data-i18n="m_ns">Prefiero no especificar</option>
-        </select>
-        <input type="hidden" name="_subject" value="Nueva solicitud — ROIS CAPITAL">
-        <p id="f-err" data-i18n="f_e">Por favor complete todos los campos requeridos.</p>
-        <button type="submit" class="m-submit" id="m-sub" data-i18n="m_btn">Enviar solicitud</button>
-      </form>
-      <p class="m-note" data-i18n="m_note">Proceso confidencial · Acceso selectivo</p>
+  <!-- FILOSOFÍA -->
+  <section class="philosophy">
+    <div class="container">
+      <span class="label fade-up">Nuestra filosofía</span>
+      <h2 class="philosophy-title fade-up" style="transition-delay:0.1s">Construimos empresas preparadas para crecer.</h2>
+      <div class="philosophy-text fade-up" style="transition-delay:0.2s">
+        <p>Creemos que el crecimiento empresarial requiere estructura, estrategia y visión de largo plazo.</p>
+        <p>Nuestro enfoque está orientado a desarrollar operaciones más profesionales, escalables y sostenibles.</p>
+      </div>
     </div>
-    <div id="m-confirm">
-      <div class="c-line"></div>
-      <p class="m-tag" data-i18n="c_tag">Solicitud recibida</p>
-      <h3 class="m-title">Gracias, <span id="c-name"></span>.</h3>
-      <p class="m-body" data-i18n="c_body">Su solicitud ha sido enviada. Revisaremos su perfil y nos pondremos en contacto en los próximos días hábiles.</p>
-      <p class="m-note" data-i18n="m_note">Proceso confidencial · Acceso selectivo</p>
+  </section>
+
+  <!-- CONTACTO -->
+  <section class="contact" id="contacto">
+    <div class="container">
+      <div class="contact-grid">
+        <div class="contact-left fade-up">
+          <span class="label" style="display:block; margin-bottom: 20px;">Contacto</span>
+          <h2 class="section-title" style="margin-bottom: 20px;">Conversemos.</h2>
+          <p>Actualmente estamos abriendo espacios limitados de consultoría estratégica para empresas y proyectos en crecimiento.</p>
+          <div class="contact-info-item">
+            <span class="contact-info-label">Correo electrónico</span>
+            <span class="contact-info-value">contacto@roistrade.com</span>
+          </div>
+          <div class="contact-info-item" style="margin-top: 20px;">
+            <span class="contact-info-label">Redes sociales</span>
+            <span class="contact-info-value">
+              <a href="https://www.linkedin.com/company/jl-business-consultant/about/?viewAsMember=true" target="_blank" rel="noopener" style="color:var(--charcoal); text-decoration:none; border-bottom: 1px solid var(--light-gray); transition: border-color 0.2s;">LinkedIn</a>
+              &nbsp;·&nbsp;
+              <a href="https://www.instagram.com/rois_trade?igsh=eXBmYTV5cjQzemR4&utm_source=qr" target="_blank" rel="noopener" style="color:var(--charcoal); text-decoration:none; border-bottom: 1px solid var(--light-gray); transition: border-color 0.2s;">Instagram</a>
+            </span>
+          </div>
+        </div>
+        <div class="contact-right fade-up" style="transition-delay:0.15s">
+
+          <!-- Mensaje de éxito (Formspree Ajax) -->
+          <div data-fs-success class="form-success" style="display:none; margin-bottom: 24px;">
+            Solicitud enviada con éxito. En breve estaremos en contacto.
+          </div>
+
+          <!-- Error global (red de red / servidor) -->
+          <div data-fs-error class="form-error-global" style="display:none; margin-bottom: 24px;"></div>
+
+          <form class="contact-form" id="contactForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="nombre">Nombre</label>
+                <input type="text" id="nombre" name="nombre" placeholder="Tu nombre" required data-fs-field />
+                <span data-fs-error="nombre" class="field-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="empresa">Empresa</label>
+                <input type="text" id="empresa" name="empresa" placeholder="Nombre de empresa" data-fs-field />
+                <span data-fs-error="empresa" class="field-error"></span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="email">Correo electrónico</label>
+                <input type="email" id="email" name="email" placeholder="correo@empresa.com" required data-fs-field />
+                <span data-fs-error="email" class="field-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="telefono">Teléfono</label>
+                <input type="tel" id="telefono" name="telefono" placeholder="+52 000 000 0000" data-fs-field />
+                <span data-fs-error="telefono" class="field-error"></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="proyecto">Descripción del proyecto</label>
+              <textarea id="proyecto" name="proyecto" placeholder="Cuéntanos brevemente en qué podemos ayudarte..." required data-fs-field></textarea>
+              <span data-fs-error="proyecto" class="field-error"></span>
+            </div>
+            <div class="form-submit">
+              <button type="submit" class="btn-submit" data-fs-submit-btn>Enviar solicitud</button>
+              <p class="form-note">Respondemos en un plazo de 24–48 horas hábiles.</p>
+            </div>
+          </form>
+
+          <!-- Formspree Ajax SDK -->
+          <script>
+            window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
+            formspree('initForm', { formElement: '#contactForm', formId: 'xkokypkl' });
+          </script>
+          <script src="https://unpkg.com/@formspree/ajax@1" defer></script>
+
+        </div>
+      </div>
     </div>
-    <div id="m-err">
-      <div class="c-line" style="background:#b06060"></div>
-      <p class="m-tag" style="color:#b06060" data-i18n="e_tag">Error al enviar</p>
-      <h3 class="m-title" style="margin-bottom:12px" data-i18n="e_h">Algo salió mal.</h3>
-      <p class="m-body">contacto@roiscapital.com</p>
-      <button class="m-submit" onclick="resetM()" style="margin-top:16px" data-i18n="e_btn">Intentar de nuevo</button>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <span class="footer-brand-name">ROIS TRADE</span>
+          <span class="footer-brand-sub">Strategic Business Advisory</span>
+        </div>
+        <div class="footer-links">
+          <a href="#quienes-somos">Nosotros</a>
+          <a href="#servicios">Servicios</a>
+          <a href="#clientes">Clientes</a>
+          <a href="#contacto">Contacto</a>
+        </div>
+        <div class="footer-social">
+          <a href="https://www.linkedin.com/company/jl-business-consultant/about/?viewAsMember=true" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="https://www.instagram.com/rois_trade?igsh=eXBmYTV5cjQzemR4&utm_source=qr" target="_blank" rel="noopener">Instagram</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-copy">© 2025 ROIS TRADE. Todos los derechos reservados.</span>
+        <a href="mailto:contacto@roistrade.com" class="footer-email">contacto@roistrade.com</a>
+      </div>
     </div>
-  </div>
-</div>
+  </footer>
 
-<!-- MODAL LEGAL -->
-<div class="modal-overlay" id="LM" onclick="closeOuter(event,'LM')">
-  <div class="modal lg-modal">
-    <button class="m-close" onclick="closeLG()">✕ Cerrar</button>
-    <p class="m-tag"  id="lg-tag"></p>
-    <h3 class="m-title" id="lg-title" style="margin-bottom:20px"></h3>
-    <div class="lg-body" id="lg-content"></div>
-  </div>
-</div>
+  <script>
+    // Mobile menu
+    function toggleMenu() {
+      document.getElementById('mobileMenu').classList.toggle('open');
+    }
+    function closeMenu() {
+      document.getElementById('mobileMenu').classList.remove('open');
+    }
 
-<script>
-/* ── INIT ── */
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('#logo-nav,#logo-ft').forEach(el => el.src = LOGO_B64);
-  renderCMS();
-  setLang('es');
-});
+    // Fade-up on scroll
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
 
-/* ── NAV ── */
-const navEl = document.getElementById('nav');
-window.addEventListener('scroll', () => navEl.classList.toggle('scrolled', window.scrollY > 60));
-function toggleMenu() { document.getElementById('mob').classList.toggle('open'); document.getElementById('hbg').classList.toggle('open'); document.body.style.overflow = document.getElementById('mob').classList.contains('open') ? 'hidden' : ''; }
-function closeMenu() { document.getElementById('mob').classList.remove('open'); document.getElementById('hbg').classList.remove('open'); document.body.style.overflow = ''; }
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
-/* ── REVEAL ── */
-new IntersectionObserver((es) => es.forEach((e,i) => { if (e.isIntersecting) setTimeout(() => e.target.classList.add('on'), i * 60); }), { threshold: 0.07, rootMargin: '0px 0px -20px 0px' })
-  .observe || (() => {})();
-document.querySelectorAll('.reveal').forEach(el => {
-  new IntersectionObserver((es) => es.forEach((e,i) => { if (e.isIntersecting) setTimeout(() => e.target.classList.add('on'), i*60); }), { threshold:0.07 }).observe(el);
-});
-
-/* ── CMS ── */
-function renderCMS() {
-  const nl = document.getElementById('news-list');
-  const el = document.getElementById('ev-list');
-  const pn = (CMS_DATA.noticias||[]).filter(x=>x.status==='published');
-  const pe = (CMS_DATA.eventos||[]).filter(x=>x.status==='published');
-  if (pn.length) nl.innerHTML = pn.map(n=>`<div class="news-card"><div class="news-date">${n.date||''}</div><div class="news-title">${n.title}</div><p class="news-body">${n.body||''}</p></div>`).join('');
-  if (pe.length) el.innerHTML = pe.map(ev=>{
-    const d = ev.date ? new Date(ev.date+'T12:00:00') : null;
-    return `<div class="ev-card"><div class="ev-datebox"><div class="ev-day">${d?d.getDate():'–'}</div><div class="ev-month">${d?d.toLocaleString('es',{month:'short'}).toUpperCase():''}</div></div><div><div class="ev-title">${ev.title}</div>${ev.location?`<div class="ev-loc">${ev.location}</div>`:''}<p class="ev-desc">${ev.description||''}</p>${ev.link?`<a class="ev-link" href="${ev.link}" target="_blank">Registrarse →</a>`:''}</div></div>`;
-  }).join('');
-}
-
-/* ── MODAL ── */
-function openM()  { resetM(); document.getElementById('M').classList.add('open'); document.body.style.overflow='hidden'; }
-function closeM() { document.getElementById('M').classList.remove('open'); document.body.style.overflow=''; }
-function closeOuter(e,id) { if(e.target.id===id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; } }
-function resetM() {
-  document.getElementById('mf').style.display='block';
-  document.getElementById('m-confirm').style.display='none';
-  document.getElementById('m-err').style.display='none';
-  document.getElementById('f-err').style.display='none';
-  document.getElementById('fs').reset();
-  const b = document.getElementById('m-sub');
-  b.disabled=false; b.textContent=T[lang].m_btn;
-}
-document.getElementById('fs').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const fd = new FormData(this);
-  const nom = fd.get('nombre')||'', em = fd.get('email')||'', pa = fd.get('pais')||'', ca = fd.get('capital')||'';
-  const er = document.getElementById('f-err');
-  if(!nom||!em||!pa||!ca){er.style.display='block';return;} er.style.display='none';
-  const b = document.getElementById('m-sub');
-  b.textContent = lang==='es'?'Enviando…':'Sending…'; b.disabled=true;
-  try {
-    const r = await fetch('https://formspree.io/f/xkokypkl',{method:'POST',body:fd,headers:{Accept:'application/json'}});
-    if(r.ok){document.getElementById('c-name').textContent=nom.split(' ')[0];document.getElementById('mf').style.display='none';document.getElementById('m-confirm').style.display='block';}
-    else throw 0;
-  } catch { document.getElementById('mf').style.display='none'; document.getElementById('m-err').style.display='block'; }
-});
-
-/* ── LEGAL MODALS ── */
-const LC = {
-  privacy:{
-    es:{tag:'Aviso de Privacidad',title:'Tratamiento de Datos Personales',body:'<h4>Responsable</h4><p>ROIS CAPITAL, domiciliada en México, es responsable del tratamiento de sus datos personales conforme a la LFPDPPP (DOF 5 julio 2010).</p><h4>Datos recabados</h4><p>Nombre, correo electrónico, país de residencia y perfil de capital, proporcionados voluntariamente.</p><h4>Finalidad</h4><p>Proceso de evaluación de perfil, comunicación comercial y cumplimiento de obligaciones legales.</p><h4>Transferencia</h4><p>No se transfieren datos a terceros sin consentimiento previo, salvo los casos del Art. 37 LFPDPPP.</p><h4>Derechos ARCO</h4><p>Contacte a: <strong>contacto@roiscapital.com</strong>. Respuesta en 20 días hábiles (Art. 32 LFPDPPP).</p>'},
-    en:{tag:'Privacy Notice',title:'Personal Data Processing',body:'<h4>Controller</h4><p>ROIS CAPITAL, domiciled in Mexico, processes personal data under LFPDPPP (July 5, 2010).</p><h4>Data collected</h4><p>Name, email, country and capital profile, voluntarily provided.</p><h4>Purpose</h4><p>Profile evaluation, commercial communication and legal compliance.</p><h4>Transfer</h4><p>No data transferred without prior consent, except as per Art. 37 LFPDPPP.</p><h4>ARCO rights</h4><p>Contact: <strong>contacto@roiscapital.com</strong>. Reply within 20 business days (Art. 32 LFPDPPP).</p>'}
-  },
-  terms:{
-    es:{tag:'Términos de Uso',title:'Condiciones de Acceso',body:'<h4>Aceptación</h4><p>El acceso y uso de este sitio implica la aceptación plena de estos Términos.</p><h4>Naturaleza informativa</h4><p>El contenido es exclusivamente informativo. No constituye oferta pública de valores ni asesoría financiera conforme a la Ley del Mercado de Valores.</p><h4>Propiedad intelectual</h4><p>Todos los contenidos y marcas son propiedad de ROIS CAPITAL conforme a la Ley Federal del Derecho de Autor.</p><h4>Jurisdicción</h4><p>Estos Términos se rigen por las leyes mexicanas. Controversias ante tribunales de la Ciudad de México.</p>'},
-    en:{tag:'Terms of Use',title:'Access Conditions',body:'<h4>Acceptance</h4><p>Accessing this website implies full acceptance of these Terms.</p><h4>Informational nature</h4><p>Content is informational only. Does not constitute a public securities offer or financial advice.</p><h4>Intellectual property</h4><p>All content and trademarks belong to ROIS CAPITAL under applicable Mexican law.</p><h4>Jurisdiction</h4><p>These Terms are governed by Mexican law. Disputes before courts of Mexico City.</p>'}
-  },
-  disclaimer:{
-    es:{tag:'Disclaimer',title:'Aviso Legal',body:'<h4>No captación pública</h4><p>ROIS CAPITAL no es institución financiera supervisada por la CNBV o CONDUSEF. Sus actividades se enmarcan en operaciones privadas.</p><h4>Riesgos</h4><p>La participación en mercados financieros internacionales conlleva riesgos, incluyendo pérdida parcial o total del capital. Resultados pasados no garantizan resultados futuros.</p><h4>Cumplimiento</h4><p>ROIS CAPITAL cumple con la LFPIORPI y normativa de la Unidad de Inteligencia Financiera (UIF).</p>'},
-    en:{tag:'Disclaimer',title:'Legal Notice',body:'<h4>No public fundraising</h4><p>ROIS CAPITAL is not a financial institution supervised by CNBV or CONDUSEF. Activities are private transactions.</p><h4>Risks</h4><p>International financial markets carry significant risks including partial or total capital loss. Past results do not guarantee future results.</p><h4>Compliance</h4><p>ROIS CAPITAL complies with LFPIORPI and Financial Intelligence Unit (UIF) regulations.</p>'}
-  }
-};
-function openLG(t){ const c=LC[t][lang]; document.getElementById('lg-tag').textContent=c.tag; document.getElementById('lg-title').textContent=c.title; document.getElementById('lg-content').innerHTML=c.body; document.getElementById('LM').classList.add('open'); document.body.style.overflow='hidden'; }
-function closeLG(){ document.getElementById('LM').classList.remove('open'); document.body.style.overflow=''; }
-
-/* ── i18n ── */
-let lang='es';
-const T={
-  es:{
-    n_intro:'Introducción',n_srv:'Servicios',n_proc:'Proceso',n_cta:'Solicitar acceso',
-    ey:'Firma financiera internacional · 2026',h1:'Capital &amp; Markets',h_sub:'Arquitectura financiera global para capital privado',h_btn:'Solicitar evaluación',h_note:'Acceso bajo solicitud',
-    lb_intro:'Introducción',iq:'La mayoría de los inversionistas no tiene un problema de capital. Tiene un problema de estructura.',in:'No operamos sobre especulación. Operamos sobre estructura.',
-    ip1:'En ROIS CAPITAL estructuramos y gestionamos capital en mercados internacionales mediante infraestructura institucional, ejecución profesional y control de riesgo.',
-    ip2:'No ofrecemos productos aislados. Integramos una arquitectura completa para la gestión de capital.',
-    tg1:'Estructura',tg2:'Ejecución',tg3:'Custodia',tg4:'Escalabilidad',
-    lb_srv:'Nuestros Servicios',sh_srv:'Lo que <em>ofrecemos</em>',
-    s1n:'Gestión de capital en mercados internacionales',s1a:'Ejecución activa en equities, índices y derivados',s1b:'Estrategias con control de riesgo estructurado',s1c:'Operación sobre cuentas segregadas',
-    s2n:'Infraestructura de ejecución',s2a:'Plataforma institucional desarrollada internamente',s2b:'Ejecución profesional en tiempo real',s2c:'Herramientas avanzadas de análisis y riesgo',
-    s3n:'Arquitectura financiera personalizada',s3a:'Estructura según perfil de cliente',s3b:'Optimización de exposición y liquidez',s3c:'Integración con objetivos patrimoniales',
-    s4n:'Servicios bancarios internacionales',s4a:'Apertura de cuentas offshore en múltiples divisas',s4b:'Transferencias internacionales sin restricciones',s4c:'Acceso a banca global, tarjetas y liquidez internacional',
-    lb_vis:'Nuestra Visión',sh_vis:'Nuestra <em>visión</em>',
-    v1:'Convertirnos en una firma de referencia en gestión de capital privado en Latinoamérica.',v2:'Elevar el estándar de cómo se estructura y ejecuta el capital en mercados internacionales.',v3:'Construir una arquitectura financiera independiente, escalable y profesional.',
-    lb_mis:'Nuestra Misión',sh_mis:'Nuestra <em>misión</em>',
-    m1:'Gestionar capital con disciplina, estructura y control de riesgo.',m2:'Eliminar la improvisación en la toma de decisiones financieras.',m3:'Integrar tecnología, ejecución y estrategia en una sola estructura.',m4:'Generar consistencia en el tiempo, no resultados especulativos.',
-    lb_tgt:'Perfil de Cliente',sh_tgt:'A quién <em>servimos</em>',
-    t1:'Empresarios con liquidez que buscan estructurar su capital.',t2:'Inversionistas que buscan gestión profesional, no especulación.',t3:'Perfiles que entienden disciplina financiera y visión de largo plazo.',
-    lb_evo:'Evolución',sh_evo:'Evolución <em>institucional</em>',
-    e1ph:'Fundación',e1t:'Strategic & financial structuring phase',e1a:'Inicio en desarrollo de estructuras financieras y modelos de ejecución',e1b:'Diseño de estrategias orientadas a mercados internacionales',
-    e2ph:'Integración',e2t:'Institutional access & infrastructure integration',e2a:'Integración con infraestructura institucional para ejecución en mercados globales',e2b:'Acceso a plataformas profesionales y liquidez internacional',e2c:'Desarrollo de relaciones estratégicas con partners financieros',
-    e3ph:'Ejecución',e3t:'Direct capital management model',e3a:'Evolución hacia gestión directa de capital bajo ROIS CAPITAL',e3b:'Implementación de arquitectura financiera completa: ejecución + custodia + banca internacional',e3c:'Posicionamiento como firma de gestión, no asesoría',
-    lb_ne:'Actualidad',sh_ne:'Noticias &amp; <em>Eventos</em>',ne_n:'Noticias',ne_e:'Eventos',ne_en:'Sin noticias publicadas aún.',ne_ee:'Sin eventos publicados aún.',
-    lb_proc:'Proceso',sh_proc:'Acceso <em>estructurado</em>',
-    p1n:'Evaluación inicial',p1d:'Análisis del perfil y objetivos de capital del cliente',p2n:'Definición de estructura',p2d:'Diseño de la arquitectura financiera adecuada',p3n:'Implementación',p3d:'Activación de la infraestructura y acceso operativo',p4n:'Gestión continua',p4d:'Monitoreo, ejecución y ajuste permanente',
-    lb_cta:'Contacto',cta_h:'Acceso bajo evaluación',cta_p:'Si estás buscando estructurar y gestionar tu capital en un entorno financiero internacional, puedes solicitar acceso a una evaluación inicial. El proceso es selectivo y confidencial.',cta_btn:'Solicitar acceso',
-    lb_lg:'Marco Legal',sh_lg:'Respaldo <em>normativo</em>',lg1t:'Aviso de privacidad',lg1b:'ROIS CAPITAL trata sus datos personales conforme a la LFPDPPP. Uso exclusivo para evaluación y contacto comercial. No se transfieren a terceros sin consentimiento.',lg2t:'Advertencia regulatoria',lg2b:'Este sitio es informativo. No constituye oferta pública de valores ni captación de recursos. Actividades bajo operaciones privadas.',lg3t:'Limitación de responsabilidad',lg3b:'La gestión de capital en mercados internacionales conlleva riesgos. ROIS CAPITAL no garantiza resultados específicos. Toda operación se rige por acuerdos contractuales privados.',lg_arco:'Derechos ARCO (LFPDPPP): contacto@roiscapital.com · Última actualización: 2026',
-    ft_legal:'ROIS CAPITAL es una firma privada de estructuración y gestión de capital. El acceso está sujeto a evaluación previa. No constituye oferta pública de inversión. Datos tratados conforme a la LFPDPPP.',ft_r:'Todos los derechos reservados',ft_o:'Operaciones internacionales',ft_p:'Aviso de privacidad',ft_t:'Términos',ft_d:'Disclaimer',
-    mc:'Cerrar',mt:'Evaluación inicial',mh:'Solicitar acceso',mb:'Complete el formulario. Nuestro equipo revisará su perfil y se pondrá en contacto para coordinar una evaluación inicial.',m_cap:'Volumen de capital aproximado *',m_ns:'Prefiero no especificar',f_e:'Por favor complete todos los campos requeridos.',m_btn:'Enviar solicitud',m_note:'Proceso confidencial · Acceso selectivo',c_tag:'Solicitud recibida',c_body:'Su solicitud ha sido enviada. Revisaremos su perfil y nos pondremos en contacto en los próximos días hábiles.',e_tag:'Error al enviar',e_h:'Algo salió mal.',e_btn:'Intentar de nuevo'
-  },
-  en:{
-    n_intro:'Introduction',n_srv:'Services',n_proc:'Process',n_cta:'Request access',
-    ey:'International financial firm · 2026',h1:'Capital &amp; Markets',h_sub:'Global financial architecture for private capital',h_btn:'Request evaluation',h_note:'Access upon request',
-    lb_intro:'Introduction',iq:"Most investors don't have a capital problem. They have a structure problem.",in:"We don't operate on speculation. We operate on structure.",
-    ip1:'At ROIS CAPITAL we structure and manage capital in international markets through institutional infrastructure, professional execution and risk control.',
-    ip2:'We do not offer isolated products. We integrate a complete architecture for capital management.',
-    tg1:'Structure',tg2:'Execution',tg3:'Custody',tg4:'Scalability',
-    lb_srv:'Our Services',sh_srv:'What we <em>offer</em>',
-    s1n:'Capital management in international markets',s1a:'Active execution in equities, indices and derivatives',s1b:'Strategies with structured risk control',s1c:'Operation on segregated accounts',
-    s2n:'Execution infrastructure',s2a:'Internally developed institutional platform',s2b:'Professional real-time execution',s2c:'Advanced analysis and risk tools',
-    s3n:'Personalized financial architecture',s3a:'Structure according to client profile',s3b:'Exposure and liquidity optimization',s3c:'Integration with patrimonial objectives',
-    s4n:'International banking services',s4a:'Opening offshore accounts in multiple currencies',s4b:'International transfers without restrictions',s4c:'Access to global banking, cards and international liquidity',
-    lb_vis:'Our Vision',sh_vis:'Our <em>vision</em>',
-    v1:'Become a reference firm in private capital management in Latin America.',v2:'Raise the standard of how capital is structured and executed in international markets.',v3:'Build an independent, scalable and professional financial architecture.',
-    lb_mis:'Our Mission',sh_mis:'Our <em>mission</em>',
-    m1:'Manage capital with discipline, structure and risk control.',m2:'Eliminate improvisation in financial decision-making.',m3:'Integrate technology, execution and strategy into a single structure.',m4:'Generate consistency over time, not speculative results.',
-    lb_tgt:'Target Audience',sh_tgt:'Who we <em>serve</em>',
-    t1:'Entrepreneurs with liquidity looking to structure their capital.',t2:'Investors seeking professional management, not speculation.',t3:'Profiles who understand financial discipline and long-term vision.',
-    lb_evo:'Evolution',sh_evo:'Institutional <em>evolution</em>',
-    e1ph:'Foundation',e1t:'Strategic & financial structuring phase',e1a:'Development of financial structures and execution models',e1b:'Design of strategies oriented to international markets',
-    e2ph:'Integration',e2t:'Institutional access & infrastructure integration',e2a:'Integration with institutional infrastructure for global market execution',e2b:'Access to professional platforms and international liquidity',e2c:'Development of strategic relationships with financial partners',
-    e3ph:'Execution',e3t:'Direct capital management model',e3a:'Evolution toward direct capital management under ROIS CAPITAL',e3b:'Implementation of complete financial architecture: execution + custody + international banking',e3c:'Positioning as a management firm, not advisory',
-    lb_ne:'News & Events',sh_ne:'News &amp; <em>Events</em>',ne_n:'News',ne_e:'Events',ne_en:'No news published yet.',ne_ee:'No events published yet.',
-    lb_proc:'Process',sh_proc:'Structured <em>access</em>',
-    p1n:'Initial evaluation',p1d:"Analysis of the client's capital profile and objectives",p2n:'Structure definition',p2d:'Design of the appropriate financial architecture',p3n:'Implementation',p3d:'Activation of infrastructure and operational access',p4n:'Ongoing management',p4d:'Monitoring, execution and permanent adjustment',
-    lb_cta:'Contact',cta_h:'Access under evaluation',cta_p:'If you are looking to structure and manage your capital in an international financial environment, you can request access to an initial evaluation. The process is selective and confidential.',cta_btn:'Request access',
-    lb_lg:'Legal Framework',sh_lg:'Regulatory <em>backing</em>',lg1t:'Privacy notice',lg1b:'ROIS CAPITAL processes your personal data under LFPDPPP. Used exclusively for evaluation and commercial contact. Not transferred to third parties without consent.',lg2t:'Regulatory disclaimer',lg2b:'This site is informational. It does not constitute a public securities offer or public fundraising. Activities conducted under private operations.',lg3t:'Limitation of liability',lg3b:'Capital management in international markets involves risks. ROIS CAPITAL does not guarantee specific results. All operations governed by private contractual agreements.',lg_arco:'ARCO rights (LFPDPPP): contacto@roiscapital.com · Last updated: 2026',
-    ft_legal:'ROIS CAPITAL is a private firm for capital structuring and management. Access subject to prior evaluation. Not a public investment offer. Data processed under LFPDPPP.',ft_r:'All rights reserved',ft_o:'International operations',ft_p:'Privacy notice',ft_t:'Terms',ft_d:'Disclaimer',
-    mc:'Close',mt:'Initial evaluation',mh:'Request access',mb:'Complete the form. Our team will review your profile and contact you to arrange an initial evaluation.',m_cap:'Approximate capital volume *',m_ns:'Prefer not to specify',f_e:'Please complete all required fields.',m_btn:'Submit request',m_note:'Confidential process · Selective access',c_tag:'Request received',c_body:'Your request has been sent. We will review your profile and be in touch within the next business days.',e_tag:'Submission error',e_h:'Something went wrong.',e_btn:'Try again'
-  }
-};
-function setLang(l) {
-  lang=l;
-  document.querySelectorAll('[data-i18n]').forEach(el=>{ const k=el.getAttribute('data-i18n'); if(T[l][k]!==undefined) el.innerHTML=T[l][k]; });
-  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('on',b.textContent===l.toUpperCase()));
-  document.documentElement.lang=l;
-}
-</script>
+    // Smooth close mobile menu on outside click
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('mobileMenu');
+      if (menu.classList.contains('open') &&
+          !menu.contains(e.target) &&
+          !e.target.closest('.hamburger')) {
+        closeMenu();
+      }
+    });
+  </script>
 </body>
 </html>
