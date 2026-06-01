@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROIS — Connecting Brands, Events & Opportunities</title>
+  <meta name="description" content="ROIS helps organizations access premium events, strategic partnerships and high-value business networks through sponsorship acquisition and business development." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:       #0b0b0f;
+      --deep:      #0f0f15;
+      --surface:   #15151e;
+      --panel:     #1c1c28;
+      --border:    rgba(255,255,255,0.09);
+      --border-md: rgba(255,255,255,0.15);
+
+      --gold:      #c9a96e;
+      --gold-hi:   #e2c88a;
+      --gold-dim:  rgba(201,169,110,0.10);
+      --gold-line: rgba(201,169,110,0.28);
+
+      --white:     #f2efe9;
+      --text:      #cac6be;
+      --soft:      #908c85;
+      --faint:     rgba(242,239,233,0.05);
+
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --sans:  'Montserrat', sans-serif;
+      --g: clamp(22px, 5vw, 80px);
+      --max: 1280px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--ink);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: var(--ink); }
+    ::-webkit-scrollbar-thumb { background: var(--gold); }
+
+    .w { max-width: var(--max); margin: 0 auto; padding: 0 var(--g); }
+
+    /* ── LABEL ── */
+    .lbl {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.34em;
+      text-transform: uppercase; color: var(--gold);
+    }
+    .rule { display: block; width: 28px; height: 1px; background: var(--gold); flex-shrink: 0; }
+    .lbl-row { display: flex; align-items: center; gap: 14px; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+      background: rgba(11,11,15,0.94); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-in {
+      max-width: var(--max); margin: 0 auto; padding: 0 var(--g);
+      height: 62px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { text-decoration: none; }
+    .nav-logo-name {
+      font-family: var(--sans); font-size: 18px; font-weight: 700;
+      letter-spacing: 0.22em; color: var(--white); line-height: 1;
+    }
+    .nav-logo-tag {
+      font-family: var(--serif); font-size: 10px; font-style: italic;
+      color: var(--gold); display: block; letter-spacing: 0.06em; margin-top: 2px;
+    }
+
+    .nav-r { display: flex; align-items: center; gap: 6px; }
+    .nav-links { display: flex; align-items: center; gap: 28px; list-style: none; margin-right: 12px; }
+    .nav-links a {
+      font-size: 9px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--soft); text-decoration: none; transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--white); }
+
+    .lang-btn {
+      font-family: var(--sans); font-size: 9px; font-weight: 600; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--gold); background: transparent;
+      border: 1px solid var(--gold-line); padding: 7px 13px; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .lang-btn:hover { background: var(--gold-dim); }
+
+    .ham {
+      display: none; flex-direction: column; gap: 5px;
+      cursor: pointer; background: none; border: none; padding: 4px; margin-left: 6px;
+    }
+    .ham span { display: block; width: 20px; height: 1px; background: var(--white); transition: all 0.3s; }
+
+    .mob {
+      display: none; position: fixed; top: 62px; left: 0; right: 0;
+      background: var(--deep); border-bottom: 1px solid var(--border);
+      padding: 28px var(--g) 36px; z-index: 299; flex-direction: column; gap: 18px;
+    }
+    .mob.open { display: flex; }
+    .mob a {
+      font-size: 11px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--text); text-decoration: none; transition: color 0.2s;
+    }
+    .mob a:hover { color: var(--gold); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center;
+      padding: 110px 0 80px; position: relative; overflow: hidden;
+    }
+
+    /* background texture */
+    .hero-bg {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 900px 600px at 60% 30%, rgba(201,169,110,0.06) 0%, transparent 65%),
+        radial-gradient(ellipse 400px 400px at 10% 80%, rgba(201,169,110,0.03) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* thin vertical lines */
+    .hero-vl {
+      position: absolute; top: 0; bottom: 0; width: 1px; pointer-events: none;
+      background: linear-gradient(to bottom, transparent 8%, var(--border) 35%, var(--border) 65%, transparent 92%);
+    }
+    .hero-vl:nth-child(1) { left: var(--g); }
+    .hero-vl:nth-child(2) { right: var(--g); opacity: 0.5; }
+
+    .hero-inner { position: relative; z-index: 2; max-width: var(--max); width: 100%; margin: 0 auto; padding: 0 var(--g); }
+
+    .hero-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+
+    .hero-left { }
+
+    .hero-eyebrow { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; animation: fup 0.9s ease both; }
+
+    .hero-wordmark {
+      font-family: var(--sans); font-size: clamp(72px, 10vw, 128px);
+      font-weight: 700; letter-spacing: 0.08em; color: var(--white);
+      line-height: 0.88; margin-bottom: 20px; animation: fup 0.9s 0.08s ease both;
+    }
+
+    .hero-tagline {
+      font-family: var(--serif); font-size: clamp(18px, 2.2vw, 26px);
+      font-weight: 300; font-style: italic; color: var(--gold);
+      line-height: 1.3; margin-bottom: 28px; animation: fup 0.9s 0.16s ease both;
+    }
+
+    .hero-desc {
+      font-size: clamp(13px, 1.3vw, 15px); font-weight: 300; color: var(--text);
+      line-height: 1.95; max-width: 460px; margin-bottom: 40px;
+      animation: fup 0.9s 0.24s ease both;
+    }
+
+    .hero-pills {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 44px;
+      animation: fup 0.9s 0.32s ease both;
+    }
+
+    .pill {
+      font-size: 9px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--soft); border: 1px solid var(--border-md); padding: 8px 16px;
+    }
+
+    .hero-cta { animation: fup 0.9s 0.4s ease both; }
+
+    .btn-primary {
+      display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.24em;
+      text-transform: uppercase; color: var(--ink); background: var(--gold);
+      padding: 16px 40px; text-decoration: none; border: 1px solid var(--gold);
+      transition: background 0.3s;
+    }
+    .btn-primary:hover { background: var(--gold-hi); border-color: var(--gold-hi); }
+
+    .btn-secondary {
+      display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.24em;
+      text-transform: uppercase; color: var(--gold); background: transparent;
+      padding: 16px 40px; text-decoration: none; border: 1px solid var(--gold-line);
+      transition: background 0.3s, border-color 0.3s; margin-left: 12px;
+    }
+    .btn-secondary:hover { background: var(--gold-dim); border-color: var(--gold); }
+
+    /* hero right: countdown + stats */
+    .hero-right { animation: fup 0.9s 0.32s ease both; }
+
+    .hero-card {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 40px; position: relative; overflow: hidden;
+    }
+    .hero-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 1px; background: linear-gradient(to right, var(--gold), transparent);
+    }
+
+    .summit-label {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 10px;
+    }
+    .summit-title {
+      font-family: var(--serif); font-size: clamp(22px, 2.5vw, 30px);
+      font-weight: 400; color: var(--white); margin-bottom: 6px; line-height: 1.2;
+    }
+    .summit-dates {
+      font-size: 11px; font-weight: 300; letter-spacing: 0.14em; color: var(--soft); margin-bottom: 28px;
+    }
+
+    .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); }
+    .cd-unit { background: var(--deep); padding: 20px 12px; text-align: center; }
+    .cd-num {
+      font-family: var(--serif); font-size: clamp(28px, 3.5vw, 42px); font-weight: 300;
+      color: var(--gold-hi); line-height: 1; display: block; letter-spacing: -0.02em;
+    }
+    .cd-lbl { font-size: 8px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--soft); display: block; margin-top: 6px; }
+
+    .hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); margin-top: 1px; }
+    .stat-cell { background: var(--surface); padding: 20px 16px; text-align: center; }
+    .stat-n { font-family: var(--serif); font-size: 28px; font-weight: 300; color: var(--white); line-height: 1; display: block; }
+    .stat-l { font-size: 8px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--soft); display: block; margin-top: 4px; }
+
+    /* ── SECTION BASE ── */
+    section { padding: 108px 0; }
+
+    .s-title {
+      font-family: var(--serif); font-size: clamp(28px, 3.5vw, 50px);
+      font-weight: 300; line-height: 1.15; color: var(--white); letter-spacing: -0.01em;
+    }
+    .s-title em { font-style: italic; color: var(--gold); }
+
+    .s-body { font-size: 14px; font-weight: 300; color: var(--text); line-height: 1.95; }
+
+    /* ── WHAT WE DO ── */
+    .what { background: var(--deep); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+    .what-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: center; }
+
+    .what-left .s-title { margin-bottom: 24px; }
+
+    .what-right { }
+    .what-right p { margin-bottom: 20px; }
+
+    .what-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 32px; }
+    .tag {
+      font-size: 9px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--text); border: 1px solid var(--border); padding: 8px 15px;
+      transition: border-color 0.25s, color 0.25s;
+    }
+    .tag:hover { border-color: var(--gold-line); color: var(--gold); }
+
+    /* ── SERVICES ── */
+    .services { background: var(--ink); }
+
+    .svc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; margin-top: 56px; background: var(--border); border: 1px solid var(--border); }
+
+    .svc-card {
+      background: var(--ink); padding: 44px 40px; position: relative;
+      overflow: hidden; transition: background 0.3s;
+    }
+    .svc-card:hover { background: var(--surface); }
+    .svc-card::before {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+      height: 0; background: var(--gold-dim); transition: height 0.35s ease;
+    }
+    .svc-card:hover::before { height: 3px; }
+
+    .svc-n { font-family: var(--serif); font-size: 48px; font-weight: 300; color: var(--border-md); line-height: 1; margin-bottom: 20px; }
+    .svc-title {
+      font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--white); margin-bottom: 14px;
+    }
+    .svc-desc { font-size: 13px; font-weight: 300; color: var(--text); line-height: 1.85; }
+
+    /* ── APPROACH ── */
+    .approach {
+      background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+
+    .approach-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: start; }
+
+    .approach-quote {
+      font-family: var(--serif); font-size: clamp(32px, 4vw, 52px);
+      font-weight: 300; font-style: italic; color: var(--white); line-height: 1.2;
+      border-left: 2px solid var(--gold); padding-left: 32px;
+    }
+
+    .approach-points { margin-top: 8px; }
+    .approach-point { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .approach-point:first-child { border-top: 1px solid var(--border); }
+    .ap-title { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--white); margin-bottom: 8px; }
+    .ap-body { font-size: 13px; font-weight: 300; color: var(--text); line-height: 1.85; }
+
+    /* ── FOR SPONSORS ── */
+    .sponsors { background: var(--ink); }
+
+    .sponsors-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; }
+
+    .sponsors-left .s-title { margin-bottom: 28px; }
+
+    .check-list { list-style: none; }
+    .check-list li {
+      font-size: 13px; font-weight: 300; color: var(--text); padding: 12px 0;
+      border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px;
+    }
+    .check-list li::before { content: ''; width: 5px; height: 5px; background: var(--gold); border-radius: 50%; flex-shrink: 0; }
+
+    .opp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--border); border: 1px solid var(--border); margin-top: 4px; }
+    .opp-item {
+      background: var(--ink); padding: 22px 24px; transition: background 0.25s;
+      border-bottom: 1px solid var(--border);
+    }
+    .opp-item:hover { background: var(--surface); }
+    .opp-item:nth-last-child(-n+2) { border-bottom: none; }
+    .opp-title { font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--white); margin-bottom: 4px; }
+    .opp-desc { font-size: 12px; font-weight: 300; color: var(--soft); }
+
+    .opp-label { font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 16px; display: block; }
+
+    /* ── ABOUT ── */
+    .about { background: var(--deep); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: start; }
+
+    .about-mission {
+      font-family: var(--serif); font-size: clamp(24px, 2.8vw, 36px);
+      font-weight: 300; font-style: italic; color: var(--white); line-height: 1.35;
+      margin-top: 28px; margin-bottom: 28px;
+    }
+
+    .principles { margin-top: 8px; }
+    .principle { padding: 24px 0; border-bottom: 1px solid var(--border); position: relative; }
+    .principle:first-child { border-top: 1px solid var(--border); }
+    .pr-num { font-family: var(--serif); font-size: 11px; font-style: italic; color: var(--gold); margin-bottom: 8px; display: block; }
+    .pr-title { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--white); margin-bottom: 8px; }
+    .pr-body { font-size: 13px; font-weight: 300; color: var(--text); line-height: 1.85; }
+
+    /* ── PARTNERSHIPS ── */
+    .partnerships { background: var(--ink); }
+
+    .part-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; }
+
+    .part-items { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--border); border: 1px solid var(--border); margin-top: 36px; }
+    .part-item {
+      background: var(--ink); padding: 24px; transition: background 0.25s;
+    }
+    .part-item:hover { background: var(--surface); }
+    .part-item-title { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--white); margin-bottom: 6px; }
+    .part-item-desc { font-size: 12px; font-weight: 300; color: var(--soft); line-height: 1.7; }
+
+    .part-right { }
+    .part-right .s-title { margin-bottom: 24px; }
+    .part-right .s-body { margin-bottom: 20px; }
+
+    /* ── CONTACT ── */
+    .contact {
+      background: var(--surface); border-top: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .contact::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 800px 500px at 50% 100%, rgba(201,169,110,0.05) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .contact-inner { max-width: 780px; margin: 0 auto; text-align: center; position: relative; z-index: 1; }
+    .contact-inner .lbl-row { justify-content: center; }
+
+    .contact-title {
+      font-family: var(--serif); font-size: clamp(32px, 5vw, 64px);
+      font-weight: 300; font-style: italic; color: var(--white);
+      line-height: 1.15; margin: 24px 0 20px;
+    }
+
+    .contact-sub { font-size: 14px; font-weight: 300; color: var(--text); line-height: 1.9; margin-bottom: 52px; }
+
+    /* Form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; }
+    .form-full { grid-column: 1 / -1; }
+
+    .fg { margin-bottom: 0; }
+    .fg label { display: block; font-size: 9px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--soft); margin-bottom: 8px; }
+    .fg input, .fg textarea, .fg select {
+      width: 100%; font-family: var(--sans); font-size: 13px; font-weight: 300;
+      color: var(--white); background: transparent; border: none; border-bottom: 1px solid var(--border-md);
+      padding: 10px 0; outline: none; transition: border-color 0.2s; -webkit-appearance: none; border-radius: 0;
+    }
+    .fg input:focus, .fg textarea:focus, .fg select:focus { border-bottom-color: var(--gold); }
+    .fg input::placeholder, .fg textarea::placeholder { color: var(--soft); }
+    .fg textarea { resize: none; min-height: 90px; }
+    .fg select { cursor: pointer; }
+    .fg select option { background: var(--deep); color: var(--white); }
+
+    .form-foot { margin-top: 32px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .btn-submit {
+      font-family: var(--sans); font-size: 10px; font-weight: 600; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--ink); background: var(--gold);
+      padding: 16px 40px; border: 1px solid var(--gold); cursor: pointer; transition: background 0.3s;
+    }
+    .btn-submit:hover { background: var(--gold-hi); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .form-note { font-size: 11px; font-weight: 300; color: var(--soft); }
+
+    .form-success {
+      display: none; margin-top: 20px; font-size: 13px; font-weight: 300; color: var(--text);
+      padding: 16px 20px; border-left: 2px solid var(--gold); background: var(--gold-dim); text-align: left;
+    }
+
+    .contact-email {
+      display: inline-block; font-family: var(--serif); font-size: clamp(18px, 2.5vw, 26px);
+      font-weight: 300; font-style: italic; color: var(--white); text-decoration: none;
+      border-bottom: 1px solid var(--gold-line); padding-bottom: 3px; margin: 40px 0 8px;
+      transition: color 0.25s, border-color 0.25s;
+    }
+    .contact-email:hover { color: var(--gold); border-color: var(--gold); }
+
+    .social-row { display: flex; justify-content: center; gap: 24px; margin-top: 16px; }
+    .social-row a {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--soft); text-decoration: none; transition: color 0.2s;
+    }
+    .social-row a:hover { color: var(--gold); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--deep); border-top: 1px solid var(--border); padding: 56px 0 36px;
+    }
+    .foot-grid {
+      display: grid; grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 48px; padding-bottom: 40px; border-bottom: 1px solid var(--border); margin-bottom: 28px;
+    }
+
+    .f-name { font-family: var(--sans); font-size: 16px; font-weight: 700; letter-spacing: 0.2em; color: var(--white); display: block; margin-bottom: 6px; }
+    .f-tag { font-family: var(--serif); font-size: 11px; font-style: italic; color: var(--gold); display: block; margin-bottom: 14px; }
+    .f-desc { font-size: 11px; font-weight: 300; color: var(--soft); line-height: 1.8; }
+
+    .f-col-h { font-size: 9px; font-weight: 600; letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 18px; }
+    .f-links { display: flex; flex-direction: column; gap: 10px; }
+    .f-links a {
+      font-size: 10px; font-weight: 400; letter-spacing: 0.1em; color: var(--soft);
+      text-decoration: none; transition: color 0.2s; display: flex; align-items: center; gap: 8px;
+    }
+    .f-links a::before { content: ''; display: block; width: 10px; height: 1px; background: var(--gold-line); flex-shrink: 0; }
+    .f-links a:hover { color: var(--gold); }
+
+    .foot-bottom { display: flex; justify-content: space-between; align-items: center; }
+    .f-copy { font-size: 10px; font-weight: 300; color: var(--soft); }
+    .f-mark { font-size: 9px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); opacity: 0.45; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fup {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fu { opacity: 0; transform: translateY(24px); transition: opacity 0.75s ease, transform 0.75s ease; }
+    .fu.v { opacity: 1; transform: translateY(0); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+      .hero-layout { grid-template-columns: 1fr; gap: 52px; }
+      .what-grid { grid-template-columns: 1fr; gap: 44px; }
+      .approach-inner { grid-template-columns: 1fr; gap: 44px; }
+      .about-grid { grid-template-columns: 1fr; gap: 44px; }
+      .sponsors-grid { grid-template-columns: 1fr; gap: 44px; }
+      .part-grid { grid-template-columns: 1fr; gap: 44px; }
+      .foot-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      section { padding: 72px 0; }
+      .nav-links { display: none; }
+      .ham { display: flex; }
+      .svc-grid { grid-template-columns: 1fr; }
+      .opp-grid { grid-template-columns: 1fr; }
+      .part-items { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-full { grid-column: 1; }
+      .foot-grid { grid-template-columns: 1fr; }
+      .foot-bottom { flex-direction: column; gap: 8px; text-align: center; }
+      .btn-secondary { margin-left: 0; margin-top: 10px; }
+      .hero-cta { display: flex; flex-direction: column; gap: 10px; }
+      .btn-primary, .btn-secondary { width: 100%; max-width: 280px; text-align: center; }
+    }
+    @media (max-width: 480px) {
+      .cd-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-in">
+    <a href="#" class="nav-logo">
+      <span class="nav-logo-name">ROIS</span>
+      <span class="nav-logo-tag" data-i="nav.tag">Connecting Brands, Events & Opportunities</span>
+    </a>
+    <div class="nav-r">
+      <ul class="nav-links">
+        <li><a href="#what" data-i="nav.what">What We Do</a></li>
+        <li><a href="#services" data-i="nav.services">Services</a></li>
+        <li><a href="#sponsors" data-i="nav.sponsors">For Sponsors</a></li>
+        <li><a href="#about" data-i="nav.about">About</a></li>
+        <li><a href="#contact" data-i="nav.contact">Contact</a></li>
+      </ul>
+      <button class="lang-btn" onclick="toggleLang()" id="langBtn">ES</button>
+      <button class="ham" onclick="toggleMob()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="mob" id="mob">
+  <a href="#what" onclick="closeMob()" data-i="nav.what">What We Do</a>
+  <a href="#services" onclick="closeMob()" data-i="nav.services">Services</a>
+  <a href="#sponsors" onclick="closeMob()" data-i="nav.sponsors">For Sponsors</a>
+  <a href="#about" onclick="closeMob()" data-i="nav.about">About</a>
+  <a href="#partnerships" onclick="closeMob()" data-i="nav.partnerships">Partnerships</a>
+  <a href="#contact" onclick="closeMob()" data-i="nav.contact">Contact</a>
+</div>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-vl"></div>
+  <div class="hero-vl"></div>
+  <div class="hero-inner">
+    <div class="hero-layout">
+      <div class="hero-left">
+        <div class="hero-eyebrow">
+          <span class="rule"></span>
+          <span class="lbl" data-i="hero.lbl">Strategic Partnerships Platform</span>
+        </div>
+        <h1 class="hero-wordmark">ROIS</h1>
+        <p class="hero-tagline" data-i="hero.tag">Connecting Brands, Events & Opportunities</p>
+        <p class="hero-desc" data-i="hero.desc">
+          ROIS helps organizations access premium events, strategic partnerships and high-value business networks through sponsorship acquisition and business development.
+        </p>
+        <div class="hero-pills">
+          <span class="pill" data-i="hero.p1">Strategic Partnerships</span>
+          <span class="pill" data-i="hero.p2">Sponsorships</span>
+          <span class="pill" data-i="hero.p3">Business Growth</span>
+        </div>
+        <div class="hero-cta">
+          <a href="#contact" class="btn-primary" data-i="hero.cta1">Partner With Us</a>
+          <a href="#services" class="btn-secondary" data-i="hero.cta2">Our Services</a>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="hero-card">
+          <div class="summit-label" data-i="cd.evt">— Upcoming Event —</div>
+          <div class="summit-title" data-i="cd.title">Business Summit</div>
+          <div class="summit-dates" data-i="cd.dates">June 24 – 26, 2026</div>
+          <div class="cd-grid">
+            <div class="cd-unit">
+              <span class="cd-num" id="cd-d">00</span>
+              <span class="cd-lbl" data-i="cd.days">Days</span>
+            </div>
+            <div class="cd-unit">
+              <span class="cd-num" id="cd-h">00</span>
+              <span class="cd-lbl" data-i="cd.hrs">Hours</span>
+            </div>
+            <div class="cd-unit">
+              <span class="cd-num" id="cd-m">00</span>
+              <span class="cd-lbl" data-i="cd.min">Minutes</span>
+            </div>
+            <div class="cd-unit">
+              <span class="cd-num" id="cd-s">00</span>
+              <span class="cd-lbl" data-i="cd.sec">Seconds</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-cell">
+            <span class="stat-n">4</span>
+            <span class="stat-l" data-i="st.1">Services</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-n">360°</span>
+            <span class="stat-l" data-i="st.2">Network</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-n">∞</span>
+            <span class="stat-l" data-i="st.3">Opportunities</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT WE DO -->
+<section class="what" id="what">
+  <div class="w">
+    <div class="what-grid">
+      <div class="fu">
+        <div class="lbl-row" style="margin-bottom:22px;">
+          <span class="rule"></span>
+          <span class="lbl" data-i="wwd.lbl">What We Do</span>
+        </div>
+        <h2 class="s-title" data-i="wwd.title">We Build <em>Strategic Connections</em></h2>
+      </div>
+      <div class="what-right fu" style="transition-delay:.12s">
+        <p class="s-body" data-i="wwd.p1">
+          ROIS creates opportunities between companies, event organizers, business leaders and professional communities.
+        </p>
+        <p class="s-body" data-i="wwd.p2">
+          We help brands increase visibility, generate meaningful relationships and access exclusive audiences through carefully selected sponsorship and partnership opportunities.
+        </p>
+        <div class="what-tags">
+          <span class="tag" data-i="wwd.t1">Brand Visibility</span>
+          <span class="tag" data-i="wwd.t2">Executive Audiences</span>
+          <span class="tag" data-i="wwd.t3">Market Positioning</span>
+          <span class="tag" data-i="wwd.t4">Strategic Relationships</span>
+          <span class="tag" data-i="wwd.t5">Premium Events</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="services" id="services">
+  <div class="w">
+    <div class="fu">
+      <div class="lbl-row" style="margin-bottom:22px;">
+        <span class="rule"></span>
+        <span class="lbl" data-i="svc.lbl">Our Services</span>
+      </div>
+      <h2 class="s-title" data-i="svc.title">How We <em>Create Value</em></h2>
+    </div>
+    <div class="svc-grid">
+      <div class="svc-card fu" style="transition-delay:.05s">
+        <div class="svc-n">01</div>
+        <div class="svc-title" data-i="s1.title">Sponsorship Acquisition</div>
+        <p class="svc-desc" data-i="s1.desc">We identify, negotiate and secure sponsorship opportunities that align with our partners' strategic objectives. Every opportunity is evaluated for fit, reach and long-term value.</p>
+      </div>
+      <div class="svc-card fu" style="transition-delay:.10s">
+        <div class="svc-n">02</div>
+        <div class="svc-title" data-i="s2.title">Strategic Partnerships</div>
+        <p class="svc-desc" data-i="s2.desc">We connect organizations with relevant businesses, institutions and decision-makers to create long-term value. Our network spans industries, geographies and leadership levels.</p>
+      </div>
+      <div class="svc-card fu" style="transition-delay:.15s">
+        <div class="svc-n">03</div>
+        <div class="svc-title" data-i="s3.title">Premium Events</div>
+        <p class="svc-desc" data-i="s3.desc">Access to conferences, summits, executive forums and industry-leading events through sponsorship and collaboration agreements. Including our own Business Summit, June 24–26, 2026.</p>
+      </div>
+      <div class="svc-card fu" style="transition-delay:.20s">
+        <div class="svc-n">04</div>
+        <div class="svc-title" data-i="s4.title">Business Development</div>
+        <p class="svc-desc" data-i="s4.desc">Supporting growth through relationship-driven opportunities and strategic introductions. We act as a bridge between ambition and the right connections to make it real.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- APPROACH -->
+<section class="approach" id="approach">
+  <div class="w">
+    <div class="approach-inner">
+      <div class="fu">
+        <div class="lbl-row" style="margin-bottom:28px;">
+          <span class="rule"></span>
+          <span class="lbl" data-i="app.lbl">Our Approach</span>
+        </div>
+        <blockquote class="approach-quote" data-i="app.quote">
+          "Relationships Create Opportunities."
+        </blockquote>
+        <p class="s-body" style="margin-top:24px;" data-i="app.body">
+          At ROIS, we believe that meaningful business growth is built through trusted relationships. Our approach combines strategic positioning, partnership development and access to high-value networks to help organizations expand their reach and influence.
+        </p>
+      </div>
+      <div class="approach-points fu" style="transition-delay:.12s">
+        <div class="approach-point">
+          <div class="ap-title" data-i="ap1.t">Long-Term Relationships</div>
+          <p class="ap-body" data-i="ap1.b">We prioritize sustainable partnerships built on trust and mutual benefit. Every connection we facilitate is intended to outlast the immediate transaction.</p>
+        </div>
+        <div class="approach-point">
+          <div class="ap-title" data-i="ap2.t">Strategic Alignment</div>
+          <p class="ap-body" data-i="ap2.b">Every opportunity must create value for all participants involved. We only pursue partnerships where the alignment is genuine and the potential is real.</p>
+        </div>
+        <div class="approach-point">
+          <div class="ap-title" data-i="ap3.t">Excellence in Execution</div>
+          <p class="ap-body" data-i="ap3.b">We focus on quality introductions, meaningful collaborations and measurable outcomes. Precision over volume, always.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOR SPONSORS -->
+<section class="sponsors" id="sponsors">
+  <div class="w">
+    <div class="sponsors-grid">
+      <div class="fu">
+        <div class="lbl-row" style="margin-bottom:22px;">
+          <span class="rule"></span>
+          <span class="lbl" data-i="sp.lbl">For Sponsors</span>
+        </div>
+        <h2 class="s-title" data-i="sp.title">Why Sponsor <em>Through ROIS?</em></h2>
+        <p class="s-body" style="margin-top:20px;margin-bottom:24px;" data-i="sp.desc">
+          Organizations partner with ROIS to reach audiences that matter. Every sponsorship opportunity is evaluated based on strategic fit and long-term value creation.
+        </p>
+        <ul class="check-list">
+          <li data-i="sp.l1">Increase brand visibility</li>
+          <li data-i="sp.l2">Access executive audiences</li>
+          <li data-i="sp.l3">Strengthen market positioning</li>
+          <li data-i="sp.l4">Develop strategic relationships</li>
+          <li data-i="sp.l5">Participate in premium events</li>
+          <li data-i="sp.l6">Generate business opportunities</li>
+        </ul>
+      </div>
+      <div class="fu" style="transition-delay:.12s">
+        <span class="opp-label" data-i="sp.opplbl">Sponsorship Opportunities</span>
+        <div class="opp-grid">
+          <div class="opp-item">
+            <div class="opp-title" data-i="o1.t">Business Summits</div>
+            <div class="opp-desc" data-i="o1.d">High-level executive gatherings and decision-maker forums.</div>
+          </div>
+          <div class="opp-item">
+            <div class="opp-title" data-i="o2.t">Executive Conferences</div>
+            <div class="opp-desc" data-i="o2.d">Industry-specific leadership and strategy events.</div>
+          </div>
+          <div class="opp-item">
+            <div class="opp-title" data-i="o3.t">Industry Events</div>
+            <div class="opp-desc" data-i="o3.d">Sector-focused events with targeted audiences.</div>
+          </div>
+          <div class="opp-item">
+            <div class="opp-title" data-i="o4.t">Sports Properties</div>
+            <div class="opp-desc" data-i="o4.d">High-visibility sports sponsorship and activation.</div>
+          </div>
+          <div class="opp-item">
+            <div class="opp-title" data-i="o5.t">Professional Communities</div>
+            <div class="opp-desc" data-i="o5.d">Niche networks of influencers and decision-makers.</div>
+          </div>
+          <div class="opp-item">
+            <div class="opp-title" data-i="o6.t">Leadership Platforms</div>
+            <div class="opp-desc" data-i="o6.d">Thought leadership and positioning opportunities.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about" id="about">
+  <div class="w">
+    <div class="about-grid">
+      <div class="fu">
+        <div class="lbl-row" style="margin-bottom:22px;">
+          <span class="rule"></span>
+          <span class="lbl" data-i="ab.lbl">Who We Are</span>
+        </div>
+        <h2 class="s-title" data-i="ab.title">About <em>ROIS</em></h2>
+        <p class="s-body" style="margin-top:20px;" data-i="ab.p1">
+          ROIS is a strategic partnerships platform focused on connecting brands, events and opportunities.
+        </p>
+        <p class="s-body" style="margin-top:16px;" data-i="ab.p2">
+          We work with organizations seeking access to premium audiences, executive networks and business development opportunities through sponsorships and collaborative initiatives.
+        </p>
+        <p class="about-mission" data-i="ab.mission">"Our mission is simple: Create value through relationships."</p>
+      </div>
+      <div class="fu" style="transition-delay:.12s">
+        <div class="lbl-row" style="margin-bottom:8px;">
+          <span class="rule"></span>
+          <span class="lbl" data-i="ab.pr.lbl">Our Principles</span>
+        </div>
+        <div class="principles">
+          <div class="principle">
+            <span class="pr-num">I</span>
+            <div class="pr-title" data-i="pr1.t">Long-Term Relationships</div>
+            <p class="pr-body" data-i="pr1.b">We prioritize sustainable partnerships built on trust and mutual benefit.</p>
+          </div>
+          <div class="principle">
+            <span class="pr-num">II</span>
+            <div class="pr-title" data-i="pr2.t">Strategic Alignment</div>
+            <p class="pr-body" data-i="pr2.b">Every opportunity must create value for all participants involved.</p>
+          </div>
+          <div class="principle">
+            <span class="pr-num">III</span>
+            <div class="pr-title" data-i="pr3.t">Excellence in Execution</div>
+            <p class="pr-body" data-i="pr3.b">We focus on quality introductions, meaningful collaborations and measurable outcomes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERSHIPS -->
+<section class="partnerships" id="partnerships">
+  <div class="w">
+    <div class="part-grid">
+      <div class="fu">
+        <div class="lbl-row" style="margin-bottom:22px;">
+          <span class="rule"></span>
+          <span class="lbl" data-i="pt.lbl">Partnerships</span>
+        </div>
+        <h2 class="s-title" data-i="pt.title">Strategic <em>Partnerships</em></h2>
+        <p class="s-body" style="margin-top:20px;margin-bottom:28px;" data-i="pt.desc">
+          We believe the strongest businesses are built through collaboration. ROIS works with organizations seeking to grow through meaningful strategic connections.
+        </p>
+        <div class="part-items">
+          <div class="part-item">
+            <div class="part-item-title" data-i="pi1.t">Market Expansion</div>
+            <div class="part-item-desc" data-i="pi1.d">Access new markets and audiences through our network.</div>
+          </div>
+          <div class="part-item">
+            <div class="part-item-title" data-i="pi2.t">Strategic Introductions</div>
+            <div class="part-item-desc" data-i="pi2.d">Precision connections with the right decision-makers.</div>
+          </div>
+          <div class="part-item">
+            <div class="part-item-title" data-i="pi3.t">Brand Positioning</div>
+            <div class="part-item-desc" data-i="pi3.d">Elevate your presence in the right environments.</div>
+          </div>
+          <div class="part-item">
+            <div class="part-item-title" data-i="pi4.t">Event Partnerships</div>
+            <div class="part-item-desc" data-i="pi4.d">Collaborate on premium events and activations.</div>
+          </div>
+          <div class="part-item">
+            <div class="part-item-title" data-i="pi5.t">Executive Networking</div>
+            <div class="part-item-desc" data-i="pi5.d">Build meaningful relationships at the leadership level.</div>
+          </div>
+          <div class="part-item">
+            <div class="part-item-title" data-i="pi6.t">Business Development</div>
+            <div class="part-item-desc" data-i="pi6.d">Growth opportunities through relationship-driven strategy.</div>
+          </div>
+        </div>
+      </div>
+      <div class="fu" style="transition-delay:.12s; display:flex; flex-direction:column; justify-content:center;">
+        <div style="background:var(--surface); border:1px solid var(--border); padding:48px 44px; position:relative;">
+          <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right, var(--gold), transparent);"></div>
+          <p style="font-family:var(--serif);font-size:clamp(22px,2.5vw,30px);font-weight:300;font-style:italic;color:var(--white);line-height:1.4;margin-bottom:20px;" data-i="pt.panel.q">
+            "The strongest businesses are built through collaboration."
+          </p>
+          <p class="s-body" data-i="pt.panel.b">
+            Whether you are seeking sponsorship opportunities, strategic partnerships or business development initiatives, ROIS is positioned to connect you with the right people, events and organizations to accelerate your growth.
+          </p>
+          <div style="margin-top:32px;">
+            <a href="#contact" class="btn-primary" data-i="pt.panel.cta">Start a Conversation</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact" id="contact">
+  <div class="w">
+    <div class="contact-inner">
+      <div class="lbl-row fu" style="justify-content:center;">
+        <span class="rule"></span>
+        <span class="lbl" data-i="con.lbl">Contact</span>
+        <span class="rule"></span>
+      </div>
+      <h2 class="contact-title fu" style="transition-delay:.08s;" data-i="con.title">
+        Let's Build Something Meaningful
+      </h2>
+      <p class="contact-sub fu" style="transition-delay:.16s;" data-i="con.sub">
+        Whether you are seeking sponsorship opportunities, strategic partnerships or business development initiatives, we would be pleased to explore how we can create value together.
+      </p>
+
+      <form id="contactForm" class="fu" style="transition-delay:.24s;">
+        <div class="form-grid">
+          <div class="fg">
+            <label for="fn" data-i="cf.name">Full Name</label>
+            <input type="text" id="fn" name="name" placeholder="Your name" required data-fs-field />
+            <span data-fs-error="name" style="font-size:10px;color:#c0392b;display:block;margin-top:4px;"></span>
+          </div>
+          <div class="fg">
+            <label for="org" data-i="cf.org">Organization</label>
+            <input type="text" id="org" name="organization" placeholder="Company or institution" data-fs-field />
+          </div>
+          <div class="fg">
+            <label for="em" data-i="cf.email">Email</label>
+            <input type="email" id="em" name="email" placeholder="your@email.com" required data-fs-field />
+            <span data-fs-error="email" style="font-size:10px;color:#c0392b;display:block;margin-top:4px;"></span>
+          </div>
+          <div class="fg">
+            <label for="ph" data-i="cf.phone">Phone</label>
+            <input type="tel" id="ph" name="phone" placeholder="+1 000 000 0000" data-fs-field />
+          </div>
+          <div class="fg form-full">
+            <label for="int" data-i="cf.interest">Area of Interest</label>
+            <select id="int" name="interest" data-fs-field>
+              <option value="" data-i="cf.sel">Select an option…</option>
+              <option value="sponsorship" data-i="cf.o1">Sponsorship Acquisition</option>
+              <option value="partnerships" data-i="cf.o2">Strategic Partnerships</option>
+              <option value="events" data-i="cf.o3">Premium Events</option>
+              <option value="business" data-i="cf.o4">Business Development</option>
+              <option value="summit" data-i="cf.o5">Business Summit — June 2026</option>
+              <option value="other" data-i="cf.o6">Other</option>
+            </select>
+          </div>
+          <div class="fg form-full">
+            <label for="msg" data-i="cf.msg">Message</label>
+            <textarea id="msg" name="message" placeholder="Tell us about your organization and how we might collaborate…" required data-fs-field></textarea>
+            <span data-fs-error="message" style="font-size:10px;color:#c0392b;display:block;margin-top:4px;"></span>
+          </div>
+        </div>
+        <div data-fs-error style="display:none;font-size:12px;color:#c0392b;margin-top:12px;"></div>
+        <div data-fs-success class="form-success" data-i="cf.success">Thank you. We will be in touch within 24–48 business hours.</div>
+        <div class="form-foot">
+          <button type="submit" class="btn-submit" data-fs-submit-btn data-i="cf.send">Send Message</button>
+          <span class="form-note" data-i="cf.note">We respond within 24–48 business hours.</span>
+        </div>
+      </form>
+
+      <a href="mailto:contacto@roistrade.com" class="contact-email fu" style="transition-delay:.32s;">contacto@roistrade.com</a>
+      <div class="social-row fu" style="transition-delay:.38s;">
+        <a href="https://www.linkedin.com/company/roiscap/?viewAsMember=true" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://www.instagram.com/rois.global?utm_source=qr" target="_blank" rel="noopener">Instagram</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="w">
+    <div class="foot-grid">
+      <div>
+        <span class="f-name">ROIS</span>
+        <span class="f-tag" data-i="ft.tag">Connecting Brands, Events & Opportunities</span>
+        <p class="f-desc" data-i="ft.desc">Strategic Partnerships · Sponsorships · Business Development</p>
+      </div>
+      <div>
+        <span class="f-col-h" data-i="ft.nav">Navigation</span>
+        <div class="f-links">
+          <a href="#what" data-i="nav.what">What We Do</a>
+          <a href="#services" data-i="nav.services">Services</a>
+          <a href="#sponsors" data-i="nav.sponsors">For Sponsors</a>
+          <a href="#about" data-i="nav.about">About</a>
+          <a href="#partnerships" data-i="nav.partnerships">Partnerships</a>
+        </div>
+      </div>
+      <div>
+        <span class="f-col-h" data-i="ft.reach">Get In Touch</span>
+        <div class="f-links">
+          <a href="mailto:contacto@roistrade.com">contacto@roistrade.com</a>
+          <a href="https://www.linkedin.com/company/roiscap/?viewAsMember=true" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="https://www.instagram.com/rois.global?utm_source=qr" target="_blank" rel="noopener">Instagram</a>
+          <a href="https://www.nouord.com" target="_blank" rel="noopener">NOUORD — Financial Hub</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span class="f-copy">© 2026 ROIS. <span data-i="ft.rights">All rights reserved.</span></span>
+      <span class="f-mark" data-i="ft.mark">Strategic Partnerships Platform</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Formspree Ajax -->
+<script>
+  window.formspree = window.formspree || function(){ (formspree.q=formspree.q||[]).push(arguments); };
+  formspree('initForm', { formElement: '#contactForm', formId: 'xkokypkl' });
+</script>
+<script src="https://unpkg.com/@formspree/ajax@1" defer></script>
+
+<script>
+/* ── TRANSLATIONS ── */
+const T = {
+  en: {
+    'nav.tag':'Connecting Brands, Events & Opportunities',
+    'nav.what':'What We Do','nav.services':'Services','nav.sponsors':'For Sponsors',
+    'nav.about':'About','nav.contact':'Contact','nav.partnerships':'Partnerships',
+    'hero.lbl':'Strategic Partnerships Platform',
+    'hero.tag':'Connecting Brands, Events & Opportunities',
+    'hero.desc':'ROIS helps organizations access premium events, strategic partnerships and high-value business networks through sponsorship acquisition and business development.',
+    'hero.p1':'Strategic Partnerships','hero.p2':'Sponsorships','hero.p3':'Business Growth',
+    'hero.cta1':'Partner With Us','hero.cta2':'Our Services',
+    'cd.evt':'— Upcoming Event —','cd.title':'Business Summit',
+    'cd.dates':'June 24 – 26, 2026','cd.days':'Days','cd.hrs':'Hours','cd.min':'Minutes','cd.sec':'Seconds',
+    'st.1':'Services','st.2':'Network','st.3':'Opportunities',
+    'wwd.lbl':'What We Do','wwd.title':'We Build <em>Strategic Connections</em>',
+    'wwd.p1':'ROIS creates opportunities between companies, event organizers, business leaders and professional communities.',
+    'wwd.p2':'We help brands increase visibility, generate meaningful relationships and access exclusive audiences through carefully selected sponsorship and partnership opportunities.',
+    'wwd.t1':'Brand Visibility','wwd.t2':'Executive Audiences','wwd.t3':'Market Positioning',
+    'wwd.t4':'Strategic Relationships','wwd.t5':'Premium Events',
+    'svc.lbl':'Our Services','svc.title':'How We <em>Create Value</em>',
+    's1.title':'Sponsorship Acquisition','s1.desc':'We identify, negotiate and secure sponsorship opportunities that align with our partners\' strategic objectives. Every opportunity is evaluated for fit, reach and long-term value.',
+    's2.title':'Strategic Partnerships','s2.desc':'We connect organizations with relevant businesses, institutions and decision-makers to create long-term value. Our network spans industries, geographies and leadership levels.',
+    's3.title':'Premium Events','s3.desc':'Access to conferences, summits, executive forums and industry-leading events through sponsorship and collaboration agreements. Including our own Business Summit, June 24–26, 2026.',
+    's4.title':'Business Development','s4.desc':'Supporting growth through relationship-driven opportunities and strategic introductions. We act as a bridge between ambition and the right connections to make it real.',
+    'app.lbl':'Our Approach','app.quote':'"Relationships Create Opportunities."',
+    'app.body':'At ROIS, we believe that meaningful business growth is built through trusted relationships. Our approach combines strategic positioning, partnership development and access to high-value networks to help organizations expand their reach and influence.',
+    'ap1.t':'Long-Term Relationships','ap1.b':'We prioritize sustainable partnerships built on trust and mutual benefit. Every connection we facilitate is intended to outlast the immediate transaction.',
+    'ap2.t':'Strategic Alignment','ap2.b':'Every opportunity must create value for all participants involved. We only pursue partnerships where the alignment is genuine and the potential is real.',
+    'ap3.t':'Excellence in Execution','ap3.b':'We focus on quality introductions, meaningful collaborations and measurable outcomes. Precision over volume, always.',
+    'sp.lbl':'For Sponsors','sp.title':'Why Sponsor <em>Through ROIS?</em>',
+    'sp.desc':'Organizations partner with ROIS to reach audiences that matter. Every sponsorship opportunity is evaluated based on strategic fit and long-term value creation.',
+    'sp.l1':'Increase brand visibility','sp.l2':'Access executive audiences',
+    'sp.l3':'Strengthen market positioning','sp.l4':'Develop strategic relationships',
+    'sp.l5':'Participate in premium events','sp.l6':'Generate business opportunities',
+    'sp.opplbl':'Sponsorship Opportunities',
+    'o1.t':'Business Summits','o1.d':'High-level executive gatherings and decision-maker forums.',
+    'o2.t':'Executive Conferences','o2.d':'Industry-specific leadership and strategy events.',
+    'o3.t':'Industry Events','o3.d':'Sector-focused events with targeted audiences.',
+    'o4.t':'Sports Properties','o4.d':'High-visibility sports sponsorship and activation.',
+    'o5.t':'Professional Communities','o5.d':'Niche networks of influencers and decision-makers.',
+    'o6.t':'Leadership Platforms','o6.d':'Thought leadership and positioning opportunities.',
+    'ab.lbl':'Who We Are','ab.title':'About <em>ROIS</em>',
+    'ab.p1':'ROIS is a strategic partnerships platform focused on connecting brands, events and opportunities.',
+    'ab.p2':'We work with organizations seeking access to premium audiences, executive networks and business development opportunities through sponsorships and collaborative initiatives.',
+    'ab.mission':'"Our mission is simple: Create value through relationships."',
+    'ab.pr.lbl':'Our Principles',
+    'pr1.t':'Long-Term Relationships','pr1.b':'We prioritize sustainable partnerships built on trust and mutual benefit.',
+    'pr2.t':'Strategic Alignment','pr2.b':'Every opportunity must create value for all participants involved.',
+    'pr3.t':'Excellence in Execution','pr3.b':'We focus on quality introductions, meaningful collaborations and measurable outcomes.',
+    'pt.lbl':'Partnerships','pt.title':'Strategic <em>Partnerships</em>',
+    'pt.desc':'We believe the strongest businesses are built through collaboration. ROIS works with organizations seeking to grow through meaningful strategic connections.',
+    'pi1.t':'Market Expansion','pi1.d':'Access new markets and audiences through our network.',
+    'pi2.t':'Strategic Introductions','pi2.d':'Precision connections with the right decision-makers.',
+    'pi3.t':'Brand Positioning','pi3.d':'Elevate your presence in the right environments.',
+    'pi4.t':'Event Partnerships','pi4.d':'Collaborate on premium events and activations.',
+    'pi5.t':'Executive Networking','pi5.d':'Build meaningful relationships at the leadership level.',
+    'pi6.t':'Business Development','pi6.d':'Growth opportunities through relationship-driven strategy.',
+    'pt.panel.q':'"The strongest businesses are built through collaboration."',
+    'pt.panel.b':'Whether you are seeking sponsorship opportunities, strategic partnerships or business development initiatives, ROIS is positioned to connect you with the right people, events and organizations to accelerate your growth.',
+    'pt.panel.cta':'Start a Conversation',
+    'con.lbl':'Contact','con.title':'Let\'s Build Something Meaningful',
+    'con.sub':'Whether you are seeking sponsorship opportunities, strategic partnerships or business development initiatives, we would be pleased to explore how we can create value together.',
+    'cf.name':'Full Name','cf.org':'Organization','cf.email':'Email','cf.phone':'Phone',
+    'cf.interest':'Area of Interest','cf.sel':'Select an option…',
+    'cf.o1':'Sponsorship Acquisition','cf.o2':'Strategic Partnerships','cf.o3':'Premium Events',
+    'cf.o4':'Business Development','cf.o5':'Business Summit — June 2026','cf.o6':'Other',
+    'cf.msg':'Message','cf.send':'Send Message','cf.success':'Thank you. We will be in touch within 24–48 business hours.','cf.note':'We respond within 24–48 business hours.',
+    'ft.tag':'Connecting Brands, Events & Opportunities',
+    'ft.desc':'Strategic Partnerships · Sponsorships · Business Development',
+    'ft.nav':'Navigation','ft.reach':'Get In Touch',
+    'ft.rights':'All rights reserved.','ft.mark':'Strategic Partnerships Platform'
+  },
+  es: {
+    'nav.tag':'Conectando Marcas, Eventos y Oportunidades',
+    'nav.what':'Qué Hacemos','nav.services':'Servicios','nav.sponsors':'Para Sponsors',
+    'nav.about':'Nosotros','nav.contact':'Contacto','nav.partnerships':'Partnerships',
+    'hero.lbl':'Plataforma de Partnerships Estratégicos',
+    'hero.tag':'Conectando Marcas, Eventos y Oportunidades',
+    'hero.desc':'ROIS ayuda a organizaciones a acceder a eventos premium, partnerships estratégicos y redes de negocio de alto valor a través de adquisición de patrocinios y desarrollo comercial.',
+    'hero.p1':'Partnerships Estratégicos','hero.p2':'Patrocinios','hero.p3':'Crecimiento Empresarial',
+    'hero.cta1':'Sé Nuestro Partner','hero.cta2':'Nuestros Servicios',
+    'cd.evt':'— Próximo Evento —','cd.title':'Cumbre de Negocios',
+    'cd.dates':'24 – 26 de Junio, 2026','cd.days':'Días','cd.hrs':'Horas','cd.min':'Minutos','cd.sec':'Segundos',
+    'st.1':'Servicios','st.2':'Red','st.3':'Oportunidades',
+    'wwd.lbl':'Qué Hacemos','wwd.title':'Construimos <em>Conexiones Estratégicas</em>',
+    'wwd.p1':'ROIS crea oportunidades entre empresas, organizadores de eventos, líderes empresariales y comunidades profesionales.',
+    'wwd.p2':'Ayudamos a las marcas a aumentar su visibilidad, generar relaciones significativas y acceder a audiencias exclusivas a través de oportunidades de patrocinio y partnership cuidadosamente seleccionadas.',
+    'wwd.t1':'Visibilidad de Marca','wwd.t2':'Audiencias Ejecutivas','wwd.t3':'Posicionamiento',
+    'wwd.t4':'Relaciones Estratégicas','wwd.t5':'Eventos Premium',
+    'svc.lbl':'Nuestros Servicios','svc.title':'Cómo <em>Creamos Valor</em>',
+    's1.title':'Adquisición de Patrocinios','s1.desc':'Identificamos, negociamos y aseguramos oportunidades de patrocinio alineadas con los objetivos estratégicos de nuestros socios. Cada oportunidad es evaluada por su ajuste, alcance y valor a largo plazo.',
+    's2.title':'Partnerships Estratégicos','s2.desc':'Conectamos organizaciones con empresas, instituciones y tomadores de decisiones relevantes para crear valor a largo plazo. Nuestra red abarca industrias, geografías y niveles de liderazgo.',
+    's3.title':'Eventos Premium','s3.desc':'Acceso a conferencias, cumbres, foros ejecutivos y eventos líderes de la industria a través de acuerdos de patrocinio y colaboración. Incluyendo nuestra propia Cumbre de Negocios, 24–26 de junio de 2026.',
+    's4.title':'Desarrollo de Negocios','s4.desc':'Apoyamos el crecimiento a través de oportunidades basadas en relaciones e introducciones estratégicas. Somos el puente entre la ambición y las conexiones correctas.',
+    'app.lbl':'Nuestro Enfoque','app.quote':'"Las Relaciones Crean Oportunidades."',
+    'app.body':'En ROIS creemos que el crecimiento empresarial significativo se construye a través de relaciones de confianza. Nuestro enfoque combina posicionamiento estratégico, desarrollo de partnerships y acceso a redes de alto valor.',
+    'ap1.t':'Relaciones de Largo Plazo','ap1.b':'Priorizamos partnerships sostenibles basados en confianza y beneficio mutuo. Cada conexión que facilitamos está pensada para perdurar más allá de la transacción inmediata.',
+    'ap2.t':'Alineación Estratégica','ap2.b':'Cada oportunidad debe crear valor para todos los participantes. Solo buscamos partnerships donde la alineación es genuina y el potencial es real.',
+    'ap3.t':'Excelencia en Ejecución','ap3.b':'Nos enfocamos en introducciones de calidad, colaboraciones significativas y resultados medibles. Precisión sobre volumen, siempre.',
+    'sp.lbl':'Para Sponsors','sp.title':'¿Por Qué Patrocinar <em>Con ROIS?</em>',
+    'sp.desc':'Las organizaciones se asocian con ROIS para llegar a audiencias que importan. Cada oportunidad de patrocinio se evalúa en función del ajuste estratégico y la creación de valor a largo plazo.',
+    'sp.l1':'Aumentar visibilidad de marca','sp.l2':'Acceder a audiencias ejecutivas',
+    'sp.l3':'Fortalecer posicionamiento','sp.l4':'Desarrollar relaciones estratégicas',
+    'sp.l5':'Participar en eventos premium','sp.l6':'Generar oportunidades de negocio',
+    'sp.opplbl':'Oportunidades de Patrocinio',
+    'o1.t':'Cumbres de Negocios','o1.d':'Reuniones ejecutivas de alto nivel y foros de decisión.',
+    'o2.t':'Conferencias Ejecutivas','o2.d':'Eventos de liderazgo y estrategia por industria.',
+    'o3.t':'Eventos de Industria','o3.d':'Eventos sectoriales con audiencias especializadas.',
+    'o4.t':'Propiedades Deportivas','o4.d':'Patrocinio deportivo de alta visibilidad y activaciones.',
+    'o5.t':'Comunidades Profesionales','o5.d':'Redes de influenciadores y tomadores de decisiones.',
+    'o6.t':'Plataformas de Liderazgo','o6.d':'Oportunidades de thought leadership y posicionamiento.',
+    'ab.lbl':'Quiénes Somos','ab.title':'Acerca de <em>ROIS</em>',
+    'ab.p1':'ROIS es una plataforma de partnerships estratégicos enfocada en conectar marcas, eventos y oportunidades.',
+    'ab.p2':'Trabajamos con organizaciones que buscan acceso a audiencias premium, redes ejecutivas y oportunidades de desarrollo de negocios a través de patrocinios e iniciativas colaborativas.',
+    'ab.mission':'"Nuestra misión es simple: Crear valor a través de las relaciones."',
+    'ab.pr.lbl':'Nuestros Principios',
+    'pr1.t':'Relaciones de Largo Plazo','pr1.b':'Priorizamos partnerships sostenibles basados en confianza y beneficio mutuo.',
+    'pr2.t':'Alineación Estratégica','pr2.b':'Cada oportunidad debe crear valor para todos los participantes.',
+    'pr3.t':'Excelencia en Ejecución','pr3.b':'Nos enfocamos en introducciones de calidad, colaboraciones significativas y resultados medibles.',
+    'pt.lbl':'Partnerships','pt.title':'<em>Partnerships</em> Estratégicos',
+    'pt.desc':'Creemos que los negocios más sólidos se construyen a través de la colaboración. ROIS trabaja con organizaciones que buscan crecer a través de conexiones estratégicas significativas.',
+    'pi1.t':'Expansión de Mercado','pi1.d':'Accede a nuevos mercados y audiencias a través de nuestra red.',
+    'pi2.t':'Introducciones Estratégicas','pi2.d':'Conexiones precisas con los tomadores de decisiones correctos.',
+    'pi3.t':'Posicionamiento de Marca','pi3.d':'Eleva tu presencia en los entornos correctos.',
+    'pi4.t':'Partnerships de Eventos','pi4.d':'Colabora en eventos y activaciones premium.',
+    'pi5.t':'Networking Ejecutivo','pi5.d':'Construye relaciones significativas a nivel directivo.',
+    'pi6.t':'Desarrollo de Negocios','pi6.d':'Oportunidades de crecimiento a través de estrategia relacional.',
+    'pt.panel.q':'"Los negocios más sólidos se construyen a través de la colaboración."',
+    'pt.panel.b':'Ya sea que busques oportunidades de patrocinio, partnerships estratégicos o iniciativas de desarrollo de negocios, ROIS está posicionado para conectarte con las personas, eventos y organizaciones correctas para acelerar tu crecimiento.',
+    'pt.panel.cta':'Iniciar una Conversación',
+    'con.lbl':'Contacto','con.title':'Construyamos Algo Significativo',
+    'con.sub':'Ya sea que busques oportunidades de patrocinio, partnerships estratégicos o iniciativas de desarrollo de negocios, nos complace explorar cómo podemos crear valor juntos.',
+    'cf.name':'Nombre completo','cf.org':'Organización','cf.email':'Correo electrónico','cf.phone':'Teléfono',
+    'cf.interest':'Área de Interés','cf.sel':'Selecciona una opción…',
+    'cf.o1':'Adquisición de Patrocinios','cf.o2':'Partnerships Estratégicos','cf.o3':'Eventos Premium',
+    'cf.o4':'Desarrollo de Negocios','cf.o5':'Cumbre de Negocios — Junio 2026','cf.o6':'Otro',
+    'cf.msg':'Mensaje','cf.send':'Enviar Mensaje','cf.success':'Gracias. Estaremos en contacto en un plazo de 24–48 horas hábiles.','cf.note':'Respondemos en un plazo de 24–48 horas hábiles.',
+    'ft.tag':'Conectando Marcas, Eventos y Oportunidades',
+    'ft.desc':'Partnerships Estratégicos · Patrocinios · Desarrollo de Negocios',
+    'ft.nav':'Navegación','ft.reach':'Contáctanos',
+    'ft.rights':'Todos los derechos reservados.','ft.mark':'Plataforma de Partnerships Estratégicos'
+  }
+};
+
+let lang = 'en';
+
+function applyLang(l) {
+  const t = T[l];
+  document.querySelectorAll('[data-i]').forEach(el => {
+    const k = el.getAttribute('data-i');
+    if (t[k] !== undefined) el.innerHTML = t[k];
+  });
+  document.documentElement.lang = l;
+  document.getElementById('langBtn').textContent = l === 'en' ? 'ES' : 'EN';
+}
+
+function toggleLang() { lang = lang === 'en' ? 'es' : 'en'; applyLang(lang); }
+
+/* ── COUNTDOWN ── */
+function tick() {
+  const target = new Date('2026-06-24T00:00:00');
+  const diff = target - new Date();
+  if (diff <= 0) { ['cd-d','cd-h','cd-m','cd-s'].forEach(i => document.getElementById(i).textContent = '00'); return; }
+  const pad = n => String(Math.floor(n)).padStart(2,'0');
+  document.getElementById('cd-d').textContent = pad(diff/86400000);
+  document.getElementById('cd-h').textContent = pad((diff%86400000)/3600000);
+  document.getElementById('cd-m').textContent = pad((diff%3600000)/60000);
+  document.getElementById('cd-s').textContent = pad((diff%60000)/1000);
+}
+tick(); setInterval(tick, 1000);
+
+/* ── MOBILE MENU ── */
+function toggleMob() { document.getElementById('mob').classList.toggle('open'); }
+function closeMob()  { document.getElementById('mob').classList.remove('open'); }
+document.addEventListener('click', e => {
+  const m = document.getElementById('mob');
+  if (m.classList.contains('open') && !m.contains(e.target) && !e.target.closest('.ham')) closeMob();
+});
+
+/* ── FADE UP ── */
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('v'); io.unobserve(e.target); }});
+}, { threshold: 0.09 });
+document.querySelectorAll('.fu').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
