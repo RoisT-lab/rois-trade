@@ -624,6 +624,7 @@ function renderClientSponsors() {
     {
       name: "Partner ROIS",
       amount: 25000,
+      productKey: "roisPartnerMonthly",
       label: "$25,000 MXN / mes",
       description: "Entrada institucional para empresas que quieren presencia dentro del ecosistema ROIS.",
       benefits: [
@@ -637,6 +638,7 @@ function renderClientSponsors() {
     {
       name: "Patrocinador Oficial",
       amount: 50000,
+      productKey: "officialSponsorMonthly",
       label: "$50,000 MXN / mes",
       featured: true,
       description: "Nivel recomendado para empresas que quieren presencia activa en eventos, academias y oportunidades deportivas.",
@@ -651,10 +653,12 @@ function renderClientSponsors() {
     {
       name: "Legacy Sponsor",
       amount: 100000,
+      productKey: "roisLegacyMonthly",
       label: "$100,000 MXN / mes",
       description: "Patrocinio de alto impacto para marcas que buscan visibilidad deportiva, narrativa institucional y presencia premium.",
       benefits: [
         "Todo lo incluido en Patrocinador Oficial",
+        "Exclusividad de giro durante 12 meses con compromiso anual",
         "Asignación de un deportista de alto rendimiento sujeto a disponibilidad",
         "Presencia en redes sociales del deportista y ecosistema ROIS",
         "Branding en uniforme, equipo deportivo o materiales autorizados",
@@ -1213,7 +1217,7 @@ function sponsorTierCard(tier) {
         ${tier.benefits.map(benefit => `<li>${benefit}</li>`).join("")}
       </ul>
       <button class="btn ${tier.featured ? "primary" : ""} full" type="button" id="sponsor-${tier.amount}">
-        ${tier.amount === 50000 ? "Pagar patrocinio" : "Solicitar este nivel"}
+        ${stripeLink(tier.productKey) ? "Pagar patrocinio" : "Solicitar link de pago"}
       </button>
     </article>
   `;
@@ -1238,12 +1242,12 @@ async function selectRoisSponsorTier(tier) {
     amount: tier.amount,
     company: state.session?.name || "Empresa",
     status: "pending",
-    product_key: tier.amount === 50000 ? "officialSponsorMonthly" : ""
+    product_key: tier.productKey
   });
-  if (tier.amount === 50000) {
-    openStripeCheckout("officialSponsorMonthly", "Patrocinador Oficial ROIS");
+  if (stripeLink(tier.productKey)) {
+    openStripeCheckout(tier.productKey, tier.name);
   } else {
-    notify("Patrocinios ROIS", "Solicitud recibida", `ROIS preparará la activación del nivel ${tier.name}.`);
+    notify("Patrocinios ROIS", "Solicitud recibida", `Falta configurar el link de Stripe para ${tier.name}. ROIS preparará la activación y el cierre comercial.`);
   }
   renderClient();
   renderAdmin();
