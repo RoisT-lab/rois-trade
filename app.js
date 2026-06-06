@@ -562,7 +562,6 @@ function renderClient() {
   renderClientNews();
   renderClientSponsors();
   renderClientMarketplace();
-  renderClientRequests();
   renderClientRegister();
   renderClientStatus();
   renderClientPayments();
@@ -621,7 +620,50 @@ function renderClientNews() {
 
 function renderClientSponsors() {
   const partners = state.data.partnerships.filter(item => item.status === "approved" && visualIsPublic(item));
-  panel("client-sponsors", "Patrocinios", "Solicita oportunidades de patrocinio gestionadas por ROIS", `
+  const tiers = [
+    {
+      name: "Partner ROIS",
+      amount: 25000,
+      label: "$25,000 MXN / mes",
+      description: "Entrada institucional para empresas que quieren presencia dentro del ecosistema ROIS.",
+      benefits: [
+        "Logotipo visible en el dashboard y home como patrocinador ROIS",
+        "Acceso prioritario a oportunidades de eventos y deportistas publicados",
+        "1 brief mensual de oportunidades de patrocinio curadas",
+        "Mención institucional en comunicación ROIS seleccionada",
+        "Reporte mensual de actividad y oportunidades"
+      ]
+    },
+    {
+      name: "Patrocinador Oficial",
+      amount: 50000,
+      label: "$50,000 MXN / mes",
+      featured: true,
+      description: "Nivel recomendado para empresas que quieren presencia activa en eventos, academias y oportunidades deportivas.",
+      benefits: [
+        "Todo lo incluido en Partner ROIS",
+        "Prioridad en eventos y activaciones de la red ROIS",
+        "Presencia de marca en academias o alianzas estratégicas disponibles",
+        "2 briefs mensuales de oportunidades con recomendación ROIS",
+        "Acceso preferente a deportistas aprobados para patrocinio"
+      ]
+    },
+    {
+      name: "Legacy Sponsor",
+      amount: 100000,
+      label: "$100,000 MXN / mes",
+      description: "Patrocinio de alto impacto para marcas que buscan visibilidad deportiva, narrativa institucional y presencia premium.",
+      benefits: [
+        "Todo lo incluido en Patrocinador Oficial",
+        "Asignación de un deportista de alto rendimiento sujeto a disponibilidad",
+        "Presencia en redes sociales del deportista y ecosistema ROIS",
+        "Branding en uniforme, equipo deportivo o materiales autorizados",
+        "Activaciones en academias y eventos estratégicos",
+        "Mesa trimestral de estrategia con dirección ROIS"
+      ]
+    }
+  ];
+  panel("client-sponsors", "Patrocinios ROIS", "Elige un nivel mensual de presencia, acceso y activación dentro del ecosistema ROIS", `
     <div class="panel-body">
       ${partners.length ? `
         <div class="section-minihead">
@@ -632,45 +674,14 @@ function renderClientSponsors() {
           ${partners.map(partner => clientPartnerCard(partner)).join("")}
         </div>
       ` : `<div class="empty slim">Los patrocinadores oficiales aprobados aparecerán aquí.</div>`}
-      <form id="sponsorIntentForm" class="form-grid commercial-form">
-        <label>Tipo de patrocinio
-          <select name="type" required>
-            <option value="Deportista">Patrocinar deportista</option>
-            <option value="Evento">Patrocinar evento</option>
-            <option value="Sponsor oficial">Ser patrocinador oficial ROIS</option>
-            <option value="Paquete institucional">Paquete institucional personalizado</option>
-          </select>
-        </label>
-        <label>Presupuesto mensual estimado
-          <select name="budget" required>
-            <option value="$5,000 - $15,000 MXN">$5,000 - $15,000 MXN</option>
-            <option value="$15,000 - $50,000 MXN">$15,000 - $50,000 MXN</option>
-            <option value="$50,000 - $150,000 MXN">$50,000 - $150,000 MXN</option>
-            <option value="$150,000 MXN+">$150,000 MXN+</option>
-          </select>
-        </label>
-        <label>Objetivo comercial
-          <select name="objective" required>
-            <option>Brand awareness</option>
-            <option>Relaciones corporativas</option>
-            <option>Acceso a eventos privados</option>
-            <option>Impacto social/deportivo</option>
-            <option>Desarrollo de negocio</option>
-          </select>
-        </label>
-        <label>Horizonte de decisión
-          <select name="timeline" required>
-            <option>Esta semana</option>
-            <option>Este mes</option>
-            <option>Próximo trimestre</option>
-            <option>Exploratorio</option>
-          </select>
-        </label>
-        <button class="btn primary" type="submit">Solicitar evaluación ROIS</button>
-      </form>
+      <div class="sponsor-tiers">
+        ${tiers.map(tier => sponsorTierCard(tier)).join("")}
+      </div>
     </div>
   `);
-  document.getElementById("sponsorIntentForm").addEventListener("submit", submitSponsorIntent);
+  tiers.forEach(tier => {
+    document.getElementById(`sponsor-${tier.amount}`).addEventListener("click", () => selectRoisSponsorTier(tier));
+  });
 }
 
 function renderClientMarketplace() {
@@ -682,69 +693,6 @@ function renderClientMarketplace() {
       </div>
     </div>
   ` : `<div class="empty">Aún no hay deportistas aprobados para patrocinio.</div>`);
-}
-
-function renderClientRequests() {
-  panel("client-requests", "Solicitud Estratégica", "Conexiones comerciales, sponsors y relaciones gestionadas por ROIS", `
-    <div class="panel-body">
-      <form id="strategicRequestForm" class="form-grid commercial-form">
-        <label>Servicio solicitado
-          <select name="service" required>
-            <option value="Sponsors para evento">Sponsors para un evento</option>
-            <option value="Conexión con patrocinador">Conexión con patrocinador específico</option>
-            <option value="Base de datos curada">Base de datos curada</option>
-            <option value="Introducción institucional">Introducción institucional</option>
-            <option value="Alianza estratégica">Alianza estratégica</option>
-          </select>
-        </label>
-        <label>Industria objetivo
-          <select name="industry" required>
-            <option>Finanzas / inversión</option>
-            <option>Real estate</option>
-            <option>Lujo / lifestyle</option>
-            <option>Deporte / wellness</option>
-            <option>Tecnología</option>
-            <option>Consumo premium</option>
-          </select>
-        </label>
-        <label>Región
-          <select name="region" required>
-            <option>Monterrey</option>
-            <option>Guadalajara</option>
-            <option>CDMX</option>
-            <option>Bajío</option>
-            <option>Nacional</option>
-            <option>Internacional</option>
-          </select>
-        </label>
-        <label>Presupuesto o ticket objetivo
-          <select name="budget" required>
-            <option>$5,000 - $25,000 MXN</option>
-            <option>$25,000 - $100,000 MXN</option>
-            <option>$100,000 - $500,000 MXN</option>
-            <option>$500,000 MXN+</option>
-          </select>
-        </label>
-        <label>Urgencia
-          <select name="priority" required>
-            <option>Normal - 5 días hábiles</option>
-            <option>Prioritaria - 72 horas</option>
-            <option>Confidencial / dirección ROIS</option>
-          </select>
-        </label>
-        <label>Resultado esperado
-          <select name="outcome" required>
-            <option>Listado curado de prospectos</option>
-            <option>Introducción directa</option>
-            <option>Brief de patrocinio</option>
-            <option>Reunión estratégica</option>
-          </select>
-        </label>
-        <button class="btn primary" type="submit">Enviar y pagar revisión</button>
-      </form>
-    </div>
-  `);
-  document.getElementById("strategicRequestForm").addEventListener("submit", submitStrategicRequest);
 }
 
 function renderClientRegister() {
@@ -1028,55 +976,6 @@ async function createRequest(type, title) {
   renderAdmin();
 }
 
-async function submitSponsorIntent(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const details = [
-    `Tipo: ${form.type.value}`,
-    `Presupuesto mensual: ${form.budget.value}`,
-    `Objetivo: ${form.objective.value}`,
-    `Horizonte: ${form.timeline.value}`
-  ].join(" | ");
-  await api.insert("requests", {
-    type: "Patrocinio",
-    title: form.type.value,
-    owner: state.session?.name || "Empresa",
-    status: "review",
-    details,
-    priority: form.timeline.value
-  });
-  if (form.type.value === "Deportista") {
-    await api.insert("sponsorships", { athlete: "Por asignar", amount: 5000, company: state.session?.name || "Empresa", status: "review" });
-  }
-  notify("Patrocinios", "Solicitud recibida", "ROIS revisará la oportunidad y preparará una propuesta curada.");
-  renderClient();
-  renderAdmin();
-}
-
-async function submitStrategicRequest(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const title = `${form.service.value} - ${form.region.value}`;
-  const details = [
-    `Servicio: ${form.service.value}`,
-    `Industria: ${form.industry.value}`,
-    `Región: ${form.region.value}`,
-    `Presupuesto: ${form.budget.value}`,
-    `Resultado esperado: ${form.outcome.value}`
-  ].join(" | ");
-  await api.insert("requests", {
-    type: "Solicitud Estratégica",
-    title,
-    owner: state.session?.name || "Empresa",
-    status: "review",
-    details,
-    priority: form.priority.value
-  });
-  openStripeCheckout("strategicRequest", "Solicitud Estratégica ROIS");
-  renderClient();
-  renderAdmin();
-}
-
 async function createSponsorship(athlete, amount) {
   await api.insert("sponsorships", { athlete, amount, company: state.session?.name || "Empresa", status: "review" });
   await api.insert("payments", { concept: `Patrocinio mensual - ${athlete}`, amount, company: state.session?.name || "Empresa", status: "pending" });
@@ -1299,6 +1198,55 @@ function clientPartnerCard(partner) {
       ? `<a class="btn" href="${partner.url}" target="_blank" rel="noopener">Ver aliado</a>`
       : button("Solicitar conexión", () => createRequest("Conexión sponsor", partner.name))
   });
+}
+
+function sponsorTierCard(tier) {
+  return `
+    <article class="sponsor-tier ${tier.featured ? "featured" : ""}">
+      <div>
+        <p class="eyebrow">${tier.featured ? "Recomendado" : "Patrocinio mensual"}</p>
+        <h3>${tier.name}</h3>
+        <strong>${tier.label}</strong>
+        <p>${tier.description}</p>
+      </div>
+      <ul>
+        ${tier.benefits.map(benefit => `<li>${benefit}</li>`).join("")}
+      </ul>
+      <button class="btn ${tier.featured ? "primary" : ""} full" type="button" id="sponsor-${tier.amount}">
+        ${tier.amount === 50000 ? "Pagar patrocinio" : "Solicitar este nivel"}
+      </button>
+    </article>
+  `;
+}
+
+async function selectRoisSponsorTier(tier) {
+  const details = [
+    `Nivel: ${tier.name}`,
+    `Monto mensual: ${tier.label}`,
+    `Beneficios: ${tier.benefits.join("; ")}`
+  ].join(" | ");
+  await api.insert("requests", {
+    type: "Patrocinio ROIS",
+    title: tier.name,
+    owner: state.session?.name || "Empresa",
+    status: "review",
+    details,
+    priority: tier.amount >= 100000 ? "Dirección ROIS" : "Comercial"
+  });
+  await api.insert("payments", {
+    concept: `${tier.name} - mensualidad`,
+    amount: tier.amount,
+    company: state.session?.name || "Empresa",
+    status: "pending",
+    product_key: tier.amount === 50000 ? "officialSponsorMonthly" : ""
+  });
+  if (tier.amount === 50000) {
+    openStripeCheckout("officialSponsorMonthly", "Patrocinador Oficial ROIS");
+  } else {
+    notify("Patrocinios ROIS", "Solicitud recibida", `ROIS preparará la activación del nivel ${tier.name}.`);
+  }
+  renderClient();
+  renderAdmin();
 }
 
 function athleteInvestment(athlete) {
