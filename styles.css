@@ -205,6 +205,35 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   border-top: 1px solid var(--line);
 }
 
+.public-feature-grid {
+  display: grid;
+  gap: 26px;
+  border-top: 1px solid var(--line);
+  padding-top: 28px;
+}
+
+.public-feature-grid .published-card {
+  grid-template-columns: minmax(420px, 0.64fr) minmax(280px, 0.36fr);
+  grid-template-rows: none;
+  min-height: 430px;
+}
+
+.public-feature-grid .published-media {
+  min-height: 430px;
+}
+
+.public-feature-grid .published-content {
+  padding: clamp(28px, 4vw, 48px);
+}
+
+.public-feature-grid .published-content h3 {
+  font-size: clamp(26px, 3vw, 38px);
+}
+
+.public-feature-grid .published-content p:not(.eyebrow) {
+  font-size: 15px;
+}
+
 .partner-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -212,9 +241,9 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
 }
 
 .partner-card {
-  min-height: 330px;
+  min-height: 410px;
   display: grid;
-  grid-template-rows: 150px minmax(0, 1fr);
+  grid-template-rows: 220px minmax(0, 1fr);
   background: #fff;
   border: 1px solid var(--line);
   overflow: hidden;
@@ -236,8 +265,8 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
 }
 
 .partner-mark img {
-  max-width: 78%;
-  max-height: 96px;
+  max-width: 86%;
+  max-height: 150px;
   object-fit: contain;
   filter: grayscale(8%);
 }
@@ -1040,6 +1069,14 @@ input:focus, textarea:focus, select:focus {
     gap: 16px;
     margin-bottom: 26px;
   }
+  .public-feature-grid .published-card {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(280px, 48vw) minmax(0, 1fr);
+    min-height: 0;
+  }
+  .public-feature-grid .published-media {
+    min-height: 280px;
+  }
   .athlete-card,
   .athlete-showcase.compact,
   .athlete-showcase.compact .athlete-card {
@@ -1203,6 +1240,15 @@ input:focus, textarea:focus, select:focus {
   .published-card {
     min-height: 0;
     grid-template-rows: 132px minmax(0, 1fr);
+  }
+  .partner-card {
+    grid-template-rows: 190px minmax(0, 1fr);
+  }
+  .public-feature-grid .published-card {
+    grid-template-rows: 280px minmax(0, 1fr);
+  }
+  .public-feature-grid .published-media {
+    min-height: 280px;
   }
   .partner-content,
   .published-content {

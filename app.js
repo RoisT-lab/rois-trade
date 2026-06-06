@@ -531,16 +531,17 @@ function renderPublic() {
   ` : `<div class="empty">Las alianzas y sponsors aprobados aparecerán aquí cuando admin los publique.</div>`;
 
   const publicEvents = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
-  document.getElementById("publicEvents").innerHTML = publicEvents.length ? publicEvents.map(event => `
-    <article class="list-row">
-      <div>
-        ${visualThumb(event)}
-        <h3>${event.name}</h3>
-        <div class="row-meta"><span class="pill">${event.category}</span><span class="pill">${event.date}</span><span class="pill">${event.venue}</span></div>
-      </div>
-      <button class="btn" type="button" data-open-login>Solicitar acceso</button>
-    </article>
-  `).join("") : `<div class="empty">Los eventos aprobados aparecerán aquí cuando el administrador los publique.</div>`;
+  document.getElementById("publicEvents").innerHTML = publicEvents.length ? `
+    <div class="public-feature-grid">
+      ${publicEvents.map(event => publishedCard({
+        item: event,
+        kicker: event.category || "Evento ROIS",
+        title: event.name,
+        text: `${event.date || "Fecha por confirmar"} / ${event.venue || "Sede por confirmar"}`,
+        action: `<button class="btn" type="button" data-open-login>Solicitar acceso</button>`
+      })).join("")}
+    </div>
+  ` : `<div class="empty">Los eventos aprobados aparecerán aquí cuando el administrador los publique.</div>`;
 
   const publicAthletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
   document.getElementById("publicAthletes").innerHTML = publicAthletes.length ? `
@@ -550,12 +551,17 @@ function renderPublic() {
   ` : `<div class="empty">Los deportistas aprobados aparecerán aquí cuando el administrador los publique.</div>`;
 
   const publicNews = state.data.news.filter(item => item.status === "published" && visualIsPublic(item));
-  document.getElementById("publicNews").innerHTML = publicNews.length ? publicNews.map(news => `
-    <article class="list-row">
-      <div>${visualThumb(news)}<h3>${news.title}</h3><p class="hint">${news.summary}</p></div>
-      <button class="btn" type="button" data-open-login>Leer</button>
-    </article>
-  `).join("") : `<div class="empty">Las noticias publicadas aparecerán aquí.</div>`;
+  document.getElementById("publicNews").innerHTML = publicNews.length ? `
+    <div class="public-feature-grid">
+      ${publicNews.map(news => publishedCard({
+        item: news,
+        kicker: "Nota ROIS",
+        title: news.title,
+        text: news.summary,
+        action: `<button class="btn" type="button" data-open-login>Leer</button>`
+      })).join("")}
+    </div>
+  ` : `<div class="empty">Las noticias publicadas aparecerán aquí.</div>`;
 
   document.querySelectorAll("[data-open-login]").forEach(button => button.addEventListener("click", openLogin));
 }
