@@ -185,6 +185,7 @@ drop policy if exists "athletes public insert pending" on athletes;
 drop policy if exists "events read approved" on events;
 drop policy if exists "events public insert pending" on events;
 drop policy if exists "events update admin" on events;
+drop policy if exists "events delete admin" on events;
 drop policy if exists "requests authenticated all" on requests;
 drop policy if exists "sponsorships authenticated all" on sponsorships;
 drop policy if exists "news read published" on news;
@@ -241,6 +242,7 @@ create policy "events public insert pending" on events for insert to anon, authe
   and coalesce(visual_status, 'approved') in ('approved', 'pending_review')
 );
 create policy "events update admin" on events for update using (is_admin());
+create policy "events delete admin" on events for delete using (is_admin());
 create policy "requests authenticated all" on requests for all using (auth.uid() is not null) with check (auth.uid() is not null);
 create policy "sponsorships authenticated all" on sponsorships for all using (auth.uid() is not null) with check (auth.uid() is not null);
 create policy "news read published" on news for select using (status = 'published' or is_admin());
@@ -265,3 +267,4 @@ grant insert on athletes, events to anon, authenticated;
 grant insert on companies to authenticated;
 grant insert on crm to authenticated;
 grant insert, update on requests, sponsorships, payments to authenticated;
+grant update, delete on athletes, events, news, partnerships, uploads to authenticated;

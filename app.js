@@ -1173,10 +1173,31 @@ async function rejectVisual(tableName, item) {
 async function deleteContent(tableName, item) {
   const confirmed = window.confirm(`¿Eliminar "${item.name || item.title}"?`);
   if (!confirmed) return;
-  await api.remove(tableName, item.id);
-  notify("Contenido", "Elemento eliminado", "El elemento fue eliminado del dashboard.");
-  renderAdmin();
-  renderPublic();
+  try {
+    await api.remove(tableName, item.id);
+    notify("Contenido", "Elemento eliminado", "El elemento fue eliminado del dashboard.");
+    renderAdmin();
+    renderPublic();
+    renderClient();
+  } catch (error) {
+    notify("Contenido", "No fue posible eliminar", humanError(error));
+  }
+}
+
+async function hideContent(tableName, item) {
+  const label = item.name || item.title;
+  const confirmed = window.confirm(`¿Bajar "${label}" del home y dashboard cliente?`);
+  if (!confirmed) return;
+  const hiddenStatus = tableName === "news" ? "draft" : "archived";
+  try {
+    await api.update(tableName, item.id, { status: hiddenStatus });
+    notify("Contenido", "Elemento oculto", "Ya no aparece en home ni en el dashboard de clientes.");
+    renderAdmin();
+    renderPublic();
+    renderClient();
+  } catch (error) {
+    notify("Contenido", "No fue posible ocultar", humanError(error));
+  }
 }
 
 function moderationActions(tableName, item) {
@@ -1186,6 +1207,14 @@ function moderationActions(tableName, item) {
   }
   if (tableName === "news" && item.status !== "published") {
     actions.push(button("Publicar", () => api.update("news", item.id, { status: "published" }).then(() => { renderAdmin(); renderPublic(); })));
+  }
+  if (
+    (tableName === "events" && item.status === "approved") ||
+    (tableName === "athletes" && item.status === "approved") ||
+    (tableName === "partnerships" && item.status === "approved") ||
+    (tableName === "news" && item.status === "published")
+  ) {
+    actions.push(button("Bajar del home", () => hideContent(tableName, item)));
   }
   if (item.image_url && item.visual_status !== "approved") {
     actions.push(button("Aprobar visual", () => approveVisual(tableName, item)));
