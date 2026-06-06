@@ -4,7 +4,7 @@ const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
 const configuredDemoAdmin = config.demoAdminEmail && config.demoAdminPassword;
 const adminEmail = (config.adminEmail || config.demoAdminEmail || "").toLowerCase();
-const fixedLogoPath = "./assets/rois-logo.png";
+const fixedLogoPath = config.logoDataUrl || "./assets/rois-logo.png";
 
 const state = {
   session: JSON.parse(localStorage.getItem(sessionKey) || "null"),
@@ -45,10 +45,20 @@ function normalizeSession(session) {
   return { ...session, role: normalizedRole(session.email, session.role) };
 }
 
+function enforceCompanyClientSession() {
+  if (!state.session || !state.data?.companies) return;
+  const email = state.session.email?.toLowerCase();
+  const isCompany = state.data.companies.some(company => (company.contact || "").toLowerCase() === email);
+  if (isCompany) {
+    state.session = { ...state.session, role: "client" };
+  }
+}
+
 async function init() {
   state.session = normalizeSession(state.session);
-  if (state.session) localStorage.setItem(sessionKey, JSON.stringify(state.session));
   state.data = await api.loadAll();
+  enforceCompanyClientSession();
+  if (state.session) localStorage.setItem(sessionKey, JSON.stringify(state.session));
   applyBranding();
   handleMissingImages();
   bindGlobalEvents();
@@ -209,7 +219,11 @@ function supabaseApi() {
       });
       const profile = profiles[0] || await this.ensureClientAccount(auth);
       if (profile.status !== "approved") throw new Error("Este usuario aún no está aprobado.");
-      return { id: profile.id, email, role: normalizedRole(email, profile.role), name: profile.name, token: auth.access_token, mustChangePassword: !!profile.must_change_password };
+      const companies = await request(`/rest/v1/companies?select=id&contact=eq.${encodeURIComponent(email)}&limit=1`, {
+        headers: headers(auth.access_token)
+      });
+      const role = companies.length ? "client" : normalizedRole(email, profile.role);
+      return { id: profile.id, email, role, name: profile.name, token: auth.access_token, mustChangePassword: !!profile.must_change_password };
     },
     async signupCompany({ company, email, contact, interest, password }) {
       const auth = await request("/auth/v1/signup", {
