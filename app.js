@@ -141,6 +141,9 @@ function demoApi() {
         session: { id, email, role: "client", name: company, token: "demo", mustChangePassword: false }
       };
     },
+    async resendSignup(email) {
+      return { email };
+    },
     async insert(table, record) {
       const data = read();
       const item = { id: crypto.randomUUID(), ...record };
@@ -252,6 +255,20 @@ function supabaseApi() {
         session: { id: profile.id, email, role: "client", name: profile.name, token: accessToken, mustChangePassword: false }
       };
     },
+    async resendSignup(email) {
+      await request("/auth/v1/resend", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          type: "signup",
+          email,
+          options: {
+            email_redirect_to: window.location.origin + window.location.pathname
+          }
+        })
+      });
+      return { email };
+    },
     async ensureClientAccount(auth, fallback = {}) {
       const token = auth.access_token || auth.session?.access_token;
       const email = auth.user.email;
@@ -280,6 +297,11 @@ function supabaseApi() {
           method: "POST",
           headers: { ...headers(token), Prefer: "return=minimal" },
           body: JSON.stringify({ name: company, contact: email, owner: contact, interest, status: "approved" })
+        });
+        await request("/rest/v1/crm", {
+          method: "POST",
+          headers: { ...headers(token), Prefer: "return=minimal" },
+          body: JSON.stringify({ name: company, volume: 0, status: "Nuevo cliente" })
         });
       }
       return profileRecord;
@@ -384,6 +406,10 @@ async function submitLogin(event) {
     renderSession();
     showView(state.session.role === "admin" ? "admin" : "client");
   } catch (error) {
+    if (String(error.message).toLowerCase().includes("email not confirmed")) {
+      showVerificationNotice(form.email.value);
+      return;
+    }
     notify("Acceso", "No fue posible iniciar sesión", error.message);
   }
 }
@@ -427,11 +453,31 @@ function closeModals() {
   document.querySelectorAll(".modal").forEach(modal => modal.classList.remove("active"));
 }
 
-function notify(kicker, title, text) {
+function notify(kicker, title, text, actions = "") {
   document.getElementById("actionKicker").textContent = kicker;
   document.getElementById("actionTitle").textContent = title;
   document.getElementById("actionText").textContent = text;
+  document.getElementById("actionActions").innerHTML = actions;
   document.getElementById("actionModal").classList.add("active");
+}
+
+function showVerificationNotice(email) {
+  notify(
+    "Verificación",
+    "Confirma tu correo",
+    `Enviamos un enlace de verificación a ${email}. Si no lo recibiste, revisa spam o solicita un nuevo envío.`,
+    `<button class="btn primary full" type="button" id="resendVerificationButton">Reenviar correo de verificación</button>`
+  );
+  document.getElementById("resendVerificationButton").addEventListener("click", () => resendVerificationEmail(email));
+}
+
+async function resendVerificationEmail(email) {
+  try {
+    await api.resendSignup(email);
+    notify("Verificación", "Correo reenviado", `Enviamos nuevamente el enlace de verificación a ${email}.`);
+  } catch (error) {
+    notify("Verificación", "No se pudo reenviar", humanError(error));
+  }
 }
 
 function stripeLink(key) {
@@ -574,12 +620,26 @@ function renderClientNews() {
 }
 
 function renderClientSponsors() {
-  panel("client-sponsors", "Sponsors", "Oportunidades disponibles", table(["Oportunidad", "Desde", "Estado", "Acción"], [
-    ["Patrocinio deportista", "$5,000 MXN+ mensual", badge("abierto"), button("Solicitar", () => createSponsorship("Patrocinio deportista", 5000))],
-    ["Evento ejecutivo", "Por invitación", badge("limitado"), button("Brief", () => createRequest("Sponsor evento", "Evento ejecutivo"))],
-    ["Visibilidad de sede", "Paquete privado", badge("review"), button("Solicitar", () => createRequest("Sponsor sede", "Visibilidad de sede"))],
-    ["Patrocinador oficial ROIS", "$50,000 MXN mensual", badge("premium"), button("Pagar Stripe", () => openStripeCheckout("officialSponsorMonthly", "Patrocinador Oficial ROIS"))]
-  ]));
+  const partners = state.data.partnerships.filter(item => item.status === "approved" && visualIsPublic(item));
+  panel("client-sponsors", "Sponsors", "Oportunidades disponibles", `
+    <div class="panel-body">
+      ${partners.length ? `
+        <div class="section-minihead">
+          <p class="eyebrow">Patrocinadores oficiales</p>
+          <h3>Red publicada por ROIS para conexiones estratégicas.</h3>
+        </div>
+        <div class="opportunity-grid">
+          ${partners.map(partner => clientPartnerCard(partner)).join("")}
+        </div>
+      ` : `<div class="empty slim">Los patrocinadores oficiales aprobados aparecerán aquí.</div>`}
+    </div>
+    ${table(["Oportunidad", "Desde", "Estado", "Acción"], [
+      ["Patrocinio deportista", "$5,000 MXN+ mensual", badge("abierto"), button("Solicitar", () => createSponsorship("Patrocinio deportista", 5000))],
+      ["Evento ejecutivo", "Por invitación", badge("limitado"), button("Brief", () => createRequest("Sponsor evento", "Evento ejecutivo"))],
+      ["Visibilidad de sede", "Paquete privado", badge("review"), button("Solicitar", () => createRequest("Sponsor sede", "Visibilidad de sede"))],
+      ["Patrocinador oficial ROIS", "$50,000 MXN mensual", badge("premium"), button("Pagar Stripe", () => openStripeCheckout("officialSponsorMonthly", "Patrocinador Oficial ROIS"))]
+    ])}
+  `);
 }
 
 function renderClientMarketplace() {
@@ -1106,6 +1166,19 @@ function partnerCard(partner) {
   `;
 }
 
+function clientPartnerCard(partner) {
+  const image = partner.image_url || fixedLogoPath;
+  return publishedCard({
+    item: { ...partner, image_url: image },
+    kicker: partner.tier || "Patrocinador oficial",
+    title: partner.name,
+    text: partner.description || "Sponsor o aliado estratégico publicado por ROIS.",
+    action: partner.url
+      ? `<a class="btn" href="${partner.url}" target="_blank" rel="noopener">Ver aliado</a>`
+      : button("Solicitar conexión", () => createRequest("Conexión sponsor", partner.name))
+  });
+}
+
 function athleteInvestment(athlete) {
   return Number(athlete.annual || athlete.monthly || 1000);
 }
@@ -1228,7 +1301,7 @@ async function submitRegistration(event) {
         showView("client");
         notify("Cuenta creada", "Bienvenido a ROIS", "Tu dashboard de cliente ya está activo.");
       } else {
-        notify("Cuenta creada", "Verifica tu correo", "Supabase envió un enlace de confirmación. Después podrás iniciar sesión con tu correo y contraseña.");
+        showVerificationNotice(signup.email || form.email.value);
       }
       renderAdmin();
       renderPublic();

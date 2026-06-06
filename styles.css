@@ -860,6 +860,12 @@ input:focus, textarea:focus, select:focus {
   position: relative;
 }
 
+.modal-actions {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 12px;
+}
+
 .modal-close {
   position: absolute;
   top: 14px;
