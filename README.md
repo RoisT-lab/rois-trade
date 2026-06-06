@@ -52,17 +52,17 @@ La anon key puede estar en frontend si las políticas RLS están activas. Nunca 
 
 ## Flujo de clientes
 
-- El registro público crea solicitudes pendientes.
-- Admin aprueba empresas, eventos, deportistas, noticias, alianzas, visuales y branding.
+- Las empresas crean cuenta directa con correo y contraseña.
+- El perfil de empresa queda aprobado automáticamente como cliente.
+- Admin aprueba eventos, deportistas, noticias, alianzas y visuales.
 - Los deportistas incluyen ficha técnica, video por URL y patrocinio anual desde $1,000 MXN.
 - Los pagos se activan por tipo de producto con Stripe Payment Links desde `app-config.js`.
-- Para dar acceso real a una empresa, crea su usuario en Supabase Authentication e inserta su perfil en `profiles` con role `client` y status `approved`.
+- Si Supabase tiene confirmación por correo activa, la empresa debe confirmar su email antes de iniciar sesión.
 
 ## Pendiente para producción completa
 
-- Crear Edge Function para alta automática de usuarios aprobados.
 - Conectar Supabase Storage para imágenes.
 - Conectar Supabase Storage para videos propios. Por ahora se recomienda URL de YouTube, Vimeo o archivo alojado.
 - Agregar moderación automática de imágenes antes de publicar.
 - Para conciliación automática de Stripe, crear webhook o Edge Function.
-- Agregar TOTP real para administradores.
+- Agregar TOTP/MFA real para administradores y operaciones sensibles de clientes.

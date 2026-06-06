@@ -4,7 +4,7 @@ const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
 const configuredDemoAdmin = config.demoAdminEmail && config.demoAdminPassword;
 const adminEmail = (config.adminEmail || config.demoAdminEmail || "").toLowerCase();
-const fixedLogoPath = "./assets/rois-logo-cropped.png";
+const fixedLogoPath = "./assets/rois-logo.png";
 
 const state = {
   session: JSON.parse(localStorage.getItem(sessionKey) || "null"),
@@ -115,6 +115,22 @@ function demoApi() {
       if (user.status !== "approved") throw new Error("Este usuario aún no está aprobado.");
       return { id: user.id, email: user.email, role: normalizedRole(user.email, user.role), name: user.name, token: "demo", mustChangePassword: !!user.mustChangePassword };
     },
+    async signupCompany({ company, email, contact, interest, password }) {
+      const data = read();
+      if (data.profiles.some(item => item.email.toLowerCase() === email.toLowerCase())) {
+        throw new Error("Ya existe una cuenta con ese correo.");
+      }
+      const id = crypto.randomUUID();
+      const profile = { id, email, password, role: "client", name: company, status: "approved", mustChangePassword: false };
+      data.profiles.unshift(profile);
+      data.companies.unshift({ id: crypto.randomUUID(), name: company, contact: email, owner: contact, interest, status: "approved" });
+      write(data);
+      state.data = data;
+      return {
+        confirmed: true,
+        session: { id, email, role: "client", name: company, token: "demo", mustChangePassword: false }
+      };
+    },
     async insert(table, record) {
       const data = read();
       const item = { id: crypto.randomUUID(), ...record };
@@ -191,10 +207,68 @@ function supabaseApi() {
       const profiles = await request(`/rest/v1/profiles?select=*&id=eq.${auth.user.id}&limit=1`, {
         headers: headers(auth.access_token)
       });
-      const profile = profiles[0];
-      if (!profile) throw new Error("No existe perfil ROIS para este usuario.");
+      const profile = profiles[0] || await this.ensureClientAccount(auth);
       if (profile.status !== "approved") throw new Error("Este usuario aún no está aprobado.");
       return { id: profile.id, email, role: normalizedRole(email, profile.role), name: profile.name, token: auth.access_token, mustChangePassword: !!profile.must_change_password };
+    },
+    async signupCompany({ company, email, contact, interest, password }) {
+      const auth = await request("/auth/v1/signup", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          email,
+          password,
+          data: {
+            name: company,
+            company_name: company,
+            contact_name: contact,
+            interest
+          }
+        })
+      });
+      const accessToken = auth.session?.access_token || auth.access_token;
+      const authUser = auth.user || auth;
+      if (!accessToken || !authUser?.id) {
+        return { confirmed: false, email };
+      }
+      const profile = await this.ensureClientAccount({ user: authUser, access_token: accessToken }, { company, contact, interest });
+      state.data = await this.loadAll();
+      return {
+        confirmed: true,
+        session: { id: profile.id, email, role: "client", name: profile.name, token: accessToken, mustChangePassword: false }
+      };
+    },
+    async ensureClientAccount(auth, fallback = {}) {
+      const token = auth.access_token || auth.session?.access_token;
+      const email = auth.user.email;
+      const meta = auth.user.user_metadata || {};
+      const company = fallback.company || meta.company_name || meta.name || email.split("@")[0];
+      const contact = fallback.contact || meta.contact_name || company;
+      const interest = fallback.interest || meta.interest || "Relaciones estratégicas";
+      const profileRecord = {
+        id: auth.user.id,
+        email,
+        role: "client",
+        name: company,
+        status: "approved",
+        must_change_password: false
+      };
+      await request("/rest/v1/profiles?on_conflict=id", {
+        method: "POST",
+        headers: { ...headers(token), Prefer: "resolution=ignore-duplicates,return=minimal" },
+        body: JSON.stringify(profileRecord)
+      });
+      const existingCompanies = await request(`/rest/v1/companies?select=id&contact=eq.${encodeURIComponent(email)}&limit=1`, {
+        headers: headers(token)
+      });
+      if (!existingCompanies.length) {
+        await request("/rest/v1/companies", {
+          method: "POST",
+          headers: { ...headers(token), Prefer: "return=minimal" },
+          body: JSON.stringify({ name: company, contact: email, owner: contact, interest, status: "approved" })
+        });
+      }
+      return profileRecord;
     },
     async insert(table, record) {
       const rows = await request(`/rest/v1/${table}`, {
@@ -367,10 +441,6 @@ function humanError(error) {
     return "La base de datos todavía está bloqueando este registro. Actualiza las políticas de Supabase y vuelve a intentarlo.";
   }
   return message || "Ocurrió un error inesperado.";
-}
-
-function temporaryPassword() {
-  return crypto.randomUUID().replace(/-/g, "").slice(0, 14) + "!";
 }
 
 function renderSession() {
@@ -1073,7 +1143,7 @@ function fileToDataUrl(file) {
 
 function openRegistration(type) {
   state.registrationType = type;
-  const title = type === "company" ? "Registro de empresa" : type === "athlete" ? "Registro de deportista" : "Registro de evento";
+  const title = type === "company" ? "Crear cuenta de empresa" : type === "athlete" ? "Registro de deportista" : "Registro de evento";
   document.getElementById("registrationKicker").textContent = "Registro ROIS";
   document.getElementById("registrationTitle").textContent = title;
   document.getElementById("registrationForm").innerHTML = registrationFields(type);
@@ -1087,8 +1157,10 @@ function registrationFields(type) {
       <label>Correo de acceso<input name="email" type="email" required placeholder="contacto@empresa.com"></label>
       <label>Contacto<input name="contact" required placeholder="Nombre del responsable"></label>
       <label>Interés principal<select name="interest"><option>Eventos</option><option>Sponsors</option><option>Deportistas</option><option>Relaciones estratégicas</option></select></label>
-      <p class="hint">Tu solicitud será revisada por ROIS. Si es aprobada, recibirás instrucciones privadas para activar tu acceso.</p>
-      <button class="btn primary full" type="submit">Enviar empresa</button>
+      <label>Contraseña<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Mínimo 8 caracteres"></label>
+      <label>Confirmar contraseña<input name="confirm" type="password" minlength="8" autocomplete="new-password" required placeholder="Repite tu contraseña"></label>
+      <p class="hint">La cuenta se activa como cliente ROIS. Las operaciones premium pueden requerir revisión interna.</p>
+      <button class="btn primary full" type="submit">Crear cuenta</button>
     `;
   }
   if (type === "athlete") {
@@ -1122,11 +1194,31 @@ async function submitRegistration(event) {
   let paymentAction = null;
   try {
     if (type === "company") {
-      const id = crypto.randomUUID();
-      await api.insert("companies", { name: form.name.value, contact: form.email.value, status: "pending", interest: form.interest.value, owner: form.contact.value });
-      if (demoMode) {
-        await api.insert("profiles", { id, email: form.email.value, password: temporaryPassword(), role: "client", name: form.name.value, status: "pending", mustChangePassword: true });
+      if (form.password.value !== form.confirm.value) {
+        notify("Registro", "Las contraseñas no coinciden", "Confirma la contraseña para crear tu cuenta.");
+        return;
       }
+      const signup = await api.signupCompany({
+        company: form.name.value,
+        email: form.email.value,
+        contact: form.contact.value,
+        interest: form.interest.value,
+        password: form.password.value
+      });
+      closeModals();
+      if (signup.confirmed) {
+        state.session = signup.session;
+        localStorage.setItem(sessionKey, JSON.stringify(state.session));
+        renderSession();
+        renderClient();
+        showView("client");
+        notify("Cuenta creada", "Bienvenido a ROIS", "Tu dashboard de cliente ya está activo.");
+      } else {
+        notify("Cuenta creada", "Verifica tu correo", "Supabase envió un enlace de confirmación. Después podrás iniciar sesión con tu correo y contraseña.");
+      }
+      renderAdmin();
+      renderPublic();
+      return;
     } else if (type === "athlete") {
       const image_url = await fileToDataUrl(form.image.files[0]);
       await api.insert("athletes", { name: form.name.value, sport: form.sport.value, category: form.category.value, location: form.location.value, ranking: form.ranking.value, stats: form.stats.value, annual: Number(form.annual.value || 1000), video_url: form.video_url.value, status: "pending", image_url, visual_status: image_url ? "pending_review" : "approved" });

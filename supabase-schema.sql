@@ -165,10 +165,13 @@ as $$
 $$;
 
 drop policy if exists "profiles select own or admin" on profiles;
+drop policy if exists "profiles self insert client" on profiles;
 drop policy if exists "profiles update admin" on profiles;
 drop policy if exists "profiles clear own password flag" on profiles;
 drop policy if exists "profiles delete admin" on profiles;
 drop policy if exists "companies all admin" on companies;
+drop policy if exists "companies self read" on companies;
+drop policy if exists "companies self insert approved" on companies;
 drop policy if exists "companies public insert pending" on companies;
 drop policy if exists "athletes read approved" on athletes;
 drop policy if exists "athletes admin write" on athletes;
@@ -189,6 +192,16 @@ drop policy if exists "payments admin all" on payments;
 drop policy if exists "uploads admin all" on uploads;
 
 create policy "profiles select own or admin" on profiles for select using (id = auth.uid() or is_admin());
+create policy "profiles self insert client" on profiles
+for insert
+to authenticated
+with check (
+  id = auth.uid()
+  and email = (auth.jwt() ->> 'email')
+  and role = 'client'
+  and status = 'approved'
+  and must_change_password = false
+);
 create policy "profiles update admin" on profiles for update using (is_admin());
 create policy "profiles clear own password flag" on profiles
 for update
@@ -198,7 +211,17 @@ with check (id = auth.uid() and must_change_password = false);
 create policy "profiles delete admin" on profiles for delete using (is_admin() and id <> auth.uid());
 
 create policy "companies all admin" on companies for all using (is_admin()) with check (is_admin());
-create policy "companies public insert pending" on companies for insert to anon, authenticated with check (status = 'pending');
+create policy "companies self read" on companies
+for select
+to authenticated
+using (contact = (auth.jwt() ->> 'email') or is_admin());
+create policy "companies self insert approved" on companies
+for insert
+to authenticated
+with check (
+  contact = (auth.jwt() ->> 'email')
+  and status = 'approved'
+);
 create policy "athletes read approved" on athletes for select using (status = 'approved' or is_admin());
 create policy "athletes admin write" on athletes for all using (is_admin()) with check (is_admin());
 create policy "athletes public insert pending" on athletes for insert to anon, authenticated with check (
@@ -225,6 +248,8 @@ create policy "uploads admin all" on uploads for all using (is_admin()) with che
 
 grant usage on schema public to anon, authenticated;
 grant select on profiles, companies, athletes, events, requests, sponsorships, news, partnerships, site_settings, crm, payments, uploads to anon, authenticated;
+grant insert on profiles to authenticated;
 grant update (must_change_password) on profiles to authenticated;
-grant insert on companies, athletes, events to anon, authenticated;
+grant insert on athletes, events to anon, authenticated;
+grant insert on companies to authenticated;
 grant insert, update on requests, sponsorships, payments to authenticated;
