@@ -6,7 +6,9 @@ window.ROIS_CONFIG = {
   stripePaymentLinks: {
     eventRegistration: "https://buy.stripe.com/eVqbJ0exAgeU0dUdeO18c00",
     athleteAnnualProfile: "https://buy.stripe.com/aFa14mexAgeU9Ou5Mm18c01",
+    roisPartnerMonthly: "https://buy.stripe.com/bJe00igFI3s8d0GfmW18c04",
     officialSponsorMonthly: "https://buy.stripe.com/7sY9AS3SW7Iod0GcaK18c02",
+    roisLegacyMonthly: "https://buy.stripe.com/14AdR8gFI0fWbWC0s218c05",
     strategicRequest: "https://buy.stripe.com/5kQbJ0614aUA5yefmW18c03"
   }
 };
