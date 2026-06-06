@@ -4,6 +4,7 @@ const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
 const configuredDemoAdmin = config.demoAdminEmail && config.demoAdminPassword;
 const adminEmail = (config.adminEmail || config.demoAdminEmail || "").toLowerCase();
+const fixedLogoPath = "./assets/rois-logo-cropped.png";
 
 const state = {
   session: JSON.parse(localStorage.getItem(sessionKey) || "null"),
@@ -56,14 +57,11 @@ async function init() {
   if (state.session) showView(state.session.role === "admin" ? "admin" : "client");
 }
 
-function settingValue(id, fallback = "") {
-  return state.data?.site_settings?.find(item => item.id === id)?.value || fallback;
-}
-
 function applyBranding() {
-  const logo = settingValue("brand_logo", "./assets/rois-logo-cropped.png");
-  document.querySelectorAll(".side-logo").forEach(image => {
-    image.src = logo;
+  document.querySelectorAll(".brand-logo, .side-logo").forEach(image => {
+    image.src = fixedLogoPath;
+    image.hidden = false;
+    image.closest(".brand, .sidebar")?.classList.remove("logo-fallback");
   });
 }
 
@@ -239,7 +237,12 @@ function supabaseApi() {
         headers: headers(session.token),
         body: JSON.stringify({ password })
       });
-      await this.update("profiles", session.id, { must_change_password: false });
+      await request(`/rest/v1/profiles?id=eq.${session.id}`, {
+        method: "PATCH",
+        headers: { ...headers(session.token), Prefer: "return=minimal" },
+        body: JSON.stringify({ must_change_password: false })
+      });
+      state.data = await this.loadAll();
       return { ...session, mustChangePassword: false };
     }
   };
@@ -578,7 +581,6 @@ function renderAdmin() {
   renderAdminEvents();
   renderAdminNews();
   renderAdminPartners();
-  renderAdminBranding();
   renderAdminCrm();
   renderAdminPayments();
   renderAdminUploads();
@@ -704,24 +706,6 @@ function renderAdminPartners() {
     ]))}
   `);
   document.getElementById("partnerForm").addEventListener("submit", submitAdminPartner);
-}
-
-function renderAdminBranding() {
-  const logo = settingValue("brand_logo", "./assets/rois-logo-cropped.png");
-  panel("admin-branding", "Branding", "Control del logotipo visible en la plataforma", `
-    <div class="panel-body">
-      <div class="branding-preview">
-        <span>Logotipo actual</span>
-        <img src="${logo}" alt="Logotipo ROIS actual">
-      </div>
-      <form id="brandingForm" class="form-grid">
-        <label style="grid-column:1/-1">Nuevo logotipo<input name="logo" type="file" accept="image/png,image/jpeg,image/webp" required></label>
-        <button class="btn primary" type="submit">Actualizar logotipo</button>
-      </form>
-      <p class="hint">Recomendado: PNG o WebP horizontal, fondo transparente, alto mínimo de 160 px.</p>
-    </div>
-  `);
-  document.getElementById("brandingForm").addEventListener("submit", submitBranding);
 }
 
 function renderAdminCrm() {
@@ -946,16 +930,6 @@ async function submitAdminPartner(event) {
   notify("Alianzas", "Alianza guardada", "El registro quedó disponible para aprobación y revisión visual.");
   renderAdmin();
   renderPublic();
-}
-
-async function submitBranding(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const logo = await fileToDataUrl(form.logo.files[0]);
-  await api.upsert("site_settings", { id: "brand_logo", value: logo });
-  applyBranding();
-  notify("Branding", "Logotipo actualizado", "El nuevo logotipo ya se aplicó en la plataforma.");
-  renderAdmin();
 }
 
 async function approveVisual(tableName, item) {

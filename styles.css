@@ -690,30 +690,6 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
 
 .panel-body { padding: 24px; }
 
-.branding-preview {
-  display: grid;
-  gap: 14px;
-  margin-bottom: 22px;
-  padding: 24px;
-  border: 1px solid var(--line);
-  background: #0b0c0e;
-}
-
-.branding-preview span {
-  color: rgba(244, 246, 248, 0.68);
-  font-size: 9px;
-  font-weight: 850;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-
-.branding-preview img {
-  width: min(260px, 100%);
-  max-height: 90px;
-  object-fit: contain;
-  object-position: left center;
-}
-
 .opportunity-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
