@@ -780,6 +780,12 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   gap: 18px;
 }
 
+.commercial-form {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
 label { display: grid; gap: 8px; color: var(--muted); font-size: 10px; font-weight: 780; letter-spacing: .08em; text-transform: uppercase; }
 input, textarea, select {
   width: 100%;

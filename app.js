@@ -612,7 +612,7 @@ function renderClientNews() {
           kicker: "Publicación ROIS",
           title: item.title,
           text: item.summary,
-          action: button("Solicitar brief", () => createRequest("Interés en noticia", item.title))
+          action: button("Solicitar análisis ROIS", () => createRequest("Interés en noticia", item.title))
         })).join("")}
       </div>
     </div>
@@ -621,7 +621,7 @@ function renderClientNews() {
 
 function renderClientSponsors() {
   const partners = state.data.partnerships.filter(item => item.status === "approved" && visualIsPublic(item));
-  panel("client-sponsors", "Sponsors", "Oportunidades disponibles", `
+  panel("client-sponsors", "Patrocinios", "Solicita oportunidades de patrocinio gestionadas por ROIS", `
     <div class="panel-body">
       ${partners.length ? `
         <div class="section-minihead">
@@ -632,14 +632,45 @@ function renderClientSponsors() {
           ${partners.map(partner => clientPartnerCard(partner)).join("")}
         </div>
       ` : `<div class="empty slim">Los patrocinadores oficiales aprobados aparecerán aquí.</div>`}
+      <form id="sponsorIntentForm" class="form-grid commercial-form">
+        <label>Tipo de patrocinio
+          <select name="type" required>
+            <option value="Deportista">Patrocinar deportista</option>
+            <option value="Evento">Patrocinar evento</option>
+            <option value="Sponsor oficial">Ser patrocinador oficial ROIS</option>
+            <option value="Paquete institucional">Paquete institucional personalizado</option>
+          </select>
+        </label>
+        <label>Presupuesto mensual estimado
+          <select name="budget" required>
+            <option value="$5,000 - $15,000 MXN">$5,000 - $15,000 MXN</option>
+            <option value="$15,000 - $50,000 MXN">$15,000 - $50,000 MXN</option>
+            <option value="$50,000 - $150,000 MXN">$50,000 - $150,000 MXN</option>
+            <option value="$150,000 MXN+">$150,000 MXN+</option>
+          </select>
+        </label>
+        <label>Objetivo comercial
+          <select name="objective" required>
+            <option>Brand awareness</option>
+            <option>Relaciones corporativas</option>
+            <option>Acceso a eventos privados</option>
+            <option>Impacto social/deportivo</option>
+            <option>Desarrollo de negocio</option>
+          </select>
+        </label>
+        <label>Horizonte de decisión
+          <select name="timeline" required>
+            <option>Esta semana</option>
+            <option>Este mes</option>
+            <option>Próximo trimestre</option>
+            <option>Exploratorio</option>
+          </select>
+        </label>
+        <button class="btn primary" type="submit">Solicitar evaluación ROIS</button>
+      </form>
     </div>
-    ${table(["Oportunidad", "Desde", "Estado", "Acción"], [
-      ["Patrocinio deportista", "$5,000 MXN+ mensual", badge("abierto"), button("Solicitar", () => createSponsorship("Patrocinio deportista", 5000))],
-      ["Evento ejecutivo", "Por invitación", badge("limitado"), button("Brief", () => createRequest("Sponsor evento", "Evento ejecutivo"))],
-      ["Visibilidad de sede", "Paquete privado", badge("review"), button("Solicitar", () => createRequest("Sponsor sede", "Visibilidad de sede"))],
-      ["Patrocinador oficial ROIS", "$50,000 MXN mensual", badge("premium"), button("Pagar Stripe", () => openStripeCheckout("officialSponsorMonthly", "Patrocinador Oficial ROIS"))]
-    ])}
   `);
+  document.getElementById("sponsorIntentForm").addEventListener("submit", submitSponsorIntent);
 }
 
 function renderClientMarketplace() {
@@ -654,24 +685,66 @@ function renderClientMarketplace() {
 }
 
 function renderClientRequests() {
-  panel("client-requests", "Solicitudes BD", "Mesa de relaciones estratégicas", `
+  panel("client-requests", "Solicitud Estratégica", "Conexiones comerciales, sponsors y relaciones gestionadas por ROIS", `
     <div class="panel-body">
-      <form id="dbRequestForm" class="form-grid">
-        <label>Tipo de relación<input name="title" required placeholder="Ej. Sponsors en Monterrey"></label>
-        <label>Prioridad<select name="priority"><option>Normal</option><option>Alta</option><option>Confidencial</option></select></label>
-        <label style="grid-column:1/-1">Contexto<textarea name="details" required placeholder="Describe mercado, industria, perfil o relación objetivo."></textarea></label>
-        <button class="btn primary" type="submit">Enviar solicitud</button>
+      <form id="strategicRequestForm" class="form-grid commercial-form">
+        <label>Servicio solicitado
+          <select name="service" required>
+            <option value="Sponsors para evento">Sponsors para un evento</option>
+            <option value="Conexión con patrocinador">Conexión con patrocinador específico</option>
+            <option value="Base de datos curada">Base de datos curada</option>
+            <option value="Introducción institucional">Introducción institucional</option>
+            <option value="Alianza estratégica">Alianza estratégica</option>
+          </select>
+        </label>
+        <label>Industria objetivo
+          <select name="industry" required>
+            <option>Finanzas / inversión</option>
+            <option>Real estate</option>
+            <option>Lujo / lifestyle</option>
+            <option>Deporte / wellness</option>
+            <option>Tecnología</option>
+            <option>Consumo premium</option>
+          </select>
+        </label>
+        <label>Región
+          <select name="region" required>
+            <option>Monterrey</option>
+            <option>Guadalajara</option>
+            <option>CDMX</option>
+            <option>Bajío</option>
+            <option>Nacional</option>
+            <option>Internacional</option>
+          </select>
+        </label>
+        <label>Presupuesto o ticket objetivo
+          <select name="budget" required>
+            <option>$5,000 - $25,000 MXN</option>
+            <option>$25,000 - $100,000 MXN</option>
+            <option>$100,000 - $500,000 MXN</option>
+            <option>$500,000 MXN+</option>
+          </select>
+        </label>
+        <label>Urgencia
+          <select name="priority" required>
+            <option>Normal - 5 días hábiles</option>
+            <option>Prioritaria - 72 horas</option>
+            <option>Confidencial / dirección ROIS</option>
+          </select>
+        </label>
+        <label>Resultado esperado
+          <select name="outcome" required>
+            <option>Listado curado de prospectos</option>
+            <option>Introducción directa</option>
+            <option>Brief de patrocinio</option>
+            <option>Reunión estratégica</option>
+          </select>
+        </label>
+        <button class="btn primary" type="submit">Enviar y pagar revisión</button>
       </form>
     </div>
   `);
-  document.getElementById("dbRequestForm").addEventListener("submit", async event => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    await api.insert("requests", { type: "Solicitud BD", title: form.title.value, owner: state.session.name, status: "review", details: form.details.value, priority: form.priority.value });
-    notify("Solicitudes BD", "Solicitud enviada", "La solicitud quedó registrada para revisión interna.");
-    openStripeCheckout("strategicRequest", "Solicitud Estratégica ROIS");
-    renderClient();
-  });
+  document.getElementById("strategicRequestForm").addEventListener("submit", submitStrategicRequest);
 }
 
 function renderClientRegister() {
@@ -698,10 +771,10 @@ function renderClientRegister() {
 
 function renderClientStatus() {
   const rows = [
-    ...state.data.requests.map(item => [item.title, item.type, badge(item.status)]),
-    ...state.data.sponsorships.map(item => [item.athlete, "Patrocinio", badge(item.status)])
+    ...state.data.requests.map(item => [item.title, item.type, item.priority || "Normal", badge(item.status)]),
+    ...state.data.sponsorships.map(item => [item.athlete, "Patrocinio", "Revisión ROIS", badge(item.status)])
   ];
-  panel("client-status", "Estado Solicitudes", "Seguimiento operativo", rows.length ? table(["Solicitud", "Área", "Estado"], rows) : `<div class="empty">No hay solicitudes todavía.</div>`);
+  panel("client-status", "Estado Solicitudes", "Seguimiento operativo", rows.length ? table(["Solicitud", "Área", "Prioridad", "Estado"], rows) : `<div class="empty">No hay solicitudes todavía.</div>`);
 }
 
 function renderClientPayments() {
@@ -951,6 +1024,55 @@ function userActions(user, tableName) {
 async function createRequest(type, title) {
   await api.insert("requests", { type, title, owner: state.session?.name || "Empresa", status: "review" });
   notify("Solicitud", "Solicitud creada", "El registro ya aparece en Estado Solicitudes.");
+  renderClient();
+  renderAdmin();
+}
+
+async function submitSponsorIntent(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const details = [
+    `Tipo: ${form.type.value}`,
+    `Presupuesto mensual: ${form.budget.value}`,
+    `Objetivo: ${form.objective.value}`,
+    `Horizonte: ${form.timeline.value}`
+  ].join(" | ");
+  await api.insert("requests", {
+    type: "Patrocinio",
+    title: form.type.value,
+    owner: state.session?.name || "Empresa",
+    status: "review",
+    details,
+    priority: form.timeline.value
+  });
+  if (form.type.value === "Deportista") {
+    await api.insert("sponsorships", { athlete: "Por asignar", amount: 5000, company: state.session?.name || "Empresa", status: "review" });
+  }
+  notify("Patrocinios", "Solicitud recibida", "ROIS revisará la oportunidad y preparará una propuesta curada.");
+  renderClient();
+  renderAdmin();
+}
+
+async function submitStrategicRequest(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const title = `${form.service.value} - ${form.region.value}`;
+  const details = [
+    `Servicio: ${form.service.value}`,
+    `Industria: ${form.industry.value}`,
+    `Región: ${form.region.value}`,
+    `Presupuesto: ${form.budget.value}`,
+    `Resultado esperado: ${form.outcome.value}`
+  ].join(" | ");
+  await api.insert("requests", {
+    type: "Solicitud Estratégica",
+    title,
+    owner: state.session?.name || "Empresa",
+    status: "review",
+    details,
+    priority: form.priority.value
+  });
+  openStripeCheckout("strategicRequest", "Solicitud Estratégica ROIS");
   renderClient();
   renderAdmin();
 }
