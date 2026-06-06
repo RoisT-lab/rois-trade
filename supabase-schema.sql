@@ -137,6 +137,12 @@ alter table athletes add column if not exists category text;
 alter table athletes add column if not exists location text;
 alter table athletes add column if not exists ranking text;
 alter table athletes add column if not exists video_url text;
+alter table athletes add column if not exists sponsor_payment_url text;
+alter table athletes add column if not exists sponsor_terms text;
+alter table events add column if not exists brochure_url text;
+alter table events add column if not exists sponsor_levels text;
+alter table sponsorships add column if not exists details text;
+alter table payments add column if not exists product_key text;
 
 alter table profiles enable row level security;
 alter table companies enable row level security;
@@ -188,6 +194,7 @@ drop policy if exists "partnerships admin write" on partnerships;
 drop policy if exists "site settings public read" on site_settings;
 drop policy if exists "site settings admin write" on site_settings;
 drop policy if exists "crm admin all" on crm;
+drop policy if exists "crm client insert" on crm;
 drop policy if exists "payments admin all" on payments;
 drop policy if exists "uploads admin all" on uploads;
 
@@ -243,6 +250,10 @@ create policy "partnerships admin write" on partnerships for all using (is_admin
 create policy "site settings public read" on site_settings for select using (true);
 create policy "site settings admin write" on site_settings for all using (is_admin()) with check (is_admin());
 create policy "crm admin all" on crm for all using (is_admin()) with check (is_admin());
+create policy "crm client insert" on crm
+for insert
+to authenticated
+with check (status = 'Nuevo cliente');
 create policy "payments admin all" on payments for all using (is_admin()) with check (is_admin());
 create policy "uploads admin all" on uploads for all using (is_admin()) with check (is_admin());
 
@@ -252,4 +263,5 @@ grant insert on profiles to authenticated;
 grant update (must_change_password) on profiles to authenticated;
 grant insert on athletes, events to anon, authenticated;
 grant insert on companies to authenticated;
+grant insert on crm to authenticated;
 grant insert, update on requests, sponsorships, payments to authenticated;

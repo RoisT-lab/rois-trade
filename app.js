@@ -500,6 +500,20 @@ function openStripeCheckout(key, title) {
   return true;
 }
 
+function openExternalUrl(url, title) {
+  if (!url) {
+    notify("ROIS", "Link pendiente", `Falta configurar el link para ${title}.`);
+    return false;
+  }
+  const target = window.open(url, "_blank");
+  if (target) {
+    target.opener = null;
+  } else {
+    window.location.href = url;
+  }
+  return true;
+}
+
 function humanError(error) {
   const message = typeof error?.message === "string" ? error.message : JSON.stringify(error);
   if (message.includes("row-level security") || message.includes("42501")) {
@@ -538,7 +552,13 @@ function renderPublic() {
         kicker: event.category || "Evento ROIS",
         title: event.name,
         text: `${event.date || "Fecha por confirmar"} / ${event.venue || "Sede por confirmar"}`,
-        action: `<button class="btn" type="button" data-open-login>Solicitar acceso</button>`
+        action: `
+          ${eventSponsorshipBlock(event, "public")}
+          <div class="action-row">
+            ${event.brochure_url ? `<a class="btn" href="${event.brochure_url}" target="_blank" rel="noopener">Descargar brochure</a>` : ""}
+            <button class="btn" type="button" data-open-login>Solicitar acceso</button>
+          </div>
+        `
       })).join("")}
     </div>
   ` : `<div class="empty">Los eventos aprobados aparecerán aquí cuando el administrador los publique.</div>`;
@@ -558,7 +578,7 @@ function renderPublic() {
         kicker: "Nota ROIS",
         title: news.title,
         text: news.summary,
-        action: `<button class="btn" type="button" data-open-login>Leer</button>`
+        action: `<div class="social-actions public-social"><button class="btn" type="button" data-open-login>Me gusta</button><button class="btn" type="button" data-open-login>Comentar</button><button class="btn" type="button" data-open-login>Compartir</button></div>`
       })).join("")}
     </div>
   ` : `<div class="empty">Las noticias publicadas aparecerán aquí.</div>`;
@@ -600,13 +620,7 @@ function renderClientEvents() {
   panel("client-events", "Eventos", "Calendario privado publicado por ROIS", events.length ? `
     <div class="panel-body">
       <div class="opportunity-grid">
-        ${events.map(event => publishedCard({
-          item: event,
-          kicker: event.category,
-          title: event.name,
-          text: `${event.venue || "Sede por confirmar"} - ${event.date || "Fecha por confirmar"}`,
-          action: button("Solicitar acceso", () => createRequest("Acceso evento", event.name))
-        })).join("")}
+        ${events.map(event => eventClientCard(event)).join("")}
       </div>
     </div>
   ` : `<div class="empty">Los eventos aprobados por admin aparecerán aquí.</div>`);
@@ -622,7 +636,7 @@ function renderClientNews() {
           kicker: "Publicación ROIS",
           title: item.title,
           text: item.summary,
-          action: button("Solicitar análisis ROIS", () => createRequest("Interés en noticia", item.title))
+          action: newsInteractionBar(item)
         })).join("")}
       </div>
     </div>
@@ -704,7 +718,7 @@ function renderClientMarketplace() {
   panel("client-marketplace", "Marketplace Deportistas", "Perfiles aprobados para sponsor", athletes.length ? `
     <div class="panel-body">
       <div class="athlete-showcase compact">
-        ${athletes.map(athlete => athleteCard(athlete, button("Solicitar patrocinio", () => createSponsorship(athlete.name, athleteInvestment(athlete))))).join("")}
+        ${athletes.map(athlete => athleteCard(athlete, button("Configurar patrocinio", () => openAthleteSponsorConfigurator(athlete)))).join("")}
       </div>
     </div>
   ` : `<div class="empty">Aún no hay deportistas aprobados para patrocinio.</div>`);
@@ -734,7 +748,7 @@ function renderClientRegister() {
 
 function renderClientStatus() {
   const rows = [
-    ...state.data.requests.map(item => [item.title, item.type, item.priority || "Normal", badge(item.status)]),
+    ...state.data.requests.filter(item => item.type !== "Interacción noticia").map(item => [item.title, item.type, item.priority || "Normal", badge(item.status)]),
     ...state.data.sponsorships.map(item => [item.athlete, "Patrocinio", "Revisión ROIS", badge(item.status)])
   ];
   panel("client-status", "Estado Solicitudes", "Seguimiento operativo", rows.length ? table(["Solicitud", "Área", "Prioridad", "Estado"], rows) : `<div class="empty">No hay solicitudes todavía.</div>`);
@@ -805,15 +819,17 @@ function renderAdminAthletes() {
         <label>Ciudad / base<input name="location" required placeholder="Ciudad o club base"></label>
         <label>Ranking o marca<input name="ranking" placeholder="Ranking, handicap, marca o nivel"></label>
         <label>Monto anual<input name="annual" type="number" min="0" value="1000" required></label>
+        <label style="grid-column:1/-1">Link de pago individual Stripe<input name="sponsor_payment_url" type="url" placeholder="https://buy.stripe.com/..."></label>
         <label style="grid-column:1/-1">Ficha técnica<textarea name="stats" required placeholder="Resultados, calendario, métricas, logros y objetivo deportivo"></textarea></label>
+        <label style="grid-column:1/-1">Condiciones autorizadas para patrocinadores<textarea name="sponsor_terms" placeholder="Una condición por línea. Ej. Mención mensual en redes sociales"></textarea></label>
         <label style="grid-column:1/-1">Video de competencias o entrenamientos<input name="video_url" type="url" placeholder="https://youtube.com/... o https://vimeo.com/..."></label>
         <label style="grid-column:1/-1">Imagen del deportista<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Crear deportista</button>
       </form>
       <p class="hint">Las imágenes nuevas quedan en revisión visual. No aparecen públicamente hasta aprobarse.</p>
     </div>
-    ${table(["Visual", "Nombre", "Deporte", "Ficha", "Anual", "Visual", "Acciones"], state.data.athletes.map(athlete => [
-      visualThumb(athlete), athlete.name, athlete.sport, `${athlete.category || "Sin categoría"} / ${athlete.ranking || "Sin ranking"}`, `$${athleteInvestment(athlete).toLocaleString("es-MX")} MXN`, badge(athlete.visual_status || "sin visual"), moderationActions("athletes", athlete)
+    ${table(["Visual", "Nombre", "Deporte", "Ficha", "Pago", "Visual", "Acciones"], state.data.athletes.map(athlete => [
+      visualThumb(athlete), athlete.name, athlete.sport, `${athlete.category || "Sin categoría"} / ${athlete.ranking || "Sin ranking"}`, athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), badge(athlete.visual_status || "sin visual"), moderationActions("athletes", athlete)
     ]))}
   `);
   document.getElementById("adminAthleteForm").addEventListener("submit", submitAdminAthlete);
@@ -827,13 +843,15 @@ function renderAdminEvents() {
         <label>Categoría<input name="category" required placeholder="Ejecutivo, sponsor, membresía"></label>
         <label>Sede<input name="venue" required placeholder="Sede o ciudad"></label>
         <label>Fecha<input name="date" required placeholder="Por confirmar"></label>
+        <label style="grid-column:1/-1">Brochure PDF<input name="brochure_url" type="url" placeholder="https://.../brochure.pdf"></label>
+        <label style="grid-column:1/-1">Niveles de patrocinio<textarea name="sponsor_levels" placeholder="Formato por línea: Nombre | Monto | Beneficios"></textarea></label>
         <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Crear evento</button>
       </form>
       <p class="hint">El evento y su imagen pasan por revisión antes de publicarse.</p>
     </div>
-    ${table(["Visual", "Evento", "Sede", "Estado", "Visual", "Acciones"], state.data.events.map(event => [
-      visualThumb(event), event.name, event.venue, badge(event.status), badge(event.visual_status || "sin visual"), moderationActions("events", event)
+    ${table(["Visual", "Evento", "Sede", "Brochure", "Estado", "Visual", "Acciones"], state.data.events.map(event => [
+      visualThumb(event), event.name, event.venue, event.brochure_url ? badge("PDF") : badge("pendiente"), badge(event.status), badge(event.visual_status || "sin visual"), moderationActions("events", event)
     ]))}
   `);
   document.getElementById("adminEventForm").addEventListener("submit", submitAdminEvent);
@@ -991,9 +1009,31 @@ async function createRequest(type, title) {
   renderAdmin();
 }
 
-async function createSponsorship(athlete, amount) {
-  await api.insert("sponsorships", { athlete, amount, company: state.session?.name || "Empresa", status: "review" });
-  await api.insert("payments", { concept: `Patrocinio mensual - ${athlete}`, amount, company: state.session?.name || "Empresa", status: "pending" });
+async function createEventSponsorshipRequest(event, level) {
+  await api.insert("requests", {
+    type: "Patrocinio evento",
+    title: `${event.name} - ${level.name}`,
+    owner: state.session?.name || "Empresa",
+    details: `Evento: ${event.name} | Paquete: ${level.name} | Monto: ${level.amount} | Beneficios: ${level.benefits}`,
+    priority: level.amount || "Paquete privado",
+    status: "review"
+  });
+  notify("Eventos", "Paquete solicitado", "ROIS revisará disponibilidad, beneficios y condiciones del patrocinio del evento.");
+  renderClient();
+  renderAdmin();
+}
+
+async function createSponsorship(athlete, amount, details = "", paymentUrl = "") {
+  await api.insert("sponsorships", { athlete, amount, company: state.session?.name || "Empresa", details, status: "review" });
+  await api.insert("requests", {
+    type: "Patrocinio deportista",
+    title: athlete,
+    owner: state.session?.name || "Empresa",
+    details,
+    priority: `$${Number(amount).toLocaleString("es-MX")} MXN`,
+    status: "review"
+  });
+  await api.insert("payments", { concept: `Patrocinio mensual - ${athlete}`, amount, company: state.session?.name || "Empresa", status: "pending", product_key: "" });
   notify("Sponsor", "Patrocinio solicitado", "La solicitud fue enviada a revisión.");
   renderClient();
   renderAdmin();
@@ -1067,6 +1107,8 @@ async function submitAdminAthlete(event) {
     ranking: form.ranking.value,
     stats: form.stats.value,
     annual: Number(form.annual.value || 1000),
+    sponsor_payment_url: form.sponsor_payment_url.value,
+    sponsor_terms: form.sponsor_terms.value,
     video_url: form.video_url.value,
     status: "pending",
     image_url,
@@ -1085,6 +1127,8 @@ async function submitAdminEvent(event) {
     category: form.category.value,
     venue: form.venue.value,
     date: form.date.value,
+    brochure_url: form.brochure_url.value,
+    sponsor_levels: form.sponsor_levels.value,
     status: "pending",
     image_url,
     visual_status: image_url ? "pending_review" : "approved"
@@ -1162,6 +1206,170 @@ function visualThumb(item) {
   return `<img class="visual-thumb" src="${item.image_url}" alt="Visual de ${item.name || item.title || "ROIS"}">`;
 }
 
+function defaultEventSponsorLevels() {
+  return [
+    { name: "Presencia de marca", amount: "$25,000 MXN+", benefits: "Logo en materiales digitales, mención institucional y acceso a brief post-evento." },
+    { name: "Patrocinador oficial", amount: "$50,000 MXN+", benefits: "Presencia prioritaria, acceso a networking, menciones y espacio de activación sujeto a sede." },
+    { name: "Sponsor titular", amount: "$100,000 MXN+", benefits: "Branding principal, acceso preferente a invitados clave y activación estratégica con ROIS." }
+  ];
+}
+
+function eventSponsorLevels(event) {
+  if (!event.sponsor_levels) return defaultEventSponsorLevels();
+  const levels = String(event.sponsor_levels).split("\n").map(line => {
+    const [name, amount, benefits] = line.split("|").map(part => part?.trim());
+    return name ? { name, amount: amount || "Paquete privado", benefits: benefits || "Beneficios sujetos al brief del evento." } : null;
+  }).filter(Boolean);
+  return levels.length ? levels : defaultEventSponsorLevels();
+}
+
+function eventSponsorshipBlock(event, mode = "client") {
+  const levels = eventSponsorLevels(event);
+  return `
+    <div class="event-sponsor-levels">
+      <p class="eyebrow">Niveles de patrocinio</p>
+      <div class="event-level-grid">
+        ${levels.map(level => `
+          <div class="event-level">
+            <span>${level.name}</span>
+            <strong>${level.amount}</strong>
+            <p>${level.benefits}</p>
+            ${mode === "client" ? button("Solicitar paquete", () => createEventSponsorshipRequest(event, level)) : ""}
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function eventClientCard(event) {
+  return publishedCard({
+    item: event,
+    kicker: event.category,
+    title: event.name,
+    text: `${event.venue || "Sede por confirmar"} - ${event.date || "Fecha por confirmar"}`,
+    action: `
+      ${eventSponsorshipBlock(event)}
+      <div class="action-row">
+        ${event.brochure_url ? `<a class="btn" href="${event.brochure_url}" target="_blank" rel="noopener">Descargar brochure</a>` : `<span class="hint inline">Brochure pendiente</span>`}
+        ${button("Solicitar acceso", () => createRequest("Acceso evento", event.name))}
+      </div>
+    `
+  });
+}
+
+function newsInteractionCount(news, reaction) {
+  return state.data.requests.filter(item =>
+    item.type === "Interacción noticia" &&
+    item.priority === reaction &&
+    String(item.details || "").includes(`news:${news.id}`)
+  ).length;
+}
+
+function newsInteractionBar(news) {
+  const reactions = [
+    ["Like", "Me gusta"],
+    ["Interés", "Me interesa"],
+    ["Compartir", "Compartir"],
+    ["Comentario", "Comentar"]
+  ];
+  return `
+    <div class="social-actions">
+      ${reactions.map(([reaction, label]) => button(`${label} ${newsInteractionCount(news, reaction) || ""}`.trim(), () => interactWithNews(news, reaction))).join("")}
+    </div>
+  `;
+}
+
+async function interactWithNews(news, reaction) {
+  let note = "";
+  if (reaction === "Comentario") {
+    note = window.prompt("Escribe tu comentario para ROIS:") || "";
+    if (!note.trim()) return;
+  }
+  if (reaction === "Compartir") {
+    const link = `${window.location.origin}${window.location.pathname}#news`;
+    try {
+      await navigator.clipboard?.writeText(link);
+    } catch (_) {
+      // Clipboard can be blocked in some browsers; the interaction is still recorded.
+    }
+  }
+  await api.insert("requests", {
+    type: "Interacción noticia",
+    title: news.title,
+    owner: state.session?.name || "Empresa",
+    details: `news:${news.id} | ${reaction}${note ? ` | ${note}` : ""}`,
+    priority: reaction,
+    status: "recorded"
+  });
+  notify("Noticias", "Interacción registrada", reaction === "Compartir" ? "Copiamos el enlace de noticias y registramos tu interacción." : "Tu interacción quedó registrada para el equipo ROIS.");
+  renderClient();
+  renderAdmin();
+}
+
+function athleteSponsorConditions() {
+  return [
+    "Logo en uniforme o equipo autorizado",
+    "Mención mensual en redes sociales",
+    "Video corto de agradecimiento para la marca",
+    "Uso de imagen del deportista en campaña aprobada",
+    "Presencia en evento corporativo o clínica deportiva",
+    "Reporte trimestral de avances deportivos"
+  ];
+}
+
+function openAthleteSponsorConfigurator(athlete) {
+  const conditions = athlete.sponsor_terms
+    ? String(athlete.sponsor_terms).split("\n").map(item => item.trim()).filter(Boolean)
+    : athleteSponsorConditions();
+  notify(
+    "Marketplace Deportistas",
+    `Patrocinar a ${athlete.name}`,
+    "Selecciona las condiciones de valor que quieres explorar con ROIS. El acuerdo final se valida cuidando la meta deportiva del atleta.",
+    `
+      <form id="athleteSponsorForm" class="stack-form">
+        <label>Presupuesto mensual
+          <select name="amount">
+            <option value="5000">$5,000 MXN</option>
+            <option value="10000">$10,000 MXN</option>
+            <option value="25000">$25,000 MXN</option>
+            <option value="50000">$50,000 MXN+</option>
+          </select>
+        </label>
+        <div class="check-grid">
+          ${conditions.map((condition, index) => `
+            <label class="check-option">
+              <input type="checkbox" name="conditions" value="${condition}" ${index < 2 ? "checked" : ""}>
+              <span>${condition}</span>
+            </label>
+          `).join("")}
+        </div>
+        <label>Notas para ROIS
+          <textarea name="notes" placeholder="Objetivo de marca, giro, restricciones o campaña deseada."></textarea>
+        </label>
+        <button class="btn primary full" type="submit">Enviar y continuar a pago</button>
+      </form>
+    `
+  );
+  document.getElementById("athleteSponsorForm").addEventListener("submit", event => submitAthleteSponsorForm(event, athlete));
+}
+
+async function submitAthleteSponsorForm(event, athlete) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const amount = Number(form.amount.value);
+  const selected = Array.from(form.querySelectorAll("input[name='conditions']:checked")).map(input => input.value);
+  const details = [
+    `Condiciones: ${selected.join("; ") || "Por definir"}`,
+    `Notas: ${form.notes.value || "Sin notas"}`
+  ].join(" | ");
+  if (athlete.sponsor_payment_url) {
+    openExternalUrl(athlete.sponsor_payment_url, `Patrocinio de ${athlete.name}`);
+  }
+  closeModals();
+  await createSponsorship(athlete.name, amount, details, athlete.sponsor_payment_url || "");
+}
+
 function publishedCard({ item, kicker, title, text, action }) {
   const image = item.image_url || "./assets/rois-isotipo-cropped.png";
   return `
@@ -1173,7 +1381,7 @@ function publishedCard({ item, kicker, title, text, action }) {
         <p class="eyebrow">${kicker || "ROIS"}</p>
         <h3>${title}</h3>
         <p>${text || "Información disponible para miembros aprobados."}</p>
-        ${action}
+        ${action || ""}
       </div>
     </article>
   `;
