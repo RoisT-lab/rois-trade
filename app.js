@@ -49,6 +49,7 @@ async function init() {
   if (state.session) localStorage.setItem(sessionKey, JSON.stringify(state.session));
   state.data = await api.loadAll();
   applyBranding();
+  handleMissingImages();
   bindGlobalEvents();
   renderPublic();
   renderSession();
@@ -63,6 +64,15 @@ function applyBranding() {
   const logo = settingValue("brand_logo", "./assets/rois-logo-cropped.png");
   document.querySelectorAll(".side-logo").forEach(image => {
     image.src = logo;
+  });
+}
+
+function handleMissingImages() {
+  document.querySelectorAll(".brand-logo, .side-logo").forEach(image => {
+    image.addEventListener("error", () => {
+      image.hidden = true;
+      image.closest(".brand, .sidebar")?.classList.add("logo-fallback");
+    }, { once: true });
   });
 }
 

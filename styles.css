@@ -55,6 +55,17 @@ a { color: inherit; text-decoration: none; }
   filter: saturate(0.92) contrast(1.04);
 }
 
+.brand.logo-fallback::after {
+  content: "ROIS";
+  display: inline-flex;
+  align-items: center;
+  height: 68px;
+  color: #f4f0e7;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+}
+
 .public-nav {
   display: flex;
   align-items: center;
@@ -589,6 +600,16 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   object-position: left center;
   mix-blend-mode: multiply;
   margin-bottom: 34px;
+}
+
+.sidebar.logo-fallback::before {
+  content: "ROIS";
+  display: block;
+  margin-bottom: 34px;
+  color: #111;
+  font-size: 20px;
+  font-weight: 760;
+  letter-spacing: 0.32em;
 }
 
 .side-nav {
