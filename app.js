@@ -490,8 +490,13 @@ function openStripeCheckout(key, title) {
     notify("Stripe", "Link pendiente", `Falta configurar el link de pago para ${title}.`);
     return false;
   }
-  window.open(link, "_blank", "noopener");
   notify("Stripe", "Checkout abierto", `Completa el pago de ${title} en Stripe para continuar el proceso.`);
+  const checkout = window.open(link, "_blank");
+  if (checkout) {
+    checkout.opener = null;
+  } else {
+    window.location.href = link;
+  }
   return true;
 }
 
@@ -1229,28 +1234,31 @@ async function selectRoisSponsorTier(tier) {
     `Monto mensual: ${tier.label}`,
     `Beneficios: ${tier.benefits.join("; ")}`
   ].join(" | ");
-  await api.insert("requests", {
-    type: "Patrocinio ROIS",
-    title: tier.name,
-    owner: state.session?.name || "Empresa",
-    status: "review",
-    details,
-    priority: tier.amount >= 100000 ? "Dirección ROIS" : "Comercial"
-  });
-  await api.insert("payments", {
-    concept: `${tier.name} - mensualidad`,
-    amount: tier.amount,
-    company: state.session?.name || "Empresa",
-    status: "pending",
-    product_key: tier.productKey
-  });
-  if (stripeLink(tier.productKey)) {
-    openStripeCheckout(tier.productKey, tier.name);
-  } else {
-    notify("Patrocinios ROIS", "Solicitud recibida", `Falta configurar el link de Stripe para ${tier.name}. ROIS preparará la activación y el cierre comercial.`);
+  const checkoutStarted = stripeLink(tier.productKey) ? openStripeCheckout(tier.productKey, tier.name) : false;
+  try {
+    await api.insert("requests", {
+      type: "Patrocinio ROIS",
+      title: tier.name,
+      owner: state.session?.name || "Empresa",
+      status: "review",
+      details,
+      priority: tier.amount >= 100000 ? "Dirección ROIS" : "Comercial"
+    });
+    await api.insert("payments", {
+      concept: `${tier.name} - mensualidad`,
+      amount: tier.amount,
+      company: state.session?.name || "Empresa",
+      status: "pending",
+      product_key: tier.productKey
+    });
+    if (!checkoutStarted) {
+      notify("Patrocinios ROIS", "Solicitud recibida", `Falta configurar el link de Stripe para ${tier.name}. ROIS preparará la activación y el cierre comercial.`);
+    }
+    renderClient();
+    renderAdmin();
+  } catch (error) {
+    notify("Patrocinios ROIS", checkoutStarted ? "Checkout iniciado" : "No fue posible registrar", checkoutStarted ? "Stripe ya fue abierto. Si el registro interno no aparece, admin puede validar el pago desde Stripe." : humanError(error));
   }
-  renderClient();
-  renderAdmin();
 }
 
 function athleteInvestment(athlete) {
