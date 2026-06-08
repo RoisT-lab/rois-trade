@@ -819,17 +819,21 @@ function renderAdminAthletes() {
         <label>Ciudad / base<input name="location" required placeholder="Ciudad o club base"></label>
         <label>Ranking o marca<input name="ranking" placeholder="Ranking, handicap, marca o nivel"></label>
         <label>Monto anual<input name="annual" type="number" min="0" value="1000" required></label>
+        <label>Ticket mensual<input name="monthly" type="number" min="0" value="5000" required></label>
+        <label>Máximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="3" required></label>
         <label style="grid-column:1/-1">Link de pago individual Stripe<input name="sponsor_payment_url" type="url" placeholder="https://buy.stripe.com/..."></label>
+        <label style="grid-column:1/-1">Sponsors actuales<textarea name="sponsor_brands" placeholder="Una marca por línea. Ej. ROIS Trade"></textarea></label>
         <label style="grid-column:1/-1">Ficha técnica<textarea name="stats" required placeholder="Resultados, calendario, métricas, logros y objetivo deportivo"></textarea></label>
         <label style="grid-column:1/-1">Condiciones autorizadas para patrocinadores<textarea name="sponsor_terms" placeholder="Una condición por línea. Ej. Mención mensual en redes sociales"></textarea></label>
-        <label style="grid-column:1/-1">Video de competencias o entrenamientos<input name="video_url" type="url" placeholder="https://youtube.com/... o https://vimeo.com/..."></label>
+        <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" placeholder="https://youtube.com/... o https://vimeo.com/..."></label>
+        <label style="grid-column:1/-1">Propuesta comercial PDF opcional<input name="proposal_pdf" type="file" accept="application/pdf"></label>
         <label style="grid-column:1/-1">Imagen del deportista<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Crear deportista</button>
       </form>
       <p class="hint">Las imágenes nuevas quedan en revisión visual. No aparecen públicamente hasta aprobarse.</p>
     </div>
-    ${table(["Visual", "Nombre", "Deporte", "Ficha", "Pago", "Visual", "Acciones"], state.data.athletes.map(athlete => [
-      visualThumb(athlete), athlete.name, athlete.sport, `${athlete.category || "Sin categoría"} / ${athlete.ranking || "Sin ranking"}`, athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), badge(athlete.visual_status || "sin visual"), moderationActions("athletes", athlete)
+    ${table(["Visual", "Nombre", "Deporte", "Ticket", "Cupo", "Propuesta", "Pago", "Visual", "Acciones"], state.data.athletes.map(athlete => [
+      visualThumb(athlete), athlete.name, athlete.sport, `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorBrands(athlete).length}/${athlete.max_sponsors || 3}`, athlete.proposal_url ? badge("PDF") : badge("pendiente"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), badge(athlete.visual_status || "sin visual"), moderationActions("athletes", athlete)
     ]))}
   `);
   document.getElementById("adminAthleteForm").addEventListener("submit", submitAdminAthlete);
@@ -1099,6 +1103,8 @@ async function submitAdminAthlete(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const image_url = await fileToDataUrl(form.image.files[0]);
+  const proposalFile = form.proposal_pdf.files[0];
+  const proposal_url = proposalFile ? await fileToDataUrl(proposalFile) : "";
   await api.insert("athletes", {
     name: form.name.value,
     sport: form.sport.value,
@@ -1107,8 +1113,13 @@ async function submitAdminAthlete(event) {
     ranking: form.ranking.value,
     stats: form.stats.value,
     annual: Number(form.annual.value || 1000),
+    monthly: Number(form.monthly.value || 5000),
+    max_sponsors: Number(form.max_sponsors.value || 3),
     sponsor_payment_url: form.sponsor_payment_url.value,
     sponsor_terms: form.sponsor_terms.value,
+    sponsor_brands: form.sponsor_brands.value,
+    proposal_url,
+    proposal_name: proposalFile?.name || "",
     video_url: form.video_url.value,
     status: "pending",
     image_url,
@@ -1334,6 +1345,7 @@ function openAthleteSponsorConfigurator(athlete) {
   const conditions = athlete.sponsor_terms
     ? String(athlete.sponsor_terms).split("\n").map(item => item.trim()).filter(Boolean)
     : athleteSponsorConditions();
+  const monthly = athleteMonthlyTicket(athlete);
   notify(
     "Marketplace Deportistas",
     `Patrocinar a ${athlete.name}`,
@@ -1342,10 +1354,10 @@ function openAthleteSponsorConfigurator(athlete) {
       <form id="athleteSponsorForm" class="stack-form">
         <label>Presupuesto mensual
           <select name="amount">
-            <option value="5000">$5,000 MXN</option>
-            <option value="10000">$10,000 MXN</option>
-            <option value="25000">$25,000 MXN</option>
-            <option value="50000">$50,000 MXN+</option>
+            <option value="${monthly}">$${monthly.toLocaleString("es-MX")} MXN - Ticket sugerido</option>
+            <option value="${monthly * 2}">$${(monthly * 2).toLocaleString("es-MX")} MXN - Doble impacto</option>
+            <option value="${monthly * 5}">$${(monthly * 5).toLocaleString("es-MX")} MXN - Patrocinio premium</option>
+            <option value="50000">$50,000 MXN+ - Personalizado</option>
           </select>
         </label>
         <div class="check-grid">
@@ -1491,10 +1503,28 @@ function athleteInvestment(athlete) {
   return Number(athlete.annual || athlete.monthly || 1000);
 }
 
+function athleteMonthlyTicket(athlete) {
+  return Number(athlete.monthly || 5000);
+}
+
+function athleteSponsorBrands(athlete) {
+  return String(athlete.sponsor_brands || "").split("\n").map(brand => brand.trim()).filter(Boolean);
+}
+
+function athleteProposalLink(athlete) {
+  if (!athlete.proposal_url) return "";
+  const filename = athlete.proposal_name || `${athlete.name || "propuesta-deportista"}.pdf`;
+  return `<a class="btn" href="${athlete.proposal_url}" target="_blank" rel="noopener" download="${filename}">Ver propuesta</a>`;
+}
+
 function athleteCard(athlete, action) {
   const image = athlete.image_url || "./assets/rois-isotipo-cropped.png";
   const annual = athleteInvestment(athlete).toLocaleString("es-MX");
+  const monthly = athleteMonthlyTicket(athlete).toLocaleString("es-MX");
+  const brands = athleteSponsorBrands(athlete);
+  const maxSponsors = Number(athlete.max_sponsors || 3);
   const videoButton = athlete.video_url ? `<a class="btn" href="${athlete.video_url}" target="_blank" rel="noopener">Ver video</a>` : "";
+  const proposalButton = athleteProposalLink(athlete);
   return `
     <article class="athlete-card">
       <div class="athlete-media">
@@ -1506,6 +1536,12 @@ function athleteCard(athlete, action) {
           <p class="eyebrow">Perfil de patrocinio</p>
           <h3>${athlete.name}</h3>
           <p class="athlete-summary">${athlete.stats || "Perfil deportivo en evaluación."}</p>
+          ${brands.length ? `
+            <div class="athlete-sponsor-brands">
+              <span>Patrocinadores actuales</span>
+              <div>${brands.map(brand => `<strong>${brand}</strong>`).join("")}</div>
+            </div>
+          ` : ""}
         </div>
         <div class="athlete-technical">
           <div><span>Deporte</span><strong>${athlete.sport || "Por definir"}</strong></div>
@@ -1514,12 +1550,12 @@ function athleteCard(athlete, action) {
           <div><span>Ranking / marca</span><strong>${athlete.ranking || "En evaluación"}</strong></div>
         </div>
         <div class="athlete-metrics">
-          <div><span>Inversión anual</span><strong>$${annual} MXN</strong></div>
-          <div><span>Estado</span><strong>${athlete.status === "approved" ? "Aprobado" : "Revisión"}</strong></div>
+          <div><span>Ticket mensual</span><strong>$${monthly} MXN</strong></div>
+          <div><span>Cupos de sponsor</span><strong>${brands.length}/${maxSponsors}</strong></div>
         </div>
         <div class="athlete-decision">
-          <p>Ideal para marcas que buscan visibilidad temprana, narrativa deportiva y relación directa con talento en crecimiento.</p>
-          <div class="athlete-actions">${videoButton}${action}</div>
+          <p>Ideal para marcas que buscan visibilidad temprana, narrativa deportiva y relación directa con talento en crecimiento. Inversión anual de perfil: $${annual} MXN.</p>
+          <div class="athlete-actions">${proposalButton}${videoButton}${action}</div>
         </div>
       </div>
     </article>
@@ -1566,8 +1602,12 @@ function registrationFields(type) {
       <label>Ciudad / base<input name="location" required placeholder="Ciudad, club o academia"></label>
       <label>Ranking o marca<input name="ranking" placeholder="Ranking, marca o métrica principal"></label>
       <label>Monto anual<input name="annual" type="number" min="0" value="1000" required></label>
+      <label>Ticket mensual<input name="monthly" type="number" min="0" value="5000" required></label>
+      <label>Máximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="3" required></label>
       <label style="grid-column:1/-1">Ficha técnica<textarea name="stats" required placeholder="Resultados, calendario, métricas, logros y objetivo deportivo"></textarea></label>
-      <label style="grid-column:1/-1">Video de competencias o entrenamientos<input name="video_url" type="url" placeholder="https://youtube.com/... o https://vimeo.com/..."></label>
+      <label style="grid-column:1/-1">Sponsors actuales opcional<textarea name="sponsor_brands" placeholder="Una marca por línea, si ya tienes patrocinadores."></textarea></label>
+      <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" placeholder="https://youtube.com/... o https://vimeo.com/..."></label>
+      <label style="grid-column:1/-1">Propuesta comercial PDF opcional<input name="proposal_pdf" type="file" accept="application/pdf"></label>
       <label style="grid-column:1/-1">Imagen de perfil<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
       <button class="btn primary full" type="submit">Enviar y pagar perfil</button>
     `;
@@ -1616,7 +1656,26 @@ async function submitRegistration(event) {
       return;
     } else if (type === "athlete") {
       const image_url = await fileToDataUrl(form.image.files[0]);
-      await api.insert("athletes", { name: form.name.value, sport: form.sport.value, category: form.category.value, location: form.location.value, ranking: form.ranking.value, stats: form.stats.value, annual: Number(form.annual.value || 1000), video_url: form.video_url.value, status: "pending", image_url, visual_status: image_url ? "pending_review" : "approved" });
+      const proposalFile = form.proposal_pdf.files[0];
+      const proposal_url = proposalFile ? await fileToDataUrl(proposalFile) : "";
+      await api.insert("athletes", {
+        name: form.name.value,
+        sport: form.sport.value,
+        category: form.category.value,
+        location: form.location.value,
+        ranking: form.ranking.value,
+        stats: form.stats.value,
+        annual: Number(form.annual.value || 1000),
+        monthly: Number(form.monthly.value || 5000),
+        max_sponsors: Number(form.max_sponsors.value || 3),
+        sponsor_brands: form.sponsor_brands.value,
+        proposal_url,
+        proposal_name: proposalFile?.name || "",
+        video_url: form.video_url.value,
+        status: "pending",
+        image_url,
+        visual_status: image_url ? "pending_review" : "approved"
+      });
       paymentAction = ["athleteAnnualProfile", "Perfil Deportivo Anual ROIS"];
     } else {
       const image_url = await fileToDataUrl(form.image.files[0]);
