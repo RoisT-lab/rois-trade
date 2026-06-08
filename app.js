@@ -553,9 +553,9 @@ function renderPublic() {
         title: event.name,
         text: `${event.date || "Fecha por confirmar"} / ${event.venue || "Sede por confirmar"}`,
         action: `
-          ${eventSponsorshipBlock(event, "public")}
+          ${eventPositioningBlock(event)}
           <div class="action-row">
-            ${event.brochure_url ? `<a class="btn" href="${event.brochure_url}" target="_blank" rel="noopener">Descargar brochure</a>` : ""}
+            ${eventBrochureLink(event)}
             <button class="btn" type="button" data-open-login>Solicitar acceso</button>
           </div>
         `
@@ -843,8 +843,8 @@ function renderAdminEvents() {
         <label>Categoría<input name="category" required placeholder="Ejecutivo, sponsor, membresía"></label>
         <label>Sede<input name="venue" required placeholder="Sede o ciudad"></label>
         <label>Fecha<input name="date" required placeholder="Por confirmar"></label>
-        <label style="grid-column:1/-1">Brochure PDF<input name="brochure_url" type="url" placeholder="https://.../brochure.pdf"></label>
-        <label style="grid-column:1/-1">Niveles de patrocinio<textarea name="sponsor_levels" placeholder="Formato por línea: Nombre | Monto | Beneficios"></textarea></label>
+        <label style="grid-column:1/-1">Brochure PDF<input name="brochure_pdf" type="file" accept="application/pdf"></label>
+        <label style="grid-column:1/-1">Alcance y posicionamiento del evento<textarea name="event_scope" required placeholder="Resume audiencia, alcance, sectores, tomadores de decisión, medios, impacto esperado y por qué una empresa debería considerar este evento."></textarea></label>
         <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Crear evento</button>
       </form>
@@ -1122,13 +1122,16 @@ async function submitAdminEvent(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const image_url = await fileToDataUrl(form.image.files[0]);
+  const brochureFile = form.brochure_pdf.files[0];
+  const brochure_url = brochureFile ? await fileToDataUrl(brochureFile) : "";
   await api.insert("events", {
     name: form.name.value,
     category: form.category.value,
     venue: form.venue.value,
     date: form.date.value,
-    brochure_url: form.brochure_url.value,
-    sponsor_levels: form.sponsor_levels.value,
+    brochure_url,
+    brochure_name: brochureFile?.name || "",
+    event_scope: form.event_scope.value,
     status: "pending",
     image_url,
     visual_status: image_url ? "pending_review" : "approved"
@@ -1235,40 +1238,20 @@ function visualThumb(item) {
   return `<img class="visual-thumb" src="${item.image_url}" alt="Visual de ${item.name || item.title || "ROIS"}">`;
 }
 
-function defaultEventSponsorLevels() {
-  return [
-    { name: "Presencia de marca", amount: "$25,000 MXN+", benefits: "Logo en materiales digitales, mención institucional y acceso a brief post-evento." },
-    { name: "Patrocinador oficial", amount: "$50,000 MXN+", benefits: "Presencia prioritaria, acceso a networking, menciones y espacio de activación sujeto a sede." },
-    { name: "Sponsor titular", amount: "$100,000 MXN+", benefits: "Branding principal, acceso preferente a invitados clave y activación estratégica con ROIS." }
-  ];
-}
-
-function eventSponsorLevels(event) {
-  if (!event.sponsor_levels) return defaultEventSponsorLevels();
-  const levels = String(event.sponsor_levels).split("\n").map(line => {
-    const [name, amount, benefits] = line.split("|").map(part => part?.trim());
-    return name ? { name, amount: amount || "Paquete privado", benefits: benefits || "Beneficios sujetos al brief del evento." } : null;
-  }).filter(Boolean);
-  return levels.length ? levels : defaultEventSponsorLevels();
-}
-
-function eventSponsorshipBlock(event, mode = "client") {
-  const levels = eventSponsorLevels(event);
+function eventPositioningBlock(event) {
+  const scope = event.event_scope || event.sponsor_levels || "Alcance comercial pendiente de publicación por ROIS.";
   return `
-    <div class="event-sponsor-levels">
-      <p class="eyebrow">Niveles de patrocinio</p>
-      <div class="event-level-grid">
-        ${levels.map(level => `
-          <div class="event-level">
-            <span>${level.name}</span>
-            <strong>${level.amount}</strong>
-            <p>${level.benefits}</p>
-            ${mode === "client" ? button("Solicitar paquete", () => createEventSponsorshipRequest(event, level)) : ""}
-          </div>
-        `).join("")}
-      </div>
+    <div class="event-positioning">
+      <p class="eyebrow">Alcance del evento</p>
+      <p>${scope}</p>
     </div>
   `;
+}
+
+function eventBrochureLink(event) {
+  if (!event.brochure_url) return "";
+  const filename = event.brochure_name || `${event.name || "brochure-rois"}.pdf`;
+  return `<a class="btn" href="${event.brochure_url}" target="_blank" rel="noopener" download="${filename}">Descargar brochure</a>`;
 }
 
 function eventClientCard(event) {
@@ -1278,9 +1261,9 @@ function eventClientCard(event) {
     title: event.name,
     text: `${event.venue || "Sede por confirmar"} - ${event.date || "Fecha por confirmar"}`,
     action: `
-      ${eventSponsorshipBlock(event)}
+      ${eventPositioningBlock(event)}
       <div class="action-row">
-        ${event.brochure_url ? `<a class="btn" href="${event.brochure_url}" target="_blank" rel="noopener">Descargar brochure</a>` : `<span class="hint inline">Brochure pendiente</span>`}
+        ${event.brochure_url ? eventBrochureLink(event) : `<span class="hint inline">Brochure pendiente</span>`}
         ${button("Solicitar acceso", () => createRequest("Acceso evento", event.name))}
       </div>
     `

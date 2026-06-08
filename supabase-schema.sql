@@ -140,6 +140,8 @@ alter table athletes add column if not exists video_url text;
 alter table athletes add column if not exists sponsor_payment_url text;
 alter table athletes add column if not exists sponsor_terms text;
 alter table events add column if not exists brochure_url text;
+alter table events add column if not exists brochure_name text;
+alter table events add column if not exists event_scope text;
 alter table events add column if not exists sponsor_levels text;
 alter table sponsorships add column if not exists details text;
 alter table payments add column if not exists product_key text;
