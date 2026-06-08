@@ -822,7 +822,8 @@ function renderAdminAthletes() {
         <label>Ticket mensual<input name="monthly" type="number" min="0" value="5000" required></label>
         <label>Máximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="3" required></label>
         <label style="grid-column:1/-1">Link de pago individual Stripe<input name="sponsor_payment_url" type="url" placeholder="https://buy.stripe.com/..."></label>
-        <label style="grid-column:1/-1">Sponsors actuales<textarea name="sponsor_brands" placeholder="Una marca por línea. Ej. ROIS Trade"></textarea></label>
+        <label style="grid-column:1/-1">Logos de sponsors actuales<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
+        <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por línea, en el mismo orden de los logos. Ej. ROIS Trade"></textarea></label>
         <label style="grid-column:1/-1">Ficha técnica<textarea name="stats" required placeholder="Resultados, calendario, métricas, logros y objetivo deportivo"></textarea></label>
         <label style="grid-column:1/-1">Condiciones autorizadas para patrocinadores<textarea name="sponsor_terms" placeholder="Una condición por línea. Ej. Mención mensual en redes sociales"></textarea></label>
         <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" placeholder="https://youtube.com/... o https://vimeo.com/..."></label>
@@ -833,7 +834,7 @@ function renderAdminAthletes() {
       <p class="hint">Las imágenes nuevas quedan en revisión visual. No aparecen públicamente hasta aprobarse.</p>
     </div>
     ${table(["Visual", "Nombre", "Deporte", "Ticket", "Cupo", "Propuesta", "Pago", "Visual", "Acciones"], state.data.athletes.map(athlete => [
-      visualThumb(athlete), athlete.name, athlete.sport, `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorBrands(athlete).length}/${athlete.max_sponsors || 3}`, athlete.proposal_url ? badge("PDF") : badge("pendiente"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), badge(athlete.visual_status || "sin visual"), moderationActions("athletes", athlete)
+      visualThumb(athlete), athlete.name, athlete.sport, `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorLogos(athlete).length}/${athlete.max_sponsors || 3}`, athlete.proposal_url ? badge("PDF") : badge("pendiente"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), badge(athlete.visual_status || "sin visual"), moderationActions("athletes", athlete)
     ]))}
   `);
   document.getElementById("adminAthleteForm").addEventListener("submit", submitAdminAthlete);
@@ -1105,6 +1106,7 @@ async function submitAdminAthlete(event) {
   const image_url = await fileToDataUrl(form.image.files[0]);
   const proposalFile = form.proposal_pdf.files[0];
   const proposal_url = proposalFile ? await fileToDataUrl(proposalFile) : "";
+  const sponsor_logos = await sponsorLogoPayload(form.sponsor_logo_files.files, form.sponsor_logo_names.value);
   await api.insert("athletes", {
     name: form.name.value,
     sport: form.sport.value,
@@ -1117,7 +1119,7 @@ async function submitAdminAthlete(event) {
     max_sponsors: Number(form.max_sponsors.value || 3),
     sponsor_payment_url: form.sponsor_payment_url.value,
     sponsor_terms: form.sponsor_terms.value,
-    sponsor_brands: form.sponsor_brands.value,
+    sponsor_logos,
     proposal_url,
     proposal_name: proposalFile?.name || "",
     video_url: form.video_url.value,
@@ -1507,8 +1509,14 @@ function athleteMonthlyTicket(athlete) {
   return Number(athlete.monthly || 5000);
 }
 
-function athleteSponsorBrands(athlete) {
-  return String(athlete.sponsor_brands || "").split("\n").map(brand => brand.trim()).filter(Boolean);
+function athleteSponsorLogos(athlete) {
+  if (!athlete.sponsor_logos) return [];
+  try {
+    const logos = typeof athlete.sponsor_logos === "string" ? JSON.parse(athlete.sponsor_logos) : athlete.sponsor_logos;
+    return Array.isArray(logos) ? logos.filter(logo => logo?.image) : [];
+  } catch {
+    return [];
+  }
 }
 
 function athleteProposalLink(athlete) {
@@ -1521,7 +1529,7 @@ function athleteCard(athlete, action) {
   const image = athlete.image_url || "./assets/rois-isotipo-cropped.png";
   const annual = athleteInvestment(athlete).toLocaleString("es-MX");
   const monthly = athleteMonthlyTicket(athlete).toLocaleString("es-MX");
-  const brands = athleteSponsorBrands(athlete);
+  const logos = athleteSponsorLogos(athlete);
   const maxSponsors = Number(athlete.max_sponsors || 3);
   const videoButton = athlete.video_url ? `<a class="btn" href="${athlete.video_url}" target="_blank" rel="noopener">Ver video</a>` : "";
   const proposalButton = athleteProposalLink(athlete);
@@ -1536,10 +1544,10 @@ function athleteCard(athlete, action) {
           <p class="eyebrow">Perfil de patrocinio</p>
           <h3>${athlete.name}</h3>
           <p class="athlete-summary">${athlete.stats || "Perfil deportivo en evaluación."}</p>
-          ${brands.length ? `
+          ${logos.length ? `
             <div class="athlete-sponsor-brands">
               <span>Patrocinadores actuales</span>
-              <div>${brands.map(brand => `<strong>${brand}</strong>`).join("")}</div>
+              <div>${logos.map(logo => `<img src="${logo.image}" alt="${logo.name || "Sponsor"}">`).join("")}</div>
             </div>
           ` : ""}
         </div>
@@ -1551,7 +1559,7 @@ function athleteCard(athlete, action) {
         </div>
         <div class="athlete-metrics">
           <div><span>Ticket mensual</span><strong>$${monthly} MXN</strong></div>
-          <div><span>Cupos de sponsor</span><strong>${brands.length}/${maxSponsors}</strong></div>
+          <div><span>Cupos de sponsor</span><strong>${logos.length}/${maxSponsors}</strong></div>
         </div>
         <div class="athlete-decision">
           <p>Ideal para marcas que buscan visibilidad temprana, narrativa deportiva y relación directa con talento en crecimiento. Inversión anual de perfil: $${annual} MXN.</p>
@@ -1570,6 +1578,17 @@ function fileToDataUrl(file) {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+async function sponsorLogoPayload(fileList, namesValue = "") {
+  const files = Array.from(fileList || []);
+  if (!files.length) return "";
+  const names = String(namesValue || "").split("\n").map(name => name.trim());
+  const logos = await Promise.all(files.map(async (file, index) => ({
+    name: names[index] || file.name.replace(/\.[^.]+$/, ""),
+    image: await fileToDataUrl(file)
+  })));
+  return JSON.stringify(logos);
 }
 
 function openRegistration(type) {
@@ -1605,7 +1624,8 @@ function registrationFields(type) {
       <label>Ticket mensual<input name="monthly" type="number" min="0" value="5000" required></label>
       <label>Máximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="3" required></label>
       <label style="grid-column:1/-1">Ficha técnica<textarea name="stats" required placeholder="Resultados, calendario, métricas, logros y objetivo deportivo"></textarea></label>
-      <label style="grid-column:1/-1">Sponsors actuales opcional<textarea name="sponsor_brands" placeholder="Una marca por línea, si ya tienes patrocinadores."></textarea></label>
+      <label style="grid-column:1/-1">Logos de sponsors actuales opcional<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
+      <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por línea, en el mismo orden de los logos."></textarea></label>
       <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" placeholder="https://youtube.com/... o https://vimeo.com/..."></label>
       <label style="grid-column:1/-1">Propuesta comercial PDF opcional<input name="proposal_pdf" type="file" accept="application/pdf"></label>
       <label style="grid-column:1/-1">Imagen de perfil<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
@@ -1658,6 +1678,7 @@ async function submitRegistration(event) {
       const image_url = await fileToDataUrl(form.image.files[0]);
       const proposalFile = form.proposal_pdf.files[0];
       const proposal_url = proposalFile ? await fileToDataUrl(proposalFile) : "";
+      const sponsor_logos = await sponsorLogoPayload(form.sponsor_logo_files.files, form.sponsor_logo_names.value);
       await api.insert("athletes", {
         name: form.name.value,
         sport: form.sport.value,
@@ -1668,7 +1689,7 @@ async function submitRegistration(event) {
         annual: Number(form.annual.value || 1000),
         monthly: Number(form.monthly.value || 5000),
         max_sponsors: Number(form.max_sponsors.value || 3),
-        sponsor_brands: form.sponsor_brands.value,
+        sponsor_logos,
         proposal_url,
         proposal_name: proposalFile?.name || "",
         video_url: form.video_url.value,
