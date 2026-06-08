@@ -7,7 +7,7 @@ const adminEmail = (config.adminEmail || config.demoAdminEmail || "").toLowerCas
 const fixedLogoPath = config.logoDataUrl || "./assets/rois-logo.png";
 
 const state = {
-  session: JSON.parse(localStorage.getItem(sessionKey) || "null"),
+  session: readSession(),
   pendingSession: null,
   registrationType: null,
   data: null
@@ -40,6 +40,35 @@ function normalizedRole(email, role) {
   return adminEmail && email?.toLowerCase() === adminEmail ? "admin" : "client";
 }
 
+function readSession() {
+  localStorage.removeItem(sessionKey);
+  return JSON.parse(sessionStorage.getItem(sessionKey) || "null");
+}
+
+function saveSession(session) {
+  localStorage.removeItem(sessionKey);
+  if (session) sessionStorage.setItem(sessionKey, JSON.stringify(session));
+}
+
+function clearSession() {
+  sessionStorage.removeItem(sessionKey);
+  localStorage.removeItem(sessionKey);
+}
+
+async function recoverySessionFromUrl() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, "") || window.location.search.replace(/^\?/, ""));
+  const isRecovery = params.get("type") === "recovery";
+  const token = params.get("access_token");
+  if (!isRecovery || !token) return null;
+  history.replaceState(null, document.title, window.location.pathname);
+  try {
+    return await api.recoverySession(token);
+  } catch (error) {
+    notify("Recuperación", "Enlace no válido", "Solicita un nuevo enlace para cambiar tu contraseña.");
+    return null;
+  }
+}
+
 function normalizeSession(session) {
   if (!session) return null;
   return { ...session, role: normalizedRole(session.email, session.role) };
@@ -57,13 +86,24 @@ function enforceCompanyClientSession() {
 async function init() {
   state.session = normalizeSession(state.session);
   state.data = await api.loadAll();
+  const recoverySession = await recoverySessionFromUrl();
+  if (recoverySession) {
+    state.pendingSession = recoverySession;
+    state.session = null;
+    clearSession();
+  }
   enforceCompanyClientSession();
-  if (state.session) localStorage.setItem(sessionKey, JSON.stringify(state.session));
+  if (state.session) saveSession(state.session);
   applyBranding();
   handleMissingImages();
   bindGlobalEvents();
   renderPublic();
   renderSession();
+  if (state.pendingSession) {
+    showView("home");
+    document.getElementById("passwordModal").classList.add("active");
+    return;
+  }
   if (state.session) showView(state.session.role === "admin" ? "admin" : "client");
 }
 
@@ -143,6 +183,14 @@ function demoApi() {
     },
     async resendSignup(email) {
       return { email };
+    },
+    async recoverPassword(email) {
+      return { email };
+    },
+    async recoverySession(accessToken) {
+      const data = read();
+      const user = data.profiles[0] || { id: crypto.randomUUID(), email: "demo@rois.trade", role: "client", name: "Cuenta ROIS" };
+      return { id: user.id, email: user.email, role: normalizedRole(user.email, user.role), name: user.name, token: accessToken || "demo", mustChangePassword: true };
     },
     async insert(table, record) {
       const data = read();
@@ -269,6 +317,33 @@ function supabaseApi() {
       });
       return { email };
     },
+    async recoverPassword(email) {
+      await request("/auth/v1/recover", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          email,
+          options: {
+            email_redirect_to: window.location.origin + window.location.pathname
+          }
+        })
+      });
+      return { email };
+    },
+    async recoverySession(accessToken) {
+      const user = await request("/auth/v1/user", {
+        headers: headers(accessToken)
+      });
+      const profiles = await request(`/rest/v1/profiles?select=*&id=eq.${user.id}&limit=1`, {
+        headers: headers(accessToken)
+      });
+      const profile = profiles[0] || await this.ensureClientAccount({ user, access_token: accessToken });
+      const companies = await request(`/rest/v1/companies?select=id&contact=eq.${encodeURIComponent(user.email)}&limit=1`, {
+        headers: headers(accessToken)
+      });
+      const role = companies.length ? "client" : normalizedRole(user.email, profile.role);
+      return { id: profile.id, email: user.email, role, name: profile.name, token: accessToken, mustChangePassword: true };
+    },
     async ensureClientAccount(auth, fallback = {}) {
       const token = auth.access_token || auth.session?.access_token;
       const email = auth.user.email;
@@ -364,7 +439,9 @@ function bindGlobalEvents() {
   document.querySelectorAll("[data-logout]").forEach(button => button.addEventListener("click", logout));
   document.querySelectorAll("[data-dashboard-target]").forEach(button => button.addEventListener("click", () => showDashboardPanel(button.dataset.dashboardTarget)));
   document.querySelectorAll("[data-registration]").forEach(button => button.addEventListener("click", () => openRegistration(button.dataset.registration)));
+  document.querySelector("[data-open-recovery]").addEventListener("click", toggleRecoveryForm);
   document.getElementById("loginForm").addEventListener("submit", submitLogin);
+  document.getElementById("recoveryForm").addEventListener("submit", submitPasswordRecovery);
   document.getElementById("passwordForm").addEventListener("submit", submitPasswordChange);
   document.getElementById("registrationForm").addEventListener("submit", submitRegistration);
 }
@@ -393,15 +470,15 @@ async function submitLogin(event) {
     if (session.mustChangePassword) {
       state.pendingSession = session;
       state.session = null;
-      localStorage.removeItem(sessionKey);
+      clearSession();
       closeModals();
       renderSession();
-      showView("public");
+      showView("home");
       document.getElementById("passwordModal").classList.add("active");
       return;
     }
     state.session = session;
-    localStorage.setItem(sessionKey, JSON.stringify(state.session));
+    saveSession(state.session);
     closeModals();
     renderSession();
     showView(state.session.role === "admin" ? "admin" : "client");
@@ -411,6 +488,26 @@ async function submitLogin(event) {
       return;
     }
     notify("Acceso", "No fue posible iniciar sesión", error.message);
+  }
+}
+
+function toggleRecoveryForm() {
+  const form = document.getElementById("recoveryForm");
+  form.hidden = !form.hidden;
+  if (!form.hidden) form.email.focus();
+}
+
+async function submitPasswordRecovery(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    await api.recoverPassword(form.email.value);
+    notify("Recuperación", "Correo enviado", "Si el correo existe en ROIS, recibirá un enlace para restablecer la contraseña.");
+    form.reset();
+    form.hidden = true;
+    closeModals();
+  } catch (error) {
+    notify("Recuperación", "No fue posible enviar el enlace", humanError(error));
   }
 }
 
@@ -428,7 +525,7 @@ async function submitPasswordChange(event) {
   try {
     state.session = await api.changePassword(state.pendingSession, form.password.value);
     state.pendingSession = null;
-    localStorage.setItem(sessionKey, JSON.stringify(state.session));
+    saveSession(state.session);
     form.reset();
     closeModals();
     renderSession();
@@ -438,9 +535,26 @@ async function submitPasswordChange(event) {
   }
 }
 
+async function submitSettingsPassword(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (form.password.value !== form.confirm.value) {
+    notify("Configuración", "Las contraseñas no coinciden", "Confirma la nueva contraseña para actualizarla.");
+    return;
+  }
+  try {
+    state.session = await api.changePassword(state.session, form.password.value);
+    saveSession(state.session);
+    form.reset();
+    notify("Configuración", "Contraseña actualizada", "El cambio quedó aplicado correctamente.");
+  } catch (error) {
+    notify("Configuración", "No fue posible cambiarla", humanError(error));
+  }
+}
+
 function logout() {
   state.session = null;
-  localStorage.removeItem(sessionKey);
+  clearSession();
   renderSession();
   showView("home");
 }
@@ -596,6 +710,7 @@ function renderClient() {
   renderClientRegister();
   renderClientStatus();
   renderClientPayments();
+  renderAccountSettings("client-settings");
 }
 
 function renderClientHeader() {
@@ -768,6 +883,31 @@ function renderClientPayments() {
   `);
 }
 
+function renderAccountSettings(panelId) {
+  panel(panelId, "Configuración", "Seguridad de acceso", `
+    <div class="panel-body">
+      <div class="settings-grid">
+        <div class="settings-block">
+          <p class="eyebrow">Sesión</p>
+          <h3>Cierre automático</h3>
+          <p class="hint">La sesión ROIS se mantiene solo mientras esta ventana del navegador permanezca abierta. Al cerrar la pestaña o el navegador, se solicitará iniciar sesión nuevamente.</p>
+        </div>
+        <form class="form-grid settings-password-form" data-settings-password>
+          <label>Nueva contraseña<input name="password" type="password" minlength="8" autocomplete="new-password" required></label>
+          <label>Confirmar contraseña<input name="confirm" type="password" minlength="8" autocomplete="new-password" required></label>
+          <button class="btn primary" type="submit">Actualizar contraseña</button>
+        </form>
+        <div class="settings-block">
+          <p class="eyebrow">Recuperación</p>
+          <h3>Recuperar acceso</h3>
+          <p class="hint">Si pierdes acceso, usa “Recuperar contraseña” en la pantalla de acceso. ROIS enviará un enlace al correo registrado.</p>
+        </div>
+      </div>
+    </div>
+  `);
+  document.querySelector(`[data-dashboard-panel="${panelId}"] [data-settings-password]`).addEventListener("submit", submitSettingsPassword);
+}
+
 function renderAdmin() {
   renderAdminKpis();
   renderAdminUsers();
@@ -779,6 +919,7 @@ function renderAdmin() {
   renderAdminPayments();
   renderAdminUploads();
   renderAdminStats();
+  renderAccountSettings("admin-settings");
 }
 
 function renderAdminKpis() {
@@ -1663,7 +1804,7 @@ async function submitRegistration(event) {
       closeModals();
       if (signup.confirmed) {
         state.session = signup.session;
-        localStorage.setItem(sessionKey, JSON.stringify(state.session));
+        saveSession(state.session);
         renderSession();
         renderClient();
         showView("client");

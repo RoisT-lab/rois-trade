@@ -112,6 +112,7 @@
             <button type="button" data-dashboard-target="client-register">Registrar Evento</button>
             <button type="button" data-dashboard-target="client-status">Estado Solicitudes</button>
             <button type="button" data-dashboard-target="client-payments">Pagos</button>
+            <button type="button" data-dashboard-target="client-settings">Configuración</button>
           </nav>
         </aside>
         <div class="workspace" data-dashboard="client">
@@ -130,6 +131,7 @@
           <section class="dash-section" data-dashboard-panel="client-register"></section>
           <section class="dash-section" data-dashboard-panel="client-status"></section>
           <section class="dash-section" data-dashboard-panel="client-payments"></section>
+          <section class="dash-section" data-dashboard-panel="client-settings"></section>
         </div>
       </section>
 
@@ -146,6 +148,7 @@
             <button type="button" data-dashboard-target="admin-payments">Pagos</button>
             <button type="button" data-dashboard-target="admin-uploads">Uploads</button>
             <button type="button" data-dashboard-target="admin-stats">Estadísticas</button>
+            <button type="button" data-dashboard-target="admin-settings">Configuración</button>
           </nav>
         </aside>
         <div class="workspace" data-dashboard="admin">
@@ -166,6 +169,7 @@
           <section class="dash-section" data-dashboard-panel="admin-payments"></section>
           <section class="dash-section" data-dashboard-panel="admin-uploads"></section>
           <section class="dash-section" data-dashboard-panel="admin-stats"></section>
+          <section class="dash-section" data-dashboard-panel="admin-settings"></section>
         </div>
       </section>
     </main>
@@ -184,6 +188,13 @@
           <input name="password" type="password" autocomplete="current-password" placeholder="contraseña" required />
         </label>
         <button class="btn primary full" type="submit">Entrar</button>
+      </form>
+      <button class="link-button" type="button" data-open-recovery>Recuperar contraseña</button>
+      <form id="recoveryForm" class="recovery-form" hidden>
+        <label>Correo de recuperación
+          <input name="email" type="email" autocomplete="email" placeholder="correo registrado" required />
+        </label>
+        <button class="btn full" type="submit">Enviar enlace de recuperación</button>
       </form>
     </div>
   </div>
