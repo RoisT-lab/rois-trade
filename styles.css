@@ -185,6 +185,13 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
 
 .actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
+.hero-cta {
+  min-height: 54px;
+  min-width: 190px;
+  padding: 0 24px;
+  font-size: 12px;
+}
+
 .public-section {
   width: min(1120px, calc(100vw - 40px));
   margin: 0 auto;
