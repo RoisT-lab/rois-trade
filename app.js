@@ -1,5 +1,6 @@
 ﻿const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260608-athlete-dashboard-v15";
+const roisBuild = "20260608-athlete-onboarding-v16";
+const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
@@ -247,24 +248,18 @@ function demoApi() {
         profile_id: id,
         email: payload.email,
         name: payload.name,
-        sport: payload.sport,
-        category: payload.category,
-        location: payload.location,
-        ranking: payload.ranking,
-        stats: payload.stats,
-        annual: payload.annual,
-        monthly: payload.monthly,
-        max_sponsors: payload.max_sponsors,
-        sponsor_logos: payload.sponsor_logos,
-        proposal_url: payload.proposal_url,
-        proposal_name: payload.proposal_name,
-        video_url: payload.video_url,
-        image_url: payload.image_url,
-        terms_accepted: true,
+        sport: "Por definir",
+        category: "",
+        location: "",
+        ranking: "",
+        stats: "",
+        annual: 1000,
+        monthly: 5000,
+        max_sponsors: 3,
+        terms_accepted: false,
         status: "pending",
-        visual_status: payload.image_url ? "pending_review" : "approved"
+        visual_status: "approved"
       });
-      data.terms_acceptances.unshift({ id: crypto.randomUUID(), user_email: payload.email, user_role: "athlete", version: "athlete-representation-v1", status: "accepted", created_at: new Date().toISOString() });
       write(data);
       state.data = data;
       return {
@@ -403,11 +398,7 @@ function supabaseApi() {
           password: payload.password,
           data: {
             name: payload.name,
-            role: "athlete",
-            sport: payload.sport,
-            category: payload.category,
-            location: payload.location,
-            ranking: payload.ranking
+            role: "athlete"
           }
         })
       });
@@ -420,22 +411,17 @@ function supabaseApi() {
           body: JSON.stringify({
             email: payload.email,
             name: payload.name,
-            sport: payload.sport,
-            category: payload.category,
-            location: payload.location,
-            ranking: payload.ranking,
-            stats: payload.stats,
-            annual: payload.annual,
-            monthly: payload.monthly,
-            max_sponsors: payload.max_sponsors,
-            sponsor_logos: payload.sponsor_logos,
-            proposal_url: payload.proposal_url,
-            proposal_name: payload.proposal_name,
-            video_url: payload.video_url,
-            image_url: payload.image_url,
-            terms_accepted: true,
+            sport: "Por definir",
+            category: "",
+            location: "",
+            ranking: "",
+            stats: "",
+            annual: 1000,
+            monthly: 5000,
+            max_sponsors: 3,
+            terms_accepted: false,
             status: "pending",
-            visual_status: payload.image_url ? "pending_review" : "approved"
+            visual_status: "approved"
           })
         });
         return { confirmed: false, email: payload.email };
@@ -460,28 +446,18 @@ function supabaseApi() {
           profile_id: authUser.id,
           email: payload.email,
           name: payload.name,
-          sport: payload.sport,
-          category: payload.category,
-          location: payload.location,
-          ranking: payload.ranking,
-          stats: payload.stats,
-          annual: payload.annual,
-          monthly: payload.monthly,
-          max_sponsors: payload.max_sponsors,
-          sponsor_logos: payload.sponsor_logos,
-          proposal_url: payload.proposal_url,
-          proposal_name: payload.proposal_name,
-          video_url: payload.video_url,
-          image_url: payload.image_url,
-          terms_accepted: true,
+          sport: "Por definir",
+          category: "",
+          location: "",
+          ranking: "",
+          stats: "",
+          annual: 1000,
+          monthly: 5000,
+          max_sponsors: 3,
+          terms_accepted: false,
           status: "pending",
-          visual_status: payload.image_url ? "pending_review" : "approved"
+          visual_status: "approved"
         })
-      });
-      await request("/rest/v1/terms_acceptances", {
-        method: "POST",
-        headers: { ...headers(accessToken), Prefer: "return=minimal" },
-        body: JSON.stringify({ user_email: payload.email, user_role: "athlete", version: "athlete-representation-v1", status: "accepted" })
       });
       state.data = await this.loadAll();
       return {
@@ -696,7 +672,8 @@ function showDashboardPanel(targetId) {
 
 function openMobileDashboardMenu(type) {
   closeMobileDashboardMenus();
-  const view = document.querySelector(`[data-view="${type === "admin" ? "admin" : "client"}"]`);
+  const viewName = type === "admin" ? "admin" : type === "athlete" ? "athlete" : "client";
+  const view = document.querySelector(`[data-view="${viewName}"]`);
   view?.classList.add("nav-open");
 }
 
@@ -1242,6 +1219,7 @@ function renderAccountSettings(panelId) {
 function renderAthlete() {
   renderAthleteHeader();
   renderAthleteKpis();
+  renderAthleteRequirements();
   renderAthleteNotifications();
   renderAthleteProfile();
   renderAthleteSponsorships();
@@ -1254,7 +1232,7 @@ function renderAthlete() {
 
 function renderAthleteHeader() {
   const athlete = currentAthlete();
-  document.getElementById("athleteAccountEyebrow").textContent = athlete?.status === "approved" ? "Perfil publicado" : "Perfil en revisiÃ³n";
+  document.getElementById("athleteAccountEyebrow").textContent = athleteOnboardingComplete(athlete) ? "Expediente completo" : "Expediente en preparacion";
   document.getElementById("athleteAccountName").textContent = athlete?.name || state.session?.name || "Deportista ROIS";
   const logo = document.getElementById("athleteProfileLogo");
   if (logo) logo.src = athlete?.image_url || "./assets/rois-isotipo-cropped.png";
@@ -1275,6 +1253,122 @@ function renderAthleteKpis() {
     ["Reels", posts],
     ["DepÃ³sitos", deposits]
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
+}
+
+function athleteRequirementStatus(athlete) {
+  const hasRealSport = athlete?.sport && athlete.sport !== "Por definir";
+  const items = [
+    { key: "sport", label: "Disciplina deportiva", done: Boolean(hasRealSport) },
+    { key: "category", label: "Categoria o nivel competitivo", done: Boolean(athlete?.category) },
+    { key: "location", label: "Ciudad, club o academia base", done: Boolean(athlete?.location) },
+    { key: "ranking", label: "Ranking, marca o metrica principal", done: Boolean(athlete?.ranking) },
+    { key: "stats", label: "Ficha tecnica con resultados y objetivo deportivo", done: Boolean(athlete?.stats) },
+    { key: "image", label: "Foto de perfil profesional", done: Boolean(athlete?.image_url) },
+    { key: "monthly", label: "Ticket mensual y cupo maximo de patrocinadores", done: Number(athlete?.monthly || 0) > 0 && Number(athlete?.max_sponsors || 0) > 0 },
+    { key: "terms", label: `Terminos de representacion aceptados con ${roisLegalEntity}`, done: Boolean(athlete?.terms_accepted) }
+  ];
+  const optional = [
+    { key: "video", label: "Video de competencias o entrenamientos", done: Boolean(athlete?.video_url) },
+    { key: "proposal", label: "Propuesta comercial PDF para sponsors", done: Boolean(athlete?.proposal_url) },
+    { key: "logos", label: "Logos de patrocinadores actuales", done: athleteSponsorLogos(athlete || {}).length > 0 }
+  ];
+  const completed = items.filter(item => item.done).length;
+  return {
+    items,
+    optional,
+    completed,
+    total: items.length,
+    ready: completed === items.length
+  };
+}
+
+function athleteOnboardingComplete(athlete = currentAthlete()) {
+  return athleteRequirementStatus(athlete).ready;
+}
+
+function athleteGate(panelId, title, subtitle) {
+  panel(panelId, title, subtitle, `
+    <div class="panel-body">
+      <div class="requirement-gate">
+        <p class="eyebrow">Expediente pendiente</p>
+        <h3>Completa tus requisitos antes de operar dentro de ROIS.</h3>
+        <p>Tu cuenta ya existe, pero el acceso a solicitudes, publicaciones y comprobantes se habilita cuando tu expediente deportivo y contractual queda completo.</p>
+        ${button("Completar requisitos", () => showDashboardPanel("athlete-requirements"))}
+      </div>
+    </div>
+  `);
+}
+
+function athleteTermsBlock(athlete) {
+  return `
+    <div class="terms-box">
+      <p><strong>Entidad operadora.</strong> La plataforma ROIS es operada comercialmente por ${roisLegalEntity}. Al aceptar estos terminos, el deportista reconoce que ROIS estructura, negocia y administra oportunidades comerciales de patrocinio, representacion y seguimiento operativo con empresas patrocinadoras.</p>
+      <p><strong>Representacion y no elusion.</strong> Las solicitudes, contactos, patrocinadores, negociaciones, briefings, contratos y pagos generados a partir de ROIS deberan gestionarse por la plataforma. El deportista no podra cerrar directa o indirectamente con empresas presentadas por ROIS sin autorizacion escrita.</p>
+      <p><strong>Uso de imagen y entregables.</strong> El deportista autoriza a ROIS a presentar su perfil, resultados, entrenamientos, fotografias, videos y propuesta comercial a empresas interesadas. Cada patrocinio definira entregables permitidos, cuidando que no afecten el rendimiento, calendario competitivo ni preparacion deportiva.</p>
+      <p><strong>Tarjetas, tickets y facturacion.</strong> Cuando una empresa asigne recursos, tarjetas o presupuestos operativos, el deportista debera conservar tickets, facturas y comprobantes, facturar conforme a las instrucciones contractuales de cada patrocinador y subir evidencia mensual en ROIS.</p>
+      <p><strong>Revision y moderacion.</strong> ROIS podra revisar, aprobar, pausar o retirar visuales, reels, resultados, comprobantes o informacion sensible antes de mostrarla a empresas, para proteger a deportistas, patrocinadores y la integridad institucional de la plataforma.</p>
+      <p><strong>Fee operativo.</strong> El deportista reconoce que ROIS podra retener o cobrar el porcentaje operativo pactado en el contrato de representacion o patrocinio correspondiente. La aceptacion digital no sustituye contratos especificos de cada operacion.</p>
+    </div>
+    <label class="check-option" style="grid-column:1/-1">
+      <input name="terms_accepted" type="checkbox" ${athlete?.terms_accepted ? "checked" : ""} required>
+      <span>Acepto los terminos operativos, comerciales y de representacion de ROIS / ${roisLegalEntity}.</span>
+    </label>
+  `;
+}
+
+function renderAthleteRequirements() {
+  const athlete = currentAthlete();
+  if (!athlete) {
+    panel("athlete-requirements", "Requisitos", "Expediente deportivo", `<div class="empty">No encontramos una ficha deportiva vinculada a tu correo. Contacta a ROIS para asociarla.</div>`);
+    return;
+  }
+  const status = athleteRequirementStatus(athlete);
+  panel("athlete-requirements", "Requisitos", "Expediente antes de avanzar", `
+    <div class="panel-body">
+      <div class="onboarding-hero">
+        <div>
+          <p class="eyebrow">Alta deportiva ROIS</p>
+          <h3>${status.ready ? "Expediente completo" : "Completa tu expediente para activar operaciones"}</h3>
+          <p>${status.ready ? "Tu perfil esta listo para revision, publicacion y solicitudes de patrocinio." : "Primero crea tu cuenta. Despues completa estos requisitos para que ROIS pueda presentar tu perfil de forma institucional ante empresas."}</p>
+        </div>
+        <strong>${status.completed}/${status.total}</strong>
+      </div>
+      <div class="requirements-grid">
+        ${status.items.map(item => `
+          <div class="requirement-item ${item.done ? "done" : ""}">
+            <span>${item.done ? "Listo" : "Pendiente"}</span>
+            <strong>${item.label}</strong>
+          </div>
+        `).join("")}
+      </div>
+      <div class="optional-strip">
+        ${status.optional.map(item => `<span class="${item.done ? "done" : ""}">${item.done ? "Cargado" : "Opcional"} · ${item.label}</span>`).join("")}
+      </div>
+      <form id="athleteRequirementsForm" class="form-grid">
+        <label>Nombre deportivo<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
+        <label>Disciplina<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="Golf, tenis, automovilismo..."></label>
+        <label>Categoria o nivel<input name="category" required value="${escapeAttr(athlete.category || "")}" placeholder="Profesional, semillero, alto rendimiento"></label>
+        <label>Ciudad / base<input name="location" required value="${escapeAttr(athlete.location || "")}" placeholder="Ciudad, club o academia"></label>
+        <label>Ranking o marca<input name="ranking" required value="${escapeAttr(athlete.ranking || "")}" placeholder="Ranking nacional, handicap, marca principal"></label>
+        <label>Ticket mensual<input name="monthly" type="number" min="1000" required value="${Number(athlete.monthly || 5000)}"></label>
+        <label>Maximo de patrocinadores<input name="max_sponsors" type="number" min="1" required value="${Number(athlete.max_sponsors || 3)}"></label>
+        <label>Monto anual ROIS<input name="annual" type="number" min="1000" required value="${Number(athlete.annual || 1000)}"></label>
+        <label style="grid-column:1/-1">Ficha tecnica<textarea name="stats" required placeholder="Resultados, calendario, metricas, logros, objetivo deportivo y narrativa para patrocinadores.">${escapeHtml(athlete.stats || "")}</textarea></label>
+        <label style="grid-column:1/-1">Foto de perfil profesional<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <label style="grid-column:1/-1">Logos de sponsors actuales opcional<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
+        <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por linea, en el mismo orden de los logos."></textarea></label>
+        <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" value="${escapeAttr(athlete.video_url || "")}" placeholder="YouTube, Vimeo, Drive o reel publicado"></label>
+        <label style="grid-column:1/-1">Propuesta comercial PDF opcional<input name="proposal_pdf" type="file" accept="application/pdf"></label>
+        ${athleteTermsBlock(athlete)}
+        <div class="form-actions-row">
+          <button class="btn primary full" type="submit">Guardar expediente</button>
+          <button class="btn full" type="button" data-stripe-key="athleteAnnualProfile">Pagar perfil anual</button>
+        </div>
+      </form>
+    </div>
+  `);
+  document.getElementById("athleteRequirementsForm").addEventListener("submit", submitAthleteRequirements);
+  document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS"));
 }
 
 function renderAthleteNotifications() {
@@ -1324,6 +1418,10 @@ function renderAthleteProfile() {
 
 function renderAthleteSponsorships() {
   const athlete = currentAthlete();
+  if (!athleteOnboardingComplete(athlete)) {
+    athleteGate("athlete-sponsorships", "Patrocinios", "Solicitudes y condiciones propuestas por empresas");
+    return;
+  }
   const email = state.session?.email || "";
   const name = athlete?.name || state.session?.name || "";
   const rows = state.data.sponsorships.filter(item => item.athlete === name || item.athlete_email === email).map(item => [
@@ -1336,6 +1434,10 @@ function renderAthleteSponsorships() {
 }
 
 function renderAthleteResults() {
+  if (!athleteOnboardingComplete()) {
+    athleteGate("athlete-results", "Resultados mensuales", "Evidencia deportiva para reportar a patrocinadores");
+    return;
+  }
   const email = state.session?.email || "";
   const rows = state.data.athlete_results.filter(item => item.athlete_email === email).map(item => [
     item.month,
@@ -1359,6 +1461,10 @@ function renderAthleteResults() {
 }
 
 function renderAthleteReels() {
+  if (!athleteOnboardingComplete()) {
+    athleteGate("athlete-reels", "Entrenamientos / Reels", "Contenido que puede mostrarse en el feed de empresas");
+    return;
+  }
   const email = state.session?.email || "";
   const rows = state.data.athlete_posts.filter(item => item.athlete_email === email).map(item => [
     item.title,
@@ -1382,6 +1488,10 @@ function renderAthleteReels() {
 }
 
 function renderAthleteExpenses() {
+  if (!athleteOnboardingComplete()) {
+    athleteGate("athlete-expenses", "Tickets y facturas", "Consumos realizados con tarjeta y facturados a la empresa patrocinadora");
+    return;
+  }
   const email = state.session?.email || "";
   const rows = state.data.athlete_expenses.filter(item => item.athlete_email === email).map(item => [
     item.date || "Sin fecha",
@@ -1410,6 +1520,10 @@ function renderAthleteExpenses() {
 }
 
 function renderAthleteDeposits() {
+  if (!athleteOnboardingComplete()) {
+    athleteGate("athlete-deposits", "Depositos", "Comprobantes cargados por administracion ROIS");
+    return;
+  }
   const email = state.session?.email || "";
   const rows = state.data.athlete_deposits.filter(item => item.athlete_email === email).map(item => [
     item.month || "Periodo",
@@ -1751,6 +1865,53 @@ async function createRequest(type, title) {
   notify("Solicitud", "Solicitud creada", "El registro ya aparece en Estado Solicitudes.");
   renderClient();
   renderAdmin();
+}
+
+async function submitAthleteRequirements(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const athlete = currentAthlete();
+  if (!athlete) return;
+  const imageFile = form.image.files[0];
+  const proposalFile = form.proposal_pdf.files[0];
+  const sponsorLogos = await sponsorLogoPayload(form.sponsor_logo_files.files, form.sponsor_logo_names.value);
+  const patch = {
+    name: form.name.value.trim(),
+    sport: form.sport.value.trim(),
+    category: form.category.value.trim(),
+    location: form.location.value.trim(),
+    ranking: form.ranking.value.trim(),
+    stats: form.stats.value.trim(),
+    monthly: Number(form.monthly.value || 5000),
+    annual: Number(form.annual.value || 1000),
+    max_sponsors: Number(form.max_sponsors.value || 3),
+    video_url: form.video_url.value.trim(),
+    terms_accepted: Boolean(form.terms_accepted.checked)
+  };
+  if (imageFile) {
+    patch.image_url = await fileToDataUrl(imageFile);
+    patch.visual_status = "pending_review";
+  }
+  if (proposalFile) {
+    patch.proposal_url = await fileToDataUrl(proposalFile);
+    patch.proposal_name = proposalFile.name;
+  }
+  if (sponsorLogos) patch.sponsor_logos = sponsorLogos;
+  await api.update("athletes", athlete.id, patch);
+  if (!athlete.terms_accepted && patch.terms_accepted) {
+    await api.insert("terms_acceptances", {
+      user_email: state.session.email,
+      user_role: "athlete",
+      version: "athlete-representation-v2-intelliquant",
+      status: "accepted"
+    });
+  }
+  state.session = { ...state.session, name: patch.name };
+  saveSession(state.session);
+  notify("Expediente deportivo", "Requisitos guardados", "ROIS revisara los visuales y activara el perfil para operaciones con empresas.");
+  renderAthlete();
+  renderAdmin();
+  renderPublic();
 }
 
 async function submitAthleteProfile(event) {
@@ -2514,24 +2675,15 @@ function registrationFields(type) {
       <label>Correo de acceso<input name="email" type="email" required placeholder="correo@deportista.com"></label>
       <label>Contrasena<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Minimo 8 caracteres"></label>
       <label>Confirmar contrasena<input name="confirm" type="password" minlength="8" autocomplete="new-password" required placeholder="Repite tu contrasena"></label>
-      <label>Deporte<input name="sport" required placeholder="Disciplina"></label>
-      <label>CategorÃ­a<input name="category" required placeholder="CategorÃ­a o nivel"></label>
-      <label>Ciudad / base<input name="location" required placeholder="Ciudad, club o academia"></label>
-      <label>Ranking o marca<input name="ranking" placeholder="Ranking, marca o mÃ©trica principal"></label>
-      <label>Monto anual<input name="annual" type="number" min="0" value="1000" required></label>
-      <label>Ticket mensual<input name="monthly" type="number" min="0" value="5000" required></label>
-      <label>MÃ¡ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="3" required></label>
-      <label style="grid-column:1/-1">Ficha tÃ©cnica<textarea name="stats" required placeholder="Resultados, calendario, mÃ©tricas, logros y objetivo deportivo"></textarea></label>
-      <label style="grid-column:1/-1">Logos de sponsors actuales opcional<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
-      <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por lÃ­nea, en el mismo orden de los logos."></textarea></label>
-      <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" placeholder="https://youtube.com/... o https://vimeo.com/..."></label>
-      <label style="grid-column:1/-1">Propuesta comercial PDF opcional<input name="proposal_pdf" type="file" accept="application/pdf"></label>
-      <label style="grid-column:1/-1">Imagen de perfil<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+      <div class="registration-note" style="grid-column:1/-1">
+        <p class="eyebrow">Alta deportiva</p>
+        <p>Despues de crear tu cuenta entraras a tu dashboard para completar expediente, terminos de representacion, foto, ficha tecnica, propuesta, videos y documentos operativos.</p>
+      </div>
       <label class="check-option" style="grid-column:1/-1">
         <input name="terms" type="checkbox" required>
-        <span>Acepto que ROIS gestionara mi representacion comercial para patrocinios, contratos con empresas y seguimiento operativo de entregables. Las tarjetas, facturas y comprobantes deberan seguir las instrucciones contractuales de cada patrocinador.</span>
+        <span>Acepto crear mi cuenta deportiva en ROIS y completar el expediente contractual y operativo administrado por ${roisLegalEntity} antes de recibir solicitudes de patrocinio.</span>
       </label>
-      <button class="btn primary full" type="submit">Enviar y pagar perfil</button>
+      <button class="btn primary full" type="submit">Crear cuenta deportiva</button>
     `;
   }
   return `
@@ -2582,41 +2734,22 @@ async function submitRegistration(event) {
         notify("Registro", "Las contraseÃ±as no coinciden", "Confirma la contraseÃ±a para crear tu cuenta de deportista.");
         return;
       }
-      const image_url = await fileToDataUrl(form.image.files[0]);
-      const proposalFile = form.proposal_pdf.files[0];
-      const proposal_url = proposalFile ? await fileToDataUrl(proposalFile) : "";
-      const sponsor_logos = await sponsorLogoPayload(form.sponsor_logo_files.files, form.sponsor_logo_names.value);
       const signup = await api.signupAthlete({
         email: form.email.value,
         password: form.password.value,
-        name: form.name.value,
-        sport: form.sport.value,
-        category: form.category.value,
-        location: form.location.value,
-        ranking: form.ranking.value,
-        stats: form.stats.value,
-        annual: Number(form.annual.value || 1000),
-        monthly: Number(form.monthly.value || 5000),
-        max_sponsors: Number(form.max_sponsors.value || 3),
-        sponsor_logos,
-        proposal_url,
-        proposal_name: proposalFile?.name || "",
-        video_url: form.video_url.value,
-        image_url
+        name: form.name.value
       });
       closeModals();
-      paymentAction = ["athleteAnnualProfile", "Perfil Deportivo Anual ROIS"];
       if (signup.confirmed) {
         state.session = signup.session;
         saveSession(state.session);
         renderSession();
         renderAthlete();
         showView("athlete");
-        notify("Perfil deportivo", "Bienvenido a ROIS", "Tu cuenta de deportista ya estÃ¡ activa. Tu perfil pÃºblico queda pendiente de revisiÃ³n ROIS.");
+        notify("Perfil deportivo", "Bienvenido a ROIS", "Completa tus requisitos dentro del panel para activar operaciones y revision de patrocinio.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }
-      if (paymentAction) openStripeCheckout(paymentAction[0], paymentAction[1]);
       renderAdmin();
       renderPublic();
       return;

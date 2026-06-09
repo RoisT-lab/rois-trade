@@ -405,7 +405,24 @@ grant select on profiles, companies, athletes, events, requests, sponsorships, n
 grant insert on profiles to authenticated;
 grant update (must_change_password) on profiles to authenticated;
 grant insert on athletes, events to anon, authenticated;
-grant update (name, sport, stats, monthly, category, location, ranking, image_url, visual_status, max_sponsors) on athletes to authenticated;
+grant update (
+  name,
+  sport,
+  stats,
+  monthly,
+  annual,
+  category,
+  location,
+  ranking,
+  image_url,
+  visual_status,
+  max_sponsors,
+  sponsor_logos,
+  video_url,
+  proposal_url,
+  proposal_name,
+  terms_accepted
+) on athletes to authenticated;
 grant insert on companies to authenticated;
 grant update (name, owner, interest, website, description, logo_url) on companies to authenticated;
 grant insert on crm to authenticated;
