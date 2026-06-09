@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260608-mobile-avatar-no-search-v13";
+const roisBuild = "20260608-company-brand-settings-v14";
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
@@ -84,6 +84,16 @@ function enforceCompanyClientSession() {
   }
 }
 
+function currentCompany() {
+  if (!state.session || !state.data?.companies) return null;
+  const email = state.session.email?.toLowerCase();
+  return state.data.companies.find(company => (company.contact || "").toLowerCase() === email) || null;
+}
+
+function sessionLogoPath() {
+  return currentCompany()?.logo_url || "./assets/rois-isotipo-cropped.png";
+}
+
 async function init() {
   state.session = normalizeSession(state.session);
   state.data = await api.loadAll();
@@ -110,12 +120,25 @@ async function init() {
 }
 
 function applyBranding() {
-  document.querySelectorAll(".brand-logo, .side-logo, .mobile-avatar img").forEach(image => {
+  document.querySelectorAll(".brand-logo, .side-logo").forEach(image => {
     image.src = fixedLogoPath;
     image.hidden = false;
     image.closest(".brand, .sidebar")?.classList.remove("logo-fallback");
   });
+  applySessionBranding();
   document.body.classList.add("rois-brand-ready");
+}
+
+function applySessionBranding() {
+  const logo = sessionLogoPath();
+  document.querySelectorAll(".mobile-avatar").forEach(button => {
+    button.classList.toggle("company-avatar", !!currentCompany()?.logo_url);
+    button.classList.remove("avatar-fallback");
+  });
+  document.querySelectorAll(".mobile-avatar img").forEach(image => {
+    image.src = logo;
+    image.hidden = false;
+  });
 }
 
 function handleMissingImages() {
@@ -124,6 +147,12 @@ function handleMissingImages() {
       image.hidden = true;
       image.closest(".brand, .sidebar")?.classList.add("logo-fallback");
     }, { once: true });
+  });
+  document.querySelectorAll(".mobile-avatar img").forEach(image => {
+    image.addEventListener("error", () => {
+      image.hidden = true;
+      image.closest(".mobile-avatar")?.classList.add("avatar-fallback");
+    });
   });
 }
 
@@ -569,6 +598,35 @@ async function submitSettingsPassword(event) {
   }
 }
 
+async function submitCompanyProfile(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const company = currentCompany();
+  if (!company) {
+    notify("Empresa", "No encontramos tu cuenta", "Vuelve a iniciar sesión para actualizar tu perfil.");
+    return;
+  }
+  try {
+    const logoFile = form.logo.files[0];
+    const patch = {
+      name: form.name.value.trim(),
+      owner: form.owner.value.trim(),
+      interest: form.interest.value,
+      website: form.website.value.trim(),
+      description: form.description.value.trim()
+    };
+    if (logoFile) patch.logo_url = await fileToDataUrl(logoFile);
+    await api.update("companies", company.id, patch);
+    state.session = { ...state.session, name: patch.name };
+    saveSession(state.session);
+    renderSession();
+    renderClient();
+    notify("Empresa", "Perfil actualizado", logoFile ? "El logotipo y la información de tu empresa quedaron guardados." : "La información de tu empresa quedó guardada.");
+  } catch (error) {
+    notify("Empresa", "No fue posible guardar", humanError(error));
+  }
+}
+
 function logout() {
   state.session = null;
   clearSession();
@@ -653,6 +711,19 @@ function humanError(error) {
   return message || "Ocurrió un error inesperado.";
 }
 
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function escapeAttr(value = "") {
+  return escapeHtml(value)
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function renderSession() {
   const area = document.getElementById("sessionArea");
   if (!state.session) {
@@ -731,8 +802,15 @@ function renderClient() {
 }
 
 function renderClientHeader() {
+  const company = currentCompany();
   document.getElementById("clientAccountEyebrow").textContent = "Cuenta aprobada";
-  document.getElementById("clientAccountName").textContent = state.session?.name || "Cuenta ROIS";
+  document.getElementById("clientAccountName").textContent = company?.name || state.session?.name || "Cuenta ROIS";
+  const companyLogo = document.getElementById("clientCompanyLogo");
+  if (companyLogo) {
+    companyLogo.hidden = !company?.logo_url;
+    if (company?.logo_url) companyLogo.src = company.logo_url;
+  }
+  applySessionBranding();
 }
 
 function renderClientKpis() {
@@ -901,9 +979,33 @@ function renderClientPayments() {
 }
 
 function renderAccountSettings(panelId) {
-  panel(panelId, "Configuración", "Seguridad de acceso", `
+  const company = panelId === "client-settings" ? currentCompany() : null;
+  panel(panelId, "Configuración", panelId === "client-settings" ? "Perfil de empresa y seguridad" : "Seguridad de acceso", `
     <div class="panel-body">
       <div class="settings-grid">
+        ${company ? `
+          <div class="settings-block">
+            <p class="eyebrow">Empresa</p>
+            <h3>Identidad visible en tu sesión</h3>
+            <p class="hint">Sube un logotipo institucional en PNG, JPG o WEBP. Se guardará en tu cuenta y será visible en tu dashboard al iniciar sesión desde cualquier dispositivo.</p>
+          </div>
+          <form class="form-grid company-profile-form" data-company-profile>
+            <div class="company-logo-preview">
+              <img src="${company.logo_url || sessionLogoPath()}" alt="${company.name || "Empresa"}">
+              <span>${company.logo_url ? "Logo actual" : "Logo pendiente"}</span>
+            </div>
+            <label>Nombre de empresa<input name="name" required value="${escapeAttr(company.name || "")}" placeholder="Nombre legal o comercial"></label>
+            <label>Contacto principal<input name="owner" value="${escapeAttr(company.owner || "")}" placeholder="Nombre del responsable"></label>
+            <label>Correo de acceso<input name="contact" type="email" readonly value="${escapeAttr(company.contact || state.session?.email || "")}" placeholder="correo@empresa.com"></label>
+            <label>Interés principal<select name="interest">
+              ${["Patrocinios", "Eventos", "Deportistas", "Patrocinador oficial ROIS", "Relaciones estratégicas"].map(option => `<option value="${option}" ${company.interest === option ? "selected" : ""}>${option}</option>`).join("")}
+            </select></label>
+            <label>Sitio web<input name="website" type="url" value="${escapeAttr(company.website || "")}" placeholder="https://"></label>
+            <label>Logotipo de empresa<input name="logo" type="file" accept="image/png,image/jpeg,image/webp"></label>
+            <label style="grid-column:1/-1">Descripción breve<textarea name="description" placeholder="Describe a qué se dedica la empresa y qué tipo de oportunidades busca.">${escapeHtml(company.description || "")}</textarea></label>
+            <button class="btn primary" type="submit">Guardar perfil de empresa</button>
+          </form>
+        ` : ""}
         <div class="settings-block">
           <p class="eyebrow">Sesión</p>
           <h3>Cierre automático</h3>
@@ -922,6 +1024,8 @@ function renderAccountSettings(panelId) {
       </div>
     </div>
   `);
+  const companyForm = document.querySelector(`[data-dashboard-panel="${panelId}"] [data-company-profile]`);
+  if (companyForm) companyForm.addEventListener("submit", submitCompanyProfile);
   document.querySelector(`[data-dashboard-panel="${panelId}"] [data-settings-password]`).addEventListener("submit", submitSettingsPassword);
 }
 

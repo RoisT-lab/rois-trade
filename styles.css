@@ -724,6 +724,24 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   margin-bottom: 26px;
 }
 
+.workspace-title {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.company-session-logo {
+  width: 82px;
+  height: 58px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: #fff;
+  object-fit: contain;
+  box-shadow: 0 18px 40px rgba(44, 52, 64, 0.08);
+}
+
 .workspace-head h1 { font-size: 34px; }
 
 .kpis {
@@ -931,6 +949,45 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   padding: 22px;
   border: 1px solid var(--line);
   background: #fff;
+}
+
+.company-profile-form {
+  padding: 22px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.company-logo-preview {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: #fafbfc;
+}
+
+.company-logo-preview img {
+  width: 118px;
+  height: 64px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  object-fit: contain;
+}
+
+.company-logo-preview span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+input[readonly] {
+  color: var(--muted);
+  background: #f4f6f8;
+  cursor: not-allowed;
 }
 
 .check-grid {
@@ -2691,5 +2748,54 @@ body.rois-brand-ready .mobile-avatar img {
     height: 56px;
     transform: scale(2.25);
     transform-origin: left center;
+  }
+}
+
+/* Company identity: preserve logos without cropping or tilting them. */
+@media (max-width: 900px) {
+  .mobile-avatar.avatar-fallback img {
+    display: none;
+  }
+
+  .mobile-avatar.avatar-fallback::after {
+    content: "R";
+    color: #f7f4eb;
+    font-size: 18px;
+    font-weight: 850;
+    letter-spacing: 0;
+  }
+
+  .mobile-avatar.company-avatar {
+    background: #fff;
+  }
+
+  .mobile-avatar.company-avatar img {
+    width: 74%;
+    height: 74%;
+    border-radius: 0;
+    object-fit: contain;
+    object-position: center;
+    transform: none;
+    transform-origin: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .mobile-avatar.company-avatar img {
+    width: 72%;
+    height: 72%;
+    transform: none;
+  }
+
+  .workspace-title {
+    display: grid;
+    justify-items: center;
+    gap: 16px;
+  }
+
+  .company-session-logo {
+    width: 118px;
+    height: 72px;
+    border-radius: 28px;
   }
 }

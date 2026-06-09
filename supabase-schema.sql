@@ -17,6 +17,9 @@ create table if not exists companies (
   contact text,
   owner text,
   interest text,
+  website text,
+  description text,
+  logo_url text,
   status text not null default 'pending',
   created_at timestamptz not null default now()
 );
@@ -148,6 +151,9 @@ alter table events add column if not exists brochure_url text;
 alter table events add column if not exists brochure_name text;
 alter table events add column if not exists event_scope text;
 alter table events add column if not exists sponsor_levels text;
+alter table companies add column if not exists website text;
+alter table companies add column if not exists description text;
+alter table companies add column if not exists logo_url text;
 alter table sponsorships add column if not exists details text;
 alter table payments add column if not exists product_key text;
 
@@ -184,6 +190,7 @@ drop policy if exists "profiles clear own password flag" on profiles;
 drop policy if exists "profiles delete admin" on profiles;
 drop policy if exists "companies all admin" on companies;
 drop policy if exists "companies self read" on companies;
+drop policy if exists "companies self update" on companies;
 drop policy if exists "companies self insert approved" on companies;
 drop policy if exists "companies public insert pending" on companies;
 drop policy if exists "athletes read approved" on athletes;
@@ -237,6 +244,14 @@ with check (
   contact = (auth.jwt() ->> 'email')
   and status = 'approved'
 );
+create policy "companies self update" on companies
+for update
+to authenticated
+using (contact = (auth.jwt() ->> 'email'))
+with check (
+  contact = (auth.jwt() ->> 'email')
+  and status = 'approved'
+);
 create policy "athletes read approved" on athletes for select using (status = 'approved' or is_admin());
 create policy "athletes admin write" on athletes for all using (is_admin()) with check (is_admin());
 create policy "athletes public insert pending" on athletes for insert to anon, authenticated with check (
@@ -272,6 +287,7 @@ grant insert on profiles to authenticated;
 grant update (must_change_password) on profiles to authenticated;
 grant insert on athletes, events to anon, authenticated;
 grant insert on companies to authenticated;
+grant update (name, owner, interest, website, description, logo_url) on companies to authenticated;
 grant insert on crm to authenticated;
 grant insert, update on requests, sponsorships, payments to authenticated;
 grant update, delete on athletes, events, news, partnerships, uploads to authenticated;
