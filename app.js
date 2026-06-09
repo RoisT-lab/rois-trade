@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260608-black-header-logo-v10";
+const roisBuild = "20260608-logo-ready-v11";
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
@@ -114,6 +114,7 @@ function applyBranding() {
     image.hidden = false;
     image.closest(".brand, .sidebar")?.classList.remove("logo-fallback");
   });
+  document.body.classList.add("rois-brand-ready");
 }
 
 function handleMissingImages() {

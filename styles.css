@@ -2541,9 +2541,21 @@ h3 {
 .brand-logo {
   width: clamp(300px, 32vw, 432px);
   height: 76px;
+  opacity: 0;
   filter: saturate(1.06) contrast(1.1) drop-shadow(0 0 18px rgba(222, 198, 147, 0.18));
   transform: scale(1.8);
   transform-origin: left center;
+  transition: opacity .18s ease;
+}
+
+body.rois-brand-ready .brand-logo,
+body.rois-brand-ready .side-logo {
+  opacity: 1;
+}
+
+.side-logo {
+  opacity: 0;
+  transition: opacity .18s ease;
 }
 
 .public-nav {
