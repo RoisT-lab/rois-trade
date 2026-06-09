@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260608-hero-cta-v3";
+const roisBuild = "20260608-mobile-premium-v5";
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
@@ -439,6 +439,8 @@ function bindGlobalEvents() {
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModals));
   document.querySelectorAll("[data-logout]").forEach(button => button.addEventListener("click", logout));
   document.querySelectorAll("[data-dashboard-target]").forEach(button => button.addEventListener("click", () => showDashboardPanel(button.dataset.dashboardTarget)));
+  document.querySelectorAll("[data-mobile-menu]").forEach(button => button.addEventListener("click", () => openMobileDashboardMenu(button.dataset.mobileMenu)));
+  document.querySelectorAll("[data-close-mobile-menu]").forEach(button => button.addEventListener("click", closeMobileDashboardMenus));
   document.querySelectorAll("[data-registration]").forEach(button => button.addEventListener("click", () => openRegistration(button.dataset.registration)));
   document.querySelector("[data-open-recovery]").addEventListener("click", toggleRecoveryForm);
   document.getElementById("loginForm").addEventListener("submit", submitLogin);
@@ -461,6 +463,17 @@ function showDashboardPanel(targetId) {
   const nav = document.querySelector(`[data-dashboard-nav="${workspace.dataset.dashboard}"]`);
   workspace.querySelectorAll("[data-dashboard-panel]").forEach(panel => panel.classList.toggle("active", panel === targetPanel));
   nav.querySelectorAll("[data-dashboard-target]").forEach(button => button.classList.toggle("active", button.dataset.dashboardTarget === targetId));
+  closeMobileDashboardMenus();
+}
+
+function openMobileDashboardMenu(type) {
+  closeMobileDashboardMenus();
+  const view = document.querySelector(`[data-view="${type === "admin" ? "admin" : "client"}"]`);
+  view?.classList.add("nav-open");
+}
+
+function closeMobileDashboardMenus() {
+  document.querySelectorAll(".dashboard.nav-open").forEach(view => view.classList.remove("nav-open"));
 }
 
 async function submitLogin(event) {
