@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260608-mobile-premium-v5";
+const roisBuild = "20260608-revolut-mobile-v7";
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
@@ -450,6 +450,7 @@ function bindGlobalEvents() {
 }
 
 function showView(name) {
+  document.body.dataset.activeView = name;
   document.querySelectorAll("[data-view]").forEach(view => view.classList.toggle("active", view.dataset.view === name));
   if (name === "client") renderClient();
   if (name === "admin") renderAdmin();
