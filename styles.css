@@ -2525,3 +2525,77 @@ h3 {
     padding: 22px;
   }
 }
+
+/* Header contrast pass: black capsule and stronger official logo presence. */
+.topbar {
+  background: rgba(8, 9, 10, 0.97);
+  border-color: rgba(244, 246, 248, 0.12);
+  box-shadow: 0 24px 70px rgba(8, 9, 10, 0.24);
+}
+
+.brand {
+  min-width: clamp(300px, 32vw, 445px);
+  overflow: visible;
+}
+
+.brand-logo {
+  width: clamp(300px, 32vw, 432px);
+  height: 76px;
+  filter: saturate(1.06) contrast(1.1) drop-shadow(0 0 18px rgba(222, 198, 147, 0.18));
+  transform: scale(1.8);
+  transform-origin: left center;
+}
+
+.public-nav {
+  color: rgba(244, 246, 248, 0.70);
+}
+
+.public-nav a:hover {
+  color: #fff;
+  border-color: rgba(244, 246, 248, 0.16);
+  background: rgba(244, 246, 248, 0.075);
+}
+
+.topbar .btn,
+.topbar .pill {
+  border-color: rgba(244, 246, 248, 0.20);
+  background: rgba(244, 246, 248, 0.06);
+  color: #f7f4eb;
+  box-shadow: none;
+}
+
+.topbar .btn:hover {
+  border-color: rgba(244, 246, 248, 0.36);
+  background: rgba(244, 246, 248, 0.12);
+}
+
+@media (max-width: 900px) {
+  body[data-active-view="home"] .topbar {
+    background: rgba(8, 9, 10, 0.97);
+    border-color: rgba(244, 246, 248, 0.12);
+  }
+
+  body[data-active-view="home"] .brand {
+    min-width: 0;
+  }
+
+  body[data-active-view="home"] .brand-logo {
+    width: 210px;
+    height: 58px;
+    transform: scale(1.42);
+  }
+
+  body[data-active-view="home"] .topbar .btn {
+    border-color: rgba(244, 246, 248, 0.22);
+    background: rgba(244, 246, 248, 0.06);
+    color: #f7f4eb;
+  }
+}
+
+@media (max-width: 560px) {
+  body[data-active-view="home"] .brand-logo {
+    width: 176px;
+    height: 54px;
+    transform: scale(1.34);
+  }
+}
