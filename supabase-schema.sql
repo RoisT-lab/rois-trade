@@ -403,7 +403,7 @@ create policy "terms admin read" on terms_acceptances for select using (is_admin
 grant usage on schema public to anon, authenticated;
 grant select on profiles, companies, athletes, events, requests, sponsorships, news, partnerships, site_settings, crm, payments, uploads, athlete_posts, athlete_results, athlete_expenses, athlete_deposits, terms_acceptances to anon, authenticated;
 grant insert on profiles to authenticated;
-grant update (must_change_password) on profiles to authenticated;
+grant update (name, role, status, must_change_password) on profiles to authenticated;
 grant insert on athletes, events to anon, authenticated;
 grant update (
   name,
@@ -424,7 +424,7 @@ grant update (
   terms_accepted
 ) on athletes to authenticated;
 grant insert on companies to authenticated;
-grant update (name, owner, interest, website, description, logo_url) on companies to authenticated;
+grant update (name, owner, interest, website, description, logo_url, status) on companies to authenticated;
 grant insert on crm to authenticated;
 grant insert, update on requests, sponsorships, payments to authenticated;
 grant update, delete on athletes, events, news, partnerships, uploads to authenticated;

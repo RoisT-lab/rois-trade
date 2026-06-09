@@ -1,6 +1,7 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260609-athlete-simple-profile-v20";
+const roisBuild = "20260609-athlete-test-exempt-v21";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
+const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
@@ -109,6 +110,10 @@ function currentAthlete() {
   if (!state.session || !state.data?.athletes) return null;
   const email = state.session.email?.toLowerCase();
   return state.data.athletes.find(athlete => (athlete.email || athlete.contact || "").toLowerCase() === email) || null;
+}
+
+function athleteAnnualFeeExempt(email = state.session?.email) {
+  return athleteAnnualExemptEmails.includes(String(email || "").toLowerCase());
 }
 
 async function init() {
@@ -1355,6 +1360,7 @@ function renderAthleteProfile() {
     return;
   }
   const logos = athleteSponsorLogos(athlete);
+  const annualExempt = athleteAnnualFeeExempt(athlete.email || state.session?.email);
   panel("athlete-profile", "Mi perfil", "Perfil profesional de patrocinio", `
     <div class="panel-body">
       <div class="onboarding-hero">
@@ -1395,8 +1401,8 @@ function renderAthleteProfile() {
           </div>
           <div>
             <span>Pago anual</span>
-            <strong>$1,000 MXN</strong>
-            <button class="btn" type="button" data-stripe-key="athleteAnnualProfile">Pagar anualidad</button>
+            <strong>${annualExempt ? "Exento test ROIS" : "$1,000 MXN"}</strong>
+            ${annualExempt ? `<span>Cuenta interna de prueba</span>` : `<button class="btn" type="button" data-stripe-key="athleteAnnualProfile">Pagar anualidad</button>`}
           </div>
         </div>
         ${logos.length ? `<div class="athlete-sponsor-brands" style="grid-column:1/-1"><span>Sponsors actuales</span><div>${logos.map(logo => `<img src="${logo.image}" alt="${logo.name || "Sponsor"}">`).join("")}</div></div>` : ""}
@@ -1405,7 +1411,7 @@ function renderAthleteProfile() {
     </div>
   `);
   document.getElementById("athleteProfileForm").addEventListener("submit", submitAthleteProfile);
-  document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS"));
+  if (!annualExempt) document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS"));
 }
 
 function renderAthleteSponsorships() {
@@ -2737,11 +2743,13 @@ async function submitRegistration(event) {
         renderSession();
         renderAthlete();
         showView("athlete");
-        notify("Perfil deportivo", "Bienvenido a ROIS", "Tu cuenta ya esta creada. Paga tu fee anual y configura tu perfil profesional desde el dashboard.");
+        notify("Perfil deportivo", "Bienvenido a ROIS", athleteAnnualFeeExempt(form.email.value) ? "Tu cuenta interna de prueba esta activa sin cobro anual. Configura tu perfil profesional desde el dashboard." : "Tu cuenta ya esta creada. Paga tu fee anual y configura tu perfil profesional desde el dashboard.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }
-      openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS");
+      if (!athleteAnnualFeeExempt(form.email.value)) {
+        openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS");
+      }
       renderAdmin();
       renderPublic();
       return;
