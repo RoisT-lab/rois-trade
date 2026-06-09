@@ -2582,19 +2582,56 @@ body.rois-brand-ready .side-logo {
 }
 
 @media (max-width: 900px) {
+  .topbar {
+    justify-content: space-between;
+    gap: 10px;
+    overflow: hidden;
+  }
+
+  .topbar .brand {
+    min-width: 0;
+    flex: 0 1 176px;
+    width: 176px;
+    overflow: hidden;
+  }
+
+  .topbar .brand-logo {
+    width: 160px;
+    height: 58px;
+    transform: scale(1.18);
+  }
+
+  .topbar .session-area {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
+  }
+
   body[data-active-view="home"] .topbar {
     background: rgba(8, 9, 10, 0.97);
     border-color: rgba(244, 246, 248, 0.12);
+    justify-content: space-between;
+    gap: 10px;
+    overflow: hidden;
   }
 
   body[data-active-view="home"] .brand {
     min-width: 0;
+    flex: 0 1 176px;
+    width: 176px;
+    overflow: hidden;
   }
 
   body[data-active-view="home"] .brand-logo {
-    width: 210px;
+    width: 160px;
     height: 58px;
-    transform: scale(1.42);
+    transform: scale(1.18);
+  }
+
+  body[data-active-view="home"] .session-area {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
   }
 
   body[data-active-view="home"] .topbar .btn {
@@ -2605,9 +2642,37 @@ body.rois-brand-ready .side-logo {
 }
 
 @media (max-width: 560px) {
-  body[data-active-view="home"] .brand-logo {
-    width: 176px;
+  .topbar .brand-logo {
+    width: 136px;
     height: 54px;
-    transform: scale(1.34);
+    transform: scale(1.14);
+  }
+
+  .topbar .brand {
+    flex-basis: 150px;
+    width: 150px;
+  }
+
+  .topbar .btn {
+    min-width: 84px;
+    padding-inline: 14px;
+    font-size: 10px;
+  }
+
+  body[data-active-view="home"] .brand-logo {
+    width: 136px;
+    height: 54px;
+    transform: scale(1.14);
+  }
+
+  body[data-active-view="home"] .brand {
+    flex-basis: 150px;
+    width: 150px;
+  }
+
+  body[data-active-view="home"] .topbar .btn {
+    min-width: 84px;
+    padding-inline: 14px;
+    font-size: 10px;
   }
 }

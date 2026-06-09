@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260608-logo-ready-v11";
+const roisBuild = "20260608-mobile-access-header-v12";
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
@@ -95,6 +95,7 @@ async function init() {
   }
   enforceCompanyClientSession();
   if (state.session) saveSession(state.session);
+  document.body.dataset.activeView = state.session ? state.session.role === "admin" ? "admin" : "client" : "home";
   applyBranding();
   handleMissingImages();
   bindGlobalEvents();
