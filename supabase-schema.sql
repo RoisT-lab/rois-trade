@@ -4,12 +4,15 @@
 create table if not exists profiles (
   id uuid primary key,
   email text unique not null,
-  role text not null check (role in ('admin', 'client')),
+  role text not null check (role in ('admin', 'client', 'athlete')),
   name text not null,
   status text not null default 'pending',
   must_change_password boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+alter table profiles drop constraint if exists profiles_role_check;
+alter table profiles add constraint profiles_role_check check (role in ('admin', 'client', 'athlete'));
 
 create table if not exists companies (
   id uuid primary key default gen_random_uuid(),
@@ -26,6 +29,9 @@ create table if not exists companies (
 
 create table if not exists athletes (
   id uuid primary key default gen_random_uuid(),
+  profile_id uuid,
+  email text,
+  contact text,
   name text not null,
   sport text not null,
   stats text,
@@ -38,6 +44,7 @@ create table if not exists athletes (
   image_url text,
   visual_status text not null default 'approved',
   visual_notes text,
+  terms_accepted boolean not null default false,
   status text not null default 'pending',
   created_at timestamptz not null default now()
 );
@@ -69,9 +76,76 @@ create table if not exists requests (
 create table if not exists sponsorships (
   id uuid primary key default gen_random_uuid(),
   athlete text not null,
+  athlete_email text,
   company text,
   amount numeric default 5000,
   status text not null default 'review',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists athlete_posts (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid,
+  athlete_email text,
+  athlete_name text,
+  title text not null,
+  caption text,
+  video_url text,
+  image_url text,
+  visual_status text not null default 'approved',
+  visual_notes text,
+  status text not null default 'pending_review',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists athlete_results (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid,
+  athlete_email text,
+  athlete_name text,
+  month text,
+  event text,
+  summary text,
+  proof_url text,
+  status text not null default 'review',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists athlete_expenses (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid,
+  athlete_email text,
+  athlete_name text,
+  date text,
+  category text,
+  amount numeric default 0,
+  company text,
+  ticket_url text,
+  invoice_url text,
+  notes text,
+  status text not null default 'review',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists athlete_deposits (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid,
+  athlete_email text,
+  athlete_name text,
+  month text,
+  amount numeric default 0,
+  company text,
+  proof_url text,
+  status text not null default 'paid',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists terms_acceptances (
+  id uuid primary key default gen_random_uuid(),
+  user_email text,
+  user_role text,
+  version text,
+  status text not null default 'accepted',
   created_at timestamptz not null default now()
 );
 
@@ -136,6 +210,10 @@ create table if not exists uploads (
 );
 
 alter table athletes add column if not exists annual numeric default 1000;
+alter table athletes add column if not exists profile_id uuid;
+alter table athletes add column if not exists email text;
+alter table athletes add column if not exists contact text;
+alter table athletes add column if not exists terms_accepted boolean not null default false;
 alter table athletes add column if not exists category text;
 alter table athletes add column if not exists location text;
 alter table athletes add column if not exists ranking text;
@@ -155,6 +233,7 @@ alter table companies add column if not exists website text;
 alter table companies add column if not exists description text;
 alter table companies add column if not exists logo_url text;
 alter table sponsorships add column if not exists details text;
+alter table sponsorships add column if not exists athlete_email text;
 alter table payments add column if not exists product_key text;
 
 alter table profiles enable row level security;
@@ -169,6 +248,11 @@ alter table site_settings enable row level security;
 alter table crm enable row level security;
 alter table payments enable row level security;
 alter table uploads enable row level security;
+alter table athlete_posts enable row level security;
+alter table athlete_results enable row level security;
+alter table athlete_expenses enable row level security;
+alter table athlete_deposits enable row level security;
+alter table terms_acceptances enable row level security;
 
 create or replace function is_admin()
 returns boolean
@@ -195,6 +279,9 @@ drop policy if exists "companies self insert approved" on companies;
 drop policy if exists "companies public insert pending" on companies;
 drop policy if exists "athletes read approved" on athletes;
 drop policy if exists "athletes admin write" on athletes;
+drop policy if exists "athletes self read" on athletes;
+drop policy if exists "athletes self update" on athletes;
+drop policy if exists "athletes self insert pending" on athletes;
 drop policy if exists "athletes public insert pending" on athletes;
 drop policy if exists "events read approved" on events;
 drop policy if exists "events public insert pending" on events;
@@ -212,6 +299,18 @@ drop policy if exists "crm admin all" on crm;
 drop policy if exists "crm client insert" on crm;
 drop policy if exists "payments admin all" on payments;
 drop policy if exists "uploads admin all" on uploads;
+drop policy if exists "athlete posts read approved" on athlete_posts;
+drop policy if exists "athlete posts self insert" on athlete_posts;
+drop policy if exists "athlete posts self read" on athlete_posts;
+drop policy if exists "athlete posts admin all" on athlete_posts;
+drop policy if exists "athlete results self all" on athlete_results;
+drop policy if exists "athlete results admin all" on athlete_results;
+drop policy if exists "athlete expenses self all" on athlete_expenses;
+drop policy if exists "athlete expenses admin all" on athlete_expenses;
+drop policy if exists "athlete deposits self read" on athlete_deposits;
+drop policy if exists "athlete deposits admin all" on athlete_deposits;
+drop policy if exists "terms self insert" on terms_acceptances;
+drop policy if exists "terms admin read" on terms_acceptances;
 
 create policy "profiles select own or admin" on profiles for select using (id = auth.uid() or is_admin());
 create policy "profiles self insert client" on profiles
@@ -220,7 +319,7 @@ to authenticated
 with check (
   id = auth.uid()
   and email = (auth.jwt() ->> 'email')
-  and role = 'client'
+  and role in ('client', 'athlete')
   and status = 'approved'
   and must_change_password = false
 );
@@ -254,6 +353,14 @@ with check (
 );
 create policy "athletes read approved" on athletes for select using (status = 'approved' or is_admin());
 create policy "athletes admin write" on athletes for all using (is_admin()) with check (is_admin());
+create policy "athletes self read" on athletes for select to authenticated using (email = (auth.jwt() ->> 'email'));
+create policy "athletes self insert pending" on athletes for insert to authenticated with check (
+  email = (auth.jwt() ->> 'email')
+  and status = 'pending'
+);
+create policy "athletes self update" on athletes for update to authenticated using (email = (auth.jwt() ->> 'email')) with check (
+  email = (auth.jwt() ->> 'email')
+);
 create policy "athletes public insert pending" on athletes for insert to anon, authenticated with check (
   status = 'pending'
   and coalesce(visual_status, 'approved') in ('approved', 'pending_review')
@@ -280,14 +387,30 @@ to authenticated
 with check (status = 'Nuevo cliente');
 create policy "payments admin all" on payments for all using (is_admin()) with check (is_admin());
 create policy "uploads admin all" on uploads for all using (is_admin()) with check (is_admin());
+create policy "athlete posts read approved" on athlete_posts for select using ((status = 'approved' and coalesce(visual_status, 'approved') = 'approved') or is_admin());
+create policy "athlete posts self read" on athlete_posts for select to authenticated using (athlete_email = (auth.jwt() ->> 'email'));
+create policy "athlete posts self insert" on athlete_posts for insert to authenticated with check (athlete_email = (auth.jwt() ->> 'email'));
+create policy "athlete posts admin all" on athlete_posts for all using (is_admin()) with check (is_admin());
+create policy "athlete results self all" on athlete_results for all to authenticated using (athlete_email = (auth.jwt() ->> 'email')) with check (athlete_email = (auth.jwt() ->> 'email'));
+create policy "athlete results admin all" on athlete_results for all using (is_admin()) with check (is_admin());
+create policy "athlete expenses self all" on athlete_expenses for all to authenticated using (athlete_email = (auth.jwt() ->> 'email')) with check (athlete_email = (auth.jwt() ->> 'email'));
+create policy "athlete expenses admin all" on athlete_expenses for all using (is_admin()) with check (is_admin());
+create policy "athlete deposits self read" on athlete_deposits for select to authenticated using (athlete_email = (auth.jwt() ->> 'email'));
+create policy "athlete deposits admin all" on athlete_deposits for all using (is_admin()) with check (is_admin());
+create policy "terms self insert" on terms_acceptances for insert to authenticated with check (user_email = (auth.jwt() ->> 'email'));
+create policy "terms admin read" on terms_acceptances for select using (is_admin());
 
 grant usage on schema public to anon, authenticated;
-grant select on profiles, companies, athletes, events, requests, sponsorships, news, partnerships, site_settings, crm, payments, uploads to anon, authenticated;
+grant select on profiles, companies, athletes, events, requests, sponsorships, news, partnerships, site_settings, crm, payments, uploads, athlete_posts, athlete_results, athlete_expenses, athlete_deposits, terms_acceptances to anon, authenticated;
 grant insert on profiles to authenticated;
 grant update (must_change_password) on profiles to authenticated;
 grant insert on athletes, events to anon, authenticated;
+grant update (name, sport, stats, monthly, category, location, ranking, image_url, visual_status, max_sponsors) on athletes to authenticated;
 grant insert on companies to authenticated;
 grant update (name, owner, interest, website, description, logo_url) on companies to authenticated;
 grant insert on crm to authenticated;
 grant insert, update on requests, sponsorships, payments to authenticated;
 grant update, delete on athletes, events, news, partnerships, uploads to authenticated;
+grant insert, update, delete on athlete_posts, athlete_results, athlete_expenses to authenticated;
+grant insert on athlete_deposits to authenticated;
+grant insert on terms_acceptances to authenticated;
