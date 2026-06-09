@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260608-mobile-access-header-v12";
+const roisBuild = "20260608-mobile-avatar-no-search-v13";
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
@@ -110,7 +110,7 @@ async function init() {
 }
 
 function applyBranding() {
-  document.querySelectorAll(".brand-logo, .side-logo").forEach(image => {
+  document.querySelectorAll(".brand-logo, .side-logo, .mobile-avatar img").forEach(image => {
     image.src = fixedLogoPath;
     image.hidden = false;
     image.closest(".brand, .sidebar")?.classList.remove("logo-fallback");
