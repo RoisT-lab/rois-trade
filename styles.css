@@ -1750,3 +1750,208 @@ input:focus, textarea:focus, select:focus {
     width: auto;
   }
 }
+
+@media (max-width: 900px) {
+  body[data-active-view="client"],
+  body[data-active-view="admin"] {
+    background:
+      linear-gradient(90deg, rgba(44, 52, 64, 0.022) 1px, transparent 1px) 0 0 / 88px 88px,
+      var(--bg);
+    color: var(--text);
+  }
+
+  .dashboard {
+    background:
+      linear-gradient(90deg, rgba(44, 52, 64, 0.022) 1px, transparent 1px) 0 0 / 88px 88px,
+      var(--bg);
+    color: var(--text);
+  }
+
+  .mobile-appbar {
+    margin-bottom: 34px;
+  }
+
+  .mobile-avatar,
+  .mobile-app-action {
+    border: 1px solid rgba(17, 17, 17, 0.08);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--text);
+    box-shadow: 0 14px 32px rgba(17, 17, 17, 0.08);
+    overflow: hidden;
+  }
+
+  .mobile-avatar {
+    padding: 0;
+  }
+
+  .mobile-avatar img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .mobile-search {
+    border: 1px solid rgba(17, 17, 17, 0.08);
+    background: rgba(255, 255, 255, 0.92);
+    color: rgba(17, 17, 17, 0.62);
+    box-shadow: 0 14px 32px rgba(17, 17, 17, 0.08);
+  }
+
+  .mobile-search::before {
+    border-color: rgba(17, 17, 17, 0.74);
+  }
+
+  .mobile-search::after {
+    background: rgba(17, 17, 17, 0.74);
+  }
+
+  .sidebar {
+    border-right: 1px solid var(--line);
+    background: rgba(249, 250, 251, 0.98);
+    box-shadow: 24px 0 60px rgba(17, 17, 17, 0.18);
+  }
+
+  .mobile-menu-close {
+    border-color: var(--line);
+    background: #fff;
+    color: var(--text);
+  }
+
+  .side-logo {
+    mix-blend-mode: multiply;
+    filter: saturate(.94);
+  }
+
+  .side-nav button {
+    color: var(--muted);
+  }
+
+  .side-nav button:hover,
+  .side-nav button.active {
+    background: #fff;
+    border-left-color: var(--accent);
+    color: var(--text);
+  }
+
+  .workspace-head h1 {
+    color: var(--text);
+  }
+
+  .workspace-head .eyebrow {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .workspace-head .btn,
+  .dashboard .btn {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--accent);
+  }
+
+  .dashboard .btn.primary,
+  .dashboard form .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .kpi strong {
+    background: #fff;
+    color: var(--text);
+    box-shadow: 0 14px 30px rgba(17, 17, 17, 0.08);
+  }
+
+  .kpi span {
+    color: var(--muted);
+  }
+
+  .panel,
+  .dashboard .published-card,
+  .dashboard .partner-card,
+  .dashboard .sponsor-tier,
+  .dashboard .athlete-card,
+  .dashboard .payment-card {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--text);
+    box-shadow: none;
+  }
+
+  .panel-head {
+    border-color: var(--line);
+  }
+
+  .panel-head h3,
+  .dashboard .published-content h3,
+  .dashboard .partner-content h3,
+  .dashboard .sponsor-tier h3,
+  .dashboard .athlete-info h3 {
+    color: var(--text);
+  }
+
+  .panel-head .eyebrow,
+  .dashboard .hint,
+  .dashboard .athlete-summary,
+  .dashboard .sponsor-tier p,
+  .dashboard .published-content p,
+  .dashboard .partner-content p {
+    color: var(--muted);
+  }
+
+  .dashboard input,
+  .dashboard select,
+  .dashboard textarea {
+    border-color: var(--line);
+    background: #fff;
+    color: var(--text);
+  }
+
+  .dashboard label {
+    color: var(--muted);
+  }
+
+  .dashboard .athlete-technical,
+  .dashboard .athlete-metrics,
+  .dashboard .athlete-technical div,
+  .dashboard .athlete-metrics div + div,
+  .dashboard .data-table th,
+  .dashboard .data-table td {
+    border-color: var(--line);
+  }
+
+  .dashboard .athlete-technical span,
+  .dashboard .athlete-metrics span {
+    color: var(--muted);
+  }
+
+  .dashboard .athlete-technical strong,
+  .dashboard .athlete-metrics strong,
+  .dashboard .data-table td {
+    color: var(--text);
+  }
+
+  .dashboard .badge,
+  .dashboard .pill {
+    border-color: var(--line);
+    background: #f8fafb;
+    color: var(--accent);
+  }
+
+  .empty {
+    border-color: var(--line);
+    background: #fff;
+    color: var(--muted);
+  }
+}
+
+@media (max-width: 560px) {
+  .mobile-avatar img {
+    width: 46px;
+    height: 46px;
+  }
+}
