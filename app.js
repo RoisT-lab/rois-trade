@@ -1,5 +1,5 @@
-﻿const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260609-unicode-safe-v18";
+const config = window.ROIS_CONFIG || {};
+const roisBuild = "20260609-athlete-simple-profile-v20";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
@@ -114,6 +114,10 @@ function currentAthlete() {
 async function init() {
   state.session = normalizeSession(state.session);
   state.data = await api.loadAll();
+  if (state.session && sessionIsBlocked()) {
+    state.session = null;
+    clearSession();
+  }
   const recoverySession = await recoverySessionFromUrl();
   if (recoverySession) {
     state.pendingSession = recoverySession;
@@ -134,6 +138,15 @@ async function init() {
     return;
   }
   if (state.session) showView(dashboardViewForRole(state.session.role));
+}
+
+function sessionIsBlocked() {
+  const email = String(state.session?.email || "").toLowerCase();
+  const profile = state.data?.profiles?.find(item => String(item.email || "").toLowerCase() === email || item.id === state.session?.id);
+  const company = state.data?.companies?.find(item => String(item.contact || "").toLowerCase() === email);
+  const athlete = state.data?.athletes?.find(item => String(item.email || "").toLowerCase() === email);
+  if (!profile && (company || athlete)) return true;
+  return [profile, company, athlete].some(item => ["blocked", "deleted", "rejected"].includes(item?.status));
 }
 
 function applyBranding() {
@@ -351,14 +364,23 @@ function supabaseApi() {
         headers: headers(),
         body: JSON.stringify({ email, password })
       });
+      const companies = await request(`/rest/v1/companies?select=*&contact=eq.${encodeURIComponent(email)}&limit=1`, {
+        headers: headers(auth.access_token)
+      });
+      const athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(email)}&limit=1`, {
+        headers: headers(auth.access_token)
+      });
       const profiles = await request(`/rest/v1/profiles?select=*&id=eq.${auth.user.id}&limit=1`, {
         headers: headers(auth.access_token)
       });
+      if (!profiles.length && (companies.length || athletes.length)) {
+        throw new Error("Esta cuenta fue dada de baja o requiere reactivaci\u00f3n por ROIS.");
+      }
       const profile = profiles[0] || (auth.user.user_metadata?.role === "athlete" ? await this.ensureAthleteAccount(auth) : await this.ensureClientAccount(auth));
+      if (["blocked", "deleted", "rejected"].includes(profile.status)) throw new Error("Esta cuenta fue dada de baja por ROIS.");
       if (profile.status !== "approved") throw new Error("Este usuario a\u00fan no est\u00e1 aprobado.");
-      const companies = await request(`/rest/v1/companies?select=id&contact=eq.${encodeURIComponent(email)}&limit=1`, {
-        headers: headers(auth.access_token)
-      });
+      if (companies.some(company => ["blocked", "deleted", "rejected"].includes(company.status))) throw new Error("Esta empresa fue dada de baja por ROIS.");
+      if (athletes.some(athlete => ["blocked", "deleted", "rejected"].includes(athlete.status))) throw new Error("Esta cuenta deportiva fue dada de baja por ROIS.");
       const role = profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(email, profile.role);
       return { id: profile.id, email, role, name: profile.name, token: auth.access_token, mustChangePassword: !!profile.must_change_password };
     },
@@ -1219,7 +1241,6 @@ function renderAccountSettings(panelId) {
 function renderAthlete() {
   renderAthleteHeader();
   renderAthleteKpis();
-  renderAthleteRequirements();
   renderAthleteNotifications();
   renderAthleteProfile();
   renderAthleteSponsorships();
@@ -1232,7 +1253,7 @@ function renderAthlete() {
 
 function renderAthleteHeader() {
   const athlete = currentAthlete();
-  document.getElementById("athleteAccountEyebrow").textContent = athleteOnboardingComplete(athlete) ? "Expediente completo" : "Expediente en preparacion";
+  document.getElementById("athleteAccountEyebrow").textContent = "Cuenta deportiva";
   document.getElementById("athleteAccountName").textContent = athlete?.name || state.session?.name || "Deportista ROIS";
   const logo = document.getElementById("athleteProfileLogo");
   if (logo) logo.src = athlete?.image_url || "./assets/rois-isotipo-cropped.png";
@@ -1283,20 +1304,11 @@ function athleteRequirementStatus(athlete) {
 }
 
 function athleteOnboardingComplete(athlete = currentAthlete()) {
-  return athleteRequirementStatus(athlete).ready;
+  return true;
 }
 
 function athleteGate(panelId, title, subtitle) {
-  panel(panelId, title, subtitle, `
-    <div class="panel-body">
-      <div class="requirement-gate">
-        <p class="eyebrow">Expediente pendiente</p>
-        <h3>Completa tus requisitos antes de operar dentro de ROIS.</h3>
-        <p>Tu cuenta ya existe, pero el acceso a solicitudes, publicaciones y comprobantes se habilita cuando tu expediente deportivo y contractual queda completo.</p>
-        ${button("Completar requisitos", () => showDashboardPanel("athlete-requirements"))}
-      </div>
-    </div>
-  `);
+  showDashboardPanel("athlete-profile");
 }
 
 function athleteTermsBlock(athlete) {
@@ -1317,58 +1329,7 @@ function athleteTermsBlock(athlete) {
 }
 
 function renderAthleteRequirements() {
-  const athlete = currentAthlete();
-  if (!athlete) {
-    panel("athlete-requirements", "Requisitos", "Expediente deportivo", `<div class="empty">No encontramos una ficha deportiva vinculada a tu correo. Contacta a ROIS para asociarla.</div>`);
-    return;
-  }
-  const status = athleteRequirementStatus(athlete);
-  panel("athlete-requirements", "Requisitos", "Expediente antes de avanzar", `
-    <div class="panel-body">
-      <div class="onboarding-hero">
-        <div>
-          <p class="eyebrow">Alta deportiva ROIS</p>
-          <h3>${status.ready ? "Expediente completo" : "Completa tu expediente para activar operaciones"}</h3>
-          <p>${status.ready ? "Tu perfil esta listo para revision, publicacion y solicitudes de patrocinio." : "Primero crea tu cuenta. Despues completa estos requisitos para que ROIS pueda presentar tu perfil de forma institucional ante empresas."}</p>
-        </div>
-        <strong>${status.completed}/${status.total}</strong>
-      </div>
-      <div class="requirements-grid">
-        ${status.items.map(item => `
-          <div class="requirement-item ${item.done ? "done" : ""}">
-            <span>${item.done ? "Listo" : "Pendiente"}</span>
-            <strong>${item.label}</strong>
-          </div>
-        `).join("")}
-      </div>
-      <div class="optional-strip">
-        ${status.optional.map(item => `<span class="${item.done ? "done" : ""}">${item.done ? "Cargado" : "Opcional"} - ${item.label}</span>`).join("")}
-      </div>
-      <form id="athleteRequirementsForm" class="form-grid">
-        <label>Nombre deportivo<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
-        <label>Disciplina<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="Golf, tenis, automovilismo..."></label>
-        <label>Categoria o nivel<input name="category" required value="${escapeAttr(athlete.category || "")}" placeholder="Profesional, semillero, alto rendimiento"></label>
-        <label>Ciudad / base<input name="location" required value="${escapeAttr(athlete.location || "")}" placeholder="Ciudad, club o academia"></label>
-        <label>Ranking o marca<input name="ranking" required value="${escapeAttr(athlete.ranking || "")}" placeholder="Ranking nacional, handicap, marca principal"></label>
-        <label>Ticket mensual<input name="monthly" type="number" min="1000" required value="${Number(athlete.monthly || 5000)}"></label>
-        <label>Maximo de patrocinadores<input name="max_sponsors" type="number" min="1" required value="${Number(athlete.max_sponsors || 3)}"></label>
-        <label>Monto anual ROIS<input name="annual" type="number" min="1000" required value="${Number(athlete.annual || 1000)}"></label>
-        <label style="grid-column:1/-1">Ficha tecnica<textarea name="stats" required placeholder="Resultados, calendario, metricas, logros, objetivo deportivo y narrativa para patrocinadores.">${escapeHtml(athlete.stats || "")}</textarea></label>
-        <label style="grid-column:1/-1">Foto de perfil profesional<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <label style="grid-column:1/-1">Logos de sponsors actuales opcional<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
-        <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por linea, en el mismo orden de los logos."></textarea></label>
-        <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" value="${escapeAttr(athlete.video_url || "")}" placeholder="YouTube, Vimeo, Drive o reel publicado"></label>
-        <label style="grid-column:1/-1">Propuesta comercial PDF opcional<input name="proposal_pdf" type="file" accept="application/pdf"></label>
-        ${athleteTermsBlock(athlete)}
-        <div class="form-actions-row">
-          <button class="btn primary full" type="submit">Guardar expediente</button>
-          <button class="btn full" type="button" data-stripe-key="athleteAnnualProfile">Pagar perfil anual</button>
-        </div>
-      </form>
-    </div>
-  `);
-  document.getElementById("athleteRequirementsForm").addEventListener("submit", submitAthleteRequirements);
-  document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS"));
+  renderAthleteProfile();
 }
 
 function renderAthleteNotifications() {
@@ -1393,35 +1354,62 @@ function renderAthleteProfile() {
     panel("athlete-profile", "Mi perfil", "Ficha deportiva", `<div class="empty">No encontramos una ficha deportiva vinculada a tu correo. Contacta a ROIS para asociarla.</div>`);
     return;
   }
-  panel("athlete-profile", "Mi perfil", "Ficha p\u00fablica y propuesta para empresas", `
+  const logos = athleteSponsorLogos(athlete);
+  panel("athlete-profile", "Mi perfil", "Perfil profesional de patrocinio", `
     <div class="panel-body">
+      <div class="onboarding-hero">
+        <div>
+          <p class="eyebrow">Perfil deportivo ROIS</p>
+          <h3>Construye tu perfil como una cuenta profesional.</h3>
+          <p>Completa tu informacion, sube tu plan de trabajo y mant\u00e9n tus resultados al dia. ROIS revisa visuales y admin asigna tu link mensual de patrocinio cuando tu perfil este listo.</p>
+        </div>
+        <strong>${athlete.sponsor_payment_url ? "Link" : "ROIS"}</strong>
+      </div>
       <form id="athleteProfileForm" class="form-grid">
         <div class="company-logo-preview">
           <img src="${athlete.image_url || "./assets/rois-isotipo-cropped.png"}" alt="${escapeAttr(athlete.name)}">
           <span>${athlete.status === "approved" ? "Perfil aprobado" : "Pendiente de revisi\u00f3n"}</span>
         </div>
         <label>Nombre<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
-        <label>Deporte<input name="sport" required value="${escapeAttr(athlete.sport || "")}"></label>
+        <label>Deporte<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="Disciplina"></label>
         <label>Categor\u00eda<input name="category" value="${escapeAttr(athlete.category || "")}"></label>
         <label>Ciudad / base<input name="location" value="${escapeAttr(athlete.location || "")}"></label>
         <label>Ranking o marca<input name="ranking" value="${escapeAttr(athlete.ranking || "")}"></label>
-        <label>Ticket mensual<input name="monthly" type="number" min="0" value="${Number(athlete.monthly || 5000)}"></label>
+        <label>Ticket mensual objetivo<input name="monthly" type="number" min="0" value="${Number(athlete.monthly || 5000)}"></label>
         <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="${Number(athlete.max_sponsors || 3)}"></label>
         <label>Foto de perfil<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <label style="grid-column:1/-1">Ficha t\u00e9cnica<textarea name="stats">${escapeHtml(athlete.stats || "")}</textarea></label>
+        <label style="grid-column:1/-1">Resumen deportivo<textarea name="stats" required placeholder="Resultados, calendario, metricas, logros, objetivos y narrativa para patrocinadores.">${escapeHtml(athlete.stats || "")}</textarea></label>
+        <label style="grid-column:1/-1">Plan de trabajo PDF<input name="proposal_pdf" type="file" accept="application/pdf"></label>
+        <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" value="${escapeAttr(athlete.video_url || "")}" placeholder="YouTube, Vimeo, Drive o reel publicado"></label>
+        <label style="grid-column:1/-1">Logos de sponsors actuales opcional<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
+        <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por linea, en el mismo orden de los logos."></textarea></label>
+        <div class="profile-status-grid" style="grid-column:1/-1">
+          <div>
+            <span>Plan de trabajo</span>
+            <strong>${athlete.proposal_url ? "Cargado" : "Pendiente"}</strong>
+            ${athleteProposalLink(athlete)}
+          </div>
+          <div>
+            <span>Link mensual admin</span>
+            <strong>${athlete.sponsor_payment_url ? "Asignado" : "Pendiente por ROIS"}</strong>
+          </div>
+          <div>
+            <span>Pago anual</span>
+            <strong>$1,000 MXN</strong>
+            <button class="btn" type="button" data-stripe-key="athleteAnnualProfile">Pagar anualidad</button>
+          </div>
+        </div>
+        ${logos.length ? `<div class="athlete-sponsor-brands" style="grid-column:1/-1"><span>Sponsors actuales</span><div>${logos.map(logo => `<img src="${logo.image}" alt="${logo.name || "Sponsor"}">`).join("")}</div></div>` : ""}
         <button class="btn primary" type="submit">Guardar perfil</button>
       </form>
     </div>
   `);
   document.getElementById("athleteProfileForm").addEventListener("submit", submitAthleteProfile);
+  document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS"));
 }
 
 function renderAthleteSponsorships() {
   const athlete = currentAthlete();
-  if (!athleteOnboardingComplete(athlete)) {
-    athleteGate("athlete-sponsorships", "Patrocinios", "Solicitudes y condiciones propuestas por empresas");
-    return;
-  }
   const email = state.session?.email || "";
   const name = athlete?.name || state.session?.name || "";
   const rows = state.data.sponsorships.filter(item => item.athlete === name || item.athlete_email === email).map(item => [
@@ -1434,10 +1422,6 @@ function renderAthleteSponsorships() {
 }
 
 function renderAthleteResults() {
-  if (!athleteOnboardingComplete()) {
-    athleteGate("athlete-results", "Resultados mensuales", "Evidencia deportiva para reportar a patrocinadores");
-    return;
-  }
   const email = state.session?.email || "";
   const rows = state.data.athlete_results.filter(item => item.athlete_email === email).map(item => [
     item.month,
@@ -1461,10 +1445,6 @@ function renderAthleteResults() {
 }
 
 function renderAthleteReels() {
-  if (!athleteOnboardingComplete()) {
-    athleteGate("athlete-reels", "Entrenamientos / Reels", "Contenido que puede mostrarse en el feed de empresas");
-    return;
-  }
   const email = state.session?.email || "";
   const rows = state.data.athlete_posts.filter(item => item.athlete_email === email).map(item => [
     item.title,
@@ -1488,10 +1468,6 @@ function renderAthleteReels() {
 }
 
 function renderAthleteExpenses() {
-  if (!athleteOnboardingComplete()) {
-    athleteGate("athlete-expenses", "Tickets y facturas", "Consumos realizados con tarjeta y facturados a la empresa patrocinadora");
-    return;
-  }
   const email = state.session?.email || "";
   const rows = state.data.athlete_expenses.filter(item => item.athlete_email === email).map(item => [
     item.date || "Sin fecha",
@@ -1520,10 +1496,6 @@ function renderAthleteExpenses() {
 }
 
 function renderAthleteDeposits() {
-  if (!athleteOnboardingComplete()) {
-    athleteGate("athlete-deposits", "Depositos", "Comprobantes cargados por administracion ROIS");
-    return;
-  }
   const email = state.session?.email || "";
   const rows = state.data.athlete_deposits.filter(item => item.athlete_email === email).map(item => [
     item.month || "Periodo",
@@ -1602,7 +1574,7 @@ function renderAdminAthletes() {
       <p class="hint">Las im\u00e1genes nuevas quedan en revisi\u00f3n visual. No aparecen p\u00fablicamente hasta aprobarse.</p>
     </div>
     ${table(["Visual", "Nombre", "Deporte", "Ticket", "Cupo", "Propuesta", "Pago", "Visual", "Acciones"], state.data.athletes.map(athlete => [
-      visualThumb(athlete), athlete.name, athlete.sport, `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorLogos(athlete).length}/${athlete.max_sponsors || 3}`, athlete.proposal_url ? badge("PDF") : badge("pendiente"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), badge(athlete.visual_status || "sin visual"), moderationActions("athletes", athlete)
+      visualThumb(athlete), athlete.name, athlete.sport, `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorLogos(athlete).length}/${athlete.max_sponsors || 3}`, athlete.proposal_url ? badge("plan") : badge("pendiente"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), badge(athlete.visual_status || "sin visual"), moderationActions("athletes", athlete)
     ]))}
   `);
   document.getElementById("adminAthleteForm").addEventListener("submit", submitAdminAthlete);
@@ -1855,7 +1827,7 @@ function userActions(user, tableName) {
   if (tableName === "profiles" && user.id === state.session?.id) {
     actions.push(`<span class="hint inline">Sesi\u00f3n activa</span>`);
   } else {
-    actions.push(button("Eliminar", () => confirmDeleteUser(user, tableName)));
+    actions.push(button("Dar de baja", () => confirmDeleteUser(user, tableName)));
   }
   return actionGroup(actions);
 }
@@ -1920,6 +1892,8 @@ async function submitAthleteProfile(event) {
   const athlete = currentAthlete();
   if (!athlete) return;
   const imageFile = form.image.files[0];
+  const proposalFile = form.proposal_pdf.files[0];
+  const sponsorLogos = await sponsorLogoPayload(form.sponsor_logo_files.files, form.sponsor_logo_names.value);
   const patch = {
     name: form.name.value.trim(),
     sport: form.sport.value.trim(),
@@ -1928,16 +1902,22 @@ async function submitAthleteProfile(event) {
     ranking: form.ranking.value.trim(),
     monthly: Number(form.monthly.value || 5000),
     max_sponsors: Number(form.max_sponsors.value || 3),
-    stats: form.stats.value.trim()
+    stats: form.stats.value.trim(),
+    video_url: form.video_url.value.trim()
   };
   if (imageFile) {
     patch.image_url = await fileToDataUrl(imageFile);
     patch.visual_status = "pending_review";
   }
+  if (proposalFile) {
+    patch.proposal_url = await fileToDataUrl(proposalFile);
+    patch.proposal_name = proposalFile.name;
+  }
+  if (sponsorLogos) patch.sponsor_logos = sponsorLogos;
   await api.update("athletes", athlete.id, patch);
   state.session = { ...state.session, name: patch.name };
   saveSession(state.session);
-  notify("Perfil deportivo", "Perfil actualizado", imageFile ? "La nueva foto queda pendiente de revisi\u00f3n visual ROIS." : "Tu ficha deportiva fue actualizada.");
+  notify("Perfil deportivo", "Perfil actualizado", imageFile ? "La nueva foto queda pendiente de revisi\u00f3n visual ROIS." : "Tu perfil deportivo fue actualizado.");
   renderAthlete();
   renderPublic();
 }
@@ -2076,10 +2056,21 @@ async function approveUser(user, tableName) {
 }
 
 async function confirmDeleteUser(user, tableName) {
-  const confirmed = window.confirm(`\u00bfEliminar el usuario "${user.name}"? Esta acci\u00f3n no se puede deshacer en modo real.`);
+  const confirmed = window.confirm(`\u00bfDar de baja el usuario "${user.name}"? La cuenta ya no podr\u00e1 ingresar a ROIS.`);
   if (!confirmed) return;
-  await api.remove(tableName, user.id);
-  notify("Usuarios", "Usuario eliminado", "El usuario fue eliminado del panel administrativo.");
+  const email = String(user.email || user.contact || "").toLowerCase();
+  if (tableName === "profiles") {
+    await api.update("profiles", user.id, { status: "blocked" });
+    const company = state.data.companies.find(item => String(item.contact || "").toLowerCase() === email);
+    if (company) await api.update("companies", company.id, { status: "blocked" });
+    const athlete = state.data.athletes.find(item => String(item.email || "").toLowerCase() === email);
+    if (athlete) await api.update("athletes", athlete.id, { status: "blocked" });
+  } else {
+    await api.update("companies", user.id, { status: "blocked" });
+    const profile = state.data.profiles.find(item => String(item.email || "").toLowerCase() === email);
+    if (profile) await api.update("profiles", profile.id, { status: "blocked" });
+  }
+  notify("Usuarios", "Cuenta dada de baja", "El usuario qued\u00f3 bloqueado y ya no podr\u00e1 iniciar sesi\u00f3n.");
   renderAdmin();
 }
 
@@ -2573,8 +2564,8 @@ function athleteSponsorLogos(athlete) {
 
 function athleteProposalLink(athlete) {
   if (!athlete.proposal_url) return "";
-  const filename = athlete.proposal_name || `${athlete.name || "propuesta-deportista"}.pdf`;
-  return `<a class="btn" href="${athlete.proposal_url}" target="_blank" rel="noopener" download="${filename}">Ver propuesta</a>`;
+  const filename = athlete.proposal_name || `${athlete.name || "plan-de-trabajo"}.pdf`;
+  return `<a class="btn" href="${athlete.proposal_url}" target="_blank" rel="noopener" download="${filename}">Ver plan de trabajo</a>`;
 }
 
 function athleteCard(athlete, action) {
@@ -2746,10 +2737,11 @@ async function submitRegistration(event) {
         renderSession();
         renderAthlete();
         showView("athlete");
-        notify("Perfil deportivo", "Bienvenido a ROIS", "Completa tus requisitos dentro del panel para activar operaciones y revision de patrocinio.");
+        notify("Perfil deportivo", "Bienvenido a ROIS", "Tu cuenta ya esta creada. Paga tu fee anual y configura tu perfil profesional desde el dashboard.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }
+      openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS");
       renderAdmin();
       renderPublic();
       return;

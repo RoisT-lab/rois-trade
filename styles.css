@@ -876,6 +876,36 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   background: #fff;
 }
 
+.profile-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profile-status-grid > div {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 132px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: #fff;
+}
+
+.profile-status-grid span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.profile-status-grid strong {
+  font-size: 18px;
+  line-height: 1.25;
+}
+
 .terms-box {
   grid-column: 1 / -1;
   max-height: 260px;
@@ -3035,6 +3065,10 @@ body.rois-brand-ready .mobile-avatar img {
   }
 
   .form-actions-row {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-status-grid {
     grid-template-columns: 1fr;
   }
 
