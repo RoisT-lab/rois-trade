@@ -1,5 +1,5 @@
 ﻿const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260608-athlete-onboarding-v16";
+const roisBuild = "20260608-text-encoding-v17";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
@@ -76,7 +76,7 @@ async function recoverySessionFromUrl() {
   try {
     return await api.recoverySession(token);
   } catch (error) {
-    notify("RecuperaciÃ³n", "Enlace no vÃ¡lido", "Solicita un nuevo enlace para cambiar tu contraseÃ±a.");
+    notify("Recuperación", "Enlace no válido", "Solicita un nuevo enlace para cambiar tu contraseña.");
     return null;
   }
 }
@@ -215,8 +215,8 @@ function demoApi() {
     async login(email, password) {
       const data = read();
       const user = data.profiles.find(item => item.email.toLowerCase() === email.toLowerCase() && item.password === password);
-      if (!user) throw new Error("Credenciales invÃ¡lidas.");
-      if (user.status !== "approved") throw new Error("Este usuario aÃºn no estÃ¡ aprobado.");
+      if (!user) throw new Error("Credenciales inválidas.");
+      if (user.status !== "approved") throw new Error("Este usuario aún no está aprobado.");
       return { id: user.id, email: user.email, role: normalizedRole(user.email, user.role), name: user.name, token: "demo", mustChangePassword: !!user.mustChangePassword };
     },
     async signupCompany({ company, email, contact, interest, password }) {
@@ -355,7 +355,7 @@ function supabaseApi() {
         headers: headers(auth.access_token)
       });
       const profile = profiles[0] || (auth.user.user_metadata?.role === "athlete" ? await this.ensureAthleteAccount(auth) : await this.ensureClientAccount(auth));
-      if (profile.status !== "approved") throw new Error("Este usuario aÃºn no estÃ¡ aprobado.");
+      if (profile.status !== "approved") throw new Error("Este usuario aún no está aprobado.");
       const companies = await request(`/rest/v1/companies?select=id&contact=eq.${encodeURIComponent(email)}&limit=1`, {
         headers: headers(auth.access_token)
       });
@@ -512,7 +512,7 @@ function supabaseApi() {
       const meta = auth.user.user_metadata || {};
       const company = fallback.company || meta.company_name || meta.name || email.split("@")[0];
       const contact = fallback.contact || meta.contact_name || company;
-      const interest = fallback.interest || meta.interest || "Relaciones estratÃ©gicas";
+      const interest = fallback.interest || meta.interest || "Relaciones estratégicas";
       const profileRecord = {
         id: auth.user.id,
         email,
@@ -706,7 +706,7 @@ async function submitLogin(event) {
       showVerificationNotice(form.email.value);
       return;
     }
-    notify("Acceso", "No fue posible iniciar sesiÃ³n", error.message);
+    notify("Acceso", "No fue posible iniciar sesión", error.message);
   }
 }
 
@@ -721,12 +721,12 @@ async function submitPasswordRecovery(event) {
   const form = event.currentTarget;
   try {
     await api.recoverPassword(form.email.value);
-    notify("RecuperaciÃ³n", "Correo enviado", "Si el correo existe en ROIS, recibirÃ¡ un enlace para restablecer la contraseÃ±a.");
+    notify("Recuperación", "Correo enviado", "Si el correo existe en ROIS, recibirá un enlace para restablecer la contraseña.");
     form.reset();
     form.hidden = true;
     closeModals();
   } catch (error) {
-    notify("RecuperaciÃ³n", "No fue posible enviar el enlace", humanError(error));
+    notify("Recuperación", "No fue posible enviar el enlace", humanError(error));
   }
 }
 
@@ -734,11 +734,11 @@ async function submitPasswordChange(event) {
   event.preventDefault();
   const form = event.currentTarget;
   if (form.password.value !== form.confirm.value) {
-    notify("ContraseÃ±a", "Las contraseÃ±as no coinciden", "Confirma la nueva contraseÃ±a para continuar.");
+    notify("Contraseña", "Las contraseñas no coinciden", "Confirma la nueva contraseña para continuar.");
     return;
   }
   if (!state.pendingSession) {
-    notify("ContraseÃ±a", "SesiÃ³n no encontrada", "Inicia sesiÃ³n nuevamente para cambiar la contraseÃ±a.");
+    notify("Contraseña", "Sesión no encontrada", "Inicia sesión nuevamente para cambiar la contraseña.");
     return;
   }
   try {
@@ -750,7 +750,7 @@ async function submitPasswordChange(event) {
     renderSession();
     showView(dashboardViewForRole(state.session.role));
   } catch (error) {
-    notify("ContraseÃ±a", "No fue posible cambiarla", error.message);
+    notify("Contraseña", "No fue posible cambiarla", error.message);
   }
 }
 
@@ -758,16 +758,16 @@ async function submitSettingsPassword(event) {
   event.preventDefault();
   const form = event.currentTarget;
   if (form.password.value !== form.confirm.value) {
-    notify("ConfiguraciÃ³n", "Las contraseÃ±as no coinciden", "Confirma la nueva contraseÃ±a para actualizarla.");
+    notify("Configuración", "Las contraseñas no coinciden", "Confirma la nueva contraseña para actualizarla.");
     return;
   }
   try {
     state.session = await api.changePassword(state.session, form.password.value);
     saveSession(state.session);
     form.reset();
-    notify("ConfiguraciÃ³n", "ContraseÃ±a actualizada", "El cambio quedÃ³ aplicado correctamente.");
+    notify("Configuración", "Contraseña actualizada", "El cambio quedó aplicado correctamente.");
   } catch (error) {
-    notify("ConfiguraciÃ³n", "No fue posible cambiarla", humanError(error));
+    notify("Configuración", "No fue posible cambiarla", humanError(error));
   }
 }
 
@@ -776,7 +776,7 @@ async function submitCompanyProfile(event) {
   const form = event.currentTarget;
   const company = currentCompany();
   if (!company) {
-    notify("Empresa", "No encontramos tu cuenta", "Vuelve a iniciar sesiÃ³n para actualizar tu perfil.");
+    notify("Empresa", "No encontramos tu cuenta", "Vuelve a iniciar sesión para actualizar tu perfil.");
     return;
   }
   try {
@@ -794,7 +794,7 @@ async function submitCompanyProfile(event) {
     saveSession(state.session);
     renderSession();
     renderClient();
-    notify("Empresa", "Perfil actualizado", logoFile ? "El logotipo y la informaciÃ³n de tu empresa quedaron guardados." : "La informaciÃ³n de tu empresa quedÃ³ guardada.");
+    notify("Empresa", "Perfil actualizado", logoFile ? "El logotipo y la información de tu empresa quedaron guardados." : "La información de tu empresa quedó guardada.");
   } catch (error) {
     notify("Empresa", "No fue posible guardar", humanError(error));
   }
@@ -825,10 +825,10 @@ function notify(kicker, title, text, actions = "") {
 
 function showVerificationNotice(email) {
   notify(
-    "VerificaciÃ³n",
+    "Verificación",
     "Confirma tu correo",
-    `Enviamos un enlace de verificaciÃ³n a ${email}. Si no lo recibiste, revisa spam o solicita un nuevo envÃ­o.`,
-    `<button class="btn primary full" type="button" id="resendVerificationButton">Reenviar correo de verificaciÃ³n</button>`
+    `Enviamos un enlace de verificación a ${email}. Si no lo recibiste, revisa spam o solicita un nuevo envío.`,
+    `<button class="btn primary full" type="button" id="resendVerificationButton">Reenviar correo de verificación</button>`
   );
   document.getElementById("resendVerificationButton").addEventListener("click", () => resendVerificationEmail(email));
 }
@@ -836,9 +836,9 @@ function showVerificationNotice(email) {
 async function resendVerificationEmail(email) {
   try {
     await api.resendSignup(email);
-    notify("VerificaciÃ³n", "Correo reenviado", `Enviamos nuevamente el enlace de verificaciÃ³n a ${email}.`);
+    notify("Verificación", "Correo reenviado", `Enviamos nuevamente el enlace de verificación a ${email}.`);
   } catch (error) {
-    notify("VerificaciÃ³n", "No se pudo reenviar", humanError(error));
+    notify("Verificación", "No se pudo reenviar", humanError(error));
   }
 }
 
@@ -879,9 +879,9 @@ function openExternalUrl(url, title) {
 function humanError(error) {
   const message = typeof error?.message === "string" ? error.message : JSON.stringify(error);
   if (message.includes("row-level security") || message.includes("42501")) {
-    return "La base de datos todavÃ­a estÃ¡ bloqueando este registro. Actualiza las polÃ­ticas de Supabase y vuelve a intentarlo.";
+    return "La base de datos todavía está bloqueando este registro. Actualiza las políticas de Supabase y vuelve a intentarlo.";
   }
-  return message || "OcurriÃ³ un error inesperado.";
+  return message || "Ocurrió un error inesperado.";
 }
 
 function escapeHtml(value = "") {
@@ -917,7 +917,7 @@ function renderPublic() {
     <div class="partner-grid">
       ${publicPartners.map(partner => partnerCard(partner)).join("")}
     </div>
-  ` : `<div class="empty">Las alianzas y sponsors aprobados aparecerÃ¡n aquÃ­ cuando admin los publique.</div>`;
+  ` : `<div class="empty">Las alianzas y sponsors aprobados aparecerán aquí cuando admin los publique.</div>`;
 
   const publicEvents = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
   document.getElementById("publicEvents").innerHTML = publicEvents.length ? `
@@ -936,14 +936,14 @@ function renderPublic() {
         `
       })).join("")}
     </div>
-  ` : `<div class="empty">Los eventos aprobados aparecerÃ¡n aquÃ­ cuando el administrador los publique.</div>`;
+  ` : `<div class="empty">Los eventos aprobados aparecerán aquí cuando el administrador los publique.</div>`;
 
   const publicAthletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
   document.getElementById("publicAthletes").innerHTML = publicAthletes.length ? `
     <div class="athlete-showcase">
       ${publicAthletes.map(athlete => athleteCard(athlete, `<button class="btn primary" type="button" data-open-login>Patrocinar</button>`)).join("")}
     </div>
-  ` : `<div class="empty">Los deportistas aprobados aparecerÃ¡n aquÃ­ cuando el administrador los publique.</div>`;
+  ` : `<div class="empty">Los deportistas aprobados aparecerán aquí cuando el administrador los publique.</div>`;
 
   const publicNews = state.data.news.filter(item => item.status === "published" && visualIsPublic(item));
   document.getElementById("publicNews").innerHTML = publicNews.length ? `
@@ -956,7 +956,7 @@ function renderPublic() {
         action: `<div class="social-actions public-social"><button class="btn" type="button" data-open-login>Me gusta</button><button class="btn" type="button" data-open-login>Comentar</button><button class="btn" type="button" data-open-login>Compartir</button></div>`
       })).join("")}
     </div>
-  ` : `<div class="empty">Las noticias publicadas aparecerÃ¡n aquÃ­.</div>`;
+  ` : `<div class="empty">Las noticias publicadas aparecerán aquí.</div>`;
 
   document.querySelectorAll("[data-open-login]").forEach(button => button.addEventListener("click", openLogin));
 }
@@ -985,7 +985,7 @@ function renderClientFeed() {
         ${posts.map(post => athleteFeedCard(post)).join("")}
       </div>
     </div>
-  ` : `<div class="empty">Los reels y entrenamientos aprobados por ROIS aparecerÃ¡n aquÃ­.</div>`);
+  ` : `<div class="empty">Los reels y entrenamientos aprobados por ROIS aparecerán aquí.</div>`);
 }
 
 function renderClientHeader() {
@@ -1020,7 +1020,7 @@ function renderClientEvents() {
         ${events.map(event => eventClientCard(event)).join("")}
       </div>
     </div>
-  ` : `<div class="empty">Los eventos aprobados por admin aparecerÃ¡n aquÃ­.</div>`);
+  ` : `<div class="empty">Los eventos aprobados por admin aparecerán aquí.</div>`);
 }
 
 function renderClientNews() {
@@ -1030,14 +1030,14 @@ function renderClientNews() {
       <div class="opportunity-grid">
         ${news.map(item => publishedCard({
           item,
-          kicker: "PublicaciÃ³n ROIS",
+          kicker: "Publicación ROIS",
           title: item.title,
           text: item.summary,
           action: newsInteractionBar(item)
         })).join("")}
       </div>
     </div>
-  ` : `<div class="empty">Las noticias publicadas por admin aparecerÃ¡n aquÃ­.</div>`);
+  ` : `<div class="empty">Las noticias publicadas por admin aparecerán aquí.</div>`);
 }
 
 function renderClientSponsors() {
@@ -1053,7 +1053,7 @@ function renderClientSponsors() {
         "Logotipo visible en el dashboard y home como patrocinador ROIS",
         "Acceso prioritario a oportunidades de eventos y deportistas publicados",
         "1 brief mensual de oportunidades de patrocinio curadas",
-        "MenciÃ³n institucional en comunicaciÃ³n ROIS seleccionada",
+        "Mención institucional en comunicación ROIS seleccionada",
         "Reporte mensual de actividad y oportunidades"
       ]
     },
@@ -1067,8 +1067,8 @@ function renderClientSponsors() {
       benefits: [
         "Todo lo incluido en Partner ROIS",
         "Prioridad en eventos y activaciones de la red ROIS",
-        "Presencia de marca en academias o alianzas estratÃ©gicas disponibles",
-        "2 briefs mensuales de oportunidades con recomendaciÃ³n ROIS",
+        "Presencia de marca en academias o alianzas estratégicas disponibles",
+        "2 briefs mensuales de oportunidades con recomendación ROIS",
         "Acceso preferente a deportistas aprobados para patrocinio"
       ]
     },
@@ -1081,25 +1081,25 @@ function renderClientSponsors() {
       benefits: [
         "Todo lo incluido en Patrocinador Oficial",
         "Exclusividad de giro durante 12 meses con compromiso anual",
-        "AsignaciÃ³n de un deportista de alto rendimiento sujeto a disponibilidad",
+        "Asignación de un deportista de alto rendimiento sujeto a disponibilidad",
         "Presencia en redes sociales del deportista y ecosistema ROIS",
         "Branding en uniforme, equipo deportivo o materiales autorizados",
-        "Activaciones en academias y eventos estratÃ©gicos",
-        "Mesa trimestral de estrategia con direcciÃ³n ROIS"
+        "Activaciones en academias y eventos estratégicos",
+        "Mesa trimestral de estrategia con dirección ROIS"
       ]
     }
   ];
-  panel("client-sponsors", "Patrocinios ROIS", "Elige un nivel mensual de presencia, acceso y activaciÃ³n dentro del ecosistema ROIS", `
+  panel("client-sponsors", "Patrocinios ROIS", "Elige un nivel mensual de presencia, acceso y activación dentro del ecosistema ROIS", `
     <div class="panel-body">
       ${partners.length ? `
         <div class="section-minihead">
           <p class="eyebrow">Patrocinadores oficiales</p>
-          <h3>Red publicada por ROIS para conexiones estratÃ©gicas.</h3>
+          <h3>Red publicada por ROIS para conexiones estratégicas.</h3>
         </div>
         <div class="opportunity-grid">
           ${partners.map(partner => clientPartnerCard(partner)).join("")}
         </div>
-      ` : `<div class="empty slim">Los patrocinadores oficiales aprobados aparecerÃ¡n aquÃ­.</div>`}
+      ` : `<div class="empty slim">Los patrocinadores oficiales aprobados aparecerán aquí.</div>`}
       <div class="sponsor-tiers">
         ${tiers.map(tier => sponsorTierCard(tier)).join("")}
       </div>
@@ -1118,16 +1118,16 @@ function renderClientMarketplace() {
         ${athletes.map(athlete => athleteCard(athlete, button("Configurar patrocinio", () => openAthleteSponsorConfigurator(athlete)))).join("")}
       </div>
     </div>
-  ` : `<div class="empty">AÃºn no hay deportistas aprobados para patrocinio.</div>`);
+  ` : `<div class="empty">Aún no hay deportistas aprobados para patrocinio.</div>`);
 }
 
 function renderClientRegister() {
-  panel("client-register", "Registrar Evento", "EnvÃ­o a revisiÃ³n", `
+  panel("client-register", "Registrar Evento", "Envío a revisión", `
     <div class="panel-body">
       <form id="eventForm" class="form-grid">
-        <label>Nombre<input name="name" required placeholder="TÃ­tulo del evento"></label>
+        <label>Nombre<input name="name" required placeholder="Título del evento"></label>
         <label>Sede<input name="venue" required placeholder="Sede o ciudad"></label>
-        <label>CategorÃ­a<input name="category" required placeholder="Ejecutivo, patrocinio, membresÃ­a"></label>
+        <label>Categoría<input name="category" required placeholder="Ejecutivo, patrocinio, membresía"></label>
         <label>Fecha<input name="date" required placeholder="Por confirmar"></label>
         <button class="btn primary" type="submit">Registrar y pagar evento</button>
       </form>
@@ -1138,17 +1138,17 @@ function renderClientRegister() {
     const form = event.currentTarget;
     await api.insert("events", { name: form.name.value, venue: form.venue.value, category: form.category.value, date: form.date.value, status: "pending" });
     openStripeCheckout("eventRegistration", "Registro de Evento ROIS");
-    notify("Eventos", "Evento registrado", "El evento fue enviado a revisiÃ³n del administrador.");
+    notify("Eventos", "Evento registrado", "El evento fue enviado a revisión del administrador.");
     renderClient();
   });
 }
 
 function renderClientStatus() {
   const rows = [
-    ...state.data.requests.filter(item => item.type !== "InteracciÃ³n noticia").map(item => [item.title, item.type, item.priority || "Normal", badge(item.status)]),
-    ...state.data.sponsorships.map(item => [item.athlete, "Patrocinio", "RevisiÃ³n ROIS", badge(item.status)])
+    ...state.data.requests.filter(item => item.type !== "Interacción noticia").map(item => [item.title, item.type, item.priority || "Normal", badge(item.status)]),
+    ...state.data.sponsorships.map(item => [item.athlete, "Patrocinio", "Revisión ROIS", badge(item.status)])
   ];
-  panel("client-status", "Estado Solicitudes", "Seguimiento operativo", rows.length ? table(["Solicitud", "Ãrea", "Prioridad", "Estado"], rows) : `<div class="empty">No hay solicitudes todavÃ­a.</div>`);
+  panel("client-status", "Estado Solicitudes", "Seguimiento operativo", rows.length ? table(["Solicitud", "Área", "Prioridad", "Estado"], rows) : `<div class="empty">No hay solicitudes todavía.</div>`);
 }
 
 function renderClientPayments() {
@@ -1158,23 +1158,23 @@ function renderClientPayments() {
     badge(payment.status),
     payment.status === "paid" ? "Pagado" : button("Pagar con Stripe", () => payClientPayment(payment.id))
   ]);
-  panel("client-payments", "Pagos", "Stripe y compromisos activos", rows.length ? table(["Concepto", "Monto", "Estado", "AcciÃ³n"], rows) : `
+  panel("client-payments", "Pagos", "Stripe y compromisos activos", rows.length ? table(["Concepto", "Monto", "Estado", "Acción"], rows) : `
     <div class="panel-body">
-      <div class="empty">No hay pagos registrados todavÃ­a. Las solicitudes de patrocinio generarÃ¡n pagos pendientes para Stripe.</div>
+      <div class="empty">No hay pagos registrados todavía. Las solicitudes de patrocinio generarán pagos pendientes para Stripe.</div>
     </div>
   `);
 }
 
 function renderAccountSettings(panelId) {
   const company = panelId === "client-settings" ? currentCompany() : null;
-  panel(panelId, "ConfiguraciÃ³n", panelId === "client-settings" ? "Perfil de empresa y seguridad" : "Seguridad de acceso", `
+  panel(panelId, "Configuración", panelId === "client-settings" ? "Perfil de empresa y seguridad" : "Seguridad de acceso", `
     <div class="panel-body">
       <div class="settings-grid">
         ${company ? `
           <div class="settings-block">
             <p class="eyebrow">Empresa</p>
-            <h3>Identidad visible en tu sesiÃ³n</h3>
-            <p class="hint">Sube un logotipo institucional en PNG, JPG o WEBP. Se guardarÃ¡ en tu cuenta y serÃ¡ visible en tu dashboard al iniciar sesiÃ³n desde cualquier dispositivo.</p>
+            <h3>Identidad visible en tu sesión</h3>
+            <p class="hint">Sube un logotipo institucional en PNG, JPG o WEBP. Se guardará en tu cuenta y será visible en tu dashboard al iniciar sesión desde cualquier dispositivo.</p>
           </div>
           <form class="form-grid company-profile-form" data-company-profile>
             <div class="company-logo-preview">
@@ -1184,29 +1184,29 @@ function renderAccountSettings(panelId) {
             <label>Nombre de empresa<input name="name" required value="${escapeAttr(company.name || "")}" placeholder="Nombre legal o comercial"></label>
             <label>Contacto principal<input name="owner" value="${escapeAttr(company.owner || "")}" placeholder="Nombre del responsable"></label>
             <label>Correo de acceso<input name="contact" type="email" readonly value="${escapeAttr(company.contact || state.session?.email || "")}" placeholder="correo@empresa.com"></label>
-            <label>InterÃ©s principal<select name="interest">
-              ${["Patrocinios", "Eventos", "Deportistas", "Patrocinador oficial ROIS", "Relaciones estratÃ©gicas"].map(option => `<option value="${option}" ${company.interest === option ? "selected" : ""}>${option}</option>`).join("")}
+            <label>Interés principal<select name="interest">
+              ${["Patrocinios", "Eventos", "Deportistas", "Patrocinador oficial ROIS", "Relaciones estratégicas"].map(option => `<option value="${option}" ${company.interest === option ? "selected" : ""}>${option}</option>`).join("")}
             </select></label>
             <label>Sitio web<input name="website" type="url" value="${escapeAttr(company.website || "")}" placeholder="https://"></label>
             <label>Logotipo de empresa<input name="logo" type="file" accept="image/png,image/jpeg,image/webp"></label>
-            <label style="grid-column:1/-1">DescripciÃ³n breve<textarea name="description" placeholder="Describe a quÃ© se dedica la empresa y quÃ© tipo de oportunidades busca.">${escapeHtml(company.description || "")}</textarea></label>
+            <label style="grid-column:1/-1">Descripción breve<textarea name="description" placeholder="Describe a qué se dedica la empresa y qué tipo de oportunidades busca.">${escapeHtml(company.description || "")}</textarea></label>
             <button class="btn primary" type="submit">Guardar perfil de empresa</button>
           </form>
         ` : ""}
         <div class="settings-block">
-          <p class="eyebrow">SesiÃ³n</p>
-          <h3>Cierre automÃ¡tico</h3>
-          <p class="hint">La sesiÃ³n ROIS se mantiene solo mientras esta ventana del navegador permanezca abierta. Al cerrar la pestaÃ±a o el navegador, se solicitarÃ¡ iniciar sesiÃ³n nuevamente.</p>
+          <p class="eyebrow">Sesión</p>
+          <h3>Cierre automático</h3>
+          <p class="hint">La sesión ROIS se mantiene solo mientras esta ventana del navegador permanezca abierta. Al cerrar la pestaña o el navegador, se solicitará iniciar sesión nuevamente.</p>
         </div>
         <form class="form-grid settings-password-form" data-settings-password>
           <label>Nueva Contrasena<input name="password" type="password" minlength="8" autocomplete="new-password" required></label>
           <label>Confirmar contrasena<input name="confirm" type="password" minlength="8" autocomplete="new-password" required></label>
-          <button class="btn primary" type="submit">Actualizar contraseÃ±a</button>
+          <button class="btn primary" type="submit">Actualizar contraseña</button>
         </form>
         <div class="settings-block">
-          <p class="eyebrow">RecuperaciÃ³n</p>
+          <p class="eyebrow">Recuperación</p>
           <h3>Recuperar acceso</h3>
-          <p class="hint">Si pierdes acceso, usa â€œRecuperar contraseÃ±aâ€ en la pantalla de acceso. ROIS enviarÃ¡ un enlace al correo registrado.</p>
+          <p class="hint">Si pierdes acceso, usa "Recuperar contraseña" en la pantalla de acceso. ROIS enviará un enlace al correo registrado.</p>
         </div>
       </div>
     </div>
@@ -1251,7 +1251,7 @@ function renderAthleteKpis() {
     ["Solicitudes", sponsorships],
     ["Resultados", results],
     ["Reels", posts],
-    ["DepÃ³sitos", deposits]
+    ["Depósitos", deposits]
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
 
@@ -1342,7 +1342,7 @@ function renderAthleteRequirements() {
         `).join("")}
       </div>
       <div class="optional-strip">
-        ${status.optional.map(item => `<span class="${item.done ? "done" : ""}">${item.done ? "Cargado" : "Opcional"} · ${item.label}</span>`).join("")}
+        ${status.optional.map(item => `<span class="${item.done ? "done" : ""}">${item.done ? "Cargado" : "Opcional"} - ${item.label}</span>`).join("")}
       </div>
       <form id="athleteRequirementsForm" class="form-grid">
         <label>Nombre deportivo<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
@@ -1377,12 +1377,12 @@ function renderAthleteNotifications() {
   const name = athlete?.name || state.session?.name || "";
   const notices = [
     ...state.data.sponsorships.filter(item => item.athlete === name || item.athlete_email === email).map(item => [`Patrocinio`, item.company || "Empresa ROIS", `$${Number(item.amount || 0).toLocaleString("es-MX")} MXN`, badge(item.status)]),
-    ...state.data.athlete_deposits.filter(item => item.athlete_email === email).map(item => [`DepÃ³sito`, item.month || "Periodo", `$${Number(item.amount || 0).toLocaleString("es-MX")} MXN`, badge(item.status)]),
-    ...state.data.athlete_results.filter(item => item.athlete_email === email && item.status === "review").map(item => [`Resultado`, item.month, "En revisiÃ³n ROIS", badge(item.status)])
+    ...state.data.athlete_deposits.filter(item => item.athlete_email === email).map(item => [`Depósito`, item.month || "Periodo", `$${Number(item.amount || 0).toLocaleString("es-MX")} MXN`, badge(item.status)]),
+    ...state.data.athlete_results.filter(item => item.athlete_email === email && item.status === "review").map(item => [`Resultado`, item.month, "En revisión ROIS", badge(item.status)])
   ];
   panel("athlete-notifications", "Notificaciones", "Alertas operativas de patrocinio y seguimiento", notices.length ? table(["Tipo", "Origen", "Detalle", "Estado"], notices) : `
     <div class="panel-body">
-      <div class="empty">AÃºn no tienes notificaciones. Cuando una empresa solicite patrocinio o admin cargue depÃ³sitos, aparecerÃ¡n aquÃ­.</div>
+      <div class="empty">Aún no tienes notificaciones. Cuando una empresa solicite patrocinio o admin cargue depósitos, aparecerán aquí.</div>
     </div>
   `);
 }
@@ -1393,22 +1393,22 @@ function renderAthleteProfile() {
     panel("athlete-profile", "Mi perfil", "Ficha deportiva", `<div class="empty">No encontramos una ficha deportiva vinculada a tu correo. Contacta a ROIS para asociarla.</div>`);
     return;
   }
-  panel("athlete-profile", "Mi perfil", "Ficha pÃºblica y propuesta para empresas", `
+  panel("athlete-profile", "Mi perfil", "Ficha pública y propuesta para empresas", `
     <div class="panel-body">
       <form id="athleteProfileForm" class="form-grid">
         <div class="company-logo-preview">
           <img src="${athlete.image_url || "./assets/rois-isotipo-cropped.png"}" alt="${escapeAttr(athlete.name)}">
-          <span>${athlete.status === "approved" ? "Perfil aprobado" : "Pendiente de revisiÃ³n"}</span>
+          <span>${athlete.status === "approved" ? "Perfil aprobado" : "Pendiente de revisión"}</span>
         </div>
         <label>Nombre<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
         <label>Deporte<input name="sport" required value="${escapeAttr(athlete.sport || "")}"></label>
-        <label>CategorÃ­a<input name="category" value="${escapeAttr(athlete.category || "")}"></label>
+        <label>Categoría<input name="category" value="${escapeAttr(athlete.category || "")}"></label>
         <label>Ciudad / base<input name="location" value="${escapeAttr(athlete.location || "")}"></label>
         <label>Ranking o marca<input name="ranking" value="${escapeAttr(athlete.ranking || "")}"></label>
         <label>Ticket mensual<input name="monthly" type="number" min="0" value="${Number(athlete.monthly || 5000)}"></label>
-        <label>MÃ¡ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="${Number(athlete.max_sponsors || 3)}"></label>
+        <label>Máximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="${Number(athlete.max_sponsors || 3)}"></label>
         <label>Foto de perfil<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <label style="grid-column:1/-1">Ficha tÃ©cnica<textarea name="stats">${escapeHtml(athlete.stats || "")}</textarea></label>
+        <label style="grid-column:1/-1">Ficha técnica<textarea name="stats">${escapeHtml(athlete.stats || "")}</textarea></label>
         <button class="btn primary" type="submit">Guardar perfil</button>
       </form>
     </div>
@@ -1425,12 +1425,12 @@ function renderAthleteSponsorships() {
   const email = state.session?.email || "";
   const name = athlete?.name || state.session?.name || "";
   const rows = state.data.sponsorships.filter(item => item.athlete === name || item.athlete_email === email).map(item => [
-    item.company || "Empresa en revisiÃ³n",
+    item.company || "Empresa en revisión",
     `$${Number(item.amount || 0).toLocaleString("es-MX")} MXN`,
     item.details || "Condiciones por confirmar",
     badge(item.status)
   ]);
-  panel("athlete-sponsorships", "Patrocinios", "Solicitudes y condiciones propuestas por empresas", rows.length ? table(["Empresa", "Monto", "Condiciones", "Estado"], rows) : `<div class="empty">Cuando una empresa solicite patrocinarte, aparecerÃ¡ aquÃ­.</div>`);
+  panel("athlete-sponsorships", "Patrocinios", "Solicitudes y condiciones propuestas por empresas", rows.length ? table(["Empresa", "Monto", "Condiciones", "Estado"], rows) : `<div class="empty">Cuando una empresa solicite patrocinarte, aparecerá aquí.</div>`);
 }
 
 function renderAthleteResults() {
@@ -1455,7 +1455,7 @@ function renderAthleteResults() {
         <button class="btn primary" type="submit">Subir resultado</button>
       </form>
     </div>
-    ${rows.length ? table(["Mes", "Resumen", "Soporte", "Estado"], rows) : `<div class="empty">AÃºn no has subido resultados mensuales.</div>`}
+    ${rows.length ? table(["Mes", "Resumen", "Soporte", "Estado"], rows) : `<div class="empty">Aún no has subido resultados mensuales.</div>`}
   `);
   document.getElementById("athleteResultForm").addEventListener("submit", submitAthleteResult);
 }
@@ -1468,21 +1468,21 @@ function renderAthleteReels() {
   const email = state.session?.email || "";
   const rows = state.data.athlete_posts.filter(item => item.athlete_email === email).map(item => [
     item.title,
-    item.caption || "Sin descripciÃ³n",
+    item.caption || "Sin descripción",
     item.video_url ? `<a class="btn" href="${item.video_url}" target="_blank" rel="noopener">Ver reel</a>` : badge("pendiente"),
     badge(item.status)
   ]);
   panel("athlete-reels", "Entrenamientos / Reels", "Contenido que puede mostrarse en el feed de empresas", `
     <div class="panel-body">
       <form id="athletePostForm" class="form-grid">
-        <label>TÃ­tulo<input name="title" required placeholder="Entrenamiento de potencia"></label>
+        <label>Título<input name="title" required placeholder="Entrenamiento de potencia"></label>
         <label>Link de video<input name="video_url" type="url" required placeholder="YouTube, Vimeo, Drive o reel publicado"></label>
-        <label style="grid-column:1/-1">DescripciÃ³n<textarea name="caption" required placeholder="Contexto deportivo y valor para patrocinadores."></textarea></label>
+        <label style="grid-column:1/-1">Descripción<textarea name="caption" required placeholder="Contexto deportivo y valor para patrocinadores."></textarea></label>
         <label style="grid-column:1/-1">Imagen miniatura opcional<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <button class="btn primary" type="submit">Enviar a revisiÃ³n</button>
+        <button class="btn primary" type="submit">Enviar a revisión</button>
       </form>
     </div>
-    ${rows.length ? table(["TÃ­tulo", "DescripciÃ³n", "Video", "Estado"], rows) : `<div class="empty">AÃºn no has enviado reels a revisiÃ³n.</div>`}
+    ${rows.length ? table(["Título", "Descripción", "Video", "Estado"], rows) : `<div class="empty">Aún no has enviado reels a revisión.</div>`}
   `);
   document.getElementById("athletePostForm").addEventListener("submit", submitAthletePost);
 }
@@ -1505,16 +1505,16 @@ function renderAthleteExpenses() {
     <div class="panel-body">
       <form id="athleteExpenseForm" class="form-grid">
         <label>Fecha<input name="date" type="date" required></label>
-        <label>CategorÃ­a<select name="category"><option>Transporte</option><option>Hospedaje</option><option>Alimentos</option><option>Equipo deportivo</option><option>InscripciÃ³n / torneo</option><option>Entrenamiento</option><option>Otro</option></select></label>
+        <label>Categoría<select name="category"><option>Transporte</option><option>Hospedaje</option><option>Alimentos</option><option>Equipo deportivo</option><option>Inscripción / torneo</option><option>Entrenamiento</option><option>Otro</option></select></label>
         <label>Monto<input name="amount" type="number" min="0" step="0.01" required></label>
         <label>Empresa patrocinadora<input name="company" placeholder="Nombre de empresa"></label>
         <label style="grid-column:1/-1">Ticket de consumo<input name="ticket" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required></label>
         <label style="grid-column:1/-1">Factura<input name="invoice" type="file" accept="application/pdf,image/png,image/jpeg,image/webp" required></label>
-        <label style="grid-column:1/-1">Notas<textarea name="notes" placeholder="Describe el consumo y a quÃ© objetivo deportivo corresponde."></textarea></label>
+        <label style="grid-column:1/-1">Notas<textarea name="notes" placeholder="Describe el consumo y a qué objetivo deportivo corresponde."></textarea></label>
         <button class="btn primary" type="submit">Subir comprobantes</button>
       </form>
     </div>
-    ${rows.length ? table(["Fecha", "CategorÃ­a", "Monto", "Factura", "Ticket", "Estado"], rows) : `<div class="empty">AÃºn no has subido tickets ni facturas.</div>`}
+    ${rows.length ? table(["Fecha", "Categoría", "Monto", "Factura", "Ticket", "Estado"], rows) : `<div class="empty">Aún no has subido tickets ni facturas.</div>`}
   `);
   document.getElementById("athleteExpenseForm").addEventListener("submit", submitAthleteExpense);
 }
@@ -1532,7 +1532,7 @@ function renderAthleteDeposits() {
     item.proof_url ? `<a class="btn" href="${item.proof_url}" target="_blank" rel="noopener">Comprobante</a>` : badge("pendiente"),
     badge(item.status)
   ]);
-  panel("athlete-deposits", "DepÃ³sitos", "Comprobantes cargados por administraciÃ³n ROIS", rows.length ? table(["Periodo", "Monto", "Origen", "Comprobante", "Estado"], rows) : `<div class="empty">Admin cargarÃ¡ aquÃ­ los comprobantes de depÃ³sitos realizados.</div>`);
+  panel("athlete-deposits", "Depósitos", "Comprobantes cargados por administración ROIS", rows.length ? table(["Periodo", "Monto", "Origen", "Comprobante", "Estado"], rows) : `<div class="empty">Admin cargará aquí los comprobantes de depósitos realizados.</div>`);
 }
 
 function renderAdmin() {
@@ -1583,23 +1583,23 @@ function renderAdminAthletes() {
       <form id="adminAthleteForm" class="form-grid">
         <label>Nombre<input name="name" required placeholder="Nombre del deportista"></label>
         <label>Deporte<input name="sport" required placeholder="Disciplina"></label>
-        <label>CategorÃ­a<input name="category" required placeholder="Ej. Juvenil, amateur, profesional"></label>
+        <label>Categoría<input name="category" required placeholder="Ej. Juvenil, amateur, profesional"></label>
         <label>Ciudad / base<input name="location" required placeholder="Ciudad o club base"></label>
         <label>Ranking o marca<input name="ranking" placeholder="Ranking, handicap, marca o nivel"></label>
         <label>Monto anual<input name="annual" type="number" min="0" value="1000" required></label>
         <label>Ticket mensual<input name="monthly" type="number" min="0" value="5000" required></label>
-        <label>MÃ¡ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="3" required></label>
+        <label>Máximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="3" required></label>
         <label style="grid-column:1/-1">Link de pago individual Stripe<input name="sponsor_payment_url" type="url" placeholder="https://buy.stripe.com/..."></label>
         <label style="grid-column:1/-1">Logos de sponsors actuales<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
-        <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por lÃ­nea, en el mismo orden de los logos. Ej. ROIS Trade"></textarea></label>
-        <label style="grid-column:1/-1">Ficha tÃ©cnica<textarea name="stats" required placeholder="Resultados, calendario, mÃ©tricas, logros y objetivo deportivo"></textarea></label>
-        <label style="grid-column:1/-1">Condiciones autorizadas para patrocinadores<textarea name="sponsor_terms" placeholder="Una condiciÃ³n por lÃ­nea. Ej. MenciÃ³n mensual en redes sociales"></textarea></label>
+        <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por línea, en el mismo orden de los logos. Ej. ROIS Trade"></textarea></label>
+        <label style="grid-column:1/-1">Ficha técnica<textarea name="stats" required placeholder="Resultados, calendario, métricas, logros y objetivo deportivo"></textarea></label>
+        <label style="grid-column:1/-1">Condiciones autorizadas para patrocinadores<textarea name="sponsor_terms" placeholder="Una condición por línea. Ej. Mención mensual en redes sociales"></textarea></label>
         <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" placeholder="https://youtube.com/... o https://vimeo.com/..."></label>
         <label style="grid-column:1/-1">Propuesta comercial PDF opcional<input name="proposal_pdf" type="file" accept="application/pdf"></label>
         <label style="grid-column:1/-1">Imagen del deportista<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Crear deportista</button>
       </form>
-      <p class="hint">Las imÃ¡genes nuevas quedan en revisiÃ³n visual. No aparecen pÃºblicamente hasta aprobarse.</p>
+      <p class="hint">Las imágenes nuevas quedan en revisión visual. No aparecen públicamente hasta aprobarse.</p>
     </div>
     ${table(["Visual", "Nombre", "Deporte", "Ticket", "Cupo", "Propuesta", "Pago", "Visual", "Acciones"], state.data.athletes.map(athlete => [
       visualThumb(athlete), athlete.name, athlete.sport, `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorLogos(athlete).length}/${athlete.max_sponsors || 3}`, athlete.proposal_url ? badge("PDF") : badge("pendiente"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), badge(athlete.visual_status || "sin visual"), moderationActions("athletes", athlete)
@@ -1609,19 +1609,19 @@ function renderAdminAthletes() {
 }
 
 function renderAdminEvents() {
-  panel("admin-events", "Eventos", "Alta, visuales y aprobaciÃ³n", `
+  panel("admin-events", "Eventos", "Alta, visuales y aprobación", `
     <div class="panel-body">
       <form id="adminEventForm" class="form-grid">
         <label>Evento<input name="name" required placeholder="Nombre del evento"></label>
-        <label>CategorÃ­a<input name="category" required placeholder="Ejecutivo, sponsor, membresÃ­a"></label>
+        <label>Categoría<input name="category" required placeholder="Ejecutivo, sponsor, membresía"></label>
         <label>Sede<input name="venue" required placeholder="Sede o ciudad"></label>
         <label>Fecha<input name="date" required placeholder="Por confirmar"></label>
         <label style="grid-column:1/-1">Brochure PDF<input name="brochure_pdf" type="file" accept="application/pdf"></label>
-        <label style="grid-column:1/-1">Alcance y posicionamiento del evento<textarea name="event_scope" required placeholder="Resume audiencia, alcance, sectores, tomadores de decisiÃ³n, medios, impacto esperado y por quÃ© una empresa deberÃ­a considerar este evento."></textarea></label>
+        <label style="grid-column:1/-1">Alcance y posicionamiento del evento<textarea name="event_scope" required placeholder="Resume audiencia, alcance, sectores, tomadores de decisión, medios, impacto esperado y por qué una empresa debería considerar este evento."></textarea></label>
         <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Crear evento</button>
       </form>
-      <p class="hint">El evento y su imagen pasan por revisiÃ³n antes de publicarse.</p>
+      <p class="hint">El evento y su imagen pasan por revisión antes de publicarse.</p>
     </div>
     ${table(["Visual", "Evento", "Sede", "Brochure", "Estado", "Visual", "Acciones"], state.data.events.map(event => [
       visualThumb(event), event.name, event.venue, event.brochure_url ? badge("PDF") : badge("pendiente"), badge(event.status), badge(event.visual_status || "sin visual"), moderationActions("events", event)
@@ -1631,18 +1631,18 @@ function renderAdminEvents() {
 }
 
 function renderAdminNews() {
-  panel("admin-news", "Noticias", "GestiÃ³n editorial", `
+  panel("admin-news", "Noticias", "Gestión editorial", `
     <div class="panel-body">
       <form id="newsForm" class="form-grid">
-        <label>TÃ­tulo<input name="title" required placeholder="Titular privado"></label>
+        <label>Título<input name="title" required placeholder="Titular privado"></label>
         <label>Estado<select name="status"><option value="published">Publicado</option><option value="draft">Borrador</option></select></label>
         <label style="grid-column:1/-1">Resumen<textarea name="summary" required placeholder="Resumen para miembros."></textarea></label>
         <label style="grid-column:1/-1">Imagen de noticia<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Publicar</button>
       </form>
-      <p class="hint">Aunque el texto estÃ© publicado, una noticia con imagen no aparece pÃºblicamente hasta aprobar el visual.</p>
+      <p class="hint">Aunque el texto esté publicado, una noticia con imagen no aparece públicamente hasta aprobar el visual.</p>
     </div>
-    ${table(["Visual", "TÃ­tulo", "Estado", "Visual", "Acciones"], state.data.news.map(item => [
+    ${table(["Visual", "Título", "Estado", "Visual", "Acciones"], state.data.news.map(item => [
       visualThumb(item), item.title, badge(item.status), badge(item.visual_status || "sin visual"), moderationActions("news", item)
     ]))}
   `);
@@ -1651,26 +1651,26 @@ function renderAdminNews() {
     const form = event.currentTarget;
     const image_url = await fileToDataUrl(form.image.files[0]);
     await api.insert("news", { title: form.title.value, summary: form.summary.value, status: form.status.value, image_url, visual_status: image_url ? "pending_review" : "approved" });
-    notify("Noticias", "Nota creada", "La nota quedÃ³ disponible en el mÃ³dulo editorial.");
+    notify("Noticias", "Nota creada", "La nota quedó disponible en el módulo editorial.");
     renderAdmin();
     renderPublic();
   });
 }
 
 function renderAdminPartners() {
-  panel("admin-partners", "Patrocinadores", "Sponsors clave y red estratÃ©gica visible en home", `
+  panel("admin-partners", "Patrocinadores", "Sponsors clave y red estratégica visible en home", `
     <div class="panel-body">
       <form id="partnerForm" class="form-grid">
         <label>Nombre<input name="name" required placeholder="Empresa, sponsor o aliado"></label>
-        <label>Tipo<select name="type"><option>Alianza estratÃ©gica</option><option>Sponsor principal</option><option>Partner institucional</option><option>Media partner</option></select></label>
-        <label>Nivel<select name="tier"><option>Principal</option><option>EstratÃ©gico</option><option>Institucional</option><option>Comunidad</option></select></label>
+        <label>Tipo<select name="type"><option>Alianza estratégica</option><option>Sponsor principal</option><option>Partner institucional</option><option>Media partner</option></select></label>
+        <label>Nivel<select name="tier"><option>Principal</option><option>Estratégico</option><option>Institucional</option><option>Comunidad</option></select></label>
         <label>Sitio web<input name="url" type="url" placeholder="https://empresa.com"></label>
         <label>Estado<select name="status"><option value="approved">Visible en home</option><option value="pending">Pendiente</option></select></label>
-        <label style="grid-column:1/-1">DescripciÃ³n<textarea name="description" required placeholder="Describe la alianza, sponsor o relaciÃ³n estratÃ©gica."></textarea></label>
+        <label style="grid-column:1/-1">Descripción<textarea name="description" required placeholder="Describe la alianza, sponsor o relación estratégica."></textarea></label>
         <label style="grid-column:1/-1">Logo o visual<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Guardar alianza</button>
       </form>
-      <p class="hint">Los logos y visuales nuevos quedan en revisiÃ³n visual antes de mostrarse pÃºblicamente.</p>
+      <p class="hint">Los logos y visuales nuevos quedan en revisión visual antes de mostrarse públicamente.</p>
     </div>
     ${table(["Visual", "Nombre", "Tipo", "Nivel", "Estado", "Visual", "Acciones"], state.data.partnerships.map(partner => [
       visualThumb(partner), partner.name, partner.type, partner.tier, badge(partner.status), badge(partner.visual_status || "sin visual"), moderationActions("partnerships", partner)
@@ -1680,13 +1680,13 @@ function renderAdminPartners() {
 }
 
 function renderAdminCrm() {
-  panel("admin-crm", "CRM", "Pipeline de relaciones", table(["CategorÃ­a", "Volumen", "Estado", "AcciÃ³n"], state.data.crm.map(item => [
+  panel("admin-crm", "CRM", "Pipeline de relaciones", table(["Categoría", "Volumen", "Estado", "Acción"], state.data.crm.map(item => [
     item.name, item.volume, badge(item.status), button("Avanzar", () => updateCrm(item.id))
   ])));
 }
 
 function renderAdminPayments() {
-  panel("admin-payments", "Pagos", "Resumen financiero conectado a Stripe", table(["Concepto", "Monto", "Estado", "AcciÃ³n"], state.data.payments.map(payment => [
+  panel("admin-payments", "Pagos", "Resumen financiero conectado a Stripe", table(["Concepto", "Monto", "Estado", "Acción"], state.data.payments.map(payment => [
     payment.concept, `$${Number(payment.amount).toLocaleString("es-MX")} MXN`, badge(payment.status), payment.status === "paid" ? "Pagado" : button("Marcar pagado", () => markPaid(payment.id))
   ])));
 }
@@ -1700,35 +1700,35 @@ function renderAdminPayments() {
     item.proof_url ? `<a class="btn" href="${item.proof_url}" target="_blank" rel="noopener">Comprobante</a>` : badge("pendiente"),
     badge(item.status)
   ]);
-  panel("admin-payments", "Pagos", "Stripe, depÃ³sitos y comprobantes", `
+  panel("admin-payments", "Pagos", "Stripe, depósitos y comprobantes", `
     <div class="panel-body">
       <form id="adminDepositForm" class="form-grid">
         <label>Deportista<select name="athlete_email" required><option value="">Selecciona deportista</option>${athleteOptions}</select></label>
         <label>Periodo<input name="month" required placeholder="Junio 2026"></label>
         <label>Monto depositado<input name="amount" type="number" min="0" step="0.01" required></label>
         <label>Empresa origen<input name="company" placeholder="Empresa patrocinadora"></label>
-        <label style="grid-column:1/-1">Comprobante de depÃ³sito<input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required></label>
-        <button class="btn primary" type="submit">Cargar depÃ³sito</button>
+        <label style="grid-column:1/-1">Comprobante de depósito<input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required></label>
+        <button class="btn primary" type="submit">Cargar depósito</button>
       </form>
     </div>
-    ${table(["Concepto", "Monto", "Estado", "AcciÃ³n"], state.data.payments.map(payment => [
+    ${table(["Concepto", "Monto", "Estado", "Acción"], state.data.payments.map(payment => [
       payment.concept, `$${Number(payment.amount).toLocaleString("es-MX")} MXN`, badge(payment.status), payment.status === "paid" ? "Pagado" : button("Marcar pagado", () => markPaid(payment.id))
     ]))}
-    <div class="panel-body"><p class="eyebrow">DepÃ³sitos a deportistas</p></div>
-    ${deposits.length ? table(["Deportista", "Periodo", "Monto", "Comprobante", "Estado"], deposits) : `<div class="empty">No hay depÃ³sitos cargados todavÃ­a.</div>`}
+    <div class="panel-body"><p class="eyebrow">Depósitos a deportistas</p></div>
+    ${deposits.length ? table(["Deportista", "Periodo", "Monto", "Comprobante", "Estado"], deposits) : `<div class="empty">No hay depósitos cargados todavía.</div>`}
   `);
   document.getElementById("adminDepositForm").addEventListener("submit", submitAdminDeposit);
 }
 
 function renderAdminUploads() {
-  panel("admin-uploads", "Uploads", "Biblioteca y moderaciÃ³n visual", `
+  panel("admin-uploads", "Uploads", "Biblioteca y moderación visual", `
     <div class="panel-body">
       <form id="uploadForm" class="form-grid">
         <label>Archivo visual<input name="file" type="file" accept="image/png,image/jpeg,image/webp" required></label>
         <label>Tipo<select name="type"><option>Evento</option><option>Deportista</option><option>Contrato</option><option>Documento</option></select></label>
         <button class="btn primary" type="submit">Registrar upload</button>
       </form>
-      <p class="hint">Todo visual subido queda bloqueado hasta revisiÃ³n manual. En producciÃ³n debe sumarse moderaciÃ³n automÃ¡tica.</p>
+      <p class="hint">Todo visual subido queda bloqueado hasta revisión manual. En producción debe sumarse moderación automática.</p>
     </div>
     ${state.data.uploads.length ? table(["Visual", "Archivo", "Tipo", "Estado", "Acciones"], state.data.uploads.map(item => [
       visualThumb(item), item.name, item.type, badge(item.visual_status || item.status), moderationActions("uploads", item)
@@ -1740,7 +1740,7 @@ function renderAdminUploads() {
     const file = form.file.files[0];
     const image_url = await fileToDataUrl(file);
     await api.insert("uploads", { name: file.name, type: form.type.value, size: file.size, status: "registered", image_url, visual_status: "pending_review" });
-    notify("Uploads", "Archivo registrado", "El visual quedÃ³ pendiente de revisiÃ³n.");
+    notify("Uploads", "Archivo registrado", "El visual quedó pendiente de revisión.");
     renderAdmin();
   });
 }
@@ -1771,7 +1771,7 @@ function renderAdminUploads() {
     badge(item.status),
     actionGroup([button("Aprobar", () => approve("athlete_expenses", item.id)), button("Eliminar", () => deleteContent("athlete_expenses", item))])
   ]);
-  panel("admin-uploads", "Uploads", "ModeraciÃ³n de visuales, reels, resultados y comprobantes", `
+  panel("admin-uploads", "Uploads", "Moderación de visuales, reels, resultados y comprobantes", `
     <div class="panel-body">
       <form id="uploadForm" class="form-grid">
         <label>Archivo visual<input name="file" type="file" accept="image/png,image/jpeg,image/webp" required></label>
@@ -1784,11 +1784,11 @@ function renderAdminUploads() {
       visualThumb(item), item.name, item.type, badge(item.visual_status || item.status), moderationActions("uploads", item)
     ])) : `<div class="empty">No hay archivos registrados.</div>`}
     <div class="panel-body"><p class="eyebrow">Reels de deportistas</p></div>
-    ${postRows.length ? table(["Visual", "Deportista", "TÃ­tulo", "Video", "Estado", "Acciones"], postRows) : `<div class="empty">No hay reels pendientes.</div>`}
+    ${postRows.length ? table(["Visual", "Deportista", "Título", "Video", "Estado", "Acciones"], postRows) : `<div class="empty">No hay reels pendientes.</div>`}
     <div class="panel-body"><p class="eyebrow">Resultados mensuales</p></div>
     ${resultRows.length ? table(["Deportista", "Mes", "Resumen", "Soporte", "Estado", "Acciones"], resultRows) : `<div class="empty">No hay resultados enviados.</div>`}
     <div class="panel-body"><p class="eyebrow">Tickets y facturas</p></div>
-    ${expenseRows.length ? table(["Deportista", "CategorÃ­a", "Monto", "Factura", "Ticket", "Estado", "Acciones"], expenseRows) : `<div class="empty">No hay comprobantes enviados.</div>`}
+    ${expenseRows.length ? table(["Deportista", "Categoría", "Monto", "Factura", "Ticket", "Estado", "Acciones"], expenseRows) : `<div class="empty">No hay comprobantes enviados.</div>`}
   `);
   document.getElementById("uploadForm").addEventListener("submit", async event => {
     event.preventDefault();
@@ -1796,7 +1796,7 @@ function renderAdminUploads() {
     const file = form.file.files[0];
     const image_url = await fileToDataUrl(file);
     await api.insert("uploads", { name: file.name, type: form.type.value, size: file.size, status: "registered", image_url, visual_status: "pending_review" });
-    notify("Uploads", "Archivo registrado", "El visual quedÃ³ pendiente de revisiÃ³n.");
+    notify("Uploads", "Archivo registrado", "El visual quedó pendiente de revisión.");
     renderAdmin();
   });
 }
@@ -1805,10 +1805,10 @@ function renderAdminStats() {
   const approvedUsers = state.data.profiles.filter(item => item.status === "approved").length;
   const totalUsers = state.data.profiles.length || 1;
   const sponsorReview = state.data.sponsorships.filter(item => item.status === "review").length;
-  panel("admin-stats", "EstadÃ­sticas", "Indicadores operativos", table(["MÃ©trica", "Valor", "Lectura"], [
-    ["ConversiÃ³n de aprobaciÃ³n", `${Math.round((approvedUsers / totalUsers) * 100)}%`, badge("estable")],
+  panel("admin-stats", "Estadísticas", "Indicadores operativos", table(["Métrica", "Valor", "Lectura"], [
+    ["Conversión de aprobación", `${Math.round((approvedUsers / totalUsers) * 100)}%`, badge("estable")],
     ["Demanda de eventos", state.data.requests.length, badge("activa")],
-    ["Patrocinios en revisiÃ³n", sponsorReview, badge("prioridad")]
+    ["Patrocinios en revisión", sponsorReview, badge("prioridad")]
   ]));
 }
 
@@ -1853,7 +1853,7 @@ function userActions(user, tableName) {
     actions.push(button("Aprobar", () => approveUser(user, tableName)));
   }
   if (tableName === "profiles" && user.id === state.session?.id) {
-    actions.push(`<span class="hint inline">SesiÃ³n activa</span>`);
+    actions.push(`<span class="hint inline">Sesión activa</span>`);
   } else {
     actions.push(button("Eliminar", () => confirmDeleteUser(user, tableName)));
   }
@@ -1937,7 +1937,7 @@ async function submitAthleteProfile(event) {
   await api.update("athletes", athlete.id, patch);
   state.session = { ...state.session, name: patch.name };
   saveSession(state.session);
-  notify("Perfil deportivo", "Perfil actualizado", imageFile ? "La nueva foto queda pendiente de revisiÃ³n visual ROIS." : "Tu ficha deportiva fue actualizada.");
+  notify("Perfil deportivo", "Perfil actualizado", imageFile ? "La nueva foto queda pendiente de revisión visual ROIS." : "Tu ficha deportiva fue actualizada.");
   renderAthlete();
   renderPublic();
 }
@@ -1957,7 +1957,7 @@ async function submitAthleteResult(event) {
     proof_url: proof,
     status: "review"
   });
-  notify("Resultados", "Resultado enviado", "ROIS revisarÃ¡ el soporte antes de integrarlo al reporte para patrocinadores.");
+  notify("Resultados", "Resultado enviado", "ROIS revisará el soporte antes de integrarlo al reporte para patrocinadores.");
   renderAthlete();
 }
 
@@ -1977,7 +1977,7 @@ async function submitAthletePost(event) {
     status: "pending_review",
     visual_status: image_url ? "pending_review" : "approved"
   });
-  notify("Entrenamientos", "Reel enviado", "El contenido queda pendiente de aprobaciÃ³n antes de aparecer en el feed de empresas.");
+  notify("Entrenamientos", "Reel enviado", "El contenido queda pendiente de aprobación antes de aparecer en el feed de empresas.");
   renderAthlete();
   renderAdmin();
 }
@@ -2001,7 +2001,7 @@ async function submitAthleteExpense(event) {
     notes: form.notes.value,
     status: "review"
   });
-  notify("Tickets y facturas", "Comprobantes enviados", "ROIS revisarÃ¡ que los consumos estÃ©n soportados y facturados correctamente.");
+  notify("Tickets y facturas", "Comprobantes enviados", "ROIS revisará que los consumos estén soportados y facturados correctamente.");
   renderAthlete();
   renderAdmin();
 }
@@ -2015,7 +2015,7 @@ async function createEventSponsorshipRequest(event, level) {
     priority: level.amount || "Paquete privado",
     status: "review"
   });
-  notify("Eventos", "Paquete solicitado", "ROIS revisarÃ¡ disponibilidad, beneficios y condiciones del patrocinio del evento.");
+  notify("Eventos", "Paquete solicitado", "ROIS revisará disponibilidad, beneficios y condiciones del patrocinio del evento.");
   renderClient();
   renderAdmin();
 }
@@ -2032,7 +2032,7 @@ async function createSponsorship(athlete, amount, details = "", paymentUrl = "")
     status: "review"
   });
   await api.insert("payments", { concept: `Patrocinio mensual - ${athlete}`, amount, company: state.session?.name || "Empresa", status: "pending", product_key: "" });
-  notify("Sponsor", "Patrocinio solicitado", "La solicitud fue enviada a revisiÃ³n.");
+  notify("Sponsor", "Patrocinio solicitado", "La solicitud fue enviada a revisión.");
   renderClient();
   renderAdmin();
 }
@@ -2048,7 +2048,7 @@ async function payClientPayment(id) {
 
 async function approve(tableName, id) {
   await api.update(tableName, id, { status: "approved" });
-  notify("AprobaciÃ³n", "Elemento aprobado", "El estado fue actualizado correctamente.");
+  notify("Aprobación", "Elemento aprobado", "El estado fue actualizado correctamente.");
   renderAdmin();
   renderPublic();
   if (state.session?.role === "client") renderClient();
@@ -2070,13 +2070,13 @@ async function approveUser(user, tableName) {
     const profile = state.data.profiles.find(item => item.email.toLowerCase() === email);
     if (profile) await api.update("profiles", profile.id, { status: "approved", role: "client" });
   }
-  notify("Usuarios", "Cliente aprobado", "El acceso quedÃ³ autorizado para el dashboard de cliente.");
+  notify("Usuarios", "Cliente aprobado", "El acceso quedó autorizado para el dashboard de cliente.");
   renderAdmin();
   renderPublic();
 }
 
 async function confirmDeleteUser(user, tableName) {
-  const confirmed = window.confirm(`Â¿Eliminar el usuario "${user.name}"? Esta acciÃ³n no se puede deshacer en modo real.`);
+  const confirmed = window.confirm(`¿Eliminar el usuario "${user.name}"? Esta acción no se puede deshacer en modo real.`);
   if (!confirmed) return;
   await api.remove(tableName, user.id);
   notify("Usuarios", "Usuario eliminado", "El usuario fue eliminado del panel administrativo.");
@@ -2085,7 +2085,7 @@ async function confirmDeleteUser(user, tableName) {
 
 async function updateCrm(id) {
   await api.update("crm", id, { status: "En seguimiento" });
-  notify("CRM", "Pipeline actualizado", "El elemento cambiÃ³ a seguimiento.");
+  notify("CRM", "Pipeline actualizado", "El elemento cambió a seguimiento.");
   renderAdmin();
 }
 
@@ -2110,7 +2110,7 @@ async function submitAdminDeposit(event) {
     proof_url,
     status: "paid"
   });
-  notify("DepÃ³sitos", "Comprobante cargado", "El deportista ya puede ver el comprobante en su dashboard.");
+  notify("Depósitos", "Comprobante cargado", "El deportista ya puede ver el comprobante en su dashboard.");
   renderAdmin();
 }
 
@@ -2141,7 +2141,7 @@ async function submitAdminAthlete(event) {
     image_url,
     visual_status: image_url ? "pending_review" : "approved"
   });
-  notify("Deportistas", "Deportista creado", "El perfil quedÃ³ pendiente de aprobaciÃ³n y revisiÃ³n visual.");
+  notify("Deportistas", "Deportista creado", "El perfil quedó pendiente de aprobación y revisión visual.");
   renderAdmin();
 }
 
@@ -2163,7 +2163,7 @@ async function submitAdminEvent(event) {
     image_url,
     visual_status: image_url ? "pending_review" : "approved"
   });
-  notify("Eventos", "Evento creado", "El evento quedÃ³ pendiente de aprobaciÃ³n y revisiÃ³n visual.");
+  notify("Eventos", "Evento creado", "El evento quedó pendiente de aprobación y revisión visual.");
   renderAdmin();
 }
 
@@ -2181,27 +2181,27 @@ async function submitAdminPartner(event) {
     image_url,
     visual_status: image_url ? "pending_review" : "approved"
   });
-  notify("Alianzas", "Alianza guardada", "El registro quedÃ³ disponible para aprobaciÃ³n y revisiÃ³n visual.");
+  notify("Alianzas", "Alianza guardada", "El registro quedó disponible para aprobación y revisión visual.");
   renderAdmin();
   renderPublic();
 }
 
 async function approveVisual(tableName, item) {
   await api.update(tableName, item.id, { visual_status: "approved", visual_notes: "" });
-  notify("ModeraciÃ³n visual", "Visual aprobado", "El visual ya puede mostrarse en Ã¡reas pÃºblicas si el contenido tambiÃ©n estÃ¡ aprobado.");
+  notify("Moderación visual", "Visual aprobado", "El visual ya puede mostrarse en áreas públicas si el contenido también está aprobado.");
   renderAdmin();
   renderPublic();
 }
 
 async function rejectVisual(tableName, item) {
-  await api.update(tableName, item.id, { visual_status: "rejected", status: item.status === "published" ? "draft" : item.status, visual_notes: "Rechazado por revisiÃ³n manual" });
-  notify("ModeraciÃ³n visual", "Visual rechazado", "El visual quedÃ³ bloqueado y no se mostrarÃ¡ pÃºblicamente.");
+  await api.update(tableName, item.id, { visual_status: "rejected", status: item.status === "published" ? "draft" : item.status, visual_notes: "Rechazado por revisión manual" });
+  notify("Moderación visual", "Visual rechazado", "El visual quedó bloqueado y no se mostrará públicamente.");
   renderAdmin();
   renderPublic();
 }
 
 async function deleteContent(tableName, item) {
-  const confirmed = window.confirm(`Â¿Eliminar "${item.name || item.title}"?`);
+  const confirmed = window.confirm(`¿Eliminar "${item.name || item.title}"?`);
   if (!confirmed) return;
   try {
     await api.remove(tableName, item.id);
@@ -2216,7 +2216,7 @@ async function deleteContent(tableName, item) {
 
 async function hideContent(tableName, item) {
   const label = item.name || item.title;
-  const confirmed = window.confirm(`Â¿Bajar "${label}" del home y dashboard cliente?`);
+  const confirmed = window.confirm(`¿Bajar "${label}" del home y dashboard cliente?`);
   if (!confirmed) return;
   const hiddenStatus = tableName === "news" ? "draft" : "archived";
   try {
@@ -2266,7 +2266,7 @@ function visualThumb(item) {
 }
 
 function eventPositioningBlock(event) {
-  const scope = event.event_scope || event.sponsor_levels || "Alcance comercial pendiente de publicaciÃ³n por ROIS.";
+  const scope = event.event_scope || event.sponsor_levels || "Alcance comercial pendiente de publicación por ROIS.";
   return `
     <div class="event-positioning">
       <p class="eyebrow">Alcance del evento</p>
@@ -2299,7 +2299,7 @@ function eventClientCard(event) {
 
 function newsInteractionCount(news, reaction) {
   return state.data.requests.filter(item =>
-    item.type === "InteracciÃ³n noticia" &&
+    item.type === "Interacción noticia" &&
     item.priority === reaction &&
     String(item.details || "").includes(`news:${news.id}`)
   ).length;
@@ -2308,7 +2308,7 @@ function newsInteractionCount(news, reaction) {
 function newsInteractionBar(news) {
   const reactions = [
     ["Like", "Me gusta"],
-    ["InterÃ©s", "Me interesa"],
+    ["Interés", "Me interesa"],
     ["Compartir", "Compartir"],
     ["Comentario", "Comentar"]
   ];
@@ -2334,14 +2334,14 @@ async function interactWithNews(news, reaction) {
     }
   }
   await api.insert("requests", {
-    type: "InteracciÃ³n noticia",
+    type: "Interacción noticia",
     title: news.title,
     owner: state.session?.name || "Empresa",
     details: `news:${news.id} | ${reaction}${note ? ` | ${note}` : ""}`,
     priority: reaction,
     status: "recorded"
   });
-  notify("Noticias", "InteracciÃ³n registrada", reaction === "Compartir" ? "Copiamos el enlace de noticias y registramos tu interacciÃ³n." : "Tu interacciÃ³n quedÃ³ registrada para el equipo ROIS.");
+  notify("Noticias", "Interacción registrada", reaction === "Compartir" ? "Copiamos el enlace de noticias y registramos tu interacción." : "Tu interacción quedó registrada para el equipo ROIS.");
   renderClient();
   renderAdmin();
 }
@@ -2349,10 +2349,10 @@ async function interactWithNews(news, reaction) {
 function athleteSponsorConditions() {
   return [
     "Logo en uniforme o equipo autorizado",
-    "MenciÃ³n mensual en redes sociales",
+    "Mención mensual en redes sociales",
     "Video corto de agradecimiento para la marca",
-    "Uso de imagen del deportista en campaÃ±a aprobada",
-    "Presencia en evento corporativo o clÃ­nica deportiva",
+    "Uso de imagen del deportista en campaña aprobada",
+    "Presencia en evento corporativo o clínica deportiva",
     "Reporte trimestral de avances deportivos"
   ];
 }
@@ -2385,7 +2385,7 @@ function openAthleteSponsorConfigurator(athlete) {
           `).join("")}
         </div>
         <label>Notas para ROIS
-          <textarea name="notes" placeholder="Objetivo de marca, giro, restricciones o campaÃ±a deseada."></textarea>
+          <textarea name="notes" placeholder="Objetivo de marca, giro, restricciones o campaña deseada."></textarea>
         </label>
         <label class="check-option">
           <input type="checkbox" name="terms" required>
@@ -2424,7 +2424,7 @@ function publishedCard({ item, kicker, title, text, action }) {
       <div class="published-content">
         <p class="eyebrow">${kicker || "ROIS"}</p>
         <h3>${title}</h3>
-        <p>${text || "InformaciÃ³n disponible para miembros aprobados."}</p>
+        <p>${text || "Información disponible para miembros aprobados."}</p>
         ${action || ""}
       </div>
     </article>
@@ -2442,7 +2442,7 @@ function athleteFeedCard(post) {
       <div class="feed-content">
         <p class="eyebrow">${athlete?.sport || "Entrenamiento"}</p>
         <h3>${post.title}</h3>
-        <p>${post.caption || "ActualizaciÃ³n deportiva publicada por atleta ROIS."}</p>
+        <p>${post.caption || "Actualización deportiva publicada por atleta ROIS."}</p>
         <div class="row-meta">
           <span class="pill">${post.athlete_name || athlete?.name || "Atleta ROIS"}</span>
           <div class="athlete-actions">
@@ -2460,14 +2460,14 @@ function openAthleteProfileModal(athlete) {
   notify(
     "Perfil deportivo",
     athlete.name,
-    `${athlete.stats || "Perfil deportivo en evaluaciÃ³n."} Ticket mensual sugerido: $${athleteMonthlyTicket(athlete).toLocaleString("es-MX")} MXN.`,
+    `${athlete.stats || "Perfil deportivo en evaluación."} Ticket mensual sugerido: $${athleteMonthlyTicket(athlete).toLocaleString("es-MX")} MXN.`,
     `<div class="modal-actions">${athleteProposalLink(athlete)}${athlete.video_url ? `<a class="btn" href="${athlete.video_url}" target="_blank" rel="noopener">Ver video</a>` : ""}${button("Configurar patrocinio", () => openAthleteSponsorConfigurator(athlete))}</div>`
   );
 }
 
 function partnerCard(partner) {
   const image = partner.image_url || "./assets/rois-logo-cropped.png";
-  const link = partner.url ? `<a class="btn" href="${partner.url}" target="_blank" rel="noopener">Ver aliado</a>` : `<button class="btn" type="button" data-open-login>Solicitar conexiÃ³n</button>`;
+  const link = partner.url ? `<a class="btn" href="${partner.url}" target="_blank" rel="noopener">Ver aliado</a>` : `<button class="btn" type="button" data-open-login>Solicitar conexión</button>`;
   return `
     <article class="partner-card">
       <div class="partner-mark">
@@ -2477,7 +2477,7 @@ function partnerCard(partner) {
         <div>
           <p class="eyebrow">${partner.tier || "Aliado ROIS"}</p>
           <h3>${partner.name}</h3>
-          <p>${partner.description || "Aliado estratÃ©gico dentro del ecosistema ROIS."}</p>
+          <p>${partner.description || "Aliado estratégico dentro del ecosistema ROIS."}</p>
         </div>
         <div class="row-meta">
           <span class="pill">${partner.type || "Alianza"}</span>
@@ -2494,10 +2494,10 @@ function clientPartnerCard(partner) {
     item: { ...partner, image_url: image },
     kicker: partner.tier || "Patrocinador oficial",
     title: partner.name,
-    text: partner.description || "Sponsor o aliado estratÃ©gico publicado por ROIS.",
+    text: partner.description || "Sponsor o aliado estratégico publicado por ROIS.",
     action: partner.url
       ? `<a class="btn" href="${partner.url}" target="_blank" rel="noopener">Ver aliado</a>`
-      : button("Solicitar conexiÃ³n", () => createRequest("ConexiÃ³n sponsor", partner.name))
+      : button("Solicitar conexión", () => createRequest("Conexión sponsor", partner.name))
   });
 }
 
@@ -2534,7 +2534,7 @@ async function selectRoisSponsorTier(tier) {
       owner: state.session?.name || "Empresa",
       status: "review",
       details,
-      priority: tier.amount >= 100000 ? "DirecciÃ³n ROIS" : "Comercial"
+      priority: tier.amount >= 100000 ? "Dirección ROIS" : "Comercial"
     });
     await api.insert("payments", {
       concept: `${tier.name} - mensualidad`,
@@ -2544,7 +2544,7 @@ async function selectRoisSponsorTier(tier) {
       product_key: tier.productKey
     });
     if (!checkoutStarted) {
-      notify("Patrocinios ROIS", "Solicitud recibida", `Falta configurar el link de Stripe para ${tier.name}. ROIS prepararÃ¡ la activaciÃ³n y el cierre comercial.`);
+      notify("Patrocinios ROIS", "Solicitud recibida", `Falta configurar el link de Stripe para ${tier.name}. ROIS preparará la activación y el cierre comercial.`);
     }
     renderClient();
     renderAdmin();
@@ -2595,7 +2595,7 @@ function athleteCard(athlete, action) {
         <div>
           <p class="eyebrow">Perfil de patrocinio</p>
           <h3>${athlete.name}</h3>
-          <p class="athlete-summary">${athlete.stats || "Perfil deportivo en evaluaciÃ³n."}</p>
+          <p class="athlete-summary">${athlete.stats || "Perfil deportivo en evaluación."}</p>
           ${logos.length ? `
             <div class="athlete-sponsor-brands">
               <span>Patrocinadores actuales</span>
@@ -2605,16 +2605,16 @@ function athleteCard(athlete, action) {
         </div>
         <div class="athlete-technical">
           <div><span>Deporte</span><strong>${athlete.sport || "Por definir"}</strong></div>
-          <div><span>CategorÃ­a</span><strong>${athlete.category || "Semilla"}</strong></div>
+          <div><span>Categoría</span><strong>${athlete.category || "Semilla"}</strong></div>
           <div><span>Base</span><strong>${athlete.location || "Por confirmar"}</strong></div>
-          <div><span>Ranking / marca</span><strong>${athlete.ranking || "En evaluaciÃ³n"}</strong></div>
+          <div><span>Ranking / marca</span><strong>${athlete.ranking || "En evaluación"}</strong></div>
         </div>
         <div class="athlete-metrics">
           <div><span>Ticket mensual</span><strong>$${monthly} MXN</strong></div>
           <div><span>Cupos de sponsor</span><strong>${logos.length}/${maxSponsors}</strong></div>
         </div>
         <div class="athlete-decision">
-          <p>Ideal para marcas que buscan visibilidad temprana, narrativa deportiva y relaciÃ³n directa con talento en crecimiento. InversiÃ³n anual de perfil: $${annual} MXN.</p>
+          <p>Ideal para marcas que buscan visibilidad temprana, narrativa deportiva y relación directa con talento en crecimiento. Inversión anual de perfil: $${annual} MXN.</p>
           <div class="athlete-actions">${proposalButton}${videoButton}${action}</div>
         </div>
       </div>
@@ -2658,10 +2658,10 @@ function registrationFields(type) {
       <label>Empresa<input name="name" required placeholder="Nombre legal o comercial"></label>
       <label>Correo de acceso<input name="email" type="email" required placeholder="contacto@empresa.com"></label>
       <label>Contacto<input name="contact" required placeholder="Nombre del responsable"></label>
-      <label>InterÃ©s principal<select name="interest"><option>Eventos</option><option>Sponsors</option><option>Deportistas</option><option>Relaciones estratÃ©gicas</option></select></label>
+      <label>Interés principal<select name="interest"><option>Eventos</option><option>Sponsors</option><option>Deportistas</option><option>Relaciones estratégicas</option></select></label>
       <label>Contrasena<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Minimo 8 caracteres"></label>
       <label>Confirmar contrasena<input name="confirm" type="password" minlength="8" autocomplete="new-password" required placeholder="Repite tu contrasena"></label>
-      <p class="hint">La cuenta se activa como cliente ROIS. Las operaciones premium pueden requerir revisiÃ³n interna.</p>
+      <p class="hint">La cuenta se activa como cliente ROIS. Las operaciones premium pueden requerir revisión interna.</p>
       <label class="check-option" style="grid-column:1/-1">
         <input name="terms" type="checkbox" required>
         <span>Acepto que ROIS opera como plataforma de gestion comercial y contractual para oportunidades, patrocinios y relaciones estrategicas. Las operaciones podran requerir contrato de patrocinio administrado por ROIS.</span>
@@ -2688,7 +2688,7 @@ function registrationFields(type) {
   }
   return `
     <label>Evento<input name="name" required placeholder="Nombre del evento"></label>
-    <label>CategorÃ­a<input name="category" required placeholder="Ejecutivo, patrocinio, membresÃ­a"></label>
+    <label>Categoría<input name="category" required placeholder="Ejecutivo, patrocinio, membresía"></label>
     <label>Sede<input name="venue" required placeholder="Sede o ciudad"></label>
     <label>Fecha<input name="date" required placeholder="Por confirmar"></label>
     <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
@@ -2704,7 +2704,7 @@ async function submitRegistration(event) {
   try {
     if (type === "company") {
       if (form.password.value !== form.confirm.value) {
-        notify("Registro", "Las contraseÃ±as no coinciden", "Confirma la contraseÃ±a para crear tu cuenta.");
+        notify("Registro", "Las contraseñas no coinciden", "Confirma la contraseña para crear tu cuenta.");
         return;
       }
       const signup = await api.signupCompany({
@@ -2722,7 +2722,7 @@ async function submitRegistration(event) {
         renderSession();
         renderClient();
         showView("client");
-        notify("Cuenta creada", "Bienvenido a ROIS", "Tu dashboard de cliente ya estÃ¡ activo.");
+        notify("Cuenta creada", "Bienvenido a ROIS", "Tu dashboard de cliente ya está activo.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }
@@ -2731,7 +2731,7 @@ async function submitRegistration(event) {
       return;
     } else if (type === "athlete") {
       if (form.password.value !== form.confirm.value) {
-        notify("Registro", "Las contraseÃ±as no coinciden", "Confirma la contraseÃ±a para crear tu cuenta de deportista.");
+        notify("Registro", "Las contraseñas no coinciden", "Confirma la contraseña para crear tu cuenta de deportista.");
         return;
       }
       const signup = await api.signupAthlete({
@@ -2759,7 +2759,7 @@ async function submitRegistration(event) {
       paymentAction = ["eventRegistration", "Registro de Evento ROIS"];
     }
     closeModals();
-    notify("Registro", "Solicitud recibida", "El registro quedÃ³ pendiente de aprobaciÃ³n en el panel administrador.");
+    notify("Registro", "Solicitud recibida", "El registro quedó pendiente de aprobación en el panel administrador.");
     if (paymentAction) {
       openStripeCheckout(paymentAction[0], paymentAction[1]);
     }
