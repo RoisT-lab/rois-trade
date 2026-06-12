@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260611-home-cover-admin-v28";
+const roisBuild = "20260611-clean-cover-v30";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -958,7 +958,11 @@ function profileInitials(name = "ROIS") {
 function renderSession() {
   const area = document.getElementById("sessionArea");
   if (!state.session) {
-    area.innerHTML = `<button class="btn subtle" type="button" data-open-login>Acceso</button>`;
+    area.innerHTML = `
+      <button class="btn primary nav-create-account" type="button" data-registration="company">Crear cuenta</button>
+      <button class="btn subtle" type="button" data-open-login>Acceso</button>
+    `;
+    area.querySelector("[data-registration]").addEventListener("click", () => openRegistration("company"));
     area.querySelector("[data-open-login]").addEventListener("click", openLogin);
     return;
   }
@@ -976,11 +980,6 @@ function renderPublic() {
     coverSlot.innerHTML = cover?.image_url ? `
       <section class="home-cover">
         <img src="${cover.image_url}" alt="${escapeAttr(cover.title || "Portada ROIS")}">
-        <div>
-          <p class="eyebrow">${escapeHtml(cover.kicker || "Portada institucional")}</p>
-          <h2>${escapeHtml(cover.title || "Ecosistema ROIS")}</h2>
-          ${cover.subtitle ? `<p>${escapeHtml(cover.subtitle)}</p>` : ""}
-        </div>
       </section>
     ` : "";
   }
