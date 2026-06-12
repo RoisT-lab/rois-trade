@@ -140,6 +140,22 @@ create table if not exists athlete_deposits (
   created_at timestamptz not null default now()
 );
 
+create table if not exists athlete_notifications (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid,
+  athlete_email text not null,
+  athlete_name text,
+  title text not null,
+  message text,
+  category text not null default 'general',
+  priority text not null default 'normal',
+  status text not null default 'unread',
+  email_status text not null default 'pending_webhook',
+  sent_by text,
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists terms_acceptances (
   id uuid primary key default gen_random_uuid(),
   user_email text,
@@ -252,6 +268,7 @@ alter table athlete_posts enable row level security;
 alter table athlete_results enable row level security;
 alter table athlete_expenses enable row level security;
 alter table athlete_deposits enable row level security;
+alter table athlete_notifications enable row level security;
 alter table terms_acceptances enable row level security;
 
 create or replace function is_admin()
@@ -309,6 +326,9 @@ drop policy if exists "athlete expenses self all" on athlete_expenses;
 drop policy if exists "athlete expenses admin all" on athlete_expenses;
 drop policy if exists "athlete deposits self read" on athlete_deposits;
 drop policy if exists "athlete deposits admin all" on athlete_deposits;
+drop policy if exists "athlete notifications self read" on athlete_notifications;
+drop policy if exists "athlete notifications self update" on athlete_notifications;
+drop policy if exists "athlete notifications admin all" on athlete_notifications;
 drop policy if exists "terms self insert" on terms_acceptances;
 drop policy if exists "terms admin read" on terms_acceptances;
 
@@ -397,11 +417,14 @@ create policy "athlete expenses self all" on athlete_expenses for all to authent
 create policy "athlete expenses admin all" on athlete_expenses for all using (is_admin()) with check (is_admin());
 create policy "athlete deposits self read" on athlete_deposits for select to authenticated using (athlete_email = (auth.jwt() ->> 'email'));
 create policy "athlete deposits admin all" on athlete_deposits for all using (is_admin()) with check (is_admin());
+create policy "athlete notifications self read" on athlete_notifications for select to authenticated using (athlete_email = (auth.jwt() ->> 'email'));
+create policy "athlete notifications self update" on athlete_notifications for update to authenticated using (athlete_email = (auth.jwt() ->> 'email')) with check (athlete_email = (auth.jwt() ->> 'email'));
+create policy "athlete notifications admin all" on athlete_notifications for all using (is_admin()) with check (is_admin());
 create policy "terms self insert" on terms_acceptances for insert to authenticated with check (user_email = (auth.jwt() ->> 'email'));
 create policy "terms admin read" on terms_acceptances for select using (is_admin());
 
 grant usage on schema public to anon, authenticated;
-grant select on profiles, companies, athletes, events, requests, sponsorships, news, partnerships, site_settings, crm, payments, uploads, athlete_posts, athlete_results, athlete_expenses, athlete_deposits, terms_acceptances to anon, authenticated;
+grant select on profiles, companies, athletes, events, requests, sponsorships, news, partnerships, site_settings, crm, payments, uploads, athlete_posts, athlete_results, athlete_expenses, athlete_deposits, athlete_notifications, terms_acceptances to anon, authenticated;
 grant insert on profiles to authenticated;
 grant update (name, role, status, must_change_password) on profiles to authenticated;
 grant insert on athletes, events to anon, authenticated;
@@ -432,4 +455,7 @@ grant insert on uploads to authenticated;
 grant update, delete on athletes, events, news, partnerships, uploads to authenticated;
 grant insert, update, delete on athlete_posts, athlete_results, athlete_expenses to authenticated;
 grant insert on athlete_deposits to authenticated;
+revoke update on athlete_notifications from authenticated;
+grant insert, delete on athlete_notifications to authenticated;
+grant update (status, read_at) on athlete_notifications to authenticated;
 grant insert on terms_acceptances to authenticated;

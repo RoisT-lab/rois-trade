@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260612-launch-plan-v33";
+const roisBuild = "20260612-athlete-notifications-v34";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -35,6 +35,7 @@ const seed = {
   athlete_results: [],
   athlete_expenses: [],
   athlete_deposits: [],
+  athlete_notifications: [],
   terms_acceptances: []
 };
 
@@ -216,6 +217,7 @@ function demoApi() {
       athlete_results: data.athlete_results || [],
       athlete_expenses: data.athlete_expenses || [],
       athlete_deposits: data.athlete_deposits || [],
+      athlete_notifications: data.athlete_notifications || [],
       terms_acceptances: data.terms_acceptances || []
     };
   }
@@ -356,7 +358,7 @@ function supabaseApi() {
   }
   return {
     async loadAll() {
-      const tables = ["profiles", "companies", "athletes", "events", "requests", "sponsorships", "news", "partnerships", "site_settings", "crm", "payments", "uploads", "athlete_posts", "athlete_results", "athlete_expenses", "athlete_deposits", "terms_acceptances"];
+      const tables = ["profiles", "companies", "athletes", "events", "requests", "sponsorships", "news", "partnerships", "site_settings", "crm", "payments", "uploads", "athlete_posts", "athlete_results", "athlete_expenses", "athlete_deposits", "athlete_notifications", "terms_acceptances"];
       const result = {};
       await Promise.all(tables.map(async table => {
         try {
@@ -1331,10 +1333,12 @@ function renderAthleteKpis() {
   const results = state.data.athlete_results.filter(item => item.athlete_email === email).length;
   const posts = state.data.athlete_posts.filter(item => item.athlete_email === email).length;
   const deposits = state.data.athlete_deposits.filter(item => item.athlete_email === email).length;
+  const unread = athleteNotificationsFor(email).filter(item => item.status !== "read").length;
   document.getElementById("athleteKpis").innerHTML = [
     ["Solicitudes", sponsorships],
     ["Resultados", results],
     ["Reels", posts],
+    ["Notificaciones", unread],
     ["Dep\u00f3sitos", deposits]
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
@@ -1395,19 +1399,58 @@ function renderAthleteRequirements() {
   renderAthleteProfile();
 }
 
+function athleteNotificationsFor(email = state.session?.email || "") {
+  return (state.data.athlete_notifications || [])
+    .filter(item => String(item.athlete_email || "").toLowerCase() === String(email || "").toLowerCase())
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
+function readableDate(value) {
+  if (!value) return "Fecha pendiente";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function athleteNotificationCard(item) {
+  const unread = item.status !== "read";
+  return `
+    <article class="notification-card ${unread ? "is-unread" : ""}">
+      <div>
+        <div class="notification-meta">
+          ${badge(item.priority || "normal")}
+          <span>${escapeHtml(item.category || "general")}</span>
+          <span>${readableDate(item.created_at)}</span>
+        </div>
+        <h3>${escapeHtml(item.title || "Notificacion ROIS")}</h3>
+        <p>${escapeHtml(item.message || "")}</p>
+      </div>
+      <div class="notification-actions">
+        ${unread ? button("Marcar leida", () => markAthleteNotificationRead(item.id)) : badge("leida")}
+      </div>
+    </article>
+  `;
+}
+
 function renderAthleteNotifications() {
   const athlete = currentAthlete();
   const email = state.session?.email || "";
   const name = athlete?.name || state.session?.name || "";
-  const notices = [
+  const adminMessages = athleteNotificationsFor(email);
+  const operationalNotices = [
     ...state.data.sponsorships.filter(item => item.athlete === name || item.athlete_email === email).map(item => [`Patrocinio`, item.company || "Empresa ROIS", `$${Number(item.amount || 0).toLocaleString("es-MX")} MXN`, badge(item.status)]),
     ...state.data.athlete_deposits.filter(item => item.athlete_email === email).map(item => [`Dep\u00f3sito`, item.month || "Periodo", `$${Number(item.amount || 0).toLocaleString("es-MX")} MXN`, badge(item.status)]),
     ...state.data.athlete_results.filter(item => item.athlete_email === email && item.status === "review").map(item => [`Resultado`, item.month, "En revisi\u00f3n ROIS", badge(item.status)])
   ];
-  panel("athlete-notifications", "Notificaciones", "Alertas operativas de patrocinio y seguimiento", notices.length ? table(["Tipo", "Origen", "Detalle", "Estado"], notices) : `
+  panel("athlete-notifications", "Notificaciones", "Mensajes de ROIS, sponsors y seguimiento operativo", `
     <div class="panel-body">
-      <div class="empty">A\u00fan no tienes notificaciones. Cuando una empresa solicite patrocinio o admin cargue dep\u00f3sitos, aparecer\u00e1n aqu\u00ed.</div>
+      ${adminMessages.length ? `
+        <div class="notification-list">
+          ${adminMessages.map(athleteNotificationCard).join("")}
+        </div>
+      ` : `<div class="empty">Aun no tienes mensajes directos de ROIS. Cuando admin envie novedades sobre sponsors, contratos o pagos, apareceran aqui.</div>`}
     </div>
+    ${operationalNotices.length ? table(["Tipo", "Origen", "Detalle", "Estado"], operationalNotices) : ""}
   `);
 }
 
@@ -1575,6 +1618,7 @@ function renderAdmin() {
   renderAdminKpis();
   renderAdminUsers();
   renderAdminAthletes();
+  renderAdminAthleteNotifications();
   renderAdminEvents();
   renderAdminNews();
   renderAdminPartners();
@@ -1643,6 +1687,37 @@ function renderAdminAthletes() {
     ]))}
   `);
   document.getElementById("adminAthleteForm").addEventListener("submit", submitAdminAthlete);
+}
+
+function renderAdminAthleteNotifications() {
+  const athleteOptions = state.data.athletes
+    .filter(athlete => athlete.email)
+    .map(athlete => `<option value="${escapeAttr(athlete.email || "")}">${escapeHtml(athlete.name || "Deportista")} - ${escapeHtml(athlete.email || "")}</option>`)
+    .join("");
+  const rows = (state.data.athlete_notifications || []).map(item => [
+    item.athlete_name || item.athlete_email,
+    item.title,
+    badge(item.category || "general"),
+    badge(item.priority || "normal"),
+    badge(item.status || "unread"),
+    badge(item.email_status || "pendiente webhook"),
+    readableDate(item.created_at)
+  ]);
+  panel("admin-athlete-notifications", "Notificaciones", "Mensajes directos a deportistas", `
+    <div class="panel-body">
+      <form id="adminAthleteNotificationForm" class="form-grid">
+        <label>Deportista<select name="athlete_email" required><option value="">Selecciona deportista</option>${athleteOptions}</select></label>
+        <label>Prioridad<select name="priority"><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></label>
+        <label>Categoria<select name="category"><option value="sponsor">Sponsor</option><option value="pago">Pago</option><option value="contrato">Contrato</option><option value="operacion">Operacion</option><option value="general">General</option></select></label>
+        <label>Asunto<input name="title" required placeholder="Actualizacion sobre patrocinio"></label>
+        <label style="grid-column:1/-1">Mensaje<textarea name="message" required placeholder="Escribe el mensaje que vera el deportista en su dashboard y recibira por correo si el webhook esta activo."></textarea></label>
+        <button class="btn primary" type="submit">Enviar notificacion</button>
+      </form>
+      <p class="hint">La notificacion queda visible en el dashboard del deportista. Para envio real por correo configura notificationEmailWebhook en app-config.js con una Edge Function o servicio transaccional.</p>
+    </div>
+    ${rows.length ? table(["Deportista", "Asunto", "Categoria", "Prioridad", "Lectura", "Correo", "Fecha"], rows) : `<div class="empty">Aun no hay notificaciones enviadas a deportistas.</div>`}
+  `);
+  document.getElementById("adminAthleteNotificationForm").addEventListener("submit", submitAdminAthleteNotification);
 }
 
 function renderAdminEvents() {
@@ -2325,6 +2400,69 @@ async function markPaid(id) {
   renderAdmin();
 }
 
+async function sendAthleteNotificationEmail(notification) {
+  if (!config.notificationEmailWebhook) {
+    return { skipped: true };
+  }
+  const response = await fetch(config.notificationEmailWebhook, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: notification.athlete_email,
+      athlete_name: notification.athlete_name,
+      subject: notification.title,
+      message: notification.message,
+      category: notification.category,
+      priority: notification.priority,
+      created_at: notification.created_at
+    })
+  });
+  if (!response.ok) throw new Error("No fue posible enviar el correo de notificacion.");
+  return { sent: true };
+}
+
+async function submitAdminAthleteNotification(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const athlete = state.data.athletes.find(item => String(item.email || "").toLowerCase() === String(form.athlete_email.value || "").toLowerCase());
+  const created_at = new Date().toISOString();
+  const notification = {
+    athlete_id: athlete?.id,
+    athlete_email: form.athlete_email.value,
+    athlete_name: athlete?.name || form.athlete_email.value,
+    title: form.title.value,
+    message: form.message.value,
+    category: form.category.value,
+    priority: form.priority.value,
+    status: "unread",
+    email_status: config.notificationEmailWebhook ? "queued" : "pending_webhook",
+    sent_by: state.session?.email || "admin",
+    created_at
+  };
+  let emailStatus = "La notificacion quedo visible en el dashboard.";
+  if (config.notificationEmailWebhook) {
+    try {
+      await sendAthleteNotificationEmail(notification);
+      notification.email_status = "sent";
+      emailStatus = "Tambien se envio el correo al deportista.";
+    } catch (error) {
+      notification.email_status = "email_error";
+      emailStatus = "El dashboard se actualizo, pero el correo requiere revisar el webhook.";
+    }
+  }
+  await api.insert("athlete_notifications", notification);
+  notify("Notificaciones", "Mensaje enviado", emailStatus);
+  form.reset();
+  state.data = await api.loadAll();
+  renderAdmin();
+}
+
+async function markAthleteNotificationRead(id) {
+  await api.update("athlete_notifications", id, { status: "read", read_at: new Date().toISOString() });
+  state.data = await api.loadAll();
+  renderAthlete();
+}
+
 async function submitAdminDeposit(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -2339,6 +2477,19 @@ async function submitAdminDeposit(event) {
     company: form.company.value || "ROIS",
     proof_url,
     status: "paid"
+  });
+  await api.insert("athlete_notifications", {
+    athlete_id: athlete?.id,
+    athlete_email: form.athlete_email.value,
+    athlete_name: athlete?.name || form.athlete_email.value,
+    title: "Comprobante de deposito cargado",
+    message: `ROIS cargo el comprobante del periodo ${form.month.value} por $${Number(form.amount.value || 0).toLocaleString("es-MX")} MXN.`,
+    category: "pago",
+    priority: "alta",
+    status: "unread",
+    email_status: "sistema",
+    sent_by: state.session?.email || "admin",
+    created_at: new Date().toISOString()
   });
   notify("Dep\u00f3sitos", "Comprobante cargado", "El deportista ya puede ver el comprobante en su dashboard.");
   renderAdmin();

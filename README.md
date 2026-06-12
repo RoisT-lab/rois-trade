@@ -61,11 +61,13 @@ La anon key puede estar en frontend si las políticas RLS están activas. Nunca 
 - Patrocinios ROIS: Partner $25,000 MXN mensual, Oficial $50,000 MXN mensual y Legacy $100,000 MXN mensual con exclusividad de giro por compromiso anual.
 - Los pagos se activan por tipo de producto con Stripe Payment Links desde `app-config.js`.
 - Si Supabase tiene confirmación por correo activa, la empresa debe confirmar su email antes de iniciar sesión.
+- Admin puede enviar notificaciones a deportistas desde el panel. Se guardan en el dashboard del deportista y pueden disparar correo si `notificationEmailWebhook` esta configurado en `app-config.js`.
 
 ## Pendiente para producción completa
 
 - Conectar Supabase Storage para imágenes.
 - Conectar Supabase Storage para videos propios. Por ahora se recomienda URL de YouTube, Vimeo o archivo alojado.
 - Agregar moderación automática de imágenes antes de publicar.
+- Conectar `notificationEmailWebhook` a una Supabase Edge Function o proveedor transaccional para email real de notificaciones a deportistas.
 - Para conciliación automática de Stripe, crear webhook o Edge Function.
 - Agregar TOTP/MFA real para administradores y operaciones sensibles de clientes.
