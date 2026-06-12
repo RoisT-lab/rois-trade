@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260611-athlete-access-fix-v22";
+const roisBuild = "20260611-inline-logo-v23";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -155,10 +155,9 @@ function sessionIsBlocked() {
 }
 
 function applyBranding() {
-  document.querySelectorAll(".brand-logo, .side-logo").forEach(image => {
-    image.src = fixedLogoPath;
-    image.hidden = false;
-    image.closest(".brand, .sidebar")?.classList.remove("logo-fallback");
+  document.querySelectorAll(".brand-logo, .side-logo").forEach(logo => {
+    logo.hidden = false;
+    logo.closest(".brand, .sidebar")?.classList.remove("logo-fallback");
   });
   applySessionBranding();
   document.body.classList.add("rois-brand-ready");
@@ -177,7 +176,7 @@ function applySessionBranding() {
 }
 
 function handleMissingImages() {
-  document.querySelectorAll(".brand-logo, .side-logo").forEach(image => {
+  document.querySelectorAll("img.brand-logo, img.side-logo").forEach(image => {
     image.addEventListener("error", () => {
       image.hidden = true;
       image.closest(".brand, .sidebar")?.classList.add("logo-fallback");
@@ -2486,7 +2485,7 @@ function openAthleteProfileModal(athlete) {
 }
 
 function partnerCard(partner) {
-  const image = partner.image_url || "./assets/rois-logo-cropped.png";
+  const image = partner.image_url || "./assets/rois-isotipo-cropped.png";
   const link = partner.url ? `<a class="btn" href="${partner.url}" target="_blank" rel="noopener">Ver aliado</a>` : `<button class="btn" type="button" data-open-login>Solicitar conexi\u00f3n</button>`;
   return `
     <article class="partner-card">

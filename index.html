@@ -4,15 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ROIS | Plataforma Privada</title>
-  <meta name="rois-build" content="20260611-athlete-access-fix-v22" />
+  <meta name="rois-build" content="20260611-inline-logo-v23" />
   <meta name="description" content="ROIS conecta empresas aprobadas con eventos premium, relaciones estratégicas y oportunidades de patrocinio." />
-  <link rel="stylesheet" href="./styles.css?v=20260611-athlete-access-fix-v22" />
+  <link rel="stylesheet" href="./styles.css?v=20260611-inline-logo-v23" />
 </head>
 <body>
+  <svg class="rois-logo-sprite" aria-hidden="true" focusable="false">
+    <symbol id="roisLogoSymbol" viewBox="0 0 1200 420">
+      <rect width="1200" height="420" rx="44" fill="#000" />
+      <path d="M130 185H315C354 185 354 245 315 245H190L320 315" stroke="#fff" stroke-width="10" stroke-linecap="square" stroke-linejoin="round" />
+      <rect x="455" y="185" width="180" height="92" rx="46" stroke="#fff" stroke-width="10" />
+      <path d="M780 185V277" stroke="#fff" stroke-width="10" stroke-linecap="square" />
+      <path d="M940 185H1090M940 185C910 185 910 235 940 235H1060C1090 235 1090 277 1060 277H910" stroke="#fff" stroke-width="10" stroke-linecap="square" stroke-linejoin="round" />
+    </symbol>
+  </svg>
   <div id="app" class="app-shell">
     <header class="topbar">
       <a href="#home" class="brand" data-route="home" aria-label="ROIS">
-        <img class="brand-logo" src="./assets/rois-logo-cropped.png" alt="ROIS" />
+        <svg class="brand-logo rois-logo-svg" viewBox="0 0 1200 420" role="img" aria-label="ROIS"><use href="#roisLogoSymbol"></use></svg>
       </a>
       <nav class="public-nav" aria-label="Navegación pública">
         <a href="#partners">Patrocinadores</a>
@@ -112,7 +121,7 @@
         <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar menú"></button>
         <aside class="sidebar">
           <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menú">×</button>
-          <img class="side-logo" src="./assets/rois-logo-cropped.png" alt="ROIS" />
+          <svg class="side-logo rois-logo-svg" viewBox="0 0 1200 420" role="img" aria-label="ROIS"><use href="#roisLogoSymbol"></use></svg>
           <nav class="side-nav" data-dashboard-nav="client">
             <button class="active" type="button" data-dashboard-target="client-events">Eventos</button>
             <button type="button" data-dashboard-target="client-feed">Feed deportivo</button>
@@ -161,7 +170,7 @@
         <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar menú"></button>
         <aside class="sidebar">
           <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menú">×</button>
-          <img class="side-logo" src="./assets/rois-logo-cropped.png" alt="ROIS" />
+          <svg class="side-logo rois-logo-svg" viewBox="0 0 1200 420" role="img" aria-label="ROIS"><use href="#roisLogoSymbol"></use></svg>
           <nav class="side-nav" data-dashboard-nav="athlete">
             <button class="active" type="button" data-dashboard-target="athlete-profile">Mi perfil</button>
             <button type="button" data-dashboard-target="athlete-notifications">Notificaciones</button>
@@ -208,7 +217,7 @@
         <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar menú"></button>
         <aside class="sidebar">
           <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menú">×</button>
-          <img class="side-logo" src="./assets/rois-logo-cropped.png" alt="ROIS" />
+          <svg class="side-logo rois-logo-svg" viewBox="0 0 1200 420" role="img" aria-label="ROIS"><use href="#roisLogoSymbol"></use></svg>
           <nav class="side-nav" data-dashboard-nav="admin">
             <button class="active" type="button" data-dashboard-target="admin-users">Usuarios</button>
             <button type="button" data-dashboard-target="admin-athletes">Deportistas</button>
@@ -307,7 +316,7 @@
     </div>
   </div>
 
-  <script src="./app-config.js?v=20260611-athlete-access-fix-v22" charset="UTF-8"></script>
-  <script src="./app.js?v=20260611-athlete-access-fix-v22" charset="UTF-8"></script>
+  <script src="./app-config.js?v=20260611-inline-logo-v23" charset="UTF-8"></script>
+  <script src="./app.js?v=20260611-inline-logo-v23" charset="UTF-8"></script>
 </body>
 </html>

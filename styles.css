@@ -3076,3 +3076,61 @@ body.rois-brand-ready .mobile-avatar img {
     max-height: 340px;
   }
 }
+
+/* Inline ROIS logo system */
+.rois-logo-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.rois-logo-svg {
+  display: block;
+  aspect-ratio: 1200 / 420;
+  object-fit: initial;
+  object-position: initial;
+  mix-blend-mode: normal;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.brand {
+  min-width: clamp(230px, 22vw, 340px);
+  display: inline-flex;
+  align-items: center;
+}
+
+.brand-logo {
+  width: clamp(220px, 22vw, 330px);
+  height: auto;
+  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.22));
+}
+
+.side-logo {
+  width: 190px;
+  max-width: 100%;
+  height: auto;
+  margin: 2px 0 34px;
+  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.10));
+}
+
+body.rois-brand-ready .brand-logo,
+body.rois-brand-ready .side-logo {
+  opacity: 1 !important;
+}
+
+@media (max-width: 760px) {
+  .brand {
+    min-width: 170px;
+  }
+
+  .brand-logo {
+    width: 178px;
+  }
+
+  .side-logo {
+    width: 168px;
+    margin-bottom: 28px;
+  }
+}
