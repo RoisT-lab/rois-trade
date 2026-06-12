@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260611-logo-transparent-v26";
+const roisBuild = "20260611-athlete-photo-free-v27";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -186,6 +186,11 @@ function handleMissingImages() {
     image.addEventListener("error", () => {
       image.hidden = true;
       image.closest(".mobile-avatar")?.classList.add("avatar-fallback");
+    });
+  });
+  document.querySelectorAll(".company-session-logo").forEach(image => {
+    image.addEventListener("error", () => {
+      image.hidden = true;
     });
   });
 }
@@ -946,6 +951,10 @@ function escapeAttr(value = "") {
     .replaceAll("'", "&#039;");
 }
 
+function profileInitials(name = "ROIS") {
+  return escapeHtml(String(name || "ROIS").trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "R");
+}
+
 function renderSession() {
   const area = document.getElementById("sessionArea");
   if (!state.session) {
@@ -1283,7 +1292,10 @@ function renderAthleteHeader() {
   document.getElementById("athleteAccountEyebrow").textContent = "Cuenta deportiva";
   document.getElementById("athleteAccountName").textContent = athlete?.name || state.session?.name || "Deportista ROIS";
   const logo = document.getElementById("athleteProfileLogo");
-  if (logo) logo.src = athlete?.image_url || "./assets/rois-isotipo-cropped.png";
+  if (logo) {
+    logo.hidden = !athlete?.image_url;
+    if (athlete?.image_url) logo.src = athlete.image_url;
+  }
   applySessionBranding();
 }
 
@@ -1395,7 +1407,7 @@ function renderAthleteProfile() {
       </div>
       <form id="athleteProfileForm" class="form-grid">
         <div class="company-logo-preview">
-          <img src="${athlete.image_url || "./assets/rois-isotipo-cropped.png"}" alt="${escapeAttr(athlete.name)}">
+          ${athlete.image_url ? `<img src="${athlete.image_url}" alt="${escapeAttr(athlete.name)}" onerror="this.hidden=true;this.parentElement.classList.add('image-fallback')">` : `<span class="profile-photo-placeholder">${profileInitials(athlete.name)}</span>`}
           <span>${athlete.status === "approved" ? "Perfil aprobado" : "Pendiente de revisi\u00f3n"}</span>
         </div>
         <label>Nombre<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
@@ -1890,7 +1902,7 @@ async function submitAthleteRequirements(event) {
   };
   if (imageFile) {
     patch.image_url = await fileToDataUrl(imageFile);
-    patch.visual_status = "pending_review";
+    patch.visual_status = "approved";
   }
   if (proposalFile) {
     patch.proposal_url = await fileToDataUrl(proposalFile);
@@ -1908,7 +1920,7 @@ async function submitAthleteRequirements(event) {
   }
   state.session = { ...state.session, name: patch.name };
   saveSession(state.session);
-  notify("Expediente deportivo", "Requisitos guardados", "ROIS revisara los visuales y activara el perfil para operaciones con empresas.");
+  notify("Expediente deportivo", "Requisitos guardados", "Tu foto de perfil quedo activa. ROIS seguira revisando documentos sensibles cuando aplique.");
   renderAthlete();
   renderAdmin();
   renderPublic();
@@ -1935,7 +1947,7 @@ async function submitAthleteProfile(event) {
   };
   if (imageFile) {
     patch.image_url = await fileToDataUrl(imageFile);
-    patch.visual_status = "pending_review";
+    patch.visual_status = "approved";
   }
   if (proposalFile) {
     patch.proposal_url = await fileToDataUrl(proposalFile);
@@ -1945,7 +1957,7 @@ async function submitAthleteProfile(event) {
   await api.update("athletes", athlete.id, patch);
   state.session = { ...state.session, name: patch.name };
   saveSession(state.session);
-  notify("Perfil deportivo", "Perfil actualizado", imageFile ? "La nueva foto queda pendiente de revisi\u00f3n visual ROIS." : "Tu perfil deportivo fue actualizado.");
+  notify("Perfil deportivo", "Perfil actualizado", imageFile ? "Tu nueva foto ya esta visible en tu perfil deportivo." : "Tu perfil deportivo fue actualizado.");
   renderAthlete();
   renderPublic();
 }
