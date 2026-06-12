@@ -3257,6 +3257,7 @@ body:not([data-active-view="home"]) .topbar .brand,
 
 .hero #publicHomeCover {
   width: 100%;
+  max-width: none;
   margin-bottom: clamp(42px, 5vw, 70px);
 }
 
@@ -3265,6 +3266,11 @@ body:not([data-active-view="home"]) .topbar .brand,
   margin: 0;
   min-height: clamp(300px, 34vw, 520px);
   border-radius: 34px;
+}
+
+body[data-active-view="home"] .hero {
+  width: min(1340px, calc(100vw - 40px));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .hero .home-cover img {
