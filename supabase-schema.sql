@@ -427,6 +427,8 @@ grant insert on companies to authenticated;
 grant update (name, owner, interest, website, description, logo_url, status) on companies to authenticated;
 grant insert on crm to authenticated;
 grant insert, update on requests, sponsorships, payments to authenticated;
+grant insert, update, delete on site_settings to authenticated;
+grant insert on uploads to authenticated;
 grant update, delete on athletes, events, news, partnerships, uploads to authenticated;
 grant insert, update, delete on athlete_posts, athlete_results, athlete_expenses to authenticated;
 grant insert on athlete_deposits to authenticated;

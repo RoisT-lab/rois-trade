@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260611-athlete-photo-free-v27";
+const roisBuild = "20260611-home-cover-admin-v28";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -970,6 +970,21 @@ function renderSession() {
 }
 
 function renderPublic() {
+  const cover = siteSetting("home_cover");
+  const coverSlot = document.getElementById("publicHomeCover");
+  if (coverSlot) {
+    coverSlot.innerHTML = cover?.image_url ? `
+      <section class="home-cover">
+        <img src="${cover.image_url}" alt="${escapeAttr(cover.title || "Portada ROIS")}">
+        <div>
+          <p class="eyebrow">${escapeHtml(cover.kicker || "Portada institucional")}</p>
+          <h2>${escapeHtml(cover.title || "Ecosistema ROIS")}</h2>
+          ${cover.subtitle ? `<p>${escapeHtml(cover.subtitle)}</p>` : ""}
+        </div>
+      </section>
+    ` : "";
+  }
+
   const publicPartners = state.data.partnerships.filter(item => item.status === "approved" && visualIsPublic(item));
   document.getElementById("publicPartners").innerHTML = publicPartners.length ? `
     <div class="partner-grid">
@@ -1017,6 +1032,16 @@ function renderPublic() {
   ` : `<div class="empty">Las noticias publicadas aparecer\u00e1n aqu\u00ed.</div>`;
 
   document.querySelectorAll("[data-open-login]").forEach(button => button.addEventListener("click", openLogin));
+}
+
+function siteSetting(id) {
+  const row = state.data.site_settings.find(item => item.id === id);
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value);
+  } catch (error) {
+    return { value: row.value };
+  }
 }
 
 function renderClient() {
@@ -1758,6 +1783,7 @@ function renderAdminUploads() {
 }
 
 function renderAdminUploads() {
+  const homeCover = siteSetting("home_cover");
   const postRows = state.data.athlete_posts.map(item => [
     visualThumb(item),
     item.athlete_name || item.athlete_email,
@@ -1785,6 +1811,17 @@ function renderAdminUploads() {
   ]);
   panel("admin-uploads", "Uploads", "Moderaci\u00f3n de visuales, reels, resultados y comprobantes", `
     <div class="panel-body">
+      <form id="homeCoverForm" class="form-grid">
+        <label>T\u00edtulo de portada<input name="title" value="${escapeAttr(homeCover?.title || "")}" placeholder="Portada institucional ROIS"></label>
+        <label>Etiqueta<input name="kicker" value="${escapeAttr(homeCover?.kicker || "")}" placeholder="Ecosistema privado"></label>
+        <label style="grid-column:1/-1">Subt\u00edtulo<textarea name="subtitle" placeholder="Mensaje breve para posicionar la portada.">${escapeHtml(homeCover?.subtitle || "")}</textarea></label>
+        <label style="grid-column:1/-1">Imagen de portada<input name="cover" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <button class="btn primary" type="submit">Publicar portada</button>
+        ${homeCover?.image_url ? `<button class="btn" type="button" id="clearHomeCover">Quitar portada</button>` : ""}
+      </form>
+      ${homeCover?.image_url ? `<div class="cover-admin-preview"><img src="${homeCover.image_url}" alt="Portada actual"><span>Portada activa en home</span></div>` : `<p class="hint">Sube una portada horizontal. Recomendado: 1600 x 700 px o proporci\u00f3n similar.</p>`}
+    </div>
+    <div class="panel-body">
       <form id="uploadForm" class="form-grid">
         <label>Archivo visual<input name="file" type="file" accept="image/png,image/jpeg,image/webp" required></label>
         <label>Tipo<select name="type"><option>Evento</option><option>Deportista</option><option>Contrato</option><option>Documento</option></select></label>
@@ -1811,6 +1848,43 @@ function renderAdminUploads() {
     notify("Uploads", "Archivo registrado", "El visual qued\u00f3 pendiente de revisi\u00f3n.");
     renderAdmin();
   });
+  document.getElementById("homeCoverForm").addEventListener("submit", submitHomeCover);
+  document.getElementById("clearHomeCover")?.addEventListener("click", clearHomeCover);
+}
+
+async function submitHomeCover(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const existing = siteSetting("home_cover") || {};
+  const file = form.cover.files[0];
+  const image_url = file ? await fileToDataUrl(file) : existing.image_url;
+
+  if (!image_url) {
+    notify("Portada", "Selecciona una imagen", "Sube una imagen horizontal para publicar el banner del home.");
+    return;
+  }
+
+  await api.upsert("site_settings", {
+    id: "home_cover",
+    value: JSON.stringify({
+      image_url,
+      title: form.title.value.trim(),
+      kicker: form.kicker.value.trim(),
+      subtitle: form.subtitle.value.trim()
+    })
+  });
+  notify("Portada", "Portada publicada", "El banner ya aparece en el home.");
+  state.data = await api.loadAll();
+  renderAdmin();
+  renderPublic();
+}
+
+async function clearHomeCover() {
+  await api.remove("site_settings", "home_cover");
+  notify("Portada", "Portada retirada", "El home vuelve a su estado base.");
+  state.data = await api.loadAll();
+  renderAdmin();
+  renderPublic();
 }
 
 function renderAdminStats() {
