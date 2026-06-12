@@ -504,6 +504,189 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   border-left: 1px solid var(--line);
 }
 
+.launch-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: end;
+  padding: clamp(24px, 4vw, 42px);
+  border-bottom: 1px solid var(--line);
+}
+
+.launch-hero h3 {
+  max-width: 760px;
+  font-size: clamp(24px, 3vw, 42px);
+  line-height: 1.08;
+}
+
+.launch-hero p:not(.eyebrow) {
+  max-width: 680px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.launch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.launch-scoreboard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+
+.launch-scoreboard > div {
+  display: grid;
+  gap: 12px;
+  min-height: 142px;
+  padding: 24px;
+  border-right: 1px solid var(--line);
+  align-content: center;
+}
+
+.launch-scoreboard > div:nth-child(3n) {
+  border-right: 0;
+}
+
+.launch-scoreboard span:first-child,
+.launch-card li,
+.launch-sponsor-grid p {
+  color: var(--muted);
+}
+
+.launch-scoreboard strong {
+  color: var(--text);
+  font-size: 34px;
+  font-weight: 620;
+  letter-spacing: 0;
+}
+
+.launch-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.launch-progress::before {
+  content: "";
+  display: block;
+  grid-column: 1;
+  grid-row: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(44, 52, 64, 0.10);
+}
+
+.launch-progress i {
+  display: block;
+  grid-column: 1;
+  grid-row: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.launch-progress em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.launch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: clamp(22px, 3vw, 32px);
+  border-bottom: 1px solid var(--line);
+}
+
+.launch-card {
+  min-height: 280px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.launch-card h3 {
+  margin-bottom: 18px;
+  font-size: 22px;
+  line-height: 1.22;
+}
+
+.launch-card ul {
+  display: grid;
+  gap: 10px;
+  padding-left: 18px;
+}
+
+.launch-sponsor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.launch-sponsor-grid article {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: #fff;
+}
+
+.launch-sponsor-grid span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .launch-hero,
+  .launch-grid,
+  .launch-sponsor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .launch-actions {
+    justify-content: flex-start;
+  }
+
+  .launch-scoreboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .launch-scoreboard > div,
+  .launch-scoreboard > div:nth-child(3n) {
+    border-right: 1px solid var(--line);
+  }
+
+  .launch-scoreboard > div:nth-child(2n) {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .launch-scoreboard {
+    grid-template-columns: 1fr;
+  }
+
+  .launch-scoreboard > div,
+  .launch-scoreboard > div:nth-child(2n),
+  .launch-scoreboard > div:nth-child(3n) {
+    border-right: 0;
+  }
+}
+
 .athlete-metrics span {
   color: var(--muted);
   font-size: 9px;

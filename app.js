@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260612-cover-full-width-v31";
+const roisBuild = "20260612-launch-plan-v33";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -1581,6 +1581,7 @@ function renderAdmin() {
   renderAdminCrm();
   renderAdminPayments();
   renderAdminUploads();
+  renderAdminLaunch();
   renderAdminStats();
   renderAccountSettings("admin-settings");
 }
@@ -1884,6 +1885,131 @@ async function clearHomeCover() {
   state.data = await api.loadAll();
   renderAdmin();
   renderPublic();
+}
+
+function renderAdminLaunch() {
+  const companies = state.data.companies || [];
+  const athletes = state.data.athletes || [];
+  const events = state.data.events || [];
+  const sponsorships = state.data.sponsorships || [];
+  const publicAthletes = athletes.filter(item => item.status === "approved" && visualIsPublic(item));
+  const activeSponsors = sponsorships.filter(item => ["review", "pending", "active", "paid"].includes(String(item.status || "").toLowerCase()));
+  const approvedEvents = events.filter(item => item.status === "approved" && visualIsPublic(item));
+  const launchMessages = {
+    athlete: "ROIS abre convocatoria nacional para deportistas competitivos que buscan patrocinio profesional. Crea tu perfil, sube tu plan de trabajo y empieza a presentarte ante empresas.",
+    company: "Invitamos a empresas a registrarse en ROIS para revisar deportistas listos para patrocinio institucional desde $5,000 MXN mensuales.",
+    sponsor: "ROIS esta construyendo una red nacional de talento deportivo, empresas y eventos privados. Cuando exista traccion inicial, presentaremos oportunidades Partner, Oficial y Legacy."
+  };
+  const launchRows = [
+    ["Academia de golf aliada", "1", badge("prioridad")],
+    ["Deportistas registrados", `${athletes.length}/20`, launchProgress(athletes.length, 20)],
+    ["Perfiles publicables", `${publicAthletes.length}/10`, launchProgress(publicAthletes.length, 10)],
+    ["Empresas registradas", `${companies.length}/30`, launchProgress(companies.length, 30)],
+    ["Solicitudes de patrocinio", `${activeSponsors.length}/3`, launchProgress(activeSponsors.length, 3)],
+    ["Evento piloto", approvedEvents.length ? "Activo" : "Por disenar", approvedEvents.length ? badge("listo") : badge("semana 3")]
+  ];
+  const weekRows = [
+    ["Dias 1-3", "Mensaje, convocatoria deportistas y academia de golf", "Publicar convocatoria y contactar academia"],
+    ["Dias 4-7", "Primeros perfiles deportivos", "Registrar y preparar 5 deportistas"],
+    ["Dias 8-10", "Contenido para empresas", "Invitar red personal y negocios premium"],
+    ["Dias 11-15", "Conversion a registros", "Contactar 15 a 20 empresas diarias"],
+    ["Dias 16-20", "Solicitudes de patrocinio", "Presentar perfiles concretos a interesados"],
+    ["Dias 21-24", "ROIS Private Sponsor Session", "Disenar evento piloto hibrido"],
+    ["Dias 25-27", "Resumen de traccion", "Preparar evidencia para sponsors oficiales"],
+    ["Dias 28-30", "Sponsors oficiales", "Contactar Monex, Klu y Excent Capital"]
+  ];
+  const contentRows = [
+    ["Post 1", "Que es ROIS", "Plataforma privada para conectar empresas con talento deportivo competitivo"],
+    ["Post 2", "Convocatoria deportistas", "Registro nacional para deportistas en plan competitivo"],
+    ["Post 3", "Convocatoria empresas", "Patrocina talento deportivo desde $5,000 MXN mensuales"],
+    ["Reel 1", "Como funciona", "Empresa se registra, revisa perfiles y solicita patrocinio"],
+    ["Story fija", "Registro empresas", "CTA directo al registro empresarial"],
+    ["Story fija", "Registro deportistas", "CTA directo al registro deportivo"]
+  ];
+  panel("admin-launch", "Lanzamiento nacional", "Plan operativo online de 30 dias", `
+    <div class="launch-hero">
+      <div>
+        <p class="eyebrow">Mensaje principal</p>
+        <h3>Patrocina talento deportivo competitivo desde $5,000 MXN mensuales.</h3>
+        <p>Usa Instagram, Facebook y red personal como trafico. La conversion debe ocurrir por registro directo en la plataforma.</p>
+      </div>
+      <div class="launch-actions">
+        ${button("Copiar mensaje deportistas", () => copyLaunchText(launchMessages.athlete))}
+        ${button("Copiar mensaje empresas", () => copyLaunchText(launchMessages.company))}
+      </div>
+    </div>
+    <div class="launch-scoreboard">
+      ${launchRows.map(([label, value, status]) => `<div><span>${label}</span><strong>${value}</strong>${status}</div>`).join("")}
+    </div>
+    <div class="launch-grid">
+      <div class="launch-card">
+        <p class="eyebrow">Embudo deportistas</p>
+        <h3>Meta: 50 interesados, 20 registros, 10 publicables.</h3>
+        <ul>
+          <li>Instagram stories y reels.</li>
+          <li>Facebook grupos deportivos.</li>
+          <li>Contactos de academia.</li>
+          <li>DM a atletas competitivos.</li>
+        </ul>
+      </div>
+      <div class="launch-card">
+        <p class="eyebrow">Embudo empresas</p>
+        <h3>Meta: 100 contactos, 30 registros, 3 solicitudes.</h3>
+        <ul>
+          <li>Red personal y referidos.</li>
+          <li>Instagram/Facebook ROIS.</li>
+          <li>Negocios premium nacionales.</li>
+          <li>Registro directo sin costo.</li>
+        </ul>
+      </div>
+      <div class="launch-card">
+        <p class="eyebrow">Rutina diaria</p>
+        <h3>Una accion debe mover registro o patrocinio.</h3>
+        <ul>
+          <li>Publicar contenido y responder mensajes.</li>
+          <li>Revisar registros y perfiles.</li>
+          <li>Prospectar empresas.</li>
+          <li>Actualizar plataforma.</li>
+          <li>Dar seguimiento comercial.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel-body">
+      <p class="eyebrow">Calendario 30 dias</p>
+      ${table(["Periodo", "Objetivo", "Accion"], weekRows)}
+    </div>
+    <div class="panel-body">
+      <p class="eyebrow">Contenido inicial</p>
+      ${table(["Pieza", "Tema", "Mensaje"], contentRows)}
+    </div>
+    <div class="panel-body">
+      <p class="eyebrow">Sponsors oficiales</p>
+      <div class="launch-sponsor-grid">
+        ${["Banco Monex", "Klu", "Excent Capital"].map(name => `
+          <article>
+            <span>${name}</span>
+            <strong>Contactar despues de traccion inicial</strong>
+            <p>Usar catalogo visible, empresas registradas, solicitudes de patrocinio y evento piloto como evidencia.</p>
+            ${button("Copiar argumento", () => copyLaunchText(`${name}: ROIS esta construyendo una red nacional de talento deportivo, empresas y eventos privados. Buscamos aliados institucionales para activar patrocinios deportivos, presencia en eventos y posicionamiento premium dentro del ecosistema.`))}
+          </article>
+        `).join("")}
+      </div>
+    </div>
+  `);
+}
+
+function launchProgress(value, target) {
+  const percent = Math.min(100, Math.round((Number(value || 0) / target) * 100));
+  return `<span class="launch-progress"><i style="width:${percent}%"></i><em>${percent}%</em></span>`;
+}
+
+async function copyLaunchText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    notify("Lanzamiento", "Texto copiado", "Ya puedes pegarlo en Instagram, Facebook o tu red de contactos.");
+  } catch (error) {
+    notify("Lanzamiento", "Texto listo", text);
+  }
 }
 
 function renderAdminStats() {
