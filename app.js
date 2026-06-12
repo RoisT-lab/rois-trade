@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260609-athlete-test-exempt-v21";
+const roisBuild = "20260611-athlete-access-fix-v22";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -364,6 +364,7 @@ function supabaseApi() {
       return result;
     },
     async login(email, password) {
+      const preferredAthlete = athleteAnnualFeeExempt(email);
       const auth = await request("/auth/v1/token?grant_type=password", {
         method: "POST",
         headers: headers(),
@@ -378,15 +379,15 @@ function supabaseApi() {
       const profiles = await request(`/rest/v1/profiles?select=*&id=eq.${auth.user.id}&limit=1`, {
         headers: headers(auth.access_token)
       });
-      if (!profiles.length && (companies.length || athletes.length)) {
+      if (!profiles.length && (companies.length || athletes.length) && !preferredAthlete) {
         throw new Error("Esta cuenta fue dada de baja o requiere reactivaci\u00f3n por ROIS.");
       }
-      const profile = profiles[0] || (auth.user.user_metadata?.role === "athlete" ? await this.ensureAthleteAccount(auth) : await this.ensureClientAccount(auth));
+      const profile = preferredAthlete ? await this.ensureAthleteAccount(auth, { forceRole: true }) : profiles[0] || (auth.user.user_metadata?.role === "athlete" ? await this.ensureAthleteAccount(auth) : await this.ensureClientAccount(auth));
       if (["blocked", "deleted", "rejected"].includes(profile.status)) throw new Error("Esta cuenta fue dada de baja por ROIS.");
       if (profile.status !== "approved") throw new Error("Este usuario a\u00fan no est\u00e1 aprobado.");
-      if (companies.some(company => ["blocked", "deleted", "rejected"].includes(company.status))) throw new Error("Esta empresa fue dada de baja por ROIS.");
+      if (!preferredAthlete && companies.some(company => ["blocked", "deleted", "rejected"].includes(company.status))) throw new Error("Esta empresa fue dada de baja por ROIS.");
       if (athletes.some(athlete => ["blocked", "deleted", "rejected"].includes(athlete.status))) throw new Error("Esta cuenta deportiva fue dada de baja por ROIS.");
-      const role = profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(email, profile.role);
+      const role = preferredAthlete ? "athlete" : profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(email, profile.role);
       return { id: profile.id, email, role, name: profile.name, token: auth.access_token, mustChangePassword: !!profile.must_change_password };
     },
     async signupCompany({ company, email, contact, interest, password }) {
@@ -570,7 +571,7 @@ function supabaseApi() {
       }
       return profileRecord;
     },
-    async ensureAthleteAccount(auth) {
+    async ensureAthleteAccount(auth, options = {}) {
       const token = auth.access_token || auth.session?.access_token;
       const email = auth.user.email;
       const meta = auth.user.user_metadata || {};
@@ -588,9 +589,31 @@ function supabaseApi() {
         headers: { ...headers(token), Prefer: "resolution=ignore-duplicates,return=minimal" },
         body: JSON.stringify(profileRecord)
       });
+      if (options.forceRole) {
+        try {
+          await request(`/rest/v1/profiles?id=eq.${auth.user.id}`, {
+            method: "PATCH",
+            headers: { ...headers(token), Prefer: "return=minimal" },
+            body: JSON.stringify({ role: "athlete", status: "approved" })
+          });
+        } catch (error) {
+          // If RLS blocks the self-update, the manual admin SQL below will own the role correction.
+        }
+      }
       const existingAthletes = await request(`/rest/v1/athletes?select=id&email=eq.${encodeURIComponent(email)}&limit=1`, {
         headers: headers(token)
       });
+      if (options.forceRole && existingAthletes.length) {
+        try {
+          await request(`/rest/v1/athletes?id=eq.${existingAthletes[0].id}`, {
+            method: "PATCH",
+            headers: { ...headers(token), Prefer: "return=minimal" },
+            body: JSON.stringify({ profile_id: auth.user.id, status: "approved", visual_status: "approved", annual: 0 })
+          });
+        } catch (error) {
+          // The admin SQL can repair older records if RLS blocks this update.
+        }
+      }
       if (!existingAthletes.length) {
         await request("/rest/v1/athletes", {
           method: "POST",
