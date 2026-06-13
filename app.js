@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260613-athlete-video-files-v36";
+const roisBuild = "20260613-client-sponsor-reels-v37";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -715,6 +715,21 @@ function bindGlobalEvents() {
   document.getElementById("recoveryForm").addEventListener("submit", submitPasswordRecovery);
   document.getElementById("passwordForm").addEventListener("submit", submitPasswordChange);
   document.getElementById("registrationForm").addEventListener("submit", submitRegistration);
+  document.addEventListener("click", handleDashboardDelegatedActions);
+}
+
+function handleDashboardDelegatedActions(event) {
+  const sponsorButton = event.target.closest("[data-athlete-sponsor]");
+  if (sponsorButton) {
+    const athlete = state.data?.athletes?.find(item => item.id === sponsorButton.dataset.athleteSponsor);
+    if (athlete) startAthleteSponsorPayment(athlete);
+    return;
+  }
+  const profileButton = event.target.closest("[data-athlete-profile]");
+  if (profileButton) {
+    const athlete = state.data?.athletes?.find(item => item.id === profileButton.dataset.athleteProfile);
+    if (athlete) openAthleteProfileModal(athlete);
+  }
 }
 
 function showView(name) {
@@ -1064,7 +1079,6 @@ function renderClient() {
   renderClientSponsors();
   renderClientMarketplace();
   renderClientRegister();
-  renderClientStatus();
   renderClientPayments();
   renderAccountSettings("client-settings");
 }
@@ -1073,9 +1087,9 @@ function renderClientFeed() {
   const posts = state.data.athlete_posts
     .filter(post => post.status === "approved")
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  panel("client-feed", "Feed deportivo", "Entrenamientos y actualizaciones publicadas por deportistas", posts.length ? `
-    <div class="panel-body">
-      <div class="reels-feed">
+  panel("client-feed", "Feed deportivo", "Reels de deportistas listos para patrocinio", posts.length ? `
+    <div class="panel-body reels-panel-body">
+      <div class="reels-feed tiktok-feed" aria-label="Reels deportivos ROIS">
         ${posts.map(post => athleteFeedCard(post)).join("")}
       </div>
     </div>
@@ -1237,16 +1251,9 @@ function renderClientRegister() {
   });
 }
 
-function renderClientStatus() {
-  const rows = [
-    ...state.data.requests.filter(item => item.type !== "Interacci\u00f3n noticia").map(item => [item.title, item.type, item.priority || "Normal", badge(item.status)]),
-    ...state.data.sponsorships.map(item => [item.athlete, "Patrocinio", "Revisi\u00f3n ROIS", badge(item.status)])
-  ];
-  panel("client-status", "Estado Solicitudes", "Seguimiento operativo", rows.length ? table(["Solicitud", "\u00c1rea", "Prioridad", "Estado"], rows) : `<div class="empty">No hay solicitudes todav\u00eda.</div>`);
-}
-
 function renderClientPayments() {
-  const rows = state.data.payments.map(payment => [
+  const companyName = currentCompany()?.name || state.session?.name || "";
+  const rows = state.data.payments.filter(payment => payment.company === companyName).map(payment => [
     payment.concept,
     `$${Number(payment.amount).toLocaleString("es-MX")} MXN`,
     badge(payment.status),
@@ -2196,7 +2203,7 @@ function userActions(user, tableName) {
 
 async function createRequest(type, title) {
   await api.insert("requests", { type, title, owner: state.session?.name || "Empresa", status: "review" });
-  notify("Solicitud", "Solicitud creada", "El registro ya aparece en Estado Solicitudes.");
+  notify("Solicitud", "Solicitud creada", "ROIS ya recibi\u00f3 el registro para seguimiento operativo.");
   renderClient();
   renderAdmin();
 }
@@ -2375,17 +2382,26 @@ async function createEventSponsorshipRequest(event, level) {
 
 async function createSponsorship(athlete, amount, details = "", paymentUrl = "") {
   const athleteRecord = state.data.athletes.find(item => item.name === athlete);
-  await api.insert("sponsorships", { athlete, athlete_email: athleteRecord?.email || "", amount, company: state.session?.name || "Empresa", details, status: "review" });
+  const company = currentCompany();
+  const companyName = company?.name || state.session?.name || "Empresa";
+  await api.insert("sponsorships", {
+    athlete,
+    athlete_email: athleteRecord?.email || "",
+    amount,
+    company: companyName,
+    details,
+    status: paymentUrl ? "payment_started" : "review"
+  });
   await api.insert("requests", {
     type: "Patrocinio deportista",
     title: athlete,
-    owner: state.session?.name || "Empresa",
+    owner: companyName,
     details,
     priority: `$${Number(amount).toLocaleString("es-MX")} MXN`,
-    status: "review"
+    status: paymentUrl ? "payment_started" : "review"
   });
-  await api.insert("payments", { concept: `Patrocinio mensual - ${athlete}`, amount, company: state.session?.name || "Empresa", status: "pending", product_key: "" });
-  notify("Sponsor", "Patrocinio solicitado", "La solicitud fue enviada a revisi\u00f3n.");
+  await api.insert("payments", { concept: `Patrocinio mensual - ${athlete}`, amount, company: companyName, status: "pending", product_key: "" });
+  notify("Sponsor", paymentUrl ? "Checkout iniciado" : "Patrocinio solicitado", paymentUrl ? "Abrimos el link de pago mensual y registramos la solicitud en ROIS." : "ROIS asignar\u00e1 el link de pago mensual para completar el patrocinio.");
   renderClient();
   renderAdmin();
 }
@@ -2908,18 +2924,28 @@ function reelMedia(post, athlete) {
 }
 
 function athleteSponsorCta(athlete) {
-  return button(athlete.sponsor_payment_url ? "Pagar patrocinio" : "Solicitar patrocinio", () => startAthleteSponsorPayment(athlete));
+  return `<button class="btn" type="button" data-athlete-sponsor="${escapeAttr(athlete.id)}">${athlete.sponsor_payment_url ? "Pagar patrocinio" : "Solicitar patrocinio"}</button>`;
 }
 
 async function startAthleteSponsorPayment(athlete) {
-  const amount = athleteMonthlyTicket(athlete);
-  const details = athlete.sponsor_payment_url
-    ? "Pago mensual iniciado desde dashboard empresarial."
-    : "Solicitud enviada desde dashboard empresarial. Falta link mensual asignado por ROIS.";
-  if (athlete.sponsor_payment_url) {
-    openExternalUrl(athlete.sponsor_payment_url, `Patrocinio de ${athlete.name}`);
+  if (!state.session || state.session.role !== "client") {
+    openLogin();
+    return;
   }
-  await createSponsorship(athlete.name, amount, details, athlete.sponsor_payment_url || "");
+  try {
+    const amount = athleteMonthlyTicket(athlete);
+    const details = athlete.sponsor_payment_url
+      ? "Pago mensual iniciado desde dashboard empresarial."
+      : "Solicitud enviada desde dashboard empresarial. Falta link mensual asignado por ROIS.";
+    if (athlete.sponsor_payment_url) {
+      openExternalUrl(athlete.sponsor_payment_url, `Patrocinio de ${athlete.name}`);
+    } else {
+      notify("Patrocinio", "Link mensual pendiente", "ROIS debe asignar el link mensual de este deportista. La solicitud quedara registrada para seguimiento.");
+    }
+    await createSponsorship(athlete.name, amount, details, athlete.sponsor_payment_url || "");
+  } catch (error) {
+    notify("Patrocinio", "No fue posible registrar", humanError(error));
+  }
 }
 
 function athleteFeedCard(post) {
@@ -2942,7 +2968,7 @@ function athleteFeedCard(post) {
         <div class="reel-actions">
           ${post.video_url && !post.video_url.startsWith("data:video") ? `<a class="btn" href="${post.video_url}" target="_blank" rel="noopener">Abrir video</a>` : ""}
           ${athlete ? `
-            ${athlete ? button("Ver perfil", () => openAthleteProfileModal(athlete)) : ""}
+            <button class="btn" type="button" data-athlete-profile="${escapeAttr(athlete.id)}">Ver perfil</button>
             ${athleteSponsorCta(athlete)}
           ` : ""}
         </div>

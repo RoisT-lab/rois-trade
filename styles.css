@@ -1518,6 +1518,79 @@ input[readonly] {
   gap: 10px;
 }
 
+.reels-panel-body {
+  background: #050505;
+  border-radius: 30px;
+  padding: 18px;
+}
+
+.tiktok-feed {
+  max-width: 520px;
+  max-height: min(82vh, 860px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.34) transparent;
+}
+
+.tiktok-feed .reel-card {
+  position: relative;
+  min-height: min(78vh, 780px);
+  overflow: hidden;
+  grid-template-columns: 1fr;
+  border-color: rgba(255, 255, 255, 0.12);
+  border-radius: 30px;
+  background: #050505;
+  color: #fff;
+  scroll-snap-align: start;
+  box-shadow: none;
+}
+
+.tiktok-feed .reel-media,
+.tiktok-feed .reel-media iframe,
+.tiktok-feed .reel-media video,
+.tiktok-feed .reel-media img {
+  min-height: min(78vh, 780px);
+}
+
+.tiktok-feed .reel-content {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 2;
+  gap: 16px;
+  padding: 110px 24px 24px;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.78) 42%, rgba(0, 0, 0, 0.94) 100%);
+  color: #fff;
+}
+
+.tiktok-feed .reel-content p,
+.tiktok-feed .reel-content .eyebrow {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.tiktok-feed .row-meta .pill {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tiktok-feed .reel-actions {
+  grid-template-columns: 1fr 1fr;
+}
+
+.tiktok-feed .reel-actions .btn {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tiktok-feed .reel-actions .btn:last-child {
+  border-color: #fff;
+  color: #111;
+  background: #fff;
+}
+
 .own-reel-card {
   min-height: 460px;
 }
@@ -3838,6 +3911,35 @@ body[data-active-view="home"] .topbar .btn.nav-create-account {
 
   .reel-content {
     padding: 24px;
+  }
+
+  .reels-panel-body {
+    margin-inline: -4px;
+    padding: 10px;
+    border-radius: 26px;
+  }
+
+  .tiktok-feed {
+    max-width: 100%;
+    max-height: none;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  .tiktok-feed .reel-card,
+  .tiktok-feed .reel-media,
+  .tiktok-feed .reel-media iframe,
+  .tiktok-feed .reel-media video,
+  .tiktok-feed .reel-media img {
+    min-height: min(72vh, 640px);
+  }
+
+  .tiktok-feed .reel-content {
+    padding: 92px 18px 18px;
+  }
+
+  .tiktok-feed .reel-actions {
+    grid-template-columns: 1fr;
   }
 
   .athlete-profile-cover {
