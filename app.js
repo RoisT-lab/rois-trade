@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260613-reels-athlete-flow-v35";
+const roisBuild = "20260613-athlete-video-files-v36";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -1521,10 +1521,6 @@ function renderAthleteProfile() {
     <div class="panel-body">
       ${athleteProfileHero(athlete, logos)}
       <form id="athleteProfileForm" class="form-grid">
-        <div class="company-logo-preview">
-          ${athlete.image_url ? `<img src="${athlete.image_url}" alt="${escapeAttr(athlete.name)}" onerror="this.hidden=true;this.parentElement.classList.add('image-fallback')">` : `<span class="profile-photo-placeholder">${profileInitials(athlete.name)}</span>`}
-          <span>${athlete.status === "approved" ? "Perfil aprobado" : "Pendiente de revisi\u00f3n"}</span>
-        </div>
         <label>Nombre<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
         <label>Deporte<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="Disciplina"></label>
         <label>Categor\u00eda<input name="category" value="${escapeAttr(athlete.category || "")}"></label>
@@ -1606,7 +1602,7 @@ function renderAthleteReels() {
     <div class="panel-body">
       <form id="athletePostForm" class="form-grid">
         <label>T\u00edtulo<input name="title" required placeholder="Entrenamiento de potencia"></label>
-        <label>Link de video<input name="video_url" type="url" required placeholder="YouTube, Vimeo, Drive o reel publicado"></label>
+        <label>Video del reel<input name="video_file" type="file" required accept="video/mp4,video/webm,video/quicktime"></label>
         <label style="grid-column:1/-1">Descripci\u00f3n<textarea name="caption" required placeholder="Contexto deportivo y valor para patrocinadores."></textarea></label>
         <label style="grid-column:1/-1">Imagen miniatura opcional<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Publicar reel</button>
@@ -2311,6 +2307,16 @@ async function submitAthletePost(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const athlete = currentAthlete();
+  const videoFile = form.video_file.files[0];
+  if (!videoFile) {
+    notify("Entrenamientos", "Video requerido", "Selecciona un archivo de video para publicar tu reel.");
+    return;
+  }
+  if (videoFile.size > 35 * 1024 * 1024) {
+    notify("Entrenamientos", "Video demasiado pesado", "Sube un reel corto en MP4, WebM o MOV de hasta 35 MB.");
+    return;
+  }
+  const video_url = await fileToDataUrl(videoFile);
   const image_url = await fileToDataUrl(form.image.files[0]);
   await api.insert("athlete_posts", {
     athlete_id: athlete?.id,
@@ -2318,7 +2324,7 @@ async function submitAthletePost(event) {
     athlete_name: athlete?.name || state.session.name,
     title: form.title.value,
     caption: form.caption.value,
-    video_url: form.video_url.value,
+    video_url,
     image_url,
     status: "approved",
     visual_status: "approved"
@@ -2887,6 +2893,9 @@ function videoEmbedUrl(url = "") {
 
 function reelMedia(post, athlete) {
   const embedUrl = videoEmbedUrl(post.video_url);
+  if (post.video_url?.startsWith("data:video")) {
+    return `<video src="${post.video_url}" controls playsinline preload="metadata" poster="${escapeAttr(post.image_url || athlete?.image_url || "")}"></video>`;
+  }
   if (embedUrl) {
     return `<iframe src="${embedUrl}" title="${escapeAttr(post.title || "Reel deportivo")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
   }
@@ -2931,7 +2940,7 @@ function athleteFeedCard(post) {
           </div>
         </div>
         <div class="reel-actions">
-          ${post.video_url ? `<a class="btn" href="${post.video_url}" target="_blank" rel="noopener">Abrir video</a>` : ""}
+          ${post.video_url && !post.video_url.startsWith("data:video") ? `<a class="btn" href="${post.video_url}" target="_blank" rel="noopener">Abrir video</a>` : ""}
           ${athlete ? `
             ${athlete ? button("Ver perfil", () => openAthleteProfileModal(athlete)) : ""}
             ${athleteSponsorCta(athlete)}
@@ -2956,7 +2965,7 @@ function athleteOwnReelCard(post) {
           <p>${escapeHtml(post.caption || "Actualizacion deportiva.")}</p>
         </div>
         <div class="reel-actions">
-          ${post.video_url ? `<a class="btn" href="${post.video_url}" target="_blank" rel="noopener">Abrir video</a>` : ""}
+          ${post.video_url && !post.video_url.startsWith("data:video") ? `<a class="btn" href="${post.video_url}" target="_blank" rel="noopener">Abrir video</a>` : ""}
           ${badge(post.status || "published")}
         </div>
       </div>
