@@ -58,6 +58,8 @@ La anon key puede estar en frontend si las políticas RLS están activas. Nunca 
 - El perfil de empresa queda aprobado automáticamente como cliente.
 - Admin aprueba eventos, deportistas, noticias, alianzas y visuales.
 - Los deportistas incluyen ficha técnica, video por URL y patrocinio anual desde $1,000 MXN.
+- Admin puede habilitar o inhabilitar el fee anual de ingreso por deportista.
+- Los reels publicados por deportistas aparecen directamente en el feed empresarial.
 - Patrocinios ROIS: Partner $25,000 MXN mensual, Oficial $50,000 MXN mensual y Legacy $100,000 MXN mensual con exclusividad de giro por compromiso anual.
 - Los pagos se activan por tipo de producto con Stripe Payment Links desde `app-config.js`.
 - Si Supabase tiene confirmación por correo activa, la empresa debe confirmar su email antes de iniciar sesión.

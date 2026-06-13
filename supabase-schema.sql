@@ -226,6 +226,7 @@ create table if not exists uploads (
 );
 
 alter table athletes add column if not exists annual numeric default 1000;
+alter table athletes add column if not exists annual_fee_required boolean not null default true;
 alter table athletes add column if not exists profile_id uuid;
 alter table athletes add column if not exists email text;
 alter table athletes add column if not exists contact text;
@@ -407,7 +408,7 @@ to authenticated
 with check (status = 'Nuevo cliente');
 create policy "payments admin all" on payments for all using (is_admin()) with check (is_admin());
 create policy "uploads admin all" on uploads for all using (is_admin()) with check (is_admin());
-create policy "athlete posts read approved" on athlete_posts for select using ((status = 'approved' and coalesce(visual_status, 'approved') = 'approved') or is_admin());
+create policy "athlete posts read approved" on athlete_posts for select using (status = 'approved' or athlete_email = (auth.jwt() ->> 'email') or is_admin());
 create policy "athlete posts self read" on athlete_posts for select to authenticated using (athlete_email = (auth.jwt() ->> 'email'));
 create policy "athlete posts self insert" on athlete_posts for insert to authenticated with check (athlete_email = (auth.jwt() ->> 'email'));
 create policy "athlete posts admin all" on athlete_posts for all using (is_admin()) with check (is_admin());
@@ -434,6 +435,7 @@ grant update (
   stats,
   monthly,
   annual,
+  annual_fee_required,
   category,
   location,
   ranking,
