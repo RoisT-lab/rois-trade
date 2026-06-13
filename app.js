@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260613-client-sponsor-reels-v37";
+const roisBuild = "20260613-athlete-social-dashboard-v38";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -1360,6 +1360,29 @@ function renderAthleteKpis() {
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
 
+function athleteSocialMedia(post, athlete) {
+  const image = post.image_url || athlete?.image_url || "./assets/rois-isotipo-cropped.png";
+  if (post.video_url?.startsWith("data:video")) {
+    return `<video src="${post.video_url}" muted playsinline preload="metadata" poster="${escapeAttr(image)}"></video>`;
+  }
+  return `<img src="${image}" alt="${escapeAttr(post.title || "Reel deportivo")}">`;
+}
+
+function athleteSocialPostTile(post, athlete) {
+  return `
+    <article class="athlete-social-tile">
+      <div class="athlete-social-media">
+        ${athleteSocialMedia(post, athlete)}
+        <span>Reel</span>
+      </div>
+      <div class="athlete-social-caption">
+        <strong>${escapeHtml(post.title || "Entrenamiento")}</strong>
+        <p>${escapeHtml(post.caption || "Actualizacion deportiva ROIS.")}</p>
+      </div>
+    </article>
+  `;
+}
+
 function athleteRequirementStatus(athlete) {
   const hasRealSport = athlete?.sport && athlete.sport !== "Por definir";
   const items = [
@@ -1475,43 +1498,73 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete)) {
   const posts = state.data.athlete_posts
     .filter(item => item.athlete_email === athlete.email && item.status === "approved")
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-    .slice(0, 3);
+    .slice(0, 12);
+  const email = athlete.email || state.session?.email || "";
+  const sponsorships = state.data.sponsorships.filter(item => item.athlete === athlete.name || item.athlete_email === email);
+  const results = state.data.athlete_results.filter(item => item.athlete_email === email);
+  const profilePhoto = athlete.image_url
+    ? `<img src="${athlete.image_url}" alt="${escapeAttr(athlete.name)}">`
+    : `<span>${profileInitials(athlete.name)}</span>`;
+  const sponsorHighlights = logos.length
+    ? logos.slice(0, 5)
+    : [{ image: "./assets/rois-isotipo-cropped.png", name: "ROIS" }];
   return `
-    <section class="athlete-profile-hero">
-      <div class="athlete-profile-cover"></div>
-      <div class="athlete-profile-main">
-        <div class="athlete-profile-photo">
-          ${athlete.image_url ? `<img src="${athlete.image_url}" alt="${escapeAttr(athlete.name)}">` : `<span>${profileInitials(athlete.name)}</span>`}
+    <section class="athlete-profile-hero athlete-social-profile">
+      <div class="athlete-social-header">
+        <div class="athlete-social-avatar">
+          ${profilePhoto}
         </div>
-        <div class="athlete-profile-copy">
-          <p class="eyebrow">${athlete.sport || "Disciplina por definir"} / ${athlete.location || "Base por confirmar"}</p>
-          <h3>${escapeHtml(athlete.name || "Deportista ROIS")}</h3>
+        <div class="athlete-social-bio">
+          <div class="athlete-social-name">
+            <h3>${escapeHtml(athlete.name || "Deportista ROIS")}</h3>
+            ${badge(athlete.status === "approved" ? "perfil activo" : "en revision")}
+          </div>
+          <div class="athlete-social-stats">
+            <div><strong>${posts.length}</strong><span>reels</span></div>
+            <div><strong>${sponsorships.length}</strong><span>solicitudes</span></div>
+            <div><strong>${results.length}</strong><span>resultados</span></div>
+          </div>
+          <p><strong>${escapeHtml(athlete.sport || "Disciplina por definir")}</strong> / ${escapeHtml(athlete.category || "Categoria por definir")} / ${escapeHtml(athlete.location || "Base por confirmar")}</p>
           <p>${escapeHtml(athlete.stats || "Perfil deportivo en construccion. Sube tu plan de trabajo, resultados y reels para presentar una propuesta atractiva a patrocinadores.")}</p>
-        </div>
-        <div class="athlete-profile-aside">
-          <strong>$${athleteMonthlyTicket(athlete).toLocaleString("es-MX")} MXN</strong>
-          <span>ticket mensual sugerido</span>
-          ${athlete.proposal_url ? athleteProposalLink(athlete) : `<span class="pill">Plan pendiente</span>`}
+          <div class="athlete-social-actions">
+            ${button("Editar perfil", () => {
+              const details = document.getElementById("athleteEditProfile");
+              if (details) {
+                details.open = true;
+                details.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            })}
+            ${button("Publicar reel", () => showDashboardPanel("athlete-reels"))}
+            ${athlete.proposal_url ? athleteProposalLink(athlete) : `<span class="pill">Plan pendiente</span>`}
+          </div>
         </div>
       </div>
-      <div class="athlete-profile-stats">
-        <div><span>Categoria</span><strong>${escapeHtml(athlete.category || "Por definir")}</strong></div>
-        <div><span>Ranking / marca</span><strong>${escapeHtml(athlete.ranking || "En evaluacion")}</strong></div>
-        <div><span>Cupos sponsor</span><strong>${logos.length}/${Number(athlete.max_sponsors || 3)}</strong></div>
-        <div><span>Fee anual</span><strong>${athleteAnnualFeeRequired(athlete) ? "$1,000 MXN" : "Inhabilitado"}</strong></div>
+
+      <div class="athlete-social-highlights">
+        ${sponsorHighlights.map((logo, index) => `
+          <div>
+            <span><img src="${logo.image}" alt="${escapeAttr(logo.name || "Sponsor")}"></span>
+            <strong>${escapeHtml(logo.name || (index ? "Sponsor" : "ROIS"))}</strong>
+          </div>
+        `).join("")}
+        <div>
+          <span class="athlete-highlight-plus">+</span>
+          <strong>Nuevo</strong>
+        </div>
       </div>
-      ${logos.length ? `<div class="athlete-sponsor-brands profile-brands"><span>Patrocinadores actuales</span><div>${logos.map(logo => `<img src="${logo.image}" alt="${logo.name || "Sponsor"}">`).join("")}</div></div>` : ""}
+
+      <div class="athlete-social-tabs">
+        <span class="active">Publicaciones</span>
+        <span>Reels</span>
+        <span>Resultados</span>
+        <span>Patrocinios</span>
+      </div>
+
       ${posts.length ? `
-        <div class="athlete-profile-reels">
-          <span>Ultimos reels</span>
-          <div>${posts.map(post => `
-            <article>
-              <div>${reelMedia(post, athlete)}</div>
-              <strong>${escapeHtml(post.title || "Reel deportivo")}</strong>
-            </article>
-          `).join("")}</div>
+        <div class="athlete-social-grid">
+          ${posts.map(post => athleteSocialPostTile(post, athlete)).join("")}
         </div>
-      ` : ""}
+      ` : `<div class="empty athlete-social-empty">Tus reels apareceran aqui. Publica entrenamientos, competencia y avances para que las empresas puedan evaluar tu perfil.</div>`}
     </section>
   `;
 }
@@ -1527,6 +1580,8 @@ function renderAthleteProfile() {
   panel("athlete-profile", "Mi perfil", "Perfil profesional de patrocinio", `
     <div class="panel-body">
       ${athleteProfileHero(athlete, logos)}
+      <details class="athlete-edit-drawer" id="athleteEditProfile">
+        <summary>Editar informacion profesional</summary>
       <form id="athleteProfileForm" class="form-grid">
         <label>Nombre<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
         <label>Deporte<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="Disciplina"></label>
@@ -1560,6 +1615,7 @@ function renderAthleteProfile() {
         ${logos.length ? `<div class="athlete-sponsor-brands" style="grid-column:1/-1"><span>Sponsors actuales</span><div>${logos.map(logo => `<img src="${logo.image}" alt="${logo.name || "Sponsor"}">`).join("")}</div></div>` : ""}
         <button class="btn primary" type="submit">Guardar perfil</button>
       </form>
+      </details>
     </div>
   `);
   document.getElementById("athleteProfileForm").addEventListener("submit", submitAthleteProfile);
