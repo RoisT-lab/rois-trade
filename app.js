@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260613-athlete-clean-dashboard-v41";
+const roisBuild = "20260613-home-access-side-v43";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -121,7 +121,8 @@ function athleteAnnualFeeExempt(email = state.session?.email, athleteRecord = nu
 }
 
 function athleteAnnualFeeRequired(athlete) {
-  return !athleteAnnualFeeExempt(athlete?.email || athlete?.contact || state.session?.email, athlete);
+  if (!athlete) return false;
+  return athlete.annual_fee_required === true && !athleteAnnualExemptEmails.includes(String(athlete.email || athlete.contact || state.session?.email || "").toLowerCase());
 }
 
 async function init() {
@@ -285,7 +286,7 @@ function demoApi() {
         ranking: "",
         stats: "",
         annual: 1000,
-        annual_fee_required: !athleteAnnualFeeExempt(payload.email),
+        annual_fee_required: false,
         monthly: 5000,
         max_sponsors: 3,
         terms_accepted: false,
@@ -459,7 +460,7 @@ function supabaseApi() {
             ranking: "",
             stats: "",
             annual: 1000,
-            annual_fee_required: !athleteAnnualFeeExempt(payload.email),
+            annual_fee_required: false,
             monthly: 5000,
             max_sponsors: 3,
             terms_accepted: false,
@@ -495,7 +496,7 @@ function supabaseApi() {
           ranking: "",
           stats: "",
           annual: 1000,
-          annual_fee_required: !athleteAnnualFeeExempt(payload.email),
+          annual_fee_required: false,
           monthly: 5000,
           max_sponsors: 3,
           terms_accepted: false,
@@ -1629,7 +1630,7 @@ function renderAthleteProfile() {
     return;
   }
   const logos = athleteSponsorLogos(athlete);
-  const annualExempt = athleteAnnualFeeExempt(athlete.email || state.session?.email);
+  const annualRequired = athleteAnnualFeeRequired(athlete);
   panel("athlete-profile", "Mi perfil", "Perfil profesional de patrocinio", `
     <div class="panel-body">
       ${athleteProfileHero(athlete, logos)}
@@ -1661,8 +1662,8 @@ function renderAthleteProfile() {
           </div>
           <div>
             <span>Pago anual</span>
-            <strong>${annualExempt ? "Exento test ROIS" : "$1,000 MXN"}</strong>
-            ${annualExempt ? `<span>Fee inhabilitado para esta cuenta</span>` : `<button class="btn" type="button" data-stripe-key="athleteAnnualProfile">Pagar anualidad</button>`}
+            <strong>${annualRequired ? "$1,000 MXN" : "No solicitado"}</strong>
+            ${annualRequired ? `<button class="btn" type="button" data-stripe-key="athleteAnnualProfile">Pagar anualidad</button>` : `<span>Completa tu perfil. ROIS habilitara el pago cuando corresponda.</span>`}
           </div>
         </div>
         ${logos.length ? `<div class="athlete-sponsor-brands" style="grid-column:1/-1"><span>Sponsors actuales</span><div>${logos.map(logo => `<img src="${logo.image}" alt="${logo.name || "Sponsor"}">`).join("")}</div></div>` : ""}
@@ -1675,7 +1676,7 @@ function renderAthleteProfile() {
   document.querySelectorAll("[data-athlete-profile-tab]").forEach(button => {
     button.addEventListener("click", () => activateAthleteProfileTab(button.dataset.athleteProfileTab));
   });
-  if (!annualExempt) document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS"));
+  if (annualRequired) document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS"));
 }
 
 function renderAthleteSponsorships() {
@@ -1787,7 +1788,7 @@ function renderAdminAthletes() {
         <label>Ciudad / base<input name="location" required placeholder="Ciudad o club base"></label>
         <label>Ranking o marca<input name="ranking" placeholder="Ranking, handicap, marca o nivel"></label>
         <label>Monto anual<input name="annual" type="number" min="0" value="1000" required></label>
-        <label>Fee de ingreso<select name="annual_fee_required"><option value="true">Habilitado</option><option value="false">Inhabilitado</option></select></label>
+        <label>Cobro anual<select name="annual_fee_required"><option value="false">No solicitado</option><option value="true">Solicitar pago anual</option></select></label>
         <label>Ticket mensual<input name="monthly" type="number" min="0" value="5000" required></label>
         <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="3" required></label>
         <label style="grid-column:1/-1">Link de pago individual Stripe<input name="sponsor_payment_url" type="url" placeholder="https://buy.stripe.com/..."></label>
@@ -1802,8 +1803,8 @@ function renderAdminAthletes() {
       </form>
       <p class="hint">Las im\u00e1genes nuevas quedan en revisi\u00f3n visual. No aparecen p\u00fablicamente hasta aprobarse.</p>
     </div>
-    ${table(["Visual", "Nombre", "Deporte", "Ticket", "Cupo", "Fee anual", "Pago", "Acciones"], state.data.athletes.map(athlete => [
-      visualThumb(athlete), athlete.name, athlete.sport, `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorLogos(athlete).length}/${athlete.max_sponsors || 3}`, athleteAnnualFeeRequired(athlete) ? badge("habilitado") : badge("inhabilitado"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), athleteAdminActions(athlete)
+    ${table(["Visual", "Nombre", "Deporte", "Ticket", "Cupo", "Anualidad", "Pago", "Acciones"], state.data.athletes.map(athlete => [
+      visualThumb(athlete), athlete.name, athlete.sport, `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorLogos(athlete).length}/${athlete.max_sponsors || 3}`, athleteAnnualFeeRequired(athlete) ? badge("pago solicitado") : badge("no solicitado"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), athleteAdminActions(athlete)
     ]))}
   `);
   document.getElementById("adminAthleteForm").addEventListener("submit", submitAdminAthlete);
@@ -1811,7 +1812,7 @@ function renderAdminAthletes() {
 
 function athleteAdminActions(athlete) {
   const actions = [
-    button(athleteAnnualFeeRequired(athlete) ? "Inhabilitar fee" : "Habilitar fee", () => toggleAthleteAnnualFee(athlete))
+    button(athleteAnnualFeeRequired(athlete) ? "Ocultar anualidad" : "Solicitar anualidad", () => toggleAthleteAnnualFee(athlete))
   ];
   actions.push(moderationActions("athletes", athlete));
   return actionGroup(actions);
@@ -2787,7 +2788,7 @@ async function submitAdminAthlete(event) {
 async function toggleAthleteAnnualFee(athlete) {
   const next = !athleteAnnualFeeRequired(athlete);
   await api.update("athletes", athlete.id, { annual_fee_required: next });
-  notify("Fee deportista", next ? "Fee habilitado" : "Fee inhabilitado", `${athlete.name} ${next ? "debera cubrir" : "podra omitir"} el fee anual de ingreso.`);
+  notify("Anualidad deportista", next ? "Solicitud habilitada" : "Solicitud oculta", next ? `${athlete.name} ya vera el aviso de anualidad con boton de pago en su dashboard.` : `${athlete.name} podra explorar y configurar su dashboard sin aviso de pago anual.`);
   state.data = await api.loadAll();
   renderAdmin();
   if (state.session?.role === "athlete") renderAthlete();
@@ -3471,12 +3472,9 @@ async function submitRegistration(event) {
         renderSession();
         renderAthlete();
         showView("athlete");
-        notify("Perfil deportivo", "Bienvenido a ROIS", athleteAnnualFeeExempt(form.email.value) ? "Tu cuenta interna de prueba esta activa sin cobro anual. Configura tu perfil profesional desde el dashboard." : "Tu cuenta ya esta creada. Paga tu fee anual y configura tu perfil profesional desde el dashboard.");
+        notify("Perfil deportivo", "Bienvenido a ROIS", "Explora tu dashboard y completa tu perfil profesional. ROIS habilitara el pago anual desde admin cuando corresponda.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
-      }
-      if (!athleteAnnualFeeExempt(form.email.value)) {
-        openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS");
       }
       renderAdmin();
       renderPublic();
