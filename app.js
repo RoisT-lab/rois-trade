@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260613-athlete-social-dashboard-v38";
+const roisBuild = "20260613-athlete-profile-tabs-v40";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -1383,6 +1383,43 @@ function athleteSocialPostTile(post, athlete) {
   `;
 }
 
+function athleteResultTile(result) {
+  return `
+    <article class="athlete-social-info-card">
+      <p class="eyebrow">${escapeHtml(result.month || "Resultado")}</p>
+      <h4>${escapeHtml(result.event || "Actividad deportiva")}</h4>
+      <p>${escapeHtml(result.summary || "Resultado documentado pendiente de resumen.")}</p>
+      <div class="row-meta">
+        ${badge(result.status || "registrado")}
+        ${result.proof_url ? `<a class="btn" href="${result.proof_url}" target="_blank" rel="noopener">Ver soporte</a>` : ""}
+      </div>
+    </article>
+  `;
+}
+
+function athleteSponsorshipTile(item) {
+  return `
+    <article class="athlete-social-info-card">
+      <p class="eyebrow">${escapeHtml(item.status || "Solicitud")}</p>
+      <h4>${escapeHtml(item.company || "Empresa en revision")}</h4>
+      <p>${escapeHtml(item.details || "Condiciones y entregables por confirmar con ROIS.")}</p>
+      <div class="row-meta">
+        <span class="pill">$${Number(item.amount || 0).toLocaleString("es-MX")} MXN</span>
+        ${badge(item.status || "review")}
+      </div>
+    </article>
+  `;
+}
+
+function activateAthleteProfileTab(tabName = "posts") {
+  document.querySelectorAll("[data-athlete-profile-tab]").forEach(button => {
+    button.classList.toggle("active", button.dataset.athleteProfileTab === tabName);
+  });
+  document.querySelectorAll("[data-athlete-tab-panel]").forEach(panel => {
+    panel.classList.toggle("active", panel.dataset.athleteTabPanel === tabName);
+  });
+}
+
 function athleteRequirementStatus(athlete) {
   const hasRealSport = athlete?.sport && athlete.sport !== "Por definir";
   const items = [
@@ -1505,9 +1542,10 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete)) {
   const profilePhoto = athlete.image_url
     ? `<img src="${athlete.image_url}" alt="${escapeAttr(athlete.name)}">`
     : `<span>${profileInitials(athlete.name)}</span>`;
-  const sponsorHighlights = logos.length
-    ? logos.slice(0, 5)
-    : [{ image: "./assets/rois-isotipo-cropped.png", name: "ROIS" }];
+  const sponsorHighlights = logos.slice(0, 10);
+  const hasPosts = posts.length > 0;
+  const hasResults = results.length > 0;
+  const hasSponsorships = sponsorships.length > 0;
   return `
     <section class="athlete-profile-hero athlete-social-profile">
       <div class="athlete-social-header">
@@ -1530,8 +1568,8 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete)) {
             ${button("Editar perfil", () => {
               const details = document.getElementById("athleteEditProfile");
               if (details) {
-                details.open = true;
-                details.scrollIntoView({ behavior: "smooth", block: "start" });
+                details.open = !details.open;
+                if (details.open) details.scrollIntoView({ behavior: "smooth", block: "start" });
               }
             })}
             ${button("Publicar reel", () => showDashboardPanel("athlete-reels"))}
@@ -1541,30 +1579,69 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete)) {
       </div>
 
       <div class="athlete-social-highlights">
-        ${sponsorHighlights.map((logo, index) => `
+        ${sponsorHighlights.length ? sponsorHighlights.map((logo) => `
           <div>
             <span><img src="${logo.image}" alt="${escapeAttr(logo.name || "Sponsor")}"></span>
-            <strong>${escapeHtml(logo.name || (index ? "Sponsor" : "ROIS"))}</strong>
+            <strong>${escapeHtml(logo.name || "Sponsor")}</strong>
           </div>
-        `).join("")}
-        <div>
-          <span class="athlete-highlight-plus">+</span>
-          <strong>Nuevo</strong>
-        </div>
+        `).join("") : `
+          <div class="athlete-sponsor-empty-note">
+            <span>0/10</span>
+            <strong>Sponsors</strong>
+          </div>
+        `}
       </div>
 
       <div class="athlete-social-tabs">
-        <span class="active">Publicaciones</span>
-        <span>Reels</span>
-        <span>Resultados</span>
-        <span>Patrocinios</span>
+        <button class="active" type="button" data-athlete-profile-tab="posts">Publicaciones</button>
+        <button type="button" data-athlete-profile-tab="reels">Reels</button>
+        <button type="button" data-athlete-profile-tab="results">Resultados</button>
+        <button type="button" data-athlete-profile-tab="sponsorships">Patrocinios</button>
       </div>
 
-      ${posts.length ? `
-        <div class="athlete-social-grid">
-          ${posts.map(post => athleteSocialPostTile(post, athlete)).join("")}
+      <div class="athlete-social-tab-content active" data-athlete-tab-panel="posts">
+        ${hasPosts ? `
+          <div class="athlete-social-grid">
+            ${posts.map(post => athleteSocialPostTile(post, athlete)).join("")}
+          </div>
+        ` : `<div class="empty athlete-social-empty">Tus publicaciones apareceran aqui. Publica entrenamientos, competencia y avances para que las empresas puedan evaluar tu perfil.</div>`}
+      </div>
+
+      <div class="athlete-social-tab-content" data-athlete-tab-panel="reels">
+        ${hasPosts ? `
+          <div class="athlete-social-grid reels-only">
+            ${posts.map(post => athleteSocialPostTile(post, athlete)).join("")}
+          </div>
+        ` : `<div class="empty athlete-social-empty">Aun no has publicado reels. Sube videos desde archivos para mostrar entrenamientos, torneos y avances.</div>`}
+      </div>
+
+      <div class="athlete-social-tab-content" data-athlete-tab-panel="results">
+        ${hasResults ? `
+          <div class="athlete-social-info-grid">
+            ${results.map(result => athleteResultTile(result)).join("")}
+          </div>
+        ` : `<div class="empty athlete-social-empty">Tus resultados documentados apareceran aqui. Sube evidencia mensual para construir confianza con patrocinadores.</div>`}
+      </div>
+
+      <div class="athlete-social-tab-content" data-athlete-tab-panel="sponsorships">
+        <div class="athlete-sponsor-showcase">
+          <div>
+            <p class="eyebrow">Vitrina de sponsors</p>
+            <h4>${sponsorHighlights.length}/10 logos publicados</h4>
+            <p>Cuando se formaliza un patrocinio, el deportista debe subir el logotipo autorizado para mostrarlo en su perfil.</p>
+          </div>
+          ${sponsorHighlights.length ? `
+            <div class="athlete-sponsor-logo-wall">
+              ${sponsorHighlights.map(logo => `<img src="${logo.image}" alt="${escapeAttr(logo.name || "Sponsor")}">`).join("")}
+            </div>
+          ` : ""}
         </div>
-      ` : `<div class="empty athlete-social-empty">Tus reels apareceran aqui. Publica entrenamientos, competencia y avances para que las empresas puedan evaluar tu perfil.</div>`}
+        ${hasSponsorships ? `
+          <div class="athlete-social-info-grid">
+            ${sponsorships.map(item => athleteSponsorshipTile(item)).join("")}
+          </div>
+        ` : `<div class="empty athlete-social-empty">Aun no hay solicitudes o patrocinios activos vinculados a tu cuenta.</div>`}
+      </div>
     </section>
   `;
 }
@@ -1619,6 +1696,9 @@ function renderAthleteProfile() {
     </div>
   `);
   document.getElementById("athleteProfileForm").addEventListener("submit", submitAthleteProfile);
+  document.querySelectorAll("[data-athlete-profile-tab]").forEach(button => {
+    button.addEventListener("click", () => activateAthleteProfileTab(button.dataset.athleteProfileTab));
+  });
   if (!annualExempt) document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS"));
 }
 
@@ -1720,6 +1800,7 @@ function renderAdmin() {
   renderAdminKpis();
   renderAdminUsers();
   renderAdminAthletes();
+  renderAdminPaymentLinks();
   renderAdminAthleteNotifications();
   renderAdminEvents();
   renderAdminNews();
@@ -1798,6 +1879,115 @@ function athleteAdminActions(athlete) {
   ];
   actions.push(moderationActions("athletes", athlete));
   return actionGroup(actions);
+}
+
+function athleteStripePaymentInfo(athlete) {
+  const monthly = athleteMonthlyTicket(athlete);
+  const name = `Patrocinio mensual ROIS - ${athlete.name || "Deportista"}`;
+  const description = [
+    `Patrocinio mensual administrado por ROIS para ${athlete.name || "deportista ROIS"}.`,
+    `Disciplina: ${athlete.sport || "Por definir"}.`,
+    `Categoria: ${athlete.category || "Por definir"}.`,
+    `Base: ${athlete.location || "Por confirmar"}.`,
+    `Ticket mensual sugerido: $${monthly.toLocaleString("es-MX")} MXN.`,
+    `Operacion sujeta a contrato de patrocinio y representacion gestionado por ROIS / ${roisLegalEntity}.`
+  ].join(" ");
+  return {
+    name,
+    description,
+    amount: monthly,
+    frequency: "Recurrente mensual",
+    currency: "MXN",
+    category: "General - Servicios suministrados de forma electronica",
+    quantity: "1",
+    metadata: `athlete_id=${athlete.id || ""}; athlete_email=${athlete.email || ""}; athlete_name=${athlete.name || ""}; rois_product=athlete_monthly_sponsorship`
+  };
+}
+
+function athleteStripePaymentText(athlete) {
+  const info = athleteStripePaymentInfo(athlete);
+  return [
+    `Nombre: ${info.name}`,
+    `Descripcion: ${info.description}`,
+    `Tarifa: ${info.frequency}`,
+    `Importe: ${info.amount} ${info.currency}`,
+    `Cantidad: ${info.quantity}`,
+    `Categoria: ${info.category}`,
+    `Metadata interna: ${info.metadata}`,
+    `Despues de crear el Payment Link en Stripe, pega el URL en ROIS para activar el boton de patrocinar.`
+  ].join("\n");
+}
+
+function renderAdminPaymentLinks() {
+  const athletes = state.data.athletes || [];
+  panel("admin-payment-links", "Enlaces de pago", "Configura links mensuales de patrocinio por deportista", `
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Stripe Payment Links</p>
+        <h3>Cada deportista genera automaticamente los datos del producto mensual.</h3>
+        <p class="hint">En Stripe crea un producto recurrente mensual con la informacion sugerida. Despues pega aqui el link de pago; ese mismo link se abrira desde el boton Patrocinar en el dashboard de empresas.</p>
+      </div>
+      ${athletes.length ? `<div class="payment-link-grid">${athletes.map(athletePaymentLinkCard).join("")}</div>` : `<div class="empty">Aun no hay deportistas registrados. Cuando crees un deportista, su ficha de pago aparecera aqui automaticamente.</div>`}
+    </div>
+  `);
+  document.querySelectorAll("[data-athlete-payment-form]").forEach(form => form.addEventListener("submit", submitAthletePaymentLink));
+  document.querySelectorAll("[data-copy-payment-info]").forEach(button => button.addEventListener("click", () => copyAthletePaymentInfo(button.dataset.copyPaymentInfo)));
+}
+
+function athletePaymentLinkCard(athlete) {
+  const info = athleteStripePaymentInfo(athlete);
+  return `
+    <article class="payment-link-card">
+      <div class="payment-link-card-head">
+        <div>
+          <p class="eyebrow">${escapeHtml(athlete.sport || "Deportista ROIS")}</p>
+          <h3>${escapeHtml(athlete.name || "Deportista")}</h3>
+        </div>
+        ${athlete.sponsor_payment_url ? badge("link activo") : badge("pendiente")}
+      </div>
+      <div class="stripe-info">
+        <div><span>Nombre en Stripe</span><strong>${escapeHtml(info.name)}</strong></div>
+        <div><span>Importe</span><strong>$${info.amount.toLocaleString("es-MX")} ${info.currency} / mes</strong></div>
+        <div><span>Tipo de tarifa</span><strong>${info.frequency}</strong></div>
+        <div><span>Categoria</span><strong>${escapeHtml(info.category)}</strong></div>
+        <div class="full"><span>Descripcion</span><p>${escapeHtml(info.description)}</p></div>
+        <div class="full"><span>Metadata interna</span><code>${escapeHtml(info.metadata)}</code></div>
+      </div>
+      <div class="payment-link-actions">
+        <button class="btn" type="button" data-copy-payment-info="${escapeAttr(athlete.id)}">Copiar datos Stripe</button>
+        ${athlete.sponsor_payment_url ? `<a class="btn" href="${athlete.sponsor_payment_url}" target="_blank" rel="noopener">Probar link</a>` : ""}
+      </div>
+      <form class="form-grid compact-form" data-athlete-payment-form data-athlete-id="${escapeAttr(athlete.id)}">
+        <label style="grid-column:1/-1">Link de pago mensual Stripe<input name="sponsor_payment_url" type="url" value="${escapeAttr(athlete.sponsor_payment_url || "")}" placeholder="https://buy.stripe.com/..."></label>
+        <button class="btn primary" type="submit">${athlete.sponsor_payment_url ? "Actualizar link" : "Activar link"}</button>
+      </form>
+    </article>
+  `;
+}
+
+async function copyAthletePaymentInfo(athleteId) {
+  const athlete = state.data.athletes.find(item => item.id === athleteId);
+  if (!athlete) return;
+  const text = athleteStripePaymentText(athlete);
+  try {
+    await navigator.clipboard.writeText(text);
+    notify("Stripe", "Datos copiados", "Pega esta informacion en Stripe para crear el producto y el link mensual.");
+  } catch {
+    notify("Stripe", "Datos del producto", text);
+  }
+}
+
+async function submitAthletePaymentLink(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const athlete = state.data.athletes.find(item => item.id === form.dataset.athleteId);
+  if (!athlete) return;
+  const link = form.sponsor_payment_url.value.trim();
+  await api.update("athletes", athlete.id, { sponsor_payment_url: link });
+  notify("Enlaces de pago", link ? "Link activado" : "Link retirado", link ? `El boton de patrocinar de ${athlete.name} ya abrira este link desde el dashboard de empresas.` : `El deportista quedo sin link mensual activo.`);
+  state.data = await api.loadAll();
+  renderAdmin();
+  renderClient();
 }
 
 function renderAdminAthleteNotifications() {
@@ -3164,7 +3354,7 @@ function athleteSponsorLogos(athlete) {
   if (!athlete.sponsor_logos) return [];
   try {
     const logos = typeof athlete.sponsor_logos === "string" ? JSON.parse(athlete.sponsor_logos) : athlete.sponsor_logos;
-    return Array.isArray(logos) ? logos.filter(logo => logo?.image) : [];
+    return Array.isArray(logos) ? logos.filter(logo => logo?.image).slice(0, 10) : [];
   } catch {
     return [];
   }
@@ -3232,7 +3422,7 @@ function fileToDataUrl(file) {
 }
 
 async function sponsorLogoPayload(fileList, namesValue = "") {
-  const files = Array.from(fileList || []);
+  const files = Array.from(fileList || []).slice(0, 10);
   if (!files.length) return "";
   const names = String(namesValue || "").split("\n").map(name => name.trim());
   const logos = await Promise.all(files.map(async (file, index) => ({
