@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260613-home-access-side-v43";
+const roisBuild = "20260614-athlete-minor-consent-v44";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -123,6 +123,44 @@ function athleteAnnualFeeExempt(email = state.session?.email, athleteRecord = nu
 function athleteAnnualFeeRequired(athlete) {
   if (!athlete) return false;
   return athlete.annual_fee_required === true && !athleteAnnualExemptEmails.includes(String(athlete.email || athlete.contact || state.session?.email || "").toLowerCase());
+}
+
+function calculateAge(dateValue) {
+  if (!dateValue) return null;
+  const birthDate = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(birthDate.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age -= 1;
+  return age;
+}
+
+function athleteIsMinor(dateValue) {
+  const age = calculateAge(dateValue);
+  return age !== null && age < 18;
+}
+
+function setupAthleteAgeGate() {
+  const form = document.getElementById("registrationForm");
+  if (!form || state.registrationType !== "athlete") return;
+  const birthInput = form.birth_date;
+  const panel = form.querySelector("[data-minor-consent]");
+  if (!birthInput || !panel) return;
+  const guardianFields = Array.from(panel.querySelectorAll("input, select"));
+  const updateMinorState = () => {
+    const age = calculateAge(birthInput.value);
+    const isMinor = age !== null && age < 18;
+    const isInvalidFuture = age !== null && age < 0;
+    panel.hidden = !isMinor;
+    guardianFields.forEach(field => {
+      field.disabled = !isMinor;
+      field.required = isMinor;
+    });
+    birthInput.setCustomValidity(isInvalidFuture ? "Ingresa una fecha de nacimiento valida." : "");
+  };
+  birthInput.addEventListener("input", updateMinorState);
+  updateMinorState();
 }
 
 async function init() {
@@ -289,6 +327,15 @@ function demoApi() {
         annual_fee_required: false,
         monthly: 5000,
         max_sponsors: 3,
+        birth_date: payload.birthDate,
+        age_status: payload.isMinor ? "minor" : "adult",
+        guardian_name: payload.isMinor ? payload.guardianName : "",
+        guardian_email: payload.isMinor ? payload.guardianEmail : "",
+        guardian_phone: payload.isMinor ? payload.guardianPhone : "",
+        guardian_relationship: payload.isMinor ? payload.guardianRelationship : "",
+        guardian_consent: Boolean(payload.guardianConsent),
+        legal_status: payload.isMinor ? "minor_guardian_review" : "adult_self_registered",
+        registration_terms_accepted: Boolean(payload.termsAccepted),
         terms_accepted: false,
         status: "pending",
         visual_status: "approved"
@@ -463,6 +510,15 @@ function supabaseApi() {
             annual_fee_required: false,
             monthly: 5000,
             max_sponsors: 3,
+            birth_date: payload.birthDate,
+            age_status: payload.isMinor ? "minor" : "adult",
+            guardian_name: payload.isMinor ? payload.guardianName : "",
+            guardian_email: payload.isMinor ? payload.guardianEmail : "",
+            guardian_phone: payload.isMinor ? payload.guardianPhone : "",
+            guardian_relationship: payload.isMinor ? payload.guardianRelationship : "",
+            guardian_consent: Boolean(payload.guardianConsent),
+            legal_status: payload.isMinor ? "minor_guardian_review" : "adult_self_registered",
+            registration_terms_accepted: Boolean(payload.termsAccepted),
             terms_accepted: false,
             status: "pending",
             visual_status: "approved"
@@ -499,6 +555,15 @@ function supabaseApi() {
           annual_fee_required: false,
           monthly: 5000,
           max_sponsors: 3,
+          birth_date: payload.birthDate,
+          age_status: payload.isMinor ? "minor" : "adult",
+          guardian_name: payload.isMinor ? payload.guardianName : "",
+          guardian_email: payload.isMinor ? payload.guardianEmail : "",
+          guardian_phone: payload.isMinor ? payload.guardianPhone : "",
+          guardian_relationship: payload.isMinor ? payload.guardianRelationship : "",
+          guardian_consent: Boolean(payload.guardianConsent),
+          legal_status: payload.isMinor ? "minor_guardian_review" : "adult_self_registered",
+          registration_terms_accepted: Boolean(payload.termsAccepted),
           terms_accepted: false,
           status: "pending",
           visual_status: "approved"
@@ -1803,8 +1868,8 @@ function renderAdminAthletes() {
       </form>
       <p class="hint">Las im\u00e1genes nuevas quedan en revisi\u00f3n visual. No aparecen p\u00fablicamente hasta aprobarse.</p>
     </div>
-    ${table(["Visual", "Nombre", "Deporte", "Ticket", "Cupo", "Anualidad", "Pago", "Acciones"], state.data.athletes.map(athlete => [
-      visualThumb(athlete), athlete.name, athlete.sport, `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorLogos(athlete).length}/${athlete.max_sponsors || 3}`, athleteAnnualFeeRequired(athlete) ? badge("pago solicitado") : badge("no solicitado"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), athleteAdminActions(athlete)
+    ${table(["Visual", "Nombre", "Deporte", "Legal", "Ticket", "Cupo", "Anualidad", "Pago", "Acciones"], state.data.athletes.map(athlete => [
+      visualThumb(athlete), athlete.name, athlete.sport, badge(athlete.legal_status || athlete.age_status || "sin validar"), `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorLogos(athlete).length}/${athlete.max_sponsors || 3}`, athleteAnnualFeeRequired(athlete) ? badge("pago solicitado") : badge("no solicitado"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), athleteAdminActions(athlete)
     ]))}
   `);
   document.getElementById("adminAthleteForm").addEventListener("submit", submitAdminAthlete);
@@ -3375,6 +3440,7 @@ function openRegistration(type) {
   document.getElementById("registrationKicker").textContent = "Registro ROIS";
   document.getElementById("registrationTitle").textContent = title;
   document.getElementById("registrationForm").innerHTML = registrationFields(type);
+  setupAthleteAgeGate();
   document.getElementById("registrationModal").classList.add("active");
 }
 
@@ -3399,15 +3465,30 @@ function registrationFields(type) {
     return `
       <label>Nombre<input name="name" required placeholder="Nombre del deportista"></label>
       <label>Correo de acceso<input name="email" type="email" required placeholder="correo@deportista.com"></label>
+      <label>Fecha de nacimiento<input name="birth_date" type="date" required></label>
       <label>Contrasena<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Minimo 8 caracteres"></label>
       <label>Confirmar contrasena<input name="confirm" type="password" minlength="8" autocomplete="new-password" required placeholder="Repite tu contrasena"></label>
+      <div class="minor-consent-panel" data-minor-consent hidden style="grid-column:1/-1">
+        <p class="eyebrow">Deportista menor de edad</p>
+        <p>Para atletas menores de 18 años, ROIS requiere autorización expresa de madre, padre o tutor legal. El perfil podrá explorarse, pero no se activarán patrocinios ni representación comercial sin revisión documental.</p>
+        <div class="form-grid compact-inner">
+          <label>Nombre del tutor legal<input name="guardian_name" placeholder="Nombre completo del tutor"></label>
+          <label>Correo del tutor<input name="guardian_email" type="email" placeholder="correo@tutor.com"></label>
+          <label>Teléfono del tutor<input name="guardian_phone" placeholder="Teléfono de contacto"></label>
+          <label>Relación con el deportista<select name="guardian_relationship"><option value="">Selecciona</option><option>Madre</option><option>Padre</option><option>Tutor legal</option></select></label>
+        </div>
+        <label class="check-option">
+          <input name="guardian_consent" type="checkbox">
+          <span>Declaro ser madre, padre o tutor legal del deportista menor de edad y autorizo la creación de su cuenta ROIS, el tratamiento de sus datos deportivos y el contacto de IntelliQuant S.A.P.I. de C.V. para validar documentación antes de cualquier patrocinio.</span>
+        </label>
+      </div>
       <div class="registration-note" style="grid-column:1/-1">
         <p class="eyebrow">Alta deportiva</p>
         <p>Despues de crear tu cuenta entraras a tu dashboard para completar expediente, terminos de representacion, foto, ficha tecnica, propuesta, videos y documentos operativos.</p>
       </div>
       <label class="check-option" style="grid-column:1/-1">
         <input name="terms" type="checkbox" required>
-        <span>Acepto crear mi cuenta deportiva en ROIS y completar el expediente contractual y operativo administrado por ${roisLegalEntity} antes de recibir solicitudes de patrocinio.</span>
+        <span>Acepto las condiciones iniciales de ROIS e ${roisLegalEntity}: el perfil deportivo queda sujeto a revisión, cualquier patrocinio debe gestionarse por la plataforma y, en caso de menores de edad, se requerirá validación de madre, padre o tutor legal antes de activar representación comercial.</span>
       </label>
       <button class="btn primary full" type="submit">Crear cuenta deportiva</button>
     `;
@@ -3460,19 +3541,38 @@ async function submitRegistration(event) {
         notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrase\u00f1a para crear tu cuenta de deportista.");
         return;
       }
+      const age = calculateAge(form.birth_date.value);
+      if (age === null || age < 0) {
+        notify("Registro", "Fecha de nacimiento inválida", "Ingresa una fecha de nacimiento válida para continuar.");
+        return;
+      }
+      const isMinor = age < 18;
+      if (isMinor && (!form.guardian_name.value.trim() || !form.guardian_email.value.trim() || !form.guardian_phone.value.trim() || !form.guardian_relationship.value || !form.guardian_consent.checked)) {
+        notify("Registro", "Autorización de tutor requerida", "Para registrar a un deportista menor de edad necesitamos datos y consentimiento expreso de madre, padre o tutor legal.");
+        return;
+      }
       const signup = await api.signupAthlete({
         email: form.email.value,
         password: form.password.value,
-        name: form.name.value
+        name: form.name.value,
+        birthDate: form.birth_date.value,
+        isMinor,
+        guardianName: isMinor ? form.guardian_name.value.trim() : "",
+        guardianEmail: isMinor ? form.guardian_email.value.trim() : "",
+        guardianPhone: isMinor ? form.guardian_phone.value.trim() : "",
+        guardianRelationship: isMinor ? form.guardian_relationship.value : "",
+        guardianConsent: isMinor ? form.guardian_consent.checked : false,
+        termsAccepted: form.terms.checked
       });
       closeModals();
       if (signup.confirmed) {
         state.session = signup.session;
         saveSession(state.session);
+        await api.insert("terms_acceptances", { user_email: form.email.value, user_role: isMinor ? "athlete_minor_guardian" : "athlete", version: isMinor ? "athlete-minor-guardian-consent-v1-intelliquant" : "athlete-registration-v1-intelliquant", status: "accepted" });
         renderSession();
         renderAthlete();
         showView("athlete");
-        notify("Perfil deportivo", "Bienvenido a ROIS", "Explora tu dashboard y completa tu perfil profesional. ROIS habilitara el pago anual desde admin cuando corresponda.");
+        notify("Perfil deportivo", "Bienvenido a ROIS", isMinor ? "Cuenta creada con autorización de tutor. ROIS revisará la documentación antes de activar patrocinios." : "Explora tu dashboard y completa tu perfil profesional. ROIS habilitara el pago anual desde admin cuando corresponda.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }

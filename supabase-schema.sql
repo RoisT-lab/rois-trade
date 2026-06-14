@@ -226,7 +226,8 @@ create table if not exists uploads (
 );
 
 alter table athletes add column if not exists annual numeric default 1000;
-alter table athletes add column if not exists annual_fee_required boolean not null default true;
+alter table athletes add column if not exists annual_fee_required boolean not null default false;
+alter table athletes alter column annual_fee_required set default false;
 alter table athletes add column if not exists profile_id uuid;
 alter table athletes add column if not exists email text;
 alter table athletes add column if not exists contact text;
@@ -242,6 +243,15 @@ alter table athletes add column if not exists sponsor_logos text;
 alter table athletes add column if not exists max_sponsors numeric default 3;
 alter table athletes add column if not exists proposal_url text;
 alter table athletes add column if not exists proposal_name text;
+alter table athletes add column if not exists birth_date date;
+alter table athletes add column if not exists age_status text;
+alter table athletes add column if not exists guardian_name text;
+alter table athletes add column if not exists guardian_email text;
+alter table athletes add column if not exists guardian_phone text;
+alter table athletes add column if not exists guardian_relationship text;
+alter table athletes add column if not exists guardian_consent boolean not null default false;
+alter table athletes add column if not exists legal_status text;
+alter table athletes add column if not exists registration_terms_accepted boolean not null default false;
 alter table events add column if not exists brochure_url text;
 alter table events add column if not exists brochure_name text;
 alter table events add column if not exists event_scope text;
