@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260613-athlete-profile-tabs-v40";
+const roisBuild = "20260613-athlete-clean-dashboard-v41";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -1325,8 +1325,6 @@ function renderAthlete() {
   renderAthleteSponsorships();
   renderAthleteResults();
   renderAthleteReels();
-  renderAthleteExpenses();
-  renderAthleteDeposits();
   renderAccountSettings("athlete-settings");
 }
 
@@ -1343,21 +1341,7 @@ function renderAthleteHeader() {
 }
 
 function renderAthleteKpis() {
-  const athlete = currentAthlete();
-  const email = state.session?.email || "";
-  const name = athlete?.name || state.session?.name || "";
-  const sponsorships = state.data.sponsorships.filter(item => item.athlete === name || item.athlete_email === email).length;
-  const results = state.data.athlete_results.filter(item => item.athlete_email === email).length;
-  const posts = state.data.athlete_posts.filter(item => item.athlete_email === email).length;
-  const deposits = state.data.athlete_deposits.filter(item => item.athlete_email === email).length;
-  const unread = athleteNotificationsFor(email).filter(item => item.status !== "read").length;
-  document.getElementById("athleteKpis").innerHTML = [
-    ["Solicitudes", sponsorships],
-    ["Resultados", results],
-    ["Reels", posts],
-    ["Notificaciones", unread],
-    ["Dep\u00f3sitos", deposits]
-  ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
+  document.getElementById("athleteKpis").innerHTML = "";
 }
 
 function athleteSocialMedia(post, athlete) {
@@ -1510,24 +1494,16 @@ function athleteNotificationCard(item) {
 }
 
 function renderAthleteNotifications() {
-  const athlete = currentAthlete();
   const email = state.session?.email || "";
-  const name = athlete?.name || state.session?.name || "";
   const adminMessages = athleteNotificationsFor(email);
-  const operationalNotices = [
-    ...state.data.sponsorships.filter(item => item.athlete === name || item.athlete_email === email).map(item => [`Patrocinio`, item.company || "Empresa ROIS", `$${Number(item.amount || 0).toLocaleString("es-MX")} MXN`, badge(item.status)]),
-    ...state.data.athlete_deposits.filter(item => item.athlete_email === email).map(item => [`Dep\u00f3sito`, item.month || "Periodo", `$${Number(item.amount || 0).toLocaleString("es-MX")} MXN`, badge(item.status)]),
-    ...state.data.athlete_results.filter(item => item.athlete_email === email && item.status === "review").map(item => [`Resultado`, item.month, "En revisi\u00f3n ROIS", badge(item.status)])
-  ];
-  panel("athlete-notifications", "Notificaciones", "Mensajes de ROIS, sponsors y seguimiento operativo", `
+  panel("athlete-notifications", "Notificaciones", "Mensajes importantes enviados por ROIS", `
     <div class="panel-body">
       ${adminMessages.length ? `
         <div class="notification-list">
           ${adminMessages.map(athleteNotificationCard).join("")}
         </div>
-      ` : `<div class="empty">Aun no tienes mensajes directos de ROIS. Cuando admin envie novedades sobre sponsors, contratos o pagos, apareceran aqui.</div>`}
+      ` : `<div class="empty">Aun no tienes notificaciones. Cuando ROIS tenga novedades importantes sobre sponsors, contratos o pagos, apareceran aqui.</div>`}
     </div>
-    ${operationalNotices.length ? table(["Tipo", "Origen", "Detalle", "Estado"], operationalNotices) : ""}
   `);
 }
 
@@ -1754,46 +1730,6 @@ function renderAthleteReels() {
     </div>
   `);
   document.getElementById("athletePostForm").addEventListener("submit", submitAthletePost);
-}
-
-function renderAthleteExpenses() {
-  const email = state.session?.email || "";
-  const rows = state.data.athlete_expenses.filter(item => item.athlete_email === email).map(item => [
-    item.date || "Sin fecha",
-    item.category,
-    `$${Number(item.amount || 0).toLocaleString("es-MX")} MXN`,
-    item.invoice_url ? `<a class="btn" href="${item.invoice_url}" target="_blank" rel="noopener">Factura</a>` : badge("sin factura"),
-    item.ticket_url ? `<a class="btn" href="${item.ticket_url}" target="_blank" rel="noopener">Ticket</a>` : badge("sin ticket"),
-    badge(item.status)
-  ]);
-  panel("athlete-expenses", "Tickets y facturas", "Consumos realizados con tarjeta y facturados a la empresa patrocinadora", `
-    <div class="panel-body">
-      <form id="athleteExpenseForm" class="form-grid">
-        <label>Fecha<input name="date" type="date" required></label>
-        <label>Categor\u00eda<select name="category"><option>Transporte</option><option>Hospedaje</option><option>Alimentos</option><option>Equipo deportivo</option><option>Inscripci\u00f3n / torneo</option><option>Entrenamiento</option><option>Otro</option></select></label>
-        <label>Monto<input name="amount" type="number" min="0" step="0.01" required></label>
-        <label>Empresa patrocinadora<input name="company" placeholder="Nombre de empresa"></label>
-        <label style="grid-column:1/-1">Ticket de consumo<input name="ticket" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required></label>
-        <label style="grid-column:1/-1">Factura<input name="invoice" type="file" accept="application/pdf,image/png,image/jpeg,image/webp" required></label>
-        <label style="grid-column:1/-1">Notas<textarea name="notes" placeholder="Describe el consumo y a qu\u00e9 objetivo deportivo corresponde."></textarea></label>
-        <button class="btn primary" type="submit">Subir comprobantes</button>
-      </form>
-    </div>
-    ${rows.length ? table(["Fecha", "Categor\u00eda", "Monto", "Factura", "Ticket", "Estado"], rows) : `<div class="empty">A\u00fan no has subido tickets ni facturas.</div>`}
-  `);
-  document.getElementById("athleteExpenseForm").addEventListener("submit", submitAthleteExpense);
-}
-
-function renderAthleteDeposits() {
-  const email = state.session?.email || "";
-  const rows = state.data.athlete_deposits.filter(item => item.athlete_email === email).map(item => [
-    item.month || "Periodo",
-    `$${Number(item.amount || 0).toLocaleString("es-MX")} MXN`,
-    item.company || "ROIS",
-    item.proof_url ? `<a class="btn" href="${item.proof_url}" target="_blank" rel="noopener">Comprobante</a>` : badge("pendiente"),
-    badge(item.status)
-  ]);
-  panel("athlete-deposits", "Dep\u00f3sitos", "Comprobantes cargados por administraci\u00f3n ROIS", rows.length ? table(["Periodo", "Monto", "Origen", "Comprobante", "Estado"], rows) : `<div class="empty">Admin cargar\u00e1 aqu\u00ed los comprobantes de dep\u00f3sitos realizados.</div>`);
 }
 
 function renderAdmin() {
