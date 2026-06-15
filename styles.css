@@ -1938,11 +1938,77 @@ input:focus, textarea:focus, select:focus {
 
 .modal-card {
   width: min(460px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
   background: #fff;
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
   padding: 26px;
   position: relative;
+}
+
+#registrationModal {
+  align-items: center;
+}
+
+#registrationModal .modal-card {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(88vh, 860px);
+  border-radius: 28px;
+  padding: 28px 32px 24px;
+}
+
+#registrationTitle {
+  font-size: clamp(32px, 4vw, 46px);
+  line-height: 1.02;
+  margin-bottom: 14px;
+}
+
+#registrationForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 10px;
+}
+
+#registrationForm label,
+#registrationForm .hint,
+#registrationForm .registration-note,
+#registrationForm .minor-consent-panel,
+#registrationForm .check-option,
+#registrationForm .btn.full {
+  min-width: 0;
+}
+
+#registrationForm .hint,
+#registrationForm .check-option,
+#registrationForm .registration-note,
+#registrationForm .minor-consent-panel,
+#registrationForm .btn.full {
+  grid-column: 1 / -1;
+}
+
+#registrationForm input,
+#registrationForm select,
+#registrationForm textarea {
+  min-height: 48px;
+}
+
+#registrationForm .check-option {
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: 18px;
+}
+
+#registrationForm .check-option span {
+  font-size: 12px;
+  line-height: 1.45;
+  letter-spacing: .04em;
+}
+
+#registrationForm .btn.full {
+  min-height: 52px;
+  margin-top: 2px;
 }
 
 .modal-actions {
@@ -2616,6 +2682,73 @@ input:focus, textarea:focus, select:focus {
   }
   .topbar .btn {
     width: auto;
+  }
+
+  #registrationModal {
+    align-items: end;
+    padding: 12px;
+  }
+
+  #registrationModal .modal-card {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    padding: 24px 18px 18px;
+    border-radius: 28px 28px 22px 22px;
+  }
+
+  #registrationTitle {
+    max-width: calc(100% - 46px);
+    font-size: clamp(30px, 8vw, 38px);
+  }
+
+  #registrationForm {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  #registrationForm input,
+  #registrationForm select,
+  #registrationForm textarea {
+    min-height: 46px;
+  }
+
+  #registrationForm .check-option {
+    padding: 13px 14px;
+  }
+
+  #registrationForm .check-option span {
+    font-size: 11px;
+    line-height: 1.42;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 901px) {
+  #registrationModal .modal-card {
+    max-height: calc(100vh - 28px);
+    padding: 22px 28px 20px;
+  }
+
+  #registrationTitle {
+    font-size: 34px;
+    margin-bottom: 10px;
+  }
+
+  #registrationForm {
+    row-gap: 8px;
+  }
+
+  #registrationForm input,
+  #registrationForm select,
+  #registrationForm textarea {
+    min-height: 44px;
+  }
+
+  #registrationForm .check-option {
+    padding: 12px 14px;
+  }
+
+  #registrationForm .btn.full {
+    min-height: 48px;
   }
 }
 
