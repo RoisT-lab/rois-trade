@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260614-athlete-minor-consent-v44";
+const roisBuild = "20260614-athlete-header-v45";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -1400,8 +1400,7 @@ function renderAthleteHeader() {
   document.getElementById("athleteAccountName").textContent = athlete?.name || state.session?.name || "Deportista ROIS";
   const logo = document.getElementById("athleteProfileLogo");
   if (logo) {
-    logo.hidden = !athlete?.image_url;
-    if (athlete?.image_url) logo.src = athlete.image_url;
+    logo.removeAttribute("hidden");
   }
   applySessionBranding();
 }

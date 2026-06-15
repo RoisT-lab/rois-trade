@@ -3729,6 +3729,22 @@ body.rois-brand-ready .side-logo {
   display: none !important;
 }
 
+body[data-active-view="athlete"] .topbar {
+  justify-content: space-between;
+}
+
+body[data-active-view="athlete"] .topbar .brand {
+  display: inline-flex !important;
+  align-items: center;
+  min-width: 170px;
+  width: 170px;
+}
+
+body[data-active-view="athlete"] .topbar .brand-logo {
+  width: 170px;
+  max-height: 56px;
+}
+
 /* Athlete dashboard: ROIS social profile system */
 #athleteView.dashboard {
   width: min(1480px, calc(100vw - 34px));
@@ -3790,9 +3806,43 @@ body.rois-brand-ready .side-logo {
   background: #fff;
 }
 
-#athleteView .workspace-head,
 #athleteView .kpis {
   display: none;
+}
+
+#athleteView .workspace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1080px;
+  margin: 0 auto 34px;
+  padding: 0 8px;
+}
+
+#athleteView .workspace-title {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+#athleteView .dashboard-rois-logo {
+  width: 156px;
+  height: 58px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 22px;
+  background: #111;
+  box-shadow: 0 18px 42px rgba(17, 17, 17, 0.14);
+}
+
+#athleteView .workspace-head h1 {
+  font-size: clamp(22px, 2.4vw, 34px);
+  line-height: 1.1;
+}
+
+#athleteView .workspace-head .btn {
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 #athleteView [data-dashboard-panel="athlete-profile"] .panel {
@@ -4494,6 +4544,33 @@ body[data-active-view="home"] .topbar .btn.nav-create-account {
   #athleteView .workspace {
     padding: 96px 14px 32px;
     background: #fff;
+  }
+
+  #athleteView .workspace-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 16px;
+    margin-bottom: 26px;
+    padding: 0;
+    text-align: center;
+  }
+
+  #athleteView .workspace-title {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+  }
+
+  #athleteView .dashboard-rois-logo {
+    width: 148px;
+    height: 54px;
+    border-radius: 20px;
+  }
+
+  #athleteView .workspace-head .btn {
+    width: min(100%, 260px);
+    min-height: 48px;
   }
 
   #athleteView [data-dashboard-panel="athlete-profile"] .panel-body {
