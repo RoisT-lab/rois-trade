@@ -330,6 +330,7 @@ drop policy if exists "uploads admin all" on uploads;
 drop policy if exists "athlete posts read approved" on athlete_posts;
 drop policy if exists "athlete posts self insert" on athlete_posts;
 drop policy if exists "athlete posts self read" on athlete_posts;
+drop policy if exists "athlete posts self delete" on athlete_posts;
 drop policy if exists "athlete posts admin all" on athlete_posts;
 drop policy if exists "athlete results self all" on athlete_results;
 drop policy if exists "athlete results admin all" on athlete_results;
@@ -421,6 +422,7 @@ create policy "uploads admin all" on uploads for all using (is_admin()) with che
 create policy "athlete posts read approved" on athlete_posts for select using (status = 'approved' or athlete_email = (auth.jwt() ->> 'email') or is_admin());
 create policy "athlete posts self read" on athlete_posts for select to authenticated using (athlete_email = (auth.jwt() ->> 'email'));
 create policy "athlete posts self insert" on athlete_posts for insert to authenticated with check (athlete_email = (auth.jwt() ->> 'email'));
+create policy "athlete posts self delete" on athlete_posts for delete to authenticated using (athlete_email = (auth.jwt() ->> 'email'));
 create policy "athlete posts admin all" on athlete_posts for all using (is_admin()) with check (is_admin());
 create policy "athlete results self all" on athlete_results for all to authenticated using (athlete_email = (auth.jwt() ->> 'email')) with check (athlete_email = (auth.jwt() ->> 'email'));
 create policy "athlete results admin all" on athlete_results for all using (is_admin()) with check (is_admin());

@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260614-athlete-header-v45";
+const roisBuild = "20260614-athlete-reels-profile-v46";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -794,7 +794,12 @@ function handleDashboardDelegatedActions(event) {
   const profileButton = event.target.closest("[data-athlete-profile]");
   if (profileButton) {
     const athlete = state.data?.athletes?.find(item => item.id === profileButton.dataset.athleteProfile);
-    if (athlete) openAthleteProfileModal(athlete);
+    if (athlete) openAthleteProfileView(athlete);
+    return;
+  }
+  const deletePostButton = event.target.closest("[data-athlete-delete-post]");
+  if (deletePostButton) {
+    deleteAthletePost(deletePostButton.dataset.athleteDeletePost);
   }
 }
 
@@ -959,7 +964,10 @@ function openLogin() {
 }
 
 function closeModals() {
-  document.querySelectorAll(".modal").forEach(modal => modal.classList.remove("active"));
+  document.querySelectorAll(".modal").forEach(modal => {
+    modal.classList.remove("active");
+    modal.classList.remove("profile-modal");
+  });
 }
 
 function notify(kicker, title, text, actions = "") {
@@ -1160,6 +1168,7 @@ function renderClientFeed() {
       </div>
     </div>
   ` : `<div class="empty">Los reels publicados por deportistas apareceran aqui.</div>`);
+  setupReelAutoplay();
 }
 
 function renderClientHeader() {
@@ -1412,17 +1421,19 @@ function renderAthleteKpis() {
 function athleteSocialMedia(post, athlete) {
   const image = post.image_url || athlete?.image_url || "./assets/rois-isotipo-cropped.png";
   if (post.video_url?.startsWith("data:video")) {
-    return `<video src="${post.video_url}" muted playsinline preload="metadata" poster="${escapeAttr(image)}"></video>`;
+    return `<video src="${post.video_url}" muted loop playsinline preload="metadata" poster="${escapeAttr(image)}"></video>`;
   }
   return `<img src="${image}" alt="${escapeAttr(post.title || "Reel deportivo")}">`;
 }
 
-function athleteSocialPostTile(post, athlete) {
+function athleteSocialPostTile(post, athlete, options = {}) {
+  const canDelete = options.canDelete && post.id;
   return `
     <article class="athlete-social-tile">
       <div class="athlete-social-media">
         ${athleteSocialMedia(post, athlete)}
         <span>Reel</span>
+        ${canDelete ? `<button class="media-delete-btn" type="button" data-athlete-delete-post="${escapeAttr(post.id)}">Eliminar</button>` : ""}
       </div>
       <div class="athlete-social-caption">
         <strong>${escapeHtml(post.title || "Entrenamiento")}</strong>
@@ -1572,7 +1583,10 @@ function renderAthleteNotifications() {
   `);
 }
 
-function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete)) {
+function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), options = {}) {
+  const readOnly = Boolean(options.readOnly);
+  const companyView = Boolean(options.companyView);
+  const showPostsTab = !companyView;
   const posts = state.data.athlete_posts
     .filter(item => item.athlete_email === athlete.email && item.status === "approved")
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
@@ -1600,12 +1614,16 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete)) {
           </div>
           <div class="athlete-social-stats">
             <div><strong>${posts.length}</strong><span>reels</span></div>
-            <div><strong>${sponsorships.length}</strong><span>solicitudes</span></div>
+            <div><strong>${companyView ? sponsorHighlights.length : sponsorships.length}</strong><span>${companyView ? "sponsors" : "solicitudes"}</span></div>
             <div><strong>${results.length}</strong><span>resultados</span></div>
           </div>
           <p><strong>${escapeHtml(athlete.sport || "Disciplina por definir")}</strong> / ${escapeHtml(athlete.category || "Categoria por definir")} / ${escapeHtml(athlete.location || "Base por confirmar")}</p>
           <p>${escapeHtml(athlete.stats || "Perfil deportivo en construccion. Sube tu plan de trabajo, resultados y reels para presentar una propuesta atractiva a patrocinadores.")}</p>
           <div class="athlete-social-actions">
+            ${readOnly ? `
+              ${athleteSponsorCta(athlete, "Solicitar fichaje")}
+              ${athleteProposalLink(athlete)}
+            ` : `
             ${button("Editar perfil", () => {
               const details = document.getElementById("athleteEditProfile");
               if (details) {
@@ -1615,6 +1633,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete)) {
             })}
             ${button("Publicar reel", () => showDashboardPanel("athlete-reels"))}
             ${athlete.proposal_url ? athleteProposalLink(athlete) : `<span class="pill">Plan pendiente</span>`}
+            `}
           </div>
         </div>
       </div>
@@ -1634,26 +1653,26 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete)) {
       </div>
 
       <div class="athlete-social-tabs">
-        <button class="active" type="button" data-athlete-profile-tab="posts">Publicaciones</button>
-        <button type="button" data-athlete-profile-tab="reels">Reels</button>
+        ${showPostsTab ? `<button class="active" type="button" data-athlete-profile-tab="posts">Publicaciones</button>` : ""}
+        <button class="${showPostsTab ? "" : "active"}" type="button" data-athlete-profile-tab="reels">Reels</button>
         <button type="button" data-athlete-profile-tab="results">Resultados</button>
         <button type="button" data-athlete-profile-tab="sponsorships">Patrocinios</button>
       </div>
 
-      <div class="athlete-social-tab-content active" data-athlete-tab-panel="posts">
+      ${showPostsTab ? `<div class="athlete-social-tab-content active" data-athlete-tab-panel="posts">
         ${hasPosts ? `
           <div class="athlete-social-grid">
-            ${posts.map(post => athleteSocialPostTile(post, athlete)).join("")}
+            ${posts.map(post => athleteSocialPostTile(post, athlete, { canDelete: !readOnly })).join("")}
           </div>
         ` : `<div class="empty athlete-social-empty">Tus publicaciones apareceran aqui. Publica entrenamientos, competencia y avances para que las empresas puedan evaluar tu perfil.</div>`}
-      </div>
+      </div>` : ""}
 
-      <div class="athlete-social-tab-content" data-athlete-tab-panel="reels">
+      <div class="athlete-social-tab-content ${showPostsTab ? "" : "active"}" data-athlete-tab-panel="reels">
         ${hasPosts ? `
           <div class="athlete-social-grid reels-only">
-            ${posts.map(post => athleteSocialPostTile(post, athlete)).join("")}
+            ${posts.map(post => athleteSocialPostTile(post, athlete, { canDelete: !readOnly })).join("")}
           </div>
-        ` : `<div class="empty athlete-social-empty">Aun no has publicado reels. Sube videos desde archivos para mostrar entrenamientos, torneos y avances.</div>`}
+        ` : `<div class="empty athlete-social-empty">${readOnly ? "Este deportista aun no ha publicado reels." : "Aun no has publicado reels. Sube videos desde archivos para mostrar entrenamientos, torneos y avances."}</div>`}
       </div>
 
       <div class="athlete-social-tab-content" data-athlete-tab-panel="results">
@@ -3157,7 +3176,7 @@ function videoEmbedUrl(url = "") {
 function reelMedia(post, athlete) {
   const embedUrl = videoEmbedUrl(post.video_url);
   if (post.video_url?.startsWith("data:video")) {
-    return `<video src="${post.video_url}" controls playsinline preload="metadata" poster="${escapeAttr(post.image_url || athlete?.image_url || "")}"></video>`;
+    return `<video src="${post.video_url}" controls muted loop playsinline preload="metadata" poster="${escapeAttr(post.image_url || athlete?.image_url || "")}"></video>`;
   }
   if (embedUrl) {
     return `<iframe src="${embedUrl}" title="${escapeAttr(post.title || "Reel deportivo")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
@@ -3170,8 +3189,9 @@ function reelMedia(post, athlete) {
   `;
 }
 
-function athleteSponsorCta(athlete) {
-  return `<button class="btn" type="button" data-athlete-sponsor="${escapeAttr(athlete.id)}">${athlete.sponsor_payment_url ? "Pagar patrocinio" : "Solicitar patrocinio"}</button>`;
+function athleteSponsorCta(athlete, label = "") {
+  const buttonLabel = label || (athlete.sponsor_payment_url ? "Pagar patrocinio" : "Solicitar patrocinio");
+  return `<button class="btn" type="button" data-athlete-sponsor="${escapeAttr(athlete.id)}">${buttonLabel}</button>`;
 }
 
 async function startAthleteSponsorPayment(athlete) {
@@ -3239,6 +3259,7 @@ function athleteOwnReelCard(post) {
         </div>
         <div class="reel-actions">
           ${post.video_url && !post.video_url.startsWith("data:video") ? `<a class="btn" href="${post.video_url}" target="_blank" rel="noopener">Abrir video</a>` : ""}
+          <button class="btn danger" type="button" data-athlete-delete-post="${escapeAttr(post.id)}">Eliminar reel</button>
           ${badge(post.status || "published")}
         </div>
       </div>
@@ -3246,13 +3267,65 @@ function athleteOwnReelCard(post) {
   `;
 }
 
-function openAthleteProfileModal(athlete) {
+function openAthleteProfileView(athlete) {
+  const modal = document.getElementById("actionModal");
+  modal.classList.add("profile-modal");
   notify(
     "Perfil deportivo",
-    athlete.name,
-    `${athlete.stats || "Perfil deportivo en evaluaci\u00f3n."} Ticket mensual sugerido: $${athleteMonthlyTicket(athlete).toLocaleString("es-MX")} MXN.`,
-    `<div class="modal-actions">${athleteProposalLink(athlete)}${athlete.video_url ? `<a class="btn" href="${athlete.video_url}" target="_blank" rel="noopener">Ver video</a>` : ""}${athleteSponsorCta(athlete)}</div>`
+    athlete.name || "Deportista ROIS",
+    "",
+    `<div class="company-athlete-profile">${athleteProfileHero(athlete, athleteSponsorLogos(athlete), { readOnly: true, companyView: true })}</div>`
   );
+  modal.classList.add("profile-modal");
+  document.querySelectorAll("#actionModal [data-athlete-profile-tab]").forEach(button => {
+    button.addEventListener("click", () => activateAthleteProfileTab(button.dataset.athleteProfileTab));
+  });
+}
+
+async function deleteAthletePost(postId) {
+  const post = state.data.athlete_posts.find(item => item.id === postId);
+  const email = String(state.session?.email || "").toLowerCase();
+  if (!post || String(post.athlete_email || "").toLowerCase() !== email) {
+    notify("Reels", "No autorizado", "Solo puedes eliminar contenido publicado desde tu cuenta.");
+    return;
+  }
+  const confirmed = window.confirm(`¿Eliminar "${post.title || "este reel"}"?`);
+  if (!confirmed) return;
+  try {
+    await api.remove("athlete_posts", post.id);
+    notify("Reels", "Contenido eliminado", "El reel fue retirado de tu perfil y del feed empresarial.");
+    renderAthlete();
+    renderClient();
+  } catch (error) {
+    notify("Reels", "No fue posible eliminar", humanError(error));
+  }
+}
+
+function setupReelAutoplay() {
+  const videos = [...document.querySelectorAll(".tiktok-feed video")];
+  if (!videos.length) return;
+  videos.forEach(video => {
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+  });
+  if (!("IntersectionObserver" in window)) {
+    videos[0]?.play?.().catch(() => {});
+    return;
+  }
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const video = entry.target;
+      if (entry.isIntersecting && entry.intersectionRatio > 0.62) {
+        video.play?.().catch(() => {});
+      } else {
+        video.pause?.();
+      }
+    });
+  }, { threshold: [0, 0.35, 0.62, 0.9] });
+  videos.forEach(video => observer.observe(video));
 }
 
 function partnerCard(partner) {
