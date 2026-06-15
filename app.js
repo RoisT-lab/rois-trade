@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260614-company-feed-audio-v47";
+const roisBuild = "20260614-home-athlete-profile-gate-v48";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -805,6 +805,11 @@ function handleDashboardDelegatedActions(event) {
   const soundButton = event.target.closest("[data-reel-sound]");
   if (soundButton) {
     toggleReelSound(soundButton);
+    return;
+  }
+  const registrationChoiceButton = event.target.closest("[data-registration-choice]");
+  if (registrationChoiceButton) {
+    openRegistrationChoice(registrationChoiceButton.dataset.registrationChoice);
   }
 }
 
@@ -983,6 +988,27 @@ function notify(kicker, title, text, actions = "") {
   document.getElementById("actionModal").classList.add("active");
 }
 
+function openRegistrationChoice(context = "profile") {
+  const copy = context === "athlete-profile"
+    ? "Para ver perfiles completos y solicitar patrocinios necesitas una cuenta empresarial. Si eres deportista, crea tu perfil para entrar al ecosistema ROIS."
+    : "Selecciona el tipo de cuenta que quieres crear dentro del ecosistema ROIS.";
+  notify(
+    "Acceso ROIS",
+    "Crea tu cuenta para continuar",
+    copy,
+    `<div class="modal-actions">
+      <button class="btn primary" type="button" data-registration="company">Crear cuenta empresarial</button>
+      <button class="btn" type="button" data-registration="athlete">Registro deportista</button>
+    </div>`
+  );
+  document.querySelectorAll("#actionModal [data-registration]").forEach(button => {
+    button.addEventListener("click", () => {
+      closeModals();
+      openRegistration(button.dataset.registration);
+    });
+  });
+}
+
 function showVerificationNotice(email) {
   notify(
     "Verificaci\u00f3n",
@@ -1119,7 +1145,7 @@ function renderPublic() {
   const publicAthletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
   document.getElementById("publicAthletes").innerHTML = publicAthletes.length ? `
     <div class="athlete-showcase">
-      ${publicAthletes.map(athlete => athleteCard(athlete, `<button class="btn primary" type="button" data-open-login>Patrocinar</button>`)).join("")}
+      ${publicAthletes.map(athlete => athleteCard(athlete, `<button class="btn primary" type="button" data-registration-choice="athlete-profile">Ver perfil</button>`)).join("")}
     </div>
   ` : `<div class="empty">Los deportistas aprobados aparecer\u00e1n aqu\u00ed cuando el administrador los publique.</div>`;
 
@@ -1137,6 +1163,7 @@ function renderPublic() {
   ` : `<div class="empty">Las noticias publicadas aparecer\u00e1n aqu\u00ed.</div>`;
 
   document.querySelectorAll("[data-open-login]").forEach(button => button.addEventListener("click", openLogin));
+  document.querySelectorAll("[data-registration]").forEach(button => button.addEventListener("click", () => openRegistration(button.dataset.registration)));
 }
 
 function siteSetting(id) {
@@ -3475,7 +3502,6 @@ function athleteCard(athlete, action) {
   const monthly = athleteMonthlyTicket(athlete).toLocaleString("es-MX");
   const logos = athleteSponsorLogos(athlete);
   const maxSponsors = Number(athlete.max_sponsors || 3);
-  const videoButton = athlete.video_url ? `<a class="btn" href="${athlete.video_url}" target="_blank" rel="noopener">Ver video</a>` : "";
   const proposalButton = athleteProposalLink(athlete);
   return `
     <article class="athlete-card">
@@ -3507,7 +3533,7 @@ function athleteCard(athlete, action) {
         </div>
         <div class="athlete-decision">
           <p>Ideal para marcas que buscan visibilidad temprana, narrativa deportiva y relaci\u00f3n directa con talento en crecimiento. Inversi\u00f3n anual de perfil: $${annual} MXN.</p>
-          <div class="athlete-actions">${proposalButton}${videoButton}${action}</div>
+          <div class="athlete-actions">${proposalButton}${action}</div>
         </div>
       </div>
     </article>
