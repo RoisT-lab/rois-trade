@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260614-athlete-reels-profile-v46";
+const roisBuild = "20260614-company-feed-audio-v47";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -800,6 +800,11 @@ function handleDashboardDelegatedActions(event) {
   const deletePostButton = event.target.closest("[data-athlete-delete-post]");
   if (deletePostButton) {
     deleteAthletePost(deletePostButton.dataset.athleteDeletePost);
+    return;
+  }
+  const soundButton = event.target.closest("[data-reel-sound]");
+  if (soundButton) {
+    toggleReelSound(soundButton);
   }
 }
 
@@ -3173,10 +3178,11 @@ function videoEmbedUrl(url = "") {
   return "";
 }
 
-function reelMedia(post, athlete) {
+function reelMedia(post, athlete, options = {}) {
   const embedUrl = videoEmbedUrl(post.video_url);
+  const isFeed = Boolean(options.feed);
   if (post.video_url?.startsWith("data:video")) {
-    return `<video src="${post.video_url}" controls muted loop playsinline preload="metadata" poster="${escapeAttr(post.image_url || athlete?.image_url || "")}"></video>`;
+    return `<video src="${post.video_url}" ${isFeed ? "muted loop autoplay" : "controls muted loop"} playsinline preload="${isFeed ? "auto" : "metadata"}" poster="${escapeAttr(post.image_url || athlete?.image_url || "")}"></video>`;
   }
   if (embedUrl) {
     return `<iframe src="${embedUrl}" title="${escapeAttr(post.title || "Reel deportivo")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
@@ -3220,7 +3226,8 @@ function athleteFeedCard(post) {
   return `
     <article class="feed-card reel-card">
       <div class="feed-media reel-media">
-        ${reelMedia(post, athlete)}
+        ${reelMedia(post, athlete, { feed: true })}
+        ${post.video_url?.startsWith("data:video") ? `<button class="reel-sound-toggle" type="button" data-reel-sound>Activar sonido</button>` : ""}
       </div>
       <div class="feed-content reel-content">
         <div>
@@ -3326,6 +3333,28 @@ function setupReelAutoplay() {
     });
   }, { threshold: [0, 0.35, 0.62, 0.9] });
   videos.forEach(video => observer.observe(video));
+}
+
+function toggleReelSound(button) {
+  const card = button.closest(".reel-card");
+  const video = card?.querySelector("video");
+  if (!video) return;
+  const shouldUnmute = video.muted;
+  document.querySelectorAll(".tiktok-feed video").forEach(item => {
+    if (item !== video) {
+      item.muted = true;
+      item.setAttribute("muted", "");
+      item.closest(".reel-card")?.querySelector("[data-reel-sound]")?.classList.remove("is-on");
+      const otherButton = item.closest(".reel-card")?.querySelector("[data-reel-sound]");
+      if (otherButton) otherButton.textContent = "Activar sonido";
+    }
+  });
+  video.muted = !shouldUnmute;
+  if (shouldUnmute) video.removeAttribute("muted");
+  else video.setAttribute("muted", "");
+  button.classList.toggle("is-on", shouldUnmute);
+  button.textContent = shouldUnmute ? "Sonido activo" : "Activar sonido";
+  video.play?.().catch(() => {});
 }
 
 function partnerCard(partner) {
