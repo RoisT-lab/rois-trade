@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260615-registration-responsive-v49";
+const roisBuild = "20260618-company-linkedin-v50";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -810,6 +810,16 @@ function handleDashboardDelegatedActions(event) {
   const registrationChoiceButton = event.target.closest("[data-registration-choice]");
   if (registrationChoiceButton) {
     openRegistrationChoice(registrationChoiceButton.dataset.registrationChoice);
+    return;
+  }
+  const dashboardShortcut = event.target.closest("[data-dashboard-shortcut]");
+  if (dashboardShortcut) {
+    showDashboardPanel(dashboardShortcut.dataset.dashboardShortcut);
+    return;
+  }
+  const premiumRequestButton = event.target.closest("[data-premium-request]");
+  if (premiumRequestButton) {
+    requestPremiumAllianceProduct(premiumRequestButton.dataset.premiumRequest);
   }
 }
 
@@ -1179,6 +1189,8 @@ function siteSetting(id) {
 function renderClient() {
   renderClientHeader();
   renderClientKpis();
+  renderClientOverview();
+  renderClientAlliances();
   renderClientEvents();
   renderClientFeed();
   renderClientNews();
@@ -1187,6 +1199,227 @@ function renderClient() {
   renderClientRegister();
   renderClientPayments();
   renderAccountSettings("client-settings");
+}
+
+function premiumAllianceCatalog() {
+  return [
+    {
+      id: "f1-mexico",
+      label: "Alianza premium",
+      name: "F1 Gran Premio de Mexico",
+      tag: "Experiencias, suites y patrocinios",
+      description: "Productos corporativos de hospitalidad, acceso privado y patrocinios de alto impacto para el Gran Premio de Mexico.",
+      logo: "F1",
+      tone: "black",
+      products: [
+        { id: "f1-terraza-a", name: "Terraza A", price: "$65,000 MXN + IVA", detail: "Acceso premium por persona. Inventario sujeto a confirmacion." },
+        { id: "f1-sky-box-mgs", name: "Sky Box MGS", price: "$65,800 MXN + IVA", detail: "Hospitalidad corporativa con vista y servicio premium." },
+        { id: "f1-trackside-b", name: "Trackside Box B", price: "$83,500 MXN + IVA", detail: "Box trackside. Capacidad referencial: 40 lugares." },
+        { id: "f1-platino-plus-b", name: "Platino Plus B Suite", price: "$95,000 MXN + IVA", detail: "Suite premium. Capacidad referencial: 40 lugares." },
+        { id: "f1-mgc-suite", name: "MGC Suite Privada", price: "$104,500 MXN + IVA", detail: "Suite privada de alto nivel. Capacidad referencial: 40 lugares." },
+        { id: "f1-black", name: "Patrocinio Black", price: "$1,850,000 MXN + IVA", detail: "Activacion de tierra, sampling y experiencia de marca." },
+        { id: "f1-bronce-lite", name: "Patrocinio Bronce Lite", price: "$3,500,000 MXN + IVA", detail: "Visibilidad inicial, contenido online y pases para fiesta de patrocinadores." },
+        { id: "f1-bronce", name: "Patrocinio Bronce", price: "$5,000,000 MXN + IVA", detail: "Pendones, spot en pantallas, retorno en boletos y accesos VIP." },
+        { id: "f1-gold", name: "Patrocinio Gold", price: "$12,500,000 MXN + IVA", detail: "Presencia amplia, activaciones, pauta, mailings, pases VIP y hospitality." },
+        { id: "f1-platino", name: "Patrocinio Platino", price: "$25,000,000 MXN + IVA", detail: "Maxima presencia, helicoptero, paddock, grid passes y beneficios principales." }
+      ]
+    },
+    {
+      id: "los-300",
+      label: "Alianza editorial y golf",
+      name: "Los 300",
+      tag: "Networking, ranking empresarial y torneo de golf",
+      description: "Acceso a productos de posicionamiento empresarial, networking premium y torneo de golf Los 300.",
+      logo: "300",
+      tone: "silver",
+      products: [
+        { id: "los300-anual-10m", name: "Membresia Anual Elite", price: "$10,000,000 MXN", detail: "Presencia anual prioritaria y acceso a ecosistema premium Los 300." },
+        { id: "los300-anual-5m", name: "Membresia Anual Plus", price: "$5,000,000 MXN", detail: "Posicionamiento anual, networking y beneficios seleccionados." },
+        { id: "los300-anual-25m", name: "Membresia Anual Base", price: "$2,500,000 MXN", detail: "Entrada institucional al ecosistema anual." },
+        { id: "los300-networking", name: "Networking Premium", price: "$270,000 MXN", detail: "Acceso ejecutivo a sesion de relacionamiento premium." },
+        { id: "los300-golf-cohost", name: "Golf Co-Anfitrion", price: "$1,000,000 MXN", detail: "Rol destacado dentro del torneo de golf." },
+        { id: "los300-golf-platino", name: "Golf Platino", price: "$500,000 MXN", detail: "Presencia premium y activaciones dentro del torneo." },
+        { id: "los300-golf-oro", name: "Golf Oro", price: "$250,000 MXN", detail: "Presencia de marca y relacionamiento con jugadores." }
+      ]
+    }
+  ];
+}
+
+function clientCompanyLogoMarkup(company) {
+  if (company?.logo_url) {
+    return `<img src="${company.logo_url}" alt="${escapeAttr(company.name || "Empresa")}">`;
+  }
+  return `<svg viewBox="0 0 1200 420" role="img" aria-label="ROIS"><use href="#roisLogoSymbol"></use></svg>`;
+}
+
+function renderClientOverview() {
+  const company = currentCompany();
+  const cover = siteSetting("home_cover");
+  const posts = state.data.athlete_posts
+    .filter(post => post.status === "approved")
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const alliances = premiumAllianceCatalog();
+  const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
+  const athletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
+  const companyName = company?.name || state.session?.name || "Empresa ROIS";
+  const interest = company?.interest || "Patrocinios, eventos y talento deportivo";
+  const description = company?.description || "Cuenta empresarial habilitada para revisar oportunidades, solicitar patrocinios, acceder a eventos privados y operar alianzas premium dentro del ecosistema ROIS.";
+
+  document.querySelector(`[data-dashboard-panel="client-overview"]`).innerHTML = `
+    <div class="company-profile-layout">
+      <div class="company-profile-main">
+        <section class="company-profile-card">
+          <div class="company-cover">
+            ${cover?.image_url ? `<img src="${cover.image_url}" alt="Portada ROIS">` : `<div class="company-cover-fallback"><span>ROIS</span><small>Strategic partnerships · athletes · investment</small></div>`}
+          </div>
+          <div class="company-profile-body">
+            <div class="company-profile-logo">${clientCompanyLogoMarkup(company)}</div>
+            <div class="company-profile-copy">
+              <p class="eyebrow">Perfil empresarial</p>
+              <h2>${escapeHtml(companyName)}</h2>
+              <p><strong>${escapeHtml(interest)}</strong></p>
+              <p>${escapeHtml(description)}</p>
+              <div class="company-profile-actions">
+                <button class="btn primary" type="button" data-dashboard-shortcut="client-alliances">Explorar alianzas premium</button>
+                <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver deportistas</button>
+                <button class="btn" type="button" data-dashboard-shortcut="client-settings">Editar perfil</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="company-operations-card">
+          <div class="section-minihead">
+            <p class="eyebrow">Centro de operaciones</p>
+            <h3>Accesos principales para activar oportunidades.</h3>
+          </div>
+          <div class="company-action-grid">
+            ${clientOperationCard("Alianzas Premium", "F1, Los 300 y proximas experiencias privadas.", "client-alliances", "Ver productos")}
+            ${clientOperationCard("Patrocinar deportistas", `${athletes.length} perfiles aprobados disponibles.`, "client-marketplace", "Revisar perfiles")}
+            ${clientOperationCard("Eventos privados", `${events.length} oportunidades publicadas por ROIS.`, "client-events", "Ver calendario")}
+            ${clientOperationCard("Patrocinios ROIS", "Partner, Oficial y Legacy Sponsor.", "client-sponsors", "Ver niveles")}
+          </div>
+        </section>
+
+        <section class="company-alliances-preview">
+          <div class="section-minihead">
+            <p class="eyebrow">Alianzas activas</p>
+            <h3>Productos privados para empresas registradas.</h3>
+          </div>
+          <div class="premium-alliance-grid compact">
+            ${alliances.map(alliance => allianceCard(alliance, true)).join("")}
+          </div>
+        </section>
+      </div>
+
+      <aside class="company-profile-aside">
+        <div class="company-reels-widget">
+          <div class="section-minihead">
+            <p class="eyebrow">Feed deportivo</p>
+            <h3>Reels de atletas listos para patrocinio.</h3>
+          </div>
+          ${posts.length ? `
+            <div class="reels-feed tiktok-feed compact-reels" aria-label="Reels deportivos ROIS">
+              ${posts.slice(0, 6).map(post => athleteFeedCard(post)).join("")}
+            </div>
+          ` : `<div class="empty slim">Los reels publicados por deportistas apareceran aqui.</div>`}
+        </div>
+      </aside>
+    </div>
+  `;
+  setupReelAutoplay();
+}
+
+function clientOperationCard(title, text, target, action) {
+  return `
+    <article>
+      <span>${escapeHtml(title)}</span>
+      <p>${escapeHtml(text)}</p>
+      <button class="btn" type="button" data-dashboard-shortcut="${escapeAttr(target)}">${escapeHtml(action)}</button>
+    </article>
+  `;
+}
+
+function allianceCard(alliance, compact = false) {
+  return `
+    <article class="premium-alliance-card ${alliance.tone || ""}">
+      <div class="premium-alliance-mark">${escapeHtml(alliance.logo)}</div>
+      <p class="eyebrow">${escapeHtml(alliance.label)}</p>
+      <h3>${escapeHtml(alliance.name)}</h3>
+      <strong>${escapeHtml(alliance.tag)}</strong>
+      <p>${escapeHtml(alliance.description)}</p>
+      ${compact ? `
+        <button class="btn" type="button" data-dashboard-shortcut="client-alliances">Ver productos</button>
+      ` : `
+        <div class="premium-product-count">${alliance.products.length} productos disponibles</div>
+      `}
+    </article>
+  `;
+}
+
+function renderClientAlliances() {
+  const alliances = premiumAllianceCatalog();
+  panel("client-alliances", "Alianzas Premium", "F1, Los 300 y experiencias privadas disponibles para empresas ROIS", `
+    <div class="panel-body">
+      <div class="premium-alliance-grid">
+        ${alliances.map(alliance => allianceCard(alliance)).join("")}
+      </div>
+      ${alliances.map(alliance => `
+        <div class="premium-products-block">
+          <div class="section-minihead">
+            <p class="eyebrow">${escapeHtml(alliance.name)}</p>
+            <h3>Productos disponibles para solicitud empresarial.</h3>
+          </div>
+          <div class="premium-product-grid">
+            ${alliance.products.map(product => premiumProductCard(alliance, product)).join("")}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `);
+}
+
+function premiumProductCard(alliance, product) {
+  return `
+    <article class="premium-product-card">
+      <span>${escapeHtml(alliance.name)}</span>
+      <h4>${escapeHtml(product.name)}</h4>
+      <strong>${escapeHtml(product.price)}</strong>
+      <p>${escapeHtml(product.detail)}</p>
+      <button class="btn primary" type="button" data-premium-request="${escapeAttr(`${alliance.id}:${product.id}`)}">Solicitar producto</button>
+    </article>
+  `;
+}
+
+async function requestPremiumAllianceProduct(value) {
+  if (!state.session || state.session.role !== "client") {
+    openLogin();
+    return;
+  }
+  const [allianceId, productId] = String(value || "").split(":");
+  const alliance = premiumAllianceCatalog().find(item => item.id === allianceId);
+  const product = alliance?.products.find(item => item.id === productId);
+  if (!alliance || !product) return;
+  try {
+    await api.insert("requests", {
+      type: "Alianza Premium",
+      title: `${alliance.name} - ${product.name}`,
+      details: `${alliance.name} | ${product.price} | ${product.detail}`,
+      priority: "Alta",
+      owner: currentCompany()?.name || state.session?.name || "Empresa",
+      status: "review"
+    });
+    await api.insert("crm", {
+      name: `${currentCompany()?.name || state.session?.name || "Empresa"} - ${product.name}`,
+      volume: Number(String(product.price).replace(/[^0-9.]/g, "")) || 0,
+      status: "Solicitud nueva"
+    });
+    notify("Alianzas Premium", "Solicitud recibida", `ROIS revisara disponibilidad y condiciones de ${product.name}.`);
+    renderClient();
+    renderAdmin();
+  } catch (error) {
+    notify("Alianzas Premium", "No fue posible registrar", humanError(error));
+  }
 }
 
 function renderClientFeed() {

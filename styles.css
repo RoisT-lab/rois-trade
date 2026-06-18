@@ -1669,6 +1669,333 @@ input[readonly] {
   min-height: 460px;
 }
 
+/* Company dashboard: LinkedIn-inspired institutional profile */
+#clientView.dashboard {
+  width: min(1480px, calc(100vw - 36px));
+  grid-template-columns: 250px minmax(0, 1fr);
+  border-radius: 34px;
+  overflow: hidden;
+}
+
+#clientView .workspace {
+  padding: 34px clamp(24px, 3vw, 46px) 52px;
+}
+
+#clientView .workspace-head {
+  margin-bottom: 18px;
+}
+
+#clientView .kpis {
+  width: min(860px, 100%);
+  border: 0;
+  gap: 14px;
+  background: transparent;
+}
+
+#clientView .kpi {
+  min-height: 104px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 18px 48px rgba(44, 52, 64, 0.055);
+}
+
+.company-profile-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 0.34fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.company-profile-main {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
+.company-profile-card,
+.company-operations-card,
+.company-alliances-preview,
+.company-reels-widget,
+.premium-products-block {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 24px 70px rgba(44, 52, 64, 0.075);
+}
+
+.company-cover {
+  height: clamp(190px, 22vw, 310px);
+  background: #08090a;
+}
+
+.company-cover img,
+.company-cover-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  object-fit: cover;
+}
+
+.company-cover-fallback {
+  gap: 8px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.18), transparent 28%),
+    linear-gradient(135deg, #050505, #15181c 58%, #050505);
+}
+
+.company-cover-fallback span {
+  font-size: clamp(42px, 7vw, 96px);
+  font-weight: 680;
+  letter-spacing: 0.34em;
+}
+
+.company-cover-fallback small {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.company-profile-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 26px;
+  padding: 0 28px 30px;
+}
+
+.company-profile-logo {
+  width: 150px;
+  height: 150px;
+  margin-top: -66px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 5px solid #fff;
+  border-radius: 24px;
+  background: #0d0f11;
+  box-shadow: 0 18px 42px rgba(17, 17, 17, 0.16);
+}
+
+.company-profile-logo img,
+.company-profile-logo svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 16px;
+}
+
+.company-profile-copy {
+  padding-top: 26px;
+}
+
+.company-profile-copy h2 {
+  margin: 4px 0 8px;
+  font-size: clamp(34px, 4vw, 58px);
+  line-height: 1;
+}
+
+.company-profile-copy p {
+  max-width: 760px;
+  color: rgba(17, 17, 17, 0.68);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.company-profile-copy p strong {
+  color: var(--text);
+}
+
+.company-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.company-operations-card,
+.company-alliances-preview,
+.company-reels-widget,
+.premium-products-block {
+  padding: 24px;
+}
+
+.company-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.company-action-grid article {
+  display: grid;
+  gap: 12px;
+  align-content: space-between;
+  min-height: 188px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+}
+
+.company-action-grid span,
+.premium-product-card span,
+.premium-product-count {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.company-action-grid p,
+.premium-alliance-card p,
+.premium-product-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.company-profile-aside {
+  position: sticky;
+  top: 24px;
+  min-width: 0;
+}
+
+.company-reels-widget {
+  padding: 18px;
+}
+
+.company-reels-widget .section-minihead {
+  padding: 8px 8px 14px;
+}
+
+.compact-reels {
+  max-width: 100%;
+  max-height: 760px;
+}
+
+.compact-reels.tiktok-feed .reel-card {
+  min-height: 660px;
+  border-radius: 28px;
+}
+
+.compact-reels.tiktok-feed .reel-media,
+.compact-reels.tiktok-feed .reel-media video,
+.compact-reels.tiktok-feed .reel-media img,
+.compact-reels.tiktok-feed .reel-media iframe {
+  min-height: 660px;
+}
+
+.premium-alliance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.premium-alliance-grid.compact {
+  margin-top: 18px;
+}
+
+.premium-alliance-card {
+  position: relative;
+  min-height: 300px;
+  display: grid;
+  align-content: end;
+  gap: 10px;
+  overflow: hidden;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.22), transparent 28%),
+    linear-gradient(135deg, #050505, #15181c);
+  color: #fff;
+}
+
+.premium-alliance-card.silver {
+  background:
+    radial-gradient(circle at 80% 18%, rgba(255, 255, 255, 0.72), transparent 24%),
+    linear-gradient(135deg, #e8ebee, #ffffff 48%, #ccd3da);
+  color: #111;
+  border-color: var(--line);
+}
+
+.premium-alliance-mark {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  min-width: 82px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 18px;
+  font-size: 22px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.premium-alliance-card h3 {
+  max-width: 360px;
+  margin: 0;
+  color: currentColor;
+  font-size: clamp(25px, 3vw, 42px);
+  line-height: 1.04;
+}
+
+.premium-alliance-card strong {
+  color: currentColor;
+}
+
+.premium-alliance-card p,
+.premium-alliance-card .eyebrow,
+.premium-alliance-card .premium-product-count {
+  color: color-mix(in srgb, currentColor 72%, transparent);
+}
+
+.premium-products-block {
+  margin-top: 22px;
+}
+
+.premium-product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.premium-product-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-height: 222px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+}
+
+.premium-product-card h4 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.16;
+}
+
+.premium-product-card strong {
+  font-size: 18px;
+}
+
+.premium-product-card .btn {
+  align-self: end;
+  margin-top: 6px;
+}
+
 .athlete-profile-hero {
   overflow: hidden;
   margin-bottom: 28px;
@@ -5012,5 +5339,116 @@ body[data-active-view="home"] .topbar .btn.nav-create-account {
   .profile-brands,
   .athlete-profile-reels {
     padding: 22px;
+  }
+}
+
+/* Final company dashboard overrides */
+#clientView.dashboard {
+  width: min(1480px, calc(100vw - 36px));
+}
+
+#clientView .company-profile-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.34fr);
+  gap: 24px;
+  align-items: start;
+}
+
+#clientView .company-profile-aside {
+  position: sticky;
+  top: 24px;
+}
+
+#clientView .premium-product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1180px) {
+  #clientView .company-profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .company-profile-aside {
+    position: static;
+  }
+
+  #clientView .premium-product-grid,
+  #clientView .premium-alliance-grid,
+  #clientView .company-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  #clientView.dashboard {
+    width: 100%;
+  }
+
+  #clientView .workspace {
+    padding: 0 14px 88px;
+  }
+
+  #clientView .workspace-head {
+    padding: 0 4px;
+  }
+
+  #clientView .kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  #clientView .company-profile-card,
+  #clientView .company-operations-card,
+  #clientView .company-alliances-preview,
+  #clientView .company-reels-widget,
+  #clientView .premium-products-block {
+    border-radius: 26px;
+  }
+
+  #clientView .company-cover {
+    height: 176px;
+  }
+
+  #clientView .company-profile-body {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 0 18px 22px;
+  }
+
+  #clientView .company-profile-logo {
+    width: 104px;
+    height: 104px;
+    margin-top: -48px;
+    border-radius: 22px;
+  }
+
+  #clientView .company-profile-copy {
+    padding-top: 0;
+  }
+
+  #clientView .company-profile-copy h2 {
+    font-size: 34px;
+  }
+
+  #clientView .company-profile-actions,
+  #clientView .company-profile-actions .btn {
+    width: 100%;
+  }
+
+  #clientView .premium-product-grid,
+  #clientView .premium-alliance-grid,
+  #clientView .company-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .compact-reels.tiktok-feed .reel-card,
+  #clientView .compact-reels.tiktok-feed .reel-media,
+  #clientView .compact-reels.tiktok-feed .reel-media video,
+  #clientView .compact-reels.tiktok-feed .reel-media img,
+  #clientView .compact-reels.tiktok-feed .reel-media iframe {
+    min-height: min(76vh, 660px);
   }
 }
