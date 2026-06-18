@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260618-client-experience-v51";
+const roisBuild = "20260618-dashboard-focus-v52";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -1278,6 +1278,7 @@ function clientExperienceOverviewMarkup() {
           <div class="company-cover">
             ${cover?.image_url ? `<img src="${cover.image_url}" alt="Portada ROIS">` : `<div class="company-cover-fallback"><span>ROIS</span><small>Strategic partnerships · athletes · investment</small></div>`}
           </div>
+          <button class="btn company-cover-logout" type="button" data-logout>Cerrar sesión</button>
           <div class="company-profile-body">
             <div class="company-profile-logo">${clientCompanyLogoMarkup(company)}</div>
             <div class="company-profile-copy">
