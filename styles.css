@@ -12,6 +12,345 @@
   --sans: "Segoe UI", "Avenir Next", Inter, Arial, sans-serif;
 }
 
+/* Client experience command center */
+#clientView.dashboard {
+  width: min(1680px, calc(100vw - 28px));
+}
+
+#clientView .workspace {
+  padding: 44px clamp(28px, 4vw, 68px) 64px;
+}
+
+#clientView .workspace > .kpis {
+  display: none;
+}
+
+#clientView .company-profile-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(390px, 0.34fr);
+  gap: 30px;
+}
+
+#clientView .company-profile-aside {
+  display: grid;
+  gap: 18px;
+}
+
+#clientView .executive-company-card,
+#clientView .premium-command-panel,
+#clientView .client-decision-board,
+#clientView .company-operations-card,
+#clientView .client-next-steps,
+#clientView .company-reels-widget,
+#clientView .client-alliance-brief {
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 28px 90px rgba(44, 52, 64, 0.08);
+}
+
+#clientView .executive-company-card {
+  overflow: hidden;
+}
+
+#clientView .company-cover {
+  height: clamp(250px, 25vw, 390px);
+}
+
+#clientView .company-profile-body {
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 34px;
+  padding: 0 clamp(28px, 3vw, 44px) 28px;
+}
+
+#clientView .company-profile-logo {
+  width: 168px;
+  height: 168px;
+  margin-top: -76px;
+  border-radius: 30px;
+}
+
+#clientView .company-profile-copy h2 {
+  max-width: 860px;
+  font-size: clamp(40px, 4.6vw, 72px);
+  letter-spacing: 0;
+}
+
+#clientView .company-profile-copy p {
+  max-width: 900px;
+}
+
+#clientView .company-signal-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+}
+
+#clientView .company-signal-strip div {
+  min-height: 118px;
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  padding: 22px clamp(18px, 2vw, 34px);
+  border-right: 1px solid var(--line);
+}
+
+#clientView .company-signal-strip div:last-child {
+  border-right: 0;
+}
+
+#clientView .company-signal-strip span {
+  color: var(--text);
+  font-size: 34px;
+  font-weight: 760;
+}
+
+#clientView .company-signal-strip small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+#clientView .premium-command-panel,
+#clientView .client-decision-board,
+#clientView .company-operations-card,
+#clientView .client-next-steps,
+#clientView .client-alliance-brief {
+  padding: clamp(24px, 3vw, 38px);
+}
+
+#clientView .premium-command-panel {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(255, 255, 255, 0.18), transparent 24%),
+    linear-gradient(135deg, #08090a, #15181c);
+  color: #fff;
+}
+
+#clientView .premium-command-panel h3,
+#clientView .premium-command-panel p {
+  color: #fff;
+}
+
+#clientView .premium-command-panel .section-minihead p:last-child {
+  max-width: 880px;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+#clientView .premium-alliance-grid.command {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 26px;
+}
+
+#clientView .premium-alliance-grid.command .premium-alliance-card {
+  min-height: 380px;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+#clientView .premium-alliance-grid.command .premium-alliance-card.silver {
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+#clientView .client-step-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+#clientView .client-step-grid article,
+#clientView .company-action-grid article {
+  min-height: 220px;
+  display: grid;
+  align-content: space-between;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: #fff;
+}
+
+#clientView .client-step-grid span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+#clientView .client-step-grid h4,
+#clientView .company-action-grid h4,
+#clientView .client-next-steps h3 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.18;
+}
+
+#clientView .client-step-grid p,
+#clientView .client-next-steps p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+#clientView .client-next-steps {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.13), transparent 28%),
+    linear-gradient(145deg, #111, #2c3440);
+  color: #fff;
+}
+
+#clientView .client-next-steps .eyebrow,
+#clientView .client-next-steps h3 {
+  color: #fff;
+}
+
+#clientView .client-next-steps p {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+#clientView .client-next-steps div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+#clientView .client-next-steps .btn:not(.primary) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#clientView .company-action-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+#clientView .company-action-grid article {
+  min-height: 196px;
+}
+
+#clientView .company-reels-widget {
+  padding: 22px;
+}
+
+#clientView .company-reels-widget .section-minihead {
+  padding: 4px 4px 16px;
+}
+
+#clientView .client-alliance-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+#clientView .client-alliance-brief h3 {
+  max-width: 820px;
+  margin: 0;
+}
+
+#clientView .brief-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+#clientView .brief-flow span {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1180px) {
+  #clientView .company-profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .premium-product-grid,
+  #clientView .premium-alliance-grid,
+  #clientView .premium-alliance-grid.command,
+  #clientView .company-action-grid,
+  #clientView .client-step-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #clientView .client-alliance-brief {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .brief-flow {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  #clientView.dashboard {
+    width: 100%;
+  }
+
+  #clientView .workspace {
+    padding: 0 14px 96px;
+  }
+
+  #clientView .workspace > .kpis,
+  #clientView .kpis {
+    display: none;
+  }
+
+  #clientView .company-cover {
+    height: 188px;
+  }
+
+  #clientView .company-profile-body {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 0 18px 22px;
+  }
+
+  #clientView .company-profile-logo {
+    width: 104px;
+    height: 104px;
+    margin-top: -48px;
+    border-radius: 22px;
+  }
+
+  #clientView .company-signal-strip,
+  #clientView .premium-product-grid,
+  #clientView .premium-alliance-grid,
+  #clientView .premium-alliance-grid.command,
+  #clientView .company-action-grid,
+  #clientView .client-step-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .company-signal-strip div {
+    min-height: 86px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  #clientView .company-signal-strip div:last-child {
+    border-bottom: 0;
+  }
+
+  #clientView .premium-command-panel,
+  #clientView .client-decision-board,
+  #clientView .company-operations-card,
+  #clientView .client-next-steps,
+  #clientView .client-alliance-brief {
+    border-radius: 26px;
+    padding: 22px;
+  }
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -5450,5 +5789,345 @@ body[data-active-view="home"] .topbar .btn.nav-create-account {
   #clientView .compact-reels.tiktok-feed .reel-media img,
   #clientView .compact-reels.tiktok-feed .reel-media iframe {
     min-height: min(76vh, 660px);
+  }
+}
+
+/* Client experience command center - final cascade */
+#clientView.dashboard {
+  width: min(1680px, calc(100vw - 28px));
+}
+
+#clientView .workspace {
+  padding: 44px clamp(28px, 4vw, 68px) 64px;
+}
+
+#clientView .workspace > .kpis,
+#clientView .kpis {
+  display: none;
+}
+
+#clientView .company-profile-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(390px, 0.34fr);
+  gap: 30px;
+}
+
+#clientView .company-profile-aside {
+  display: grid;
+  gap: 18px;
+}
+
+#clientView .executive-company-card,
+#clientView .premium-command-panel,
+#clientView .client-decision-board,
+#clientView .company-operations-card,
+#clientView .client-next-steps,
+#clientView .company-reels-widget,
+#clientView .client-alliance-brief {
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 28px 90px rgba(44, 52, 64, 0.08);
+}
+
+#clientView .executive-company-card {
+  overflow: hidden;
+}
+
+#clientView .company-cover {
+  height: clamp(250px, 25vw, 390px);
+}
+
+#clientView .company-profile-body {
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 34px;
+  padding: 0 clamp(28px, 3vw, 44px) 28px;
+}
+
+#clientView .company-profile-logo {
+  width: 168px;
+  height: 168px;
+  margin-top: -76px;
+  border-radius: 30px;
+}
+
+#clientView .company-profile-copy h2 {
+  max-width: 860px;
+  font-size: clamp(40px, 4.6vw, 72px);
+  letter-spacing: 0;
+}
+
+#clientView .company-profile-copy p {
+  max-width: 900px;
+}
+
+#clientView .company-signal-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+}
+
+#clientView .company-signal-strip div {
+  min-height: 118px;
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  padding: 22px clamp(18px, 2vw, 34px);
+  border-right: 1px solid var(--line);
+}
+
+#clientView .company-signal-strip div:last-child {
+  border-right: 0;
+}
+
+#clientView .company-signal-strip span {
+  color: var(--text);
+  font-size: 34px;
+  font-weight: 760;
+}
+
+#clientView .company-signal-strip small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+#clientView .premium-command-panel,
+#clientView .client-decision-board,
+#clientView .company-operations-card,
+#clientView .client-next-steps,
+#clientView .client-alliance-brief {
+  padding: clamp(24px, 3vw, 38px);
+}
+
+#clientView .premium-command-panel {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(255, 255, 255, 0.18), transparent 24%),
+    linear-gradient(135deg, #08090a, #15181c);
+  color: #fff;
+}
+
+#clientView .premium-command-panel h3,
+#clientView .premium-command-panel p {
+  color: #fff;
+}
+
+#clientView .premium-command-panel .section-minihead p:last-child {
+  max-width: 880px;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+#clientView .premium-alliance-grid.command {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 26px;
+}
+
+#clientView .premium-alliance-grid.command .premium-alliance-card {
+  min-height: 380px;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+#clientView .premium-alliance-grid.command .premium-alliance-card.silver {
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+#clientView .client-step-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+#clientView .client-step-grid article,
+#clientView .company-action-grid article {
+  min-height: 220px;
+  display: grid;
+  align-content: space-between;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: #fff;
+}
+
+#clientView .client-step-grid span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+#clientView .client-step-grid h4,
+#clientView .company-action-grid h4,
+#clientView .client-next-steps h3 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.18;
+}
+
+#clientView .client-step-grid p,
+#clientView .client-next-steps p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+#clientView .client-next-steps {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.13), transparent 28%),
+    linear-gradient(145deg, #111, #2c3440);
+  color: #fff;
+}
+
+#clientView .client-next-steps .eyebrow,
+#clientView .client-next-steps h3 {
+  color: #fff;
+}
+
+#clientView .client-next-steps p {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+#clientView .client-next-steps div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+#clientView .client-next-steps .btn:not(.primary) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#clientView .company-action-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+#clientView .company-action-grid article {
+  min-height: 196px;
+}
+
+#clientView .company-reels-widget {
+  padding: 22px;
+}
+
+#clientView .company-reels-widget .section-minihead {
+  padding: 4px 4px 16px;
+}
+
+#clientView .client-alliance-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+#clientView .client-alliance-brief h3 {
+  max-width: 820px;
+  margin: 0;
+}
+
+#clientView .brief-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+#clientView .brief-flow span {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1180px) {
+  #clientView .company-profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .premium-product-grid,
+  #clientView .premium-alliance-grid,
+  #clientView .premium-alliance-grid.command,
+  #clientView .company-action-grid,
+  #clientView .client-step-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #clientView .client-alliance-brief {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .brief-flow {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  #clientView.dashboard {
+    width: 100%;
+  }
+
+  #clientView .workspace {
+    padding: 0 14px 96px;
+  }
+
+  #clientView .workspace > .kpis,
+  #clientView .kpis {
+    display: none;
+  }
+
+  #clientView .company-cover {
+    height: 188px;
+  }
+
+  #clientView .company-profile-body {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 0 18px 22px;
+  }
+
+  #clientView .company-profile-logo {
+    width: 104px;
+    height: 104px;
+    margin-top: -48px;
+    border-radius: 22px;
+  }
+
+  #clientView .company-signal-strip,
+  #clientView .premium-product-grid,
+  #clientView .premium-alliance-grid,
+  #clientView .premium-alliance-grid.command,
+  #clientView .company-action-grid,
+  #clientView .client-step-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .company-signal-strip div {
+    min-height: 86px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  #clientView .company-signal-strip div:last-child {
+    border-bottom: 0;
+  }
+
+  #clientView .premium-command-panel,
+  #clientView .client-decision-board,
+  #clientView .company-operations-card,
+  #clientView .client-next-steps,
+  #clientView .client-alliance-brief {
+    border-radius: 26px;
+    padding: 22px;
   }
 }

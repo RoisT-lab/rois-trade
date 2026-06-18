@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260618-company-linkedin-v50";
+const roisBuild = "20260618-client-experience-v51";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -1253,6 +1253,11 @@ function clientCompanyLogoMarkup(company) {
 }
 
 function renderClientOverview() {
+  document.querySelector(`[data-dashboard-panel="client-overview"]`).innerHTML = clientExperienceOverviewMarkup();
+  setupReelAutoplay();
+}
+
+function clientExperienceOverviewMarkup() {
   const company = currentCompany();
   const cover = siteSetting("home_cover");
   const posts = state.data.athlete_posts
@@ -1261,21 +1266,22 @@ function renderClientOverview() {
   const alliances = premiumAllianceCatalog();
   const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
   const athletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
+  const news = state.data.news.filter(item => item.status === "published" && visualIsPublic(item));
   const companyName = company?.name || state.session?.name || "Empresa ROIS";
   const interest = company?.interest || "Patrocinios, eventos y talento deportivo";
   const description = company?.description || "Cuenta empresarial habilitada para revisar oportunidades, solicitar patrocinios, acceder a eventos privados y operar alianzas premium dentro del ecosistema ROIS.";
 
-  document.querySelector(`[data-dashboard-panel="client-overview"]`).innerHTML = `
+  return `
     <div class="company-profile-layout">
       <div class="company-profile-main">
-        <section class="company-profile-card">
+        <section class="company-profile-card executive-company-card">
           <div class="company-cover">
             ${cover?.image_url ? `<img src="${cover.image_url}" alt="Portada ROIS">` : `<div class="company-cover-fallback"><span>ROIS</span><small>Strategic partnerships · athletes · investment</small></div>`}
           </div>
           <div class="company-profile-body">
             <div class="company-profile-logo">${clientCompanyLogoMarkup(company)}</div>
             <div class="company-profile-copy">
-              <p class="eyebrow">Perfil empresarial</p>
+              <p class="eyebrow">Centro privado de oportunidades</p>
               <h2>${escapeHtml(companyName)}</h2>
               <p><strong>${escapeHtml(interest)}</strong></p>
               <p>${escapeHtml(description)}</p>
@@ -1286,36 +1292,79 @@ function renderClientOverview() {
               </div>
             </div>
           </div>
+          <div class="company-signal-strip">
+            <div><span>${alliances.length}</span><small>Alianzas activas</small></div>
+            <div><span>${events.length}</span><small>Eventos privados</small></div>
+            <div><span>${athletes.length}</span><small>Deportistas</small></div>
+            <div><span>${news.length}</span><small>Noticias ROIS</small></div>
+          </div>
+        </section>
+
+        <section class="premium-command-panel">
+          <div class="section-minihead">
+            <p class="eyebrow">Mesa de oportunidades</p>
+            <h3>Productos privados listos para evaluación empresarial.</h3>
+            <p>ROIS concentra alianzas, inventario deportivo y eventos premium para que tu empresa pueda solicitar disponibilidad, recibir seguimiento y cerrar operaciones desde un solo lugar.</p>
+          </div>
+          <div class="premium-alliance-grid command">
+            ${alliances.slice(0, 2).map(alliance => allianceCard(alliance, true)).join("")}
+          </div>
+        </section>
+
+        <section class="client-decision-board">
+          <div class="section-minihead">
+            <p class="eyebrow">Ruta de decisión</p>
+            <h3>De la oportunidad al cierre comercial.</h3>
+          </div>
+          <div class="client-step-grid">
+            <article>
+              <span>01</span>
+              <h4>Explora productos premium</h4>
+              <p>Revisa F1, Los 300, eventos privados y oportunidades de alto valor publicadas por ROIS.</p>
+              <button class="btn" type="button" data-dashboard-shortcut="client-alliances">Ver alianzas</button>
+            </article>
+            <article>
+              <span>02</span>
+              <h4>Evalua talento deportivo</h4>
+              <p>Consulta perfiles, reels, resultados y tickets mensuales antes de solicitar patrocinio.</p>
+              <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver deportistas</button>
+            </article>
+            <article>
+              <span>03</span>
+              <h4>Solicita y activa</h4>
+              <p>ROIS valida disponibilidad, contratos, pagos y seguimiento operativo con el aliado o deportista.</p>
+              <button class="btn" type="button" data-dashboard-shortcut="client-sponsors">Ver patrocinios</button>
+            </article>
+          </div>
         </section>
 
         <section class="company-operations-card">
           <div class="section-minihead">
-            <p class="eyebrow">Centro de operaciones</p>
-            <h3>Accesos principales para activar oportunidades.</h3>
+            <p class="eyebrow">Accesos operativos</p>
+            <h3>Activa oportunidades sin perder tiempo.</h3>
           </div>
           <div class="company-action-grid">
-            ${clientOperationCard("Alianzas Premium", "F1, Los 300 y proximas experiencias privadas.", "client-alliances", "Ver productos")}
-            ${clientOperationCard("Patrocinar deportistas", `${athletes.length} perfiles aprobados disponibles.`, "client-marketplace", "Revisar perfiles")}
-            ${clientOperationCard("Eventos privados", `${events.length} oportunidades publicadas por ROIS.`, "client-events", "Ver calendario")}
-            ${clientOperationCard("Patrocinios ROIS", "Partner, Oficial y Legacy Sponsor.", "client-sponsors", "Ver niveles")}
-          </div>
-        </section>
-
-        <section class="company-alliances-preview">
-          <div class="section-minihead">
-            <p class="eyebrow">Alianzas activas</p>
-            <h3>Productos privados para empresas registradas.</h3>
-          </div>
-          <div class="premium-alliance-grid compact">
-            ${alliances.map(alliance => allianceCard(alliance, true)).join("")}
+            ${clientOperationCard("Productos premium", "Suites, patrocinios F1, Los 300 y experiencias privadas.", "client-alliances", "Solicitar")}
+            ${clientOperationCard("Talento deportivo", `${athletes.length} perfiles listos para evaluacion.`, "client-marketplace", "Revisar")}
+            ${clientOperationCard("Eventos privados", `${events.length} oportunidades publicadas por ROIS.`, "client-events", "Calendario")}
+            ${clientOperationCard("Pagos y cierre", "Consulta pagos, solicitudes y proximos pasos de operacion.", "client-payments", "Ver pagos")}
           </div>
         </section>
       </div>
 
       <aside class="company-profile-aside">
+        <div class="client-next-steps">
+          <p class="eyebrow">Siguiente mejor accion</p>
+          <h3>Revisa las alianzas premium y solicita disponibilidad.</h3>
+          <p>Para empresas nuevas, el camino mas eficiente es elegir un producto de F1, Los 300 o un deportista y abrir una solicitud. ROIS hace el seguimiento comercial.</p>
+          <div>
+            <button class="btn primary" type="button" data-dashboard-shortcut="client-alliances">Ver productos</button>
+            <button class="btn" type="button" data-dashboard-shortcut="client-feed">Ver feed</button>
+          </div>
+        </div>
         <div class="company-reels-widget">
           <div class="section-minihead">
-            <p class="eyebrow">Feed deportivo</p>
+            <p class="eyebrow">Señales del ecosistema</p>
             <h3>Reels de atletas listos para patrocinio.</h3>
           </div>
           ${posts.length ? `
@@ -1327,7 +1376,6 @@ function renderClientOverview() {
       </aside>
     </div>
   `;
-  setupReelAutoplay();
 }
 
 function clientOperationCard(title, text, target, action) {
@@ -1361,6 +1409,17 @@ function renderClientAlliances() {
   const alliances = premiumAllianceCatalog();
   panel("client-alliances", "Alianzas Premium", "F1, Los 300 y experiencias privadas disponibles para empresas ROIS", `
     <div class="panel-body">
+      <section class="client-alliance-brief">
+        <div>
+          <p class="eyebrow">Mesa privada ROIS</p>
+          <h3>Selecciona una oportunidad y ROIS valida disponibilidad, condiciones y siguiente paso comercial.</h3>
+        </div>
+        <div class="brief-flow">
+          <span>1. Solicitud</span>
+          <span>2. Validacion</span>
+          <span>3. Contrato y pago</span>
+        </div>
+      </section>
       <div class="premium-alliance-grid">
         ${alliances.map(alliance => allianceCard(alliance)).join("")}
       </div>
