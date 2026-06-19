@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260619-client-profile-v55";
+const roisBuild = "20260619-client-cover-v56";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const athleteAnnualFeeAmount = 2500;
@@ -1320,7 +1320,6 @@ function renderClient() {
   renderClientHeader();
   renderClientKpis();
   renderClientOverview();
-  renderClientAlliances();
   renderClientEvents();
   renderClientFeed();
   renderClientNews();
@@ -1388,6 +1387,10 @@ function clientCompanyLogoMarkup(company) {
 }
 
 function renderClientOverview() {
+  const coverSlot = document.getElementById("clientDashboardCover");
+  if (coverSlot) {
+    coverSlot.innerHTML = coverCarouselMarkup("client") || `<section class="client-ad-cover empty-cover"><div><strong>ROIS</strong><span>Espacio publicitario institucional</span></div></section>`;
+  }
   document.querySelector(`[data-dashboard-panel="client-overview"]`).innerHTML = clientAdvertisingOverviewMarkup();
   setupCoverCarousels();
   setupReelAutoplay();
@@ -1402,14 +1405,13 @@ function clientAdvertisingOverviewMarkup() {
     .filter(item => item.status === "published" && visualIsPublic(item))
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const athletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
+  const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
   const companyName = company?.name || state.session?.name || "Empresa ROIS";
   const interest = company?.interest || "Oportunidades premium";
-  const description = company?.description || "Cuenta empresarial habilitada para revisar alianzas premium, talento deportivo, eventos privados y productos VIP administrados por ROIS.";
+  const description = company?.description || "Cuenta empresarial habilitada para revisar Centro VIP, talento deportivo, eventos privados y productos administrados por ROIS.";
 
   return `
     <div class="client-ad-home">
-      ${coverCarouselMarkup("client") || `<section class="client-ad-cover empty-cover"><div><strong>ROIS</strong><span>Espacio publicitario institucional</span></div></section>`}
-
       <section class="client-company-card">
         <div class="company-profile-logo">${clientCompanyLogoMarkup(company)}</div>
         <div class="client-company-copy">
@@ -1679,6 +1681,30 @@ async function requestPremiumAllianceProduct(value) {
     return;
   }
   const [allianceId, productId] = String(value || "").split(":");
+  if (!productId) {
+    const product = vipProducts().find(item => item.id === allianceId);
+    if (!product) return;
+    try {
+      await api.insert("requests", {
+        type: "Centro VIP",
+        title: product.name,
+        details: `${product.price || "Precio por confirmar"} | ${product.detail || "Producto privado ROIS"}`,
+        priority: "Alta",
+        owner: currentCompany()?.name || state.session?.name || "Empresa",
+        status: "review"
+      });
+      await api.insert("crm", {
+        name: `${currentCompany()?.name || state.session?.name || "Empresa"} - ${product.name}`,
+        volume: Number(String(product.price || "").replace(/[^0-9.]/g, "")) || 0,
+        status: "Solicitud Centro VIP"
+      });
+      notify("Centro VIP", "Solicitud recibida", `ROIS revisara disponibilidad y condiciones de ${product.name}.`);
+      renderClient();
+    } catch (error) {
+      notify("Centro VIP", "No fue posible registrar", humanError(error));
+    }
+    return;
+  }
   const alliance = premiumAllianceCatalog().find(item => item.id === allianceId);
   const product = alliance?.products.find(item => item.id === productId);
   if (!alliance || !product) return;

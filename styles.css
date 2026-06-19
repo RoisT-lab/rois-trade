@@ -351,6 +351,129 @@
   }
 }
 
+/* Client dashboard final cover layout v56 */
+#clientView.dashboard.active {
+  display: grid;
+  grid-template-columns: 282px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+}
+
+#clientView > .client-dashboard-cover-slot {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: min(1340px, calc(100% - 40px));
+  margin: clamp(26px, 3.6vw, 54px) auto clamp(28px, 3.2vw, 48px);
+}
+
+#clientView > .client-dashboard-cover-slot:empty {
+  display: none;
+}
+
+#clientView > .sidebar {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+#clientView > .workspace {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+#clientView .client-dashboard-cover-slot .client-ad-cover {
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 16 / 6.2;
+  margin: 0;
+  border-radius: 42px;
+  background: #050505;
+}
+
+#clientView .client-dashboard-cover-slot .client-ad-cover .cover-slide {
+  object-fit: contain;
+  background: #050505;
+  transform: none;
+}
+
+#clientView .client-dashboard-cover-slot .client-ad-cover .cover-slide.active {
+  transform: none;
+}
+
+#clientView .side-nav button[data-dashboard-target="client-alliances"],
+#clientView [data-dashboard-panel="client-alliances"] {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  #clientView.dashboard.active {
+    display: block;
+  }
+
+  #clientView > .client-dashboard-cover-slot {
+    display: none;
+  }
+}
+
+/* Client dashboard cover hierarchy v56 */
+#clientView.dashboard.active {
+  grid-template-columns: 282px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+}
+
+#clientView > .client-dashboard-cover-slot {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: min(1340px, calc(100% - 40px));
+  margin: clamp(26px, 3.6vw, 54px) auto clamp(28px, 3.2vw, 48px);
+}
+
+#clientView > .client-dashboard-cover-slot:empty {
+  display: none;
+}
+
+#clientView > .sidebar {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+#clientView > .workspace {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+#clientView .client-dashboard-cover-slot .client-ad-cover {
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 16 / 6.2;
+  margin: 0;
+  border-radius: 42px;
+  background: #050505;
+}
+
+#clientView .client-dashboard-cover-slot .client-ad-cover .cover-slide {
+  object-fit: contain;
+  background: #050505;
+  transform: none;
+}
+
+#clientView .client-dashboard-cover-slot .client-ad-cover .cover-slide.active {
+  transform: none;
+}
+
+#clientView .side-nav button[data-dashboard-target="client-alliances"],
+#clientView [data-dashboard-panel="client-alliances"] {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  #clientView.dashboard.active {
+    display: block;
+  }
+
+  #clientView > .client-dashboard-cover-slot {
+    display: none;
+  }
+}
+
 /* Athlete scout network */
 .scout-dashboard {
   display: grid;
@@ -6878,5 +7001,66 @@ body[data-active-view="home"] .topbar .btn.nav-create-account {
   #clientView .client-alliance-brief {
     border-radius: 26px;
     padding: 22px;
+  }
+}
+/* Client dashboard absolute final cover layout v56 */
+#clientView.dashboard.active {
+  display: grid;
+  grid-template-columns: 282px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+}
+
+#clientView > .client-dashboard-cover-slot {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: min(1340px, calc(100% - 40px));
+  margin: clamp(26px, 3.6vw, 54px) auto clamp(28px, 3.2vw, 48px);
+}
+
+#clientView > .client-dashboard-cover-slot:empty {
+  display: none;
+}
+
+#clientView > .sidebar {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+#clientView > .workspace {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+#clientView .client-dashboard-cover-slot .client-ad-cover {
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 16 / 6.2;
+  margin: 0;
+  border-radius: 42px;
+  background: #050505;
+}
+
+#clientView .client-dashboard-cover-slot .client-ad-cover .cover-slide {
+  object-fit: contain;
+  background: #050505;
+  transform: none;
+}
+
+#clientView .client-dashboard-cover-slot .client-ad-cover .cover-slide.active {
+  transform: none;
+}
+
+#clientView .side-nav button[data-dashboard-target="client-alliances"],
+#clientView [data-dashboard-panel="client-alliances"] {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  #clientView.dashboard.active {
+    display: block;
+  }
+
+  #clientView > .client-dashboard-cover-slot {
+    display: none;
   }
 }
