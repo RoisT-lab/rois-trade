@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260618-scout-network-v54";
+const roisBuild = "20260619-client-profile-v55";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const athleteAnnualFeeAmount = 2500;
@@ -855,7 +855,6 @@ function supabaseApi() {
 function bindGlobalEvents() {
   document.querySelectorAll("[data-open-login]").forEach(button => button.addEventListener("click", openLogin));
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModals));
-  document.querySelectorAll("[data-logout]").forEach(button => button.addEventListener("click", logout));
   document.querySelectorAll("[data-dashboard-target]").forEach(button => button.addEventListener("click", () => showDashboardPanel(button.dataset.dashboardTarget)));
   document.querySelectorAll("[data-mobile-menu]").forEach(button => button.addEventListener("click", () => openMobileDashboardMenu(button.dataset.mobileMenu)));
   document.querySelectorAll("[data-close-mobile-menu]").forEach(button => button.addEventListener("click", closeMobileDashboardMenus));
@@ -869,6 +868,11 @@ function bindGlobalEvents() {
 }
 
 function handleDashboardDelegatedActions(event) {
+  const logoutButton = event.target.closest("[data-logout]");
+  if (logoutButton) {
+    logout();
+    return;
+  }
   const sponsorButton = event.target.closest("[data-athlete-sponsor]");
   if (sponsorButton) {
     const athlete = state.data?.athletes?.find(item => item.id === sponsorButton.dataset.athleteSponsor);
@@ -1375,7 +1379,12 @@ function clientCompanyLogoMarkup(company) {
   if (company?.logo_url) {
     return `<img src="${company.logo_url}" alt="${escapeAttr(company.name || "Empresa")}">`;
   }
-  return `<svg viewBox="0 0 1200 420" role="img" aria-label="ROIS"><use href="#roisLogoSymbol"></use></svg>`;
+  return `
+    <button class="company-logo-upload-prompt" type="button" data-dashboard-shortcut="client-settings" aria-label="Subir logo de empresa">
+      <span>+</span>
+      <small>Subir logo</small>
+    </button>
+  `;
 }
 
 function renderClientOverview() {
@@ -1392,9 +1401,7 @@ function clientAdvertisingOverviewMarkup() {
   const news = state.data.news
     .filter(item => item.status === "published" && visualIsPublic(item))
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
   const athletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
-  const alliances = premiumAllianceCatalog();
   const companyName = company?.name || state.session?.name || "Empresa ROIS";
   const interest = company?.interest || "Oportunidades premium";
   const description = company?.description || "Cuenta empresarial habilitada para revisar alianzas premium, talento deportivo, eventos privados y productos VIP administrados por ROIS.";
@@ -1415,12 +1422,6 @@ function clientAdvertisingOverviewMarkup() {
             <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver deportistas</button>
             <button class="btn" type="button" data-dashboard-shortcut="client-settings">Editar perfil</button>
           </div>
-        </div>
-        <div class="client-company-metrics">
-          <div><span>${alliances.length}</span><small>Alianzas</small></div>
-          <div><span>${events.length}</span><small>Eventos</small></div>
-          <div><span>${athletes.length}</span><small>Deportistas</small></div>
-          <div><span>${news.length}</span><small>Noticias</small></div>
         </div>
       </section>
 
@@ -1771,21 +1772,13 @@ function renderClientNews() {
 
 function renderClientSponsors() {
   const products = vipProducts();
-  panel("client-sponsors", "Centro VIP", "Productos privados derivados de alianzas estrategicas ROIS", `
-    <div class="panel-body vip-center-intro">
-      <div>
-        <p class="eyebrow">Acceso empresarial premium</p>
-        <h3>Explora inventario privado, patrocinios, suites y experiencias publicadas por ROIS.</h3>
-        <p>Este centro concentra productos de alianzas como F1, Los 300 y oportunidades especiales. Solicita disponibilidad y ROIS coordina el seguimiento comercial.</p>
-      </div>
-      <button class="btn primary" type="button" data-dashboard-shortcut="client-alliances">Ver alianzas premium</button>
-    </div>
+  panel("client-sponsors", "Centro VIP", "Productos privados publicados por administracion", `
     <div class="panel-body">
       ${products.length ? `
         <div class="vip-product-grid">
           ${products.map(vipProductCard).join("")}
         </div>
-      ` : `<div class="empty">Los productos VIP publicados desde administracion apareceran aqui.</div>`}
+      ` : `<div class="empty">Los productos del Centro VIP apareceran aqui cuando administracion los publique.</div>`}
     </div>
   `);
 }
@@ -1806,12 +1799,7 @@ function vipProducts() {
       url: item.url,
       source: "Admin"
     }));
-  const catalogProducts = premiumAllianceCatalog().flatMap(alliance => alliance.products.map(product => ({
-    ...product,
-    alliance: alliance.name,
-    source: alliance.name
-  })));
-  return [...adminProducts, ...catalogProducts];
+  return adminProducts;
 }
 
 function vipProductCard(product) {
@@ -1895,8 +1883,8 @@ function renderAccountSettings(panelId) {
             <p class="hint">Sube un logotipo institucional en PNG, JPG o WEBP. Se guardar\u00e1 en tu cuenta y ser\u00e1 visible en tu dashboard al iniciar sesi\u00f3n desde cualquier dispositivo.</p>
           </div>
           <form class="form-grid company-profile-form" data-company-profile>
-            <div class="company-logo-preview">
-              <img src="${company.logo_url || sessionLogoPath()}" alt="${company.name || "Empresa"}">
+            <div class="company-logo-preview ${company.logo_url ? "" : "image-fallback"}">
+              ${company.logo_url ? `<img src="${company.logo_url}" alt="${company.name || "Empresa"}">` : `<div class="company-logo-empty">Logo</div>`}
               <span>${company.logo_url ? "Logo actual" : "Logo pendiente"}</span>
             </div>
             <label>Nombre de empresa<input name="name" required value="${escapeAttr(company.name || "")}" placeholder="Nombre legal o comercial"></label>
@@ -1926,6 +1914,14 @@ function renderAccountSettings(panelId) {
           <h3>Recuperar acceso</h3>
           <p class="hint">Si pierdes acceso, usa "Recuperar contrase\u00f1a" en la pantalla de acceso. ROIS enviar\u00e1 un enlace al correo registrado.</p>
         </div>
+        ${panelId === "client-settings" ? `
+          <div class="settings-block session-exit-block">
+            <p class="eyebrow">Salida segura</p>
+            <h3>Cerrar sesion</h3>
+            <p class="hint">Finaliza tu sesion empresarial cuando termines de operar en ROIS.</p>
+            <button class="btn" type="button" data-logout>Cerrar sesion</button>
+          </div>
+        ` : ""}
       </div>
     </div>
   `);
