@@ -36,7 +36,7 @@ create table if not exists athletes (
   sport text not null,
   stats text,
   monthly numeric default 5000,
-  annual numeric default 1000,
+  annual numeric default 2500,
   category text,
   location text,
   ranking text,
@@ -45,6 +45,14 @@ create table if not exists athletes (
   visual_status text not null default 'approved',
   visual_notes text,
   terms_accepted boolean not null default false,
+  scout_code text,
+  scout_active boolean not null default false,
+  scout_terms_accepted boolean not null default false,
+  invited_by_scout_code text,
+  annual_fee_paid boolean not null default false,
+  annual_payment_status text not null default 'pending',
+  scout_validation_status text not null default 'pending',
+  scout_commission_status text not null default 'pending',
   status text not null default 'pending',
   created_at timestamptz not null default now()
 );
@@ -225,7 +233,8 @@ create table if not exists uploads (
   created_at timestamptz not null default now()
 );
 
-alter table athletes add column if not exists annual numeric default 1000;
+alter table athletes add column if not exists annual numeric default 2500;
+alter table athletes alter column annual set default 2500;
 alter table athletes add column if not exists annual_fee_required boolean not null default false;
 alter table athletes alter column annual_fee_required set default false;
 alter table athletes add column if not exists profile_id uuid;
@@ -252,6 +261,15 @@ alter table athletes add column if not exists guardian_relationship text;
 alter table athletes add column if not exists guardian_consent boolean not null default false;
 alter table athletes add column if not exists legal_status text;
 alter table athletes add column if not exists registration_terms_accepted boolean not null default false;
+alter table athletes add column if not exists scout_code text;
+alter table athletes add column if not exists scout_active boolean not null default false;
+alter table athletes add column if not exists scout_terms_accepted boolean not null default false;
+alter table athletes add column if not exists invited_by_scout_code text;
+alter table athletes add column if not exists annual_fee_paid boolean not null default false;
+alter table athletes add column if not exists annual_payment_status text not null default 'pending';
+alter table athletes add column if not exists scout_validation_status text not null default 'pending';
+alter table athletes add column if not exists scout_commission_status text not null default 'pending';
+create unique index if not exists athletes_scout_code_unique on athletes (scout_code) where scout_code is not null and scout_code <> '';
 alter table events add column if not exists brochure_url text;
 alter table events add column if not exists brochure_name text;
 alter table events add column if not exists event_scope text;
@@ -295,6 +313,19 @@ as $$
   );
 $$;
 
+create or replace function is_active_scout_code(code text)
+returns boolean
+language sql
+security definer
+as $$
+  select exists (
+    select 1 from athletes
+    where upper(regexp_replace(coalesce(athletes.scout_code, ''), '\s+', '', 'g')) = upper(regexp_replace(coalesce(code, ''), '\s+', '', 'g'))
+    and athletes.scout_active = true
+    and athletes.status = 'approved'
+  );
+$$;
+
 drop policy if exists "profiles select own or admin" on profiles;
 drop policy if exists "profiles self insert client" on profiles;
 drop policy if exists "profiles update admin" on profiles;
@@ -316,6 +347,7 @@ drop policy if exists "events public insert pending" on events;
 drop policy if exists "events update admin" on events;
 drop policy if exists "events delete admin" on events;
 drop policy if exists "requests authenticated all" on requests;
+drop policy if exists "requests public scout insert" on requests;
 drop policy if exists "sponsorships authenticated all" on sponsorships;
 drop policy if exists "news read published" on news;
 drop policy if exists "news admin write" on news;
@@ -389,12 +421,14 @@ create policy "athletes self read" on athletes for select to authenticated using
 create policy "athletes self insert pending" on athletes for insert to authenticated with check (
   email = (auth.jwt() ->> 'email')
   and status = 'pending'
+  and is_active_scout_code(invited_by_scout_code)
 );
 create policy "athletes self update" on athletes for update to authenticated using (email = (auth.jwt() ->> 'email')) with check (
   email = (auth.jwt() ->> 'email')
 );
 create policy "athletes public insert pending" on athletes for insert to anon, authenticated with check (
   status = 'pending'
+  and is_active_scout_code(invited_by_scout_code)
   and coalesce(visual_status, 'approved') in ('approved', 'pending_review')
 );
 create policy "events read approved" on events for select using (status = 'approved' or is_admin());
@@ -405,6 +439,13 @@ create policy "events public insert pending" on events for insert to anon, authe
 create policy "events update admin" on events for update using (is_admin());
 create policy "events delete admin" on events for delete using (is_admin());
 create policy "requests authenticated all" on requests for all using (auth.uid() is not null) with check (auth.uid() is not null);
+create policy "requests public scout insert" on requests
+for insert
+to anon, authenticated
+with check (
+  type = 'Scout ROIS'
+  and status = 'review'
+);
 create policy "sponsorships authenticated all" on sponsorships for all using (auth.uid() is not null) with check (auth.uid() is not null);
 create policy "news read published" on news for select using (status = 'published' or is_admin());
 create policy "news admin write" on news for all using (is_admin()) with check (is_admin());
@@ -463,7 +504,9 @@ grant update (
 grant insert on companies to authenticated;
 grant update (name, owner, interest, website, description, logo_url, status) on companies to authenticated;
 grant insert on crm to authenticated;
-grant insert, update on requests, sponsorships, payments to authenticated;
+grant insert on requests to anon, authenticated;
+grant update on requests to authenticated;
+grant insert, update on sponsorships, payments to authenticated;
 grant insert, update, delete on site_settings to authenticated;
 grant insert on uploads to authenticated;
 grant update, delete on athletes, events, news, partnerships, uploads to authenticated;

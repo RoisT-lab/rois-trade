@@ -1,7 +1,9 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260618-client-ads-v53";
+const roisBuild = "20260618-scout-network-v54";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
+const athleteAnnualFeeAmount = 2500;
+const scoutCommissionAmount = 500;
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
 const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
@@ -125,6 +127,65 @@ function athleteAnnualFeeExempt(email = state.session?.email, athleteRecord = nu
 function athleteAnnualFeeRequired(athlete) {
   if (!athlete) return false;
   return athlete.annual_fee_required === true && !athleteAnnualExemptEmails.includes(String(athlete.email || athlete.contact || state.session?.email || "").toLowerCase());
+}
+
+function normalizeScoutCode(value = "") {
+  return String(value || "").trim().toUpperCase().replace(/\s+/g, "");
+}
+
+function makeScoutCode(name = "", email = "") {
+  const source = `${name}|${email}`.toUpperCase();
+  let hash = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    hash = ((hash << 5) - hash + source.charCodeAt(index)) >>> 0;
+  }
+  return `ROIS-${hash.toString(36).toUpperCase().padStart(6, "0").slice(-6)}`;
+}
+
+function scoutCodeForAthlete(athlete = currentAthlete()) {
+  return normalizeScoutCode(athlete?.scout_code || makeScoutCode(athlete?.name || state.session?.name || "ROIS", athlete?.email || state.session?.email || ""));
+}
+
+function activeScoutAthletes() {
+  return (state.data?.athletes || []).filter(athlete => athlete.scout_active && scoutCodeForAthlete(athlete));
+}
+
+function findScoutByCode(code) {
+  const normalized = normalizeScoutCode(code);
+  return activeScoutAthletes().find(athlete => scoutCodeForAthlete(athlete) === normalized) || null;
+}
+
+function athleteProfileCompleteForScout(athlete) {
+  if (!athlete) return false;
+  return Boolean(
+    athlete.image_url &&
+    athlete.sport &&
+    athlete.sport !== "Por definir" &&
+    athlete.location &&
+    athlete.category &&
+    athlete.stats &&
+    athlete.registration_terms_accepted
+  );
+}
+
+function athleteAnnualFeePaid(athlete) {
+  return Boolean(athlete?.annual_fee_paid || athlete?.annual_payment_status === "paid");
+}
+
+function scoutReferralStatus(athlete) {
+  const paid = athleteAnnualFeePaid(athlete);
+  const profile = athleteProfileCompleteForScout(athlete);
+  const validated = athlete?.scout_validation_status === "validated" || athlete?.scout_commission_status === "approved";
+  const eligible = Boolean(athlete?.invited_by_scout_code && paid && profile && validated && !["blocked", "deleted", "rejected"].includes(athlete.status));
+  return { paid, profile, validated, eligible };
+}
+
+function currentWeekStart() {
+  const date = new Date();
+  const day = date.getDay() || 7;
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - day + 1);
+  return date;
 }
 
 function calculateAge(dateValue) {
@@ -325,10 +386,17 @@ function demoApi() {
         location: "",
         ranking: "",
         stats: "",
-        annual: 1000,
+        annual: athleteAnnualFeeAmount,
         annual_fee_required: false,
         monthly: 5000,
         max_sponsors: 3,
+        scout_code: makeScoutCode(payload.name, payload.email),
+        scout_active: false,
+        invited_by_scout_code: payload.scoutCode,
+        scout_terms_accepted: false,
+        annual_fee_paid: false,
+        scout_validation_status: "pending",
+        scout_commission_status: "pending",
         birth_date: payload.birthDate,
         age_status: payload.isMinor ? "minor" : "adult",
         guardian_name: payload.isMinor ? payload.guardianName : "",
@@ -508,10 +576,17 @@ function supabaseApi() {
             location: "",
             ranking: "",
             stats: "",
-            annual: 1000,
+            annual: athleteAnnualFeeAmount,
             annual_fee_required: false,
             monthly: 5000,
             max_sponsors: 3,
+            scout_code: makeScoutCode(payload.name, payload.email),
+            scout_active: false,
+            invited_by_scout_code: payload.scoutCode,
+            scout_terms_accepted: false,
+            annual_fee_paid: false,
+            scout_validation_status: "pending",
+            scout_commission_status: "pending",
             birth_date: payload.birthDate,
             age_status: payload.isMinor ? "minor" : "adult",
             guardian_name: payload.isMinor ? payload.guardianName : "",
@@ -553,10 +628,17 @@ function supabaseApi() {
           location: "",
           ranking: "",
           stats: "",
-          annual: 1000,
+          annual: athleteAnnualFeeAmount,
           annual_fee_required: false,
           monthly: 5000,
           max_sponsors: 3,
+          scout_code: makeScoutCode(payload.name, payload.email),
+          scout_active: false,
+          invited_by_scout_code: payload.scoutCode,
+          scout_terms_accepted: false,
+          annual_fee_paid: false,
+          scout_validation_status: "pending",
+          scout_commission_status: "pending",
           birth_date: payload.birthDate,
           age_status: payload.isMinor ? "minor" : "adult",
           guardian_name: payload.isMinor ? payload.guardianName : "",
@@ -822,6 +904,11 @@ function handleDashboardDelegatedActions(event) {
   const premiumRequestButton = event.target.closest("[data-premium-request]");
   if (premiumRequestButton) {
     requestPremiumAllianceProduct(premiumRequestButton.dataset.premiumRequest);
+    return;
+  }
+  const requestScoutButton = event.target.closest("[data-request-scout-code]");
+  if (requestScoutButton) {
+    requestScoutCode();
   }
 }
 
@@ -1853,6 +1940,7 @@ function renderAthlete() {
   renderAthleteNotifications();
   renderAthleteProfile();
   renderAthleteSponsorships();
+  renderAthleteScouts();
   renderAthleteResults();
   renderAthleteReels();
   renderAccountSettings("athlete-settings");
@@ -2200,7 +2288,7 @@ function renderAthleteProfile() {
           </div>
           <div>
             <span>Pago anual</span>
-            <strong>${annualRequired ? "$1,000 MXN" : "No solicitado"}</strong>
+            <strong>${annualRequired ? `$${athleteAnnualFeeAmount.toLocaleString("es-MX")} MXN` : "No solicitado"}</strong>
             ${annualRequired ? `<button class="btn" type="button" data-stripe-key="athleteAnnualProfile">Pagar anualidad</button>` : `<span>Completa tu perfil. ROIS habilitara el pago cuando corresponda.</span>`}
           </div>
         </div>
@@ -2228,6 +2316,70 @@ function renderAthleteSponsorships() {
     badge(item.status)
   ]);
   panel("athlete-sponsorships", "Patrocinios", "Solicitudes y condiciones propuestas por empresas", rows.length ? table(["Empresa", "Monto", "Condiciones", "Estado"], rows) : `<div class="empty">Cuando una empresa solicite patrocinarte, aparecer\u00e1 aqu\u00ed.</div>`);
+}
+
+function scoutRulesList() {
+  return `
+    <ul class="scout-rules">
+      <li>El scout no puede cobrar dinero directamente al deportista.</li>
+      <li>El pago de inscripcion se hace unicamente a ROIS.</li>
+      <li>La comision es de $${scoutCommissionAmount.toLocaleString("es-MX")} MXN por cuenta pagada y validada.</li>
+      <li>No se paga por registros incompletos ni cuentas duplicadas.</li>
+      <li>No se puede prometer patrocinio automatico ni decir que ROIS garantiza sponsors.</li>
+      <li>ROIS es una plataforma para construir perfil, documentar evolucion y aspirar a patrocinios.</li>
+      <li>Si el atleta es menor de edad, debe existir autorizacion de madre, padre o tutor.</li>
+      <li>ROIS puede cancelar comisiones por fraude, abuso o informacion falsa.</li>
+    </ul>
+  `;
+}
+
+function renderAthleteScouts() {
+  const athlete = currentAthlete();
+  if (!athlete) {
+    panel("athlete-scouts", "Scouts", "Red de invitacion ROIS", `<div class="empty">No encontramos tu perfil deportivo.</div>`);
+    return;
+  }
+  const code = scoutCodeForAthlete(athlete);
+  const referrals = (state.data.athletes || []).filter(item => normalizeScoutCode(item.invited_by_scout_code) === code);
+  const weekStart = currentWeekStart();
+  const eligibleRows = referrals.filter(item => scoutReferralStatus(item).eligible);
+  const weeklyRows = eligibleRows.filter(item => new Date(item.created_at || 0) >= weekStart);
+  const rows = referrals.map(item => {
+    const status = scoutReferralStatus(item);
+    return [
+      escapeHtml(item.name || "Deportista"),
+      badge(item.created_at ? "registrado" : "registro"),
+      status.paid ? badge("pagado") : badge("sin pago"),
+      status.profile ? badge("perfil completo") : badge("perfil pendiente"),
+      status.validated ? badge("validado") : badge("revision ROIS"),
+      status.eligible ? `$${scoutCommissionAmount.toLocaleString("es-MX")} MXN` : "$0 MXN"
+    ];
+  });
+  panel("athlete-scouts", "Scouts", "Invita deportistas y da seguimiento a tus comisiones", `
+    <div class="panel-body scout-dashboard">
+      <div class="scout-code-card">
+        <div>
+          <p class="eyebrow">Codigo Scout ROIS</p>
+          <h3>${code}</h3>
+          <p>${athlete.scout_active ? "Tu codigo esta activo para invitar deportistas." : "Unete a la red para activar tu codigo y empezar a invitar deportistas."}</p>
+        </div>
+        <div class="scout-actions">
+          ${athlete.scout_active ? button("Copiar codigo", () => copyScoutCode(code)) : button("Unirme a Scouts ROIS", () => activateScoutNetwork(athlete))}
+        </div>
+      </div>
+      <div class="scout-metrics">
+        <div><span>Referidos</span><strong>${referrals.length}</strong></div>
+        <div><span>Validados</span><strong>${eligibleRows.length}</strong></div>
+        <div><span>Semana</span><strong>$${(weeklyRows.length * scoutCommissionAmount).toLocaleString("es-MX")}</strong></div>
+        <div><span>Total</span><strong>$${(eligibleRows.length * scoutCommissionAmount).toLocaleString("es-MX")}</strong></div>
+      </div>
+      <div class="scout-policy">
+        <p class="eyebrow">Reglas obligatorias</p>
+        ${scoutRulesList()}
+      </div>
+    </div>
+    ${rows.length ? table(["Deportista", "Registro", "Pago", "Perfil", "Validacion", "Comision"], rows) : `<div class="empty">Aun no hay deportistas registrados con tu codigo.</div>`}
+  `);
 }
 
 function renderAthleteResults() {
@@ -2325,7 +2477,7 @@ function renderAdminAthletes() {
         <label>Categor\u00eda<input name="category" required placeholder="Ej. Juvenil, amateur, profesional"></label>
         <label>Ciudad / base<input name="location" required placeholder="Ciudad o club base"></label>
         <label>Ranking o marca<input name="ranking" placeholder="Ranking, handicap, marca o nivel"></label>
-        <label>Monto anual<input name="annual" type="number" min="0" value="1000" required></label>
+        <label>Monto anual<input name="annual" type="number" min="0" value="${athleteAnnualFeeAmount}" required></label>
         <label>Cobro anual<select name="annual_fee_required"><option value="false">No solicitado</option><option value="true">Solicitar pago anual</option></select></label>
         <label>Ticket mensual<input name="monthly" type="number" min="0" value="5000" required></label>
         <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="3" required></label>
@@ -2341,8 +2493,16 @@ function renderAdminAthletes() {
       </form>
       <p class="hint">Las im\u00e1genes nuevas quedan en revisi\u00f3n visual. No aparecen p\u00fablicamente hasta aprobarse.</p>
     </div>
-    ${table(["Visual", "Nombre", "Deporte", "Legal", "Ticket", "Cupo", "Anualidad", "Pago", "Acciones"], state.data.athletes.map(athlete => [
-      visualThumb(athlete), athlete.name, athlete.sport, badge(athlete.legal_status || athlete.age_status || "sin validar"), `$${Number(athlete.monthly || 5000).toLocaleString("es-MX")} MXN`, `${athleteSponsorLogos(athlete).length}/${athlete.max_sponsors || 3}`, athleteAnnualFeeRequired(athlete) ? badge("pago solicitado") : badge("no solicitado"), athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"), athleteAdminActions(athlete)
+    ${table(["Visual", "Nombre", "Deporte", "Scout", "Invitado por", "Anualidad", "Perfil", "Comision", "Acciones"], state.data.athletes.map(athlete => [
+      visualThumb(athlete),
+      athlete.name,
+      athlete.sport,
+      athlete.scout_active ? badge(scoutCodeForAthlete(athlete)) : badge("no scout"),
+      athlete.invited_by_scout_code ? badge(normalizeScoutCode(athlete.invited_by_scout_code)) : badge("directo"),
+      athleteAnnualFeePaid(athlete) ? badge("pagada") : athleteAnnualFeeRequired(athlete) ? badge("solicitada") : badge("no solicitada"),
+      athleteProfileCompleteForScout(athlete) ? badge("completo") : badge("pendiente"),
+      scoutReferralStatus(athlete).eligible ? badge("aprobada") : badge(athlete.scout_validation_status || "review"),
+      athleteAdminActions(athlete)
     ]))}
   `);
   document.getElementById("adminAthleteForm").addEventListener("submit", submitAdminAthlete);
@@ -2352,6 +2512,8 @@ function athleteAdminActions(athlete) {
   const actions = [
     button(athleteAnnualFeeRequired(athlete) ? "Ocultar anualidad" : "Solicitar anualidad", () => toggleAthleteAnnualFee(athlete))
   ];
+  if (!athleteAnnualFeePaid(athlete)) actions.push(button("Marcar pago anual", () => markAthleteAnnualPaid(athlete)));
+  if (athlete.invited_by_scout_code && athlete.scout_commission_status !== "approved") actions.push(button("Validar scout", () => validateScoutCommission(athlete)));
   actions.push(moderationActions("athletes", athlete));
   return actionGroup(actions);
 }
@@ -3342,10 +3504,17 @@ async function submitAdminAthlete(event) {
     location: form.location.value,
     ranking: form.ranking.value,
     stats: form.stats.value,
-    annual: Number(form.annual.value || 1000),
+    annual: Number(form.annual.value || athleteAnnualFeeAmount),
     annual_fee_required: form.annual_fee_required.value === "true",
     monthly: Number(form.monthly.value || 5000),
     max_sponsors: Number(form.max_sponsors.value || 3),
+    scout_code: makeScoutCode(form.name.value, ""),
+    scout_active: false,
+    invited_by_scout_code: "",
+    scout_terms_accepted: false,
+    annual_fee_paid: false,
+    scout_validation_status: "pending",
+    scout_commission_status: "pending",
     sponsor_payment_url: form.sponsor_payment_url.value,
     sponsor_terms: form.sponsor_terms.value,
     sponsor_logos,
@@ -3362,11 +3531,69 @@ async function submitAdminAthlete(event) {
 
 async function toggleAthleteAnnualFee(athlete) {
   const next = !athleteAnnualFeeRequired(athlete);
-  await api.update("athletes", athlete.id, { annual_fee_required: next });
+  await api.update("athletes", athlete.id, { annual_fee_required: next, annual: athleteAnnualFeeAmount });
   notify("Anualidad deportista", next ? "Solicitud habilitada" : "Solicitud oculta", next ? `${athlete.name} ya vera el aviso de anualidad con boton de pago en su dashboard.` : `${athlete.name} podra explorar y configurar su dashboard sin aviso de pago anual.`);
   state.data = await api.loadAll();
   renderAdmin();
   if (state.session?.role === "athlete") renderAthlete();
+}
+
+async function activateScoutNetwork(athlete) {
+  await api.update("athletes", athlete.id, {
+    scout_code: scoutCodeForAthlete(athlete),
+    scout_active: true,
+    scout_terms_accepted: true
+  });
+  notify("Scouts ROIS", "Codigo activado", "Ya puedes invitar deportistas. Las comisiones solo se liberan por cuentas pagadas, completas y validadas por ROIS.");
+  state.data = await api.loadAll();
+  renderAthlete();
+  renderAdmin();
+}
+
+async function markAthleteAnnualPaid(athlete) {
+  await api.update("athletes", athlete.id, {
+    annual_fee_paid: true,
+    annual_payment_status: "paid",
+    annual: athleteAnnualFeeAmount
+  });
+  notify("Anualidad", "Pago registrado", "El pago anual quedo marcado para seguimiento interno.");
+  state.data = await api.loadAll();
+  renderAdmin();
+}
+
+async function validateScoutCommission(athlete) {
+  await api.update("athletes", athlete.id, {
+    scout_validation_status: "validated",
+    scout_commission_status: "approved"
+  });
+  notify("Scouts", "Comision validada", "La cuenta queda elegible para comision si tambien cumple pago y perfil completo.");
+  state.data = await api.loadAll();
+  renderAdmin();
+}
+
+async function copyScoutCode(code) {
+  try {
+    await navigator.clipboard.writeText(code);
+    notify("Scouts ROIS", "Codigo copiado", "Comparte este codigo con deportistas que cumplan el perfil ROIS.");
+  } catch (error) {
+    notify("Scouts ROIS", code, "Copia manualmente este codigo para compartirlo.");
+  }
+}
+
+async function requestScoutCode() {
+  const form = document.getElementById("registrationForm");
+  const email = form?.email?.value || "";
+  const name = form?.name?.value || "";
+  await api.insert("requests", {
+    type: "Scout ROIS",
+    title: "Solicitud de codigo Scout",
+    owner: name || email || "Prospecto deportista",
+    details: `Prospecto solicita codigo Scout ROIS. Correo: ${email || "pendiente"}`,
+    priority: "Alta",
+    status: "review"
+  });
+  notify("Codigo Scout", "Solicitud enviada", "ROIS te asignara un Scout para que puedas completar tu registro deportivo.");
+  renderAdmin();
 }
 
 async function submitAdminEvent(event) {
@@ -4072,30 +4299,36 @@ function registrationFields(type) {
     return `
       <label>Nombre<input name="name" required placeholder="Nombre del deportista"></label>
       <label>Correo de acceso<input name="email" type="email" required placeholder="correo@deportista.com"></label>
+      <label style="grid-column:1/-1">Codigo de Scout ROIS<input name="scout_code" required placeholder="ROIS-ABC123"></label>
+      <div class="registration-note scout-registration-note" style="grid-column:1/-1">
+        <p class="eyebrow">Acceso por invitacion</p>
+        <p>Ningun deportista puede registrarse sin codigo de Scout ROIS. La anualidad deportiva es de $${athleteAnnualFeeAmount.toLocaleString("es-MX")} MXN y solo se habilita desde administracion cuando tu perfil avance.</p>
+        <button class="btn" type="button" data-request-scout-code>No tienes codigo de scout? Solicita uno y te asignamos un Scout ROIS.</button>
+      </div>
       <label>Fecha de nacimiento<input name="birth_date" type="date" required></label>
       <label>Contrasena<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Minimo 8 caracteres"></label>
       <label>Confirmar contrasena<input name="confirm" type="password" minlength="8" autocomplete="new-password" required placeholder="Repite tu contrasena"></label>
       <div class="minor-consent-panel" data-minor-consent hidden style="grid-column:1/-1">
         <p class="eyebrow">Deportista menor de edad</p>
-        <p>Para atletas menores de 18 años, ROIS requiere autorización expresa de madre, padre o tutor legal. El perfil podrá explorarse, pero no se activarán patrocinios ni representación comercial sin revisión documental.</p>
+        <p>Para atletas menores de 18 anos, ROIS requiere autorizacion expresa de madre, padre o tutor legal. El perfil podra explorarse, pero no se activaran patrocinios ni representacion comercial sin revision documental.</p>
         <div class="form-grid compact-inner">
           <label>Nombre del tutor legal<input name="guardian_name" placeholder="Nombre completo del tutor"></label>
           <label>Correo del tutor<input name="guardian_email" type="email" placeholder="correo@tutor.com"></label>
-          <label>Teléfono del tutor<input name="guardian_phone" placeholder="Teléfono de contacto"></label>
-          <label>Relación con el deportista<select name="guardian_relationship"><option value="">Selecciona</option><option>Madre</option><option>Padre</option><option>Tutor legal</option></select></label>
+          <label>Telefono del tutor<input name="guardian_phone" placeholder="Telefono de contacto"></label>
+          <label>Relacion con el deportista<select name="guardian_relationship"><option value="">Selecciona</option><option>Madre</option><option>Padre</option><option>Tutor legal</option></select></label>
         </div>
         <label class="check-option">
           <input name="guardian_consent" type="checkbox">
-          <span>Declaro ser madre, padre o tutor legal del deportista menor de edad y autorizo la creación de su cuenta ROIS, el tratamiento de sus datos deportivos y el contacto de IntelliQuant S.A.P.I. de C.V. para validar documentación antes de cualquier patrocinio.</span>
+          <span>Declaro ser madre, padre o tutor legal del deportista menor de edad y autorizo la creacion de su cuenta ROIS, el tratamiento de sus datos deportivos y el contacto de IntelliQuant S.A.P.I. de C.V. para validar documentacion antes de cualquier patrocinio.</span>
         </label>
       </div>
       <div class="registration-note" style="grid-column:1/-1">
         <p class="eyebrow">Alta deportiva</p>
-        <p>Despues de crear tu cuenta entraras a tu dashboard para completar expediente, terminos de representacion, foto, ficha tecnica, propuesta, videos y documentos operativos.</p>
+        <p>Despues de crear tu cuenta entraras a tu dashboard para completar expediente, terminos de representacion, foto, ficha tecnica, propuesta, videos y documentos operativos. El pago anual no se solicita hasta que ROIS lo habilite.</p>
       </div>
       <label class="check-option" style="grid-column:1/-1">
         <input name="terms" type="checkbox" required>
-        <span>Acepto las condiciones iniciales de ROIS e ${roisLegalEntity}: el perfil deportivo queda sujeto a revisión, cualquier patrocinio debe gestionarse por la plataforma y, en caso de menores de edad, se requerirá validación de madre, padre o tutor legal antes de activar representación comercial.</span>
+        <span>Acepto las condiciones iniciales de ROIS e ${roisLegalEntity}: el perfil deportivo queda sujeto a revision, cualquier patrocinio debe gestionarse por la plataforma y, en caso de menores de edad, se requerira validacion de madre, padre o tutor legal antes de activar representacion comercial.</span>
       </label>
       <button class="btn primary full" type="submit">Crear cuenta deportiva</button>
     `;
@@ -4148,6 +4381,11 @@ async function submitRegistration(event) {
         notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrase\u00f1a para crear tu cuenta de deportista.");
         return;
       }
+      const scoutCode = normalizeScoutCode(form.scout_code.value);
+      if (!scoutCode || !findScoutByCode(scoutCode)) {
+        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta deportiva necesitas un codigo activo de Scout ROIS. Si no tienes uno, solicita asignacion desde el formulario.");
+        return;
+      }
       const age = calculateAge(form.birth_date.value);
       if (age === null || age < 0) {
         notify("Registro", "Fecha de nacimiento inválida", "Ingresa una fecha de nacimiento válida para continuar.");
@@ -4162,6 +4400,7 @@ async function submitRegistration(event) {
         email: form.email.value,
         password: form.password.value,
         name: form.name.value,
+        scoutCode,
         birthDate: form.birth_date.value,
         isMinor,
         guardianName: isMinor ? form.guardian_name.value.trim() : "",
