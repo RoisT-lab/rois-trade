@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260618-dashboard-focus-v52";
+const roisBuild = "20260618-client-ads-v53";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -15,6 +15,8 @@ const state = {
   registrationType: null,
   data: null
 };
+
+let coverCarouselTimers = [];
 
 const seed = {
   profiles: configuredDemoAdmin ? [
@@ -1116,17 +1118,13 @@ function renderSession() {
 }
 
 function renderPublic() {
-  const cover = siteSetting("home_cover");
   const coverSlot = document.getElementById("publicHomeCover");
   if (coverSlot) {
-    coverSlot.innerHTML = cover?.image_url ? `
-      <section class="home-cover">
-        <img src="${cover.image_url}" alt="${escapeAttr(cover.title || "Portada ROIS")}">
-      </section>
-    ` : "";
+    coverSlot.innerHTML = coverCarouselMarkup("home");
+    setupCoverCarousels();
   }
 
-  const publicPartners = state.data.partnerships.filter(item => item.status === "approved" && visualIsPublic(item));
+  const publicPartners = state.data.partnerships.filter(item => item.status === "approved" && visualIsPublic(item) && !isVipProduct(item));
   document.getElementById("publicPartners").innerHTML = publicPartners.length ? `
     <div class="partner-grid">
       ${publicPartners.map(partner => partnerCard(partner)).join("")}
@@ -1184,6 +1182,47 @@ function siteSetting(id) {
   } catch (error) {
     return { value: row.value };
   }
+}
+
+function advertisingCoverIds() {
+  return ["home_cover", "home_cover_2", "home_cover_3", "home_cover_4", "home_cover_5"];
+}
+
+function advertisingCovers() {
+  return advertisingCoverIds()
+    .map((id, index) => ({ id, index, ...(siteSetting(id) || {}) }))
+    .filter(cover => cover.image_url)
+    .slice(0, 5);
+}
+
+function coverCarouselMarkup(context = "home") {
+  const covers = advertisingCovers();
+  if (!covers.length) return "";
+  return `
+    <section class="${context === "client" ? "client-ad-cover" : "home-cover"} cover-carousel" data-cover-carousel>
+      ${covers.map((cover, index) => `
+        <img class="cover-slide ${index === 0 ? "active" : ""}" data-cover-slide src="${cover.image_url}" alt="${escapeAttr(cover.title || "Portada publicitaria ROIS")}">
+      `).join("")}
+      ${covers.length > 1 ? `<div class="cover-dots">${covers.map((_, index) => `<span class="${index === 0 ? "active" : ""}" data-cover-dot></span>`).join("")}</div>` : ""}
+    </section>
+  `;
+}
+
+function setupCoverCarousels() {
+  coverCarouselTimers.forEach(timer => clearInterval(timer));
+  coverCarouselTimers = [];
+  document.querySelectorAll("[data-cover-carousel]").forEach(carousel => {
+    const slides = [...carousel.querySelectorAll("[data-cover-slide]")];
+    const dots = [...carousel.querySelectorAll("[data-cover-dot]")];
+    if (slides.length <= 1) return;
+    let active = 0;
+    const show = index => {
+      active = index % slides.length;
+      slides.forEach((slide, slideIndex) => slide.classList.toggle("active", slideIndex === active));
+      dots.forEach((dot, dotIndex) => dot.classList.toggle("active", dotIndex === active));
+    };
+    coverCarouselTimers.push(setInterval(() => show(active + 1), 10000));
+  });
 }
 
 function renderClient() {
@@ -1253,8 +1292,103 @@ function clientCompanyLogoMarkup(company) {
 }
 
 function renderClientOverview() {
-  document.querySelector(`[data-dashboard-panel="client-overview"]`).innerHTML = clientExperienceOverviewMarkup();
+  document.querySelector(`[data-dashboard-panel="client-overview"]`).innerHTML = clientAdvertisingOverviewMarkup();
+  setupCoverCarousels();
   setupReelAutoplay();
+}
+
+function clientAdvertisingOverviewMarkup() {
+  const company = currentCompany();
+  const posts = state.data.athlete_posts
+    .filter(post => post.status === "approved")
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const news = state.data.news
+    .filter(item => item.status === "published" && visualIsPublic(item))
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
+  const athletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
+  const alliances = premiumAllianceCatalog();
+  const companyName = company?.name || state.session?.name || "Empresa ROIS";
+  const interest = company?.interest || "Oportunidades premium";
+  const description = company?.description || "Cuenta empresarial habilitada para revisar alianzas premium, talento deportivo, eventos privados y productos VIP administrados por ROIS.";
+
+  return `
+    <div class="client-ad-home">
+      ${coverCarouselMarkup("client") || `<section class="client-ad-cover empty-cover"><div><strong>ROIS</strong><span>Espacio publicitario institucional</span></div></section>`}
+
+      <section class="client-company-card">
+        <div class="company-profile-logo">${clientCompanyLogoMarkup(company)}</div>
+        <div class="client-company-copy">
+          <p class="eyebrow">Perfil empresarial</p>
+          <h2>${escapeHtml(companyName)}</h2>
+          <p><strong>${escapeHtml(interest)}</strong></p>
+          <p>${escapeHtml(description)}</p>
+          <div class="company-profile-actions">
+            <button class="btn primary" type="button" data-dashboard-shortcut="client-sponsors">Explorar Centro VIP</button>
+            <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver deportistas</button>
+            <button class="btn" type="button" data-dashboard-shortcut="client-settings">Editar perfil</button>
+          </div>
+        </div>
+        <div class="client-company-metrics">
+          <div><span>${alliances.length}</span><small>Alianzas</small></div>
+          <div><span>${events.length}</span><small>Eventos</small></div>
+          <div><span>${athletes.length}</span><small>Deportistas</small></div>
+          <div><span>${news.length}</span><small>Noticias</small></div>
+        </div>
+      </section>
+
+      <div class="client-priority-grid">
+        <section class="client-priority-card client-reels-priority">
+          <div class="section-minihead">
+            <p class="eyebrow">Feed deportivo</p>
+            <h3>Reels de deportistas listos para patrocinio.</h3>
+            <p>Contenido publicado por atletas para que las empresas evaluen talento, narrativa y oportunidad comercial.</p>
+          </div>
+          ${posts.length ? `
+            <div class="reels-feed tiktok-feed compact-reels" aria-label="Reels deportivos ROIS">
+              ${posts.slice(0, 5).map(post => athleteFeedCard(post)).join("")}
+            </div>
+          ` : `<div class="empty slim">Los reels publicados por deportistas apareceran aqui.</div>`}
+        </section>
+
+        <section class="client-priority-card">
+          <div class="section-minihead">
+            <p class="eyebrow">Noticias ROIS</p>
+            <h3>Actualizaciones publicadas por administracion.</h3>
+            <p>Mensajes, aperturas de inventario, alianzas y oportunidades que requieren atencion empresarial.</p>
+          </div>
+          ${news.length ? `<div class="client-news-stack">${news.slice(0, 4).map(clientNewsPreviewCard).join("")}</div>` : `<div class="empty slim">Las noticias publicadas por admin apareceran aqui.</div>`}
+        </section>
+      </div>
+
+      <section class="company-operations-card">
+        <div class="section-minihead">
+          <p class="eyebrow">Centro de operaciones</p>
+          <h3>Accesos principales para activar oportunidades.</h3>
+        </div>
+        <div class="company-action-grid">
+          ${clientOperationCard("Centro VIP", "Productos con imagen derivados de alianzas estrategicas.", "client-sponsors", "Ver productos")}
+          ${clientOperationCard("Marketplace", `${athletes.length} perfiles deportivos para evaluar.`, "client-marketplace", "Revisar")}
+          ${clientOperationCard("Eventos", `${events.length} oportunidades privadas publicadas por ROIS.`, "client-events", "Calendario")}
+          ${clientOperationCard("Pagos", "Stripe, solicitudes y compromisos activos.", "client-payments", "Ver pagos")}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function clientNewsPreviewCard(news) {
+  return `
+    <article class="client-news-preview">
+      ${news.image_url ? `<img src="${news.image_url}" alt="${escapeAttr(news.title)}">` : ""}
+      <div>
+        <p class="eyebrow">Nota ROIS</p>
+        <h4>${escapeHtml(news.title)}</h4>
+        <p>${escapeHtml(news.summary || "Actualizacion disponible para empresas registradas.")}</p>
+        ${newsInteractionBar(news)}
+      </div>
+    </article>
+  `;
 }
 
 function clientExperienceOverviewMarkup() {
@@ -1273,8 +1407,7 @@ function clientExperienceOverviewMarkup() {
 
   return `
     <div class="company-profile-layout">
-      <div class="company-profile-main">
-        <section class="company-profile-card executive-company-card">
+      <section class="company-profile-card executive-company-card">
           <div class="company-cover">
             ${cover?.image_url ? `<img src="${cover.image_url}" alt="Portada ROIS">` : `<div class="company-cover-fallback"><span>ROIS</span><small>Strategic partnerships · athletes · investment</small></div>`}
           </div>
@@ -1299,8 +1432,9 @@ function clientExperienceOverviewMarkup() {
             <div><span>${athletes.length}</span><small>Deportistas</small></div>
             <div><span>${news.length}</span><small>Noticias ROIS</small></div>
           </div>
-        </section>
+      </section>
 
+      <div class="company-profile-main">
         <section class="premium-command-panel">
           <div class="section-minihead">
             <p class="eyebrow">Mesa de oportunidades</p>
@@ -1549,73 +1683,69 @@ function renderClientNews() {
 }
 
 function renderClientSponsors() {
-  const partners = state.data.partnerships.filter(item => item.status === "approved" && visualIsPublic(item));
-  const tiers = [
-    {
-      name: "Partner ROIS",
-      amount: 25000,
-      productKey: "roisPartnerMonthly",
-      label: "$25,000 MXN / mes",
-      description: "Entrada institucional para empresas que quieren presencia dentro del ecosistema ROIS.",
-      benefits: [
-        "Logotipo visible en el dashboard y home como patrocinador ROIS",
-        "Acceso prioritario a oportunidades de eventos y deportistas publicados",
-        "1 brief mensual de oportunidades de patrocinio curadas",
-        "Menci\u00f3n institucional en comunicaci\u00f3n ROIS seleccionada",
-        "Reporte mensual de actividad y oportunidades"
-      ]
-    },
-    {
-      name: "Patrocinador Oficial",
-      amount: 50000,
-      productKey: "officialSponsorMonthly",
-      label: "$50,000 MXN / mes",
-      featured: true,
-      description: "Nivel recomendado para empresas que quieren presencia activa en eventos, academias y oportunidades deportivas.",
-      benefits: [
-        "Todo lo incluido en Partner ROIS",
-        "Prioridad en eventos y activaciones de la red ROIS",
-        "Presencia de marca en academias o alianzas estrat\u00e9gicas disponibles",
-        "2 briefs mensuales de oportunidades con recomendaci\u00f3n ROIS",
-        "Acceso preferente a deportistas aprobados para patrocinio"
-      ]
-    },
-    {
-      name: "Legacy Sponsor",
-      amount: 100000,
-      productKey: "roisLegacyMonthly",
-      label: "$100,000 MXN / mes",
-      description: "Patrocinio de alto impacto para marcas que buscan visibilidad deportiva, narrativa institucional y presencia premium.",
-      benefits: [
-        "Todo lo incluido en Patrocinador Oficial",
-        "Exclusividad de giro durante 12 meses con compromiso anual",
-        "Asignaci\u00f3n de un deportista de alto rendimiento sujeto a disponibilidad",
-        "Presencia en redes sociales del deportista y ecosistema ROIS",
-        "Branding en uniforme, equipo deportivo o materiales autorizados",
-        "Activaciones en academias y eventos estrat\u00e9gicos",
-        "Mesa trimestral de estrategia con direcci\u00f3n ROIS"
-      ]
-    }
-  ];
-  panel("client-sponsors", "Patrocinios ROIS", "Elige un nivel mensual de presencia, acceso y activaci\u00f3n dentro del ecosistema ROIS", `
-    <div class="panel-body">
-      ${partners.length ? `
-        <div class="section-minihead">
-          <p class="eyebrow">Patrocinadores oficiales</p>
-          <h3>Red publicada por ROIS para conexiones estrat\u00e9gicas.</h3>
-        </div>
-        <div class="opportunity-grid">
-          ${partners.map(partner => clientPartnerCard(partner)).join("")}
-        </div>
-      ` : `<div class="empty slim">Los patrocinadores oficiales aprobados aparecer\u00e1n aqu\u00ed.</div>`}
-      <div class="sponsor-tiers">
-        ${tiers.map(tier => sponsorTierCard(tier)).join("")}
+  const products = vipProducts();
+  panel("client-sponsors", "Centro VIP", "Productos privados derivados de alianzas estrategicas ROIS", `
+    <div class="panel-body vip-center-intro">
+      <div>
+        <p class="eyebrow">Acceso empresarial premium</p>
+        <h3>Explora inventario privado, patrocinios, suites y experiencias publicadas por ROIS.</h3>
+        <p>Este centro concentra productos de alianzas como F1, Los 300 y oportunidades especiales. Solicita disponibilidad y ROIS coordina el seguimiento comercial.</p>
       </div>
+      <button class="btn primary" type="button" data-dashboard-shortcut="client-alliances">Ver alianzas premium</button>
+    </div>
+    <div class="panel-body">
+      ${products.length ? `
+        <div class="vip-product-grid">
+          ${products.map(vipProductCard).join("")}
+        </div>
+      ` : `<div class="empty">Los productos VIP publicados desde administracion apareceran aqui.</div>`}
     </div>
   `);
-  tiers.forEach(tier => {
-    document.getElementById(`sponsor-${tier.amount}`).addEventListener("click", () => selectRoisSponsorTier(tier));
-  });
+}
+
+function isVipProduct(item) {
+  return String(item.type || "").toLowerCase() === "centro vip";
+}
+
+function vipProducts() {
+  const adminProducts = state.data.partnerships
+    .filter(item => isVipProduct(item) && item.status === "approved" && visualIsPublic(item))
+    .map(item => ({
+      id: item.id,
+      name: item.name,
+      price: item.tier || "Precio por confirmar",
+      detail: item.description || "Producto privado disponible para empresas ROIS.",
+      image_url: item.image_url,
+      url: item.url,
+      source: "Admin"
+    }));
+  const catalogProducts = premiumAllianceCatalog().flatMap(alliance => alliance.products.map(product => ({
+    ...product,
+    alliance: alliance.name,
+    source: alliance.name
+  })));
+  return [...adminProducts, ...catalogProducts];
+}
+
+function vipProductCard(product) {
+  const hasAdminUrl = product.url;
+  const requestAction = hasAdminUrl
+    ? `<a class="btn primary" href="${product.url}" target="_blank" rel="noopener">Abrir producto</a>`
+    : `<button class="btn primary" type="button" data-premium-request="${escapeAttr(product.id)}">Solicitar disponibilidad</button>`;
+  return `
+    <article class="vip-product-card">
+      <div class="vip-product-media">
+        ${product.image_url ? `<img src="${product.image_url}" alt="${escapeAttr(product.name)}">` : `<div><span>${escapeHtml(product.source || "ROIS")}</span></div>`}
+      </div>
+      <div class="vip-product-copy">
+        <p class="eyebrow">${escapeHtml(product.source || product.alliance || "Producto VIP")}</p>
+        <h3>${escapeHtml(product.name)}</h3>
+        <strong>${escapeHtml(product.price || "Precio por confirmar")}</strong>
+        <p>${escapeHtml(product.detail || "Producto privado disponible para empresas ROIS.")}</p>
+        <div class="action-row">${requestAction}</div>
+      </div>
+    </article>
+  `;
 }
 
 function renderClientMarketplace() {
@@ -2416,7 +2546,32 @@ function renderAdminNews() {
 }
 
 function renderAdminPartners() {
-  panel("admin-partners", "Patrocinadores", "Sponsors clave y red estrat\u00e9gica visible en home", `
+  const vipRows = state.data.partnerships.filter(isVipProduct).map(product => [
+    visualThumb(product),
+    product.name,
+    product.tier || "Precio por confirmar",
+    product.url ? `<a class="btn" href="${product.url}" target="_blank" rel="noopener">Link</a>` : badge("sin link"),
+    badge(product.status),
+    badge(product.visual_status || "sin visual"),
+    moderationActions("partnerships", product)
+  ]);
+  const partnerRows = state.data.partnerships.filter(item => !isVipProduct(item)).map(partner => [
+    visualThumb(partner), partner.name, partner.type, partner.tier, badge(partner.status), badge(partner.visual_status || "sin visual"), moderationActions("partnerships", partner)
+  ]);
+  panel("admin-partners", "Centro VIP", "Productos premium, sponsors clave y red estrategica visible en ROIS", `
+    <div class="panel-body">
+      <form id="vipProductForm" class="form-grid">
+        <label>Nombre del producto<input name="name" required placeholder="F1 Gran Premio de Mexico - Suite privada"></label>
+        <label>Precio o ticket<input name="price" required placeholder="$104,500 MXN + IVA"></label>
+        <label>Link de pago o brochure<input name="url" type="url" placeholder="https://"></label>
+        <label>Estado<select name="status"><option value="approved">Visible en Centro VIP</option><option value="pending">Pendiente</option></select></label>
+        <label style="grid-column:1/-1">Descripcion<textarea name="description" required placeholder="Resume el alcance, disponibilidad, beneficios y condiciones principales."></textarea></label>
+        <label style="grid-column:1/-1">Imagen del producto<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <button class="btn primary" type="submit">Publicar producto VIP</button>
+      </form>
+      <p class="hint">Estos productos aparecen dentro del dashboard de empresas en Centro VIP. Usa imagenes limpias, precios claros y links de pago o brochure cuando existan.</p>
+    </div>
+    ${vipRows.length ? table(["Visual", "Producto", "Precio", "Link", "Estado", "Visual", "Acciones"], vipRows) : `<div class="empty">Aun no hay productos VIP publicados.</div>`}
     <div class="panel-body">
       <form id="partnerForm" class="form-grid">
         <label>Nombre<input name="name" required placeholder="Empresa, sponsor o aliado"></label>
@@ -2430,10 +2585,9 @@ function renderAdminPartners() {
       </form>
       <p class="hint">Los logos y visuales nuevos quedan en revisi\u00f3n visual antes de mostrarse p\u00fablicamente.</p>
     </div>
-    ${table(["Visual", "Nombre", "Tipo", "Nivel", "Estado", "Visual", "Acciones"], state.data.partnerships.map(partner => [
-      visualThumb(partner), partner.name, partner.type, partner.tier, badge(partner.status), badge(partner.visual_status || "sin visual"), moderationActions("partnerships", partner)
-    ]))}
+    ${partnerRows.length ? table(["Visual", "Nombre", "Tipo", "Nivel", "Estado", "Visual", "Acciones"], partnerRows) : `<div class="empty">No hay sponsors o aliados publicados en home.</div>`}
   `);
+  document.getElementById("vipProductForm").addEventListener("submit", submitAdminVipProduct);
   document.getElementById("partnerForm").addEventListener("submit", submitAdminPartner);
 }
 
@@ -2504,7 +2658,8 @@ function renderAdminUploads() {
 }
 
 function renderAdminUploads() {
-  const homeCover = siteSetting("home_cover");
+  const homeCovers = advertisingCoverIds().map((id, index) => ({ id, index: index + 1, ...(siteSetting(id) || {}) }));
+  const selectedCover = homeCovers.find(cover => cover.image_url) || homeCovers[0];
   const postRows = state.data.athlete_posts.map(item => [
     visualThumb(item),
     item.athlete_name || item.athlete_email,
@@ -2533,14 +2688,23 @@ function renderAdminUploads() {
   panel("admin-uploads", "Uploads", "Moderaci\u00f3n de visuales, reels, resultados y comprobantes", `
     <div class="panel-body">
       <form id="homeCoverForm" class="form-grid">
-        <label>T\u00edtulo de portada<input name="title" value="${escapeAttr(homeCover?.title || "")}" placeholder="Portada institucional ROIS"></label>
-        <label>Etiqueta<input name="kicker" value="${escapeAttr(homeCover?.kicker || "")}" placeholder="Ecosistema privado"></label>
-        <label style="grid-column:1/-1">Subt\u00edtulo<textarea name="subtitle" placeholder="Mensaje breve para posicionar la portada.">${escapeHtml(homeCover?.subtitle || "")}</textarea></label>
+        <label>Espacio publicitario<select name="slot">${homeCovers.map(cover => `<option value="${cover.id}">Portada ${cover.index}${cover.image_url ? " - activa" : ""}</option>`).join("")}</select></label>
+        <label>Titulo interno<input name="title" value="${escapeAttr(selectedCover?.title || "")}" placeholder="Portada publicitaria ROIS"></label>
+        <label style="grid-column:1/-1">Nota interna<textarea name="subtitle" placeholder="Uso comercial, patrocinador o campana.">${escapeHtml(selectedCover?.subtitle || "")}</textarea></label>
         <label style="grid-column:1/-1">Imagen de portada<input name="cover" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Publicar portada</button>
-        ${homeCover?.image_url ? `<button class="btn" type="button" id="clearHomeCover">Quitar portada</button>` : ""}
+        <button class="btn" type="button" id="clearHomeCover">Quitar portada seleccionada</button>
       </form>
-      ${homeCover?.image_url ? `<div class="cover-admin-preview"><img src="${homeCover.image_url}" alt="Portada actual"><span>Portada activa en home</span></div>` : `<p class="hint">Sube una portada horizontal. Recomendado: 1600 x 700 px o proporci\u00f3n similar.</p>`}
+      ${homeCovers.some(cover => cover.image_url) ? `
+        <div class="admin-cover-grid">
+          ${homeCovers.map(cover => cover.image_url ? `
+            <div class="cover-admin-preview">
+              <img src="${cover.image_url}" alt="Portada ${cover.index}">
+              <span>Portada ${cover.index} activa</span>
+            </div>
+          ` : `<div class="cover-admin-preview empty"><span>Portada ${cover.index} disponible</span></div>`).join("")}
+        </div>
+      ` : `<p class="hint">Sube hasta 5 portadas horizontales. Recomendado: 1600 x 700 px o proporcion similar. Rotan cada 10 segundos en home y dashboard empresarial.</p>`}
     </div>
     <div class="panel-body">
       <form id="uploadForm" class="form-grid">
@@ -2576,7 +2740,8 @@ function renderAdminUploads() {
 async function submitHomeCover(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  const existing = siteSetting("home_cover") || {};
+  const slot = form.slot.value || "home_cover";
+  const existing = siteSetting(slot) || {};
   const file = form.cover.files[0];
   const image_url = file ? await fileToDataUrl(file) : existing.image_url;
 
@@ -2586,26 +2751,28 @@ async function submitHomeCover(event) {
   }
 
   await api.upsert("site_settings", {
-    id: "home_cover",
+    id: slot,
     value: JSON.stringify({
       image_url,
       title: form.title.value.trim(),
-      kicker: form.kicker.value.trim(),
       subtitle: form.subtitle.value.trim()
     })
   });
-  notify("Portada", "Portada publicada", "El banner ya aparece en el home.");
+  notify("Portada", "Portada publicada", "El banner ya aparece en el home y en el dashboard empresarial.");
   state.data = await api.loadAll();
   renderAdmin();
   renderPublic();
+  renderClient();
 }
 
 async function clearHomeCover() {
-  await api.remove("site_settings", "home_cover");
-  notify("Portada", "Portada retirada", "El home vuelve a su estado base.");
+  const slot = document.querySelector("#homeCoverForm [name='slot']")?.value || "home_cover";
+  await api.remove("site_settings", slot);
+  notify("Portada", "Portada retirada", "El espacio seleccionado ya no aparece en el carrusel.");
   state.data = await api.loadAll();
   renderAdmin();
   renderPublic();
+  renderClient();
 }
 
 function renderAdminLaunch() {
@@ -3241,6 +3408,26 @@ async function submitAdminPartner(event) {
   notify("Alianzas", "Alianza guardada", "El registro qued\u00f3 disponible para aprobaci\u00f3n y revisi\u00f3n visual.");
   renderAdmin();
   renderPublic();
+}
+
+async function submitAdminVipProduct(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const file = form.image.files[0];
+  const image_url = file ? await fileToDataUrl(file) : "";
+  await api.insert("partnerships", {
+    name: form.name.value,
+    type: "Centro VIP",
+    tier: form.price.value,
+    url: form.url.value,
+    description: form.description.value,
+    status: form.status.value,
+    image_url,
+    visual_status: image_url ? "pending_review" : "approved"
+  });
+  notify("Centro VIP", "Producto publicado", "El producto quedo disponible para empresas segun su estado y revision visual.");
+  renderAdmin();
+  renderClient();
 }
 
 async function approveVisual(tableName, item) {

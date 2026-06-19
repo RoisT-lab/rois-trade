@@ -351,6 +351,438 @@
   }
 }
 
+/* Final priority overrides for client advertising dashboard */
+body[data-active-view="client"] .topbar,
+body[data-active-view="athlete"] .topbar,
+body[data-active-view="admin"] .topbar {
+  display: none !important;
+}
+
+#clientView .workspace-head,
+#clientView .workspace > .kpis {
+  display: none !important;
+}
+
+#clientView .client-ad-home {
+  display: grid !important;
+  gap: 28px;
+}
+
+#clientView .client-ad-cover {
+  width: 100% !important;
+  min-height: clamp(320px, 42vw, 610px);
+  margin: 0 !important;
+  border-radius: 42px;
+}
+
+#clientView .client-company-card {
+  margin-top: 0 !important;
+}
+
+#clientView .client-priority-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.62fr);
+  gap: 28px;
+}
+
+#clientView .vip-product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 1180px) {
+  #clientView .client-priority-grid,
+  #clientView .client-company-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  #clientView .vip-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  #clientView .client-ad-cover {
+    min-height: 250px;
+    border-radius: 28px;
+  }
+
+  #clientView .vip-product-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Client advertising dashboard v53 */
+body[data-active-view="client"] .topbar,
+body[data-active-view="athlete"] .topbar,
+body[data-active-view="admin"] .topbar {
+  display: none;
+}
+
+#clientView .workspace-head,
+#clientView .workspace > .kpis {
+  display: none;
+}
+
+.home-cover.cover-carousel,
+#clientView .client-ad-cover {
+  position: relative;
+  overflow: hidden;
+  min-height: clamp(320px, 42vw, 610px);
+  border-radius: 42px;
+  background: #050505;
+  box-shadow: 0 34px 90px rgba(17, 24, 39, 0.14);
+}
+
+.home-cover.cover-carousel .cover-slide,
+#clientView .client-ad-cover .cover-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.015);
+  transition: opacity 900ms ease, transform 1200ms ease;
+}
+
+.home-cover.cover-carousel .cover-slide.active,
+#clientView .client-ad-cover .cover-slide.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.cover-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+
+.cover-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.cover-dots span.active {
+  width: 24px;
+  background: #fff;
+}
+
+#clientView .client-ad-home {
+  display: grid;
+  gap: 28px;
+}
+
+#clientView .client-ad-cover {
+  width: 100%;
+}
+
+#clientView .client-ad-cover.empty-cover {
+  display: grid;
+  place-items: center;
+  color: #fff;
+}
+
+#clientView .client-ad-cover.empty-cover div {
+  display: grid;
+  gap: 10px;
+  text-align: center;
+}
+
+#clientView .client-ad-cover.empty-cover strong {
+  font-size: clamp(42px, 8vw, 110px);
+  font-weight: 800;
+  letter-spacing: 0.34em;
+}
+
+#clientView .client-ad-cover.empty-cover span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+#clientView .client-company-card,
+#clientView .client-priority-card,
+#clientView .company-operations-card,
+#clientView .vip-center-intro {
+  border: 1px solid var(--line);
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 28px 80px rgba(17, 24, 39, 0.07);
+}
+
+#clientView .client-company-card {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) minmax(260px, 0.42fr);
+  gap: 28px;
+  align-items: center;
+  padding: clamp(22px, 3vw, 42px);
+}
+
+#clientView .client-company-card .company-profile-logo {
+  width: 152px;
+  height: 152px;
+  margin: 0;
+}
+
+#clientView .client-company-copy h2 {
+  margin: 0 0 12px;
+  font-size: clamp(38px, 5vw, 72px);
+  line-height: 0.95;
+}
+
+#clientView .client-company-copy p {
+  max-width: 760px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+#clientView .client-company-copy strong {
+  color: var(--text);
+}
+
+#clientView .client-company-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+#clientView .client-company-metrics div {
+  min-height: 112px;
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+}
+
+#clientView .client-company-metrics span {
+  font-size: 34px;
+  font-weight: 800;
+}
+
+#clientView .client-company-metrics small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+#clientView .client-priority-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.62fr);
+  gap: 28px;
+  align-items: start;
+}
+
+#clientView .client-priority-card {
+  padding: clamp(24px, 3vw, 38px);
+}
+
+#clientView .client-reels-priority .compact-reels {
+  max-height: 760px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  padding-right: 8px;
+}
+
+#clientView .client-news-stack {
+  display: grid;
+  gap: 14px;
+}
+
+#clientView .client-news-preview {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+}
+
+#clientView .client-news-preview img {
+  width: 120px;
+  height: 120px;
+  border-radius: 18px;
+  object-fit: cover;
+}
+
+#clientView .client-news-preview h4 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+#clientView .client-news-preview p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#clientView .vip-center-intro {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+}
+
+#clientView .vip-center-intro h3 {
+  max-width: 820px;
+  margin: 0;
+}
+
+#clientView .vip-center-intro p {
+  max-width: 760px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+#clientView .vip-product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+#clientView .vip-product-card {
+  overflow: hidden;
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(17, 24, 39, 0.06);
+}
+
+#clientView .vip-product-media {
+  min-height: 230px;
+  background: #111;
+}
+
+#clientView .vip-product-media img {
+  width: 100%;
+  height: 100%;
+  min-height: 230px;
+  object-fit: cover;
+}
+
+#clientView .vip-product-media div {
+  height: 230px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+#clientView .vip-product-copy {
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+}
+
+#clientView .vip-product-copy h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+#clientView .vip-product-copy strong {
+  font-size: 18px;
+}
+
+#clientView .vip-product-copy p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.admin-cover-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-cover-grid .cover-admin-preview {
+  margin: 0;
+}
+
+.cover-admin-preview.empty {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line);
+  background: #fff;
+}
+
+@media (max-width: 1180px) {
+  #clientView .client-company-card,
+  #clientView .client-priority-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .vip-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .home-cover.cover-carousel {
+    display: none;
+  }
+
+  #clientView .client-ad-cover {
+    min-height: 250px;
+    border-radius: 28px;
+  }
+
+  #clientView .client-company-card {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 22px;
+  }
+
+  #clientView .client-company-card .company-profile-logo {
+    width: 112px;
+    height: 112px;
+  }
+
+  #clientView .client-company-copy h2 {
+    font-size: clamp(34px, 13vw, 54px);
+  }
+
+  #clientView .client-company-metrics,
+  #clientView .vip-product-grid,
+  .admin-cover-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .client-news-preview {
+    grid-template-columns: 1fr;
+  }
+
+  #clientView .client-news-preview img {
+    width: 100%;
+    height: 190px;
+  }
+
+  #clientView .vip-center-intro {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 /* Dashboard focus mode */
 body[data-active-view="client"] .topbar,
 body[data-active-view="athlete"] .topbar,
@@ -433,6 +865,47 @@ body[data-active-view="admin"] {
 
   #clientView .company-profile-body {
     margin-top: -58px;
+  }
+}
+
+/* Client cover first, content after */
+#clientView .executive-company-card {
+  grid-column: 1 / -1;
+}
+
+#clientView .company-profile-body {
+  margin-top: 0;
+  align-items: start;
+  padding-top: clamp(28px, 3vw, 44px);
+}
+
+#clientView .company-profile-logo {
+  margin-top: 0;
+}
+
+#clientView .company-cover {
+  height: clamp(430px, 44vw, 680px);
+}
+
+#clientView .company-cover-logout {
+  top: 34px;
+  right: 34px;
+}
+
+@media (max-width: 1180px) {
+  #clientView .executive-company-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  #clientView .company-profile-body {
+    margin-top: 0;
+    padding-top: 22px;
+  }
+
+  #clientView .company-cover {
+    height: 260px;
   }
 }
 
