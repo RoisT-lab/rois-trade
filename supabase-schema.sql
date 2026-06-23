@@ -313,6 +313,53 @@ as $$
   );
 $$;
 
+create or replace function rois_base36(value bigint)
+returns text
+language plpgsql
+immutable
+as $$
+declare
+  chars text := '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  n bigint := value;
+  output text := '';
+begin
+  if n is null or n = 0 then
+    return '0';
+  end if;
+
+  while n > 0 loop
+    output := substr(chars, (mod(n, 36))::int + 1, 1) || output;
+    n := n / 36;
+  end loop;
+
+  return output;
+end;
+$$;
+
+create or replace function rois_make_scout_code(full_name text, email_value text)
+returns text
+language plpgsql
+immutable
+as $$
+declare
+  source text := upper(coalesce(full_name, '') || '|' || coalesce(email_value, ''));
+  hash bigint := 0;
+  index_value int;
+  raw_code text;
+begin
+  for index_value in 1..char_length(source) loop
+    hash := mod((hash * 31) + ascii(substr(source, index_value, 1)), 4294967296);
+  end loop;
+
+  raw_code := upper(rois_base36(hash));
+  return 'ROIS-' || right(repeat('0', 6) || raw_code, 6);
+end;
+$$;
+
+update athletes
+set scout_code = rois_make_scout_code(name, email)
+where coalesce(scout_code, '') = '';
+
 create or replace function is_active_scout_code(code text)
 returns boolean
 language sql
@@ -320,9 +367,9 @@ security definer
 as $$
   select exists (
     select 1 from athletes
-    where upper(regexp_replace(coalesce(athletes.scout_code, ''), '\s+', '', 'g')) = upper(regexp_replace(coalesce(code, ''), '\s+', '', 'g'))
-    and athletes.scout_active = true
-    and athletes.status = 'approved'
+    where upper(regexp_replace(coalesce(nullif(athletes.scout_code, ''), rois_make_scout_code(athletes.name, athletes.email)), '\s+', '', 'g')) = upper(regexp_replace(coalesce(code, ''), '\s+', '', 'g'))
+    and (athletes.scout_active = true or athletes.status = 'approved')
+    and coalesce(athletes.status, 'pending') not in ('blocked', 'deleted', 'rejected')
   );
 $$;
 

@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260619-client-cover-v56";
+const roisBuild = "20260622-scout-registration-v57";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const athleteAnnualFeeAmount = 2500;
@@ -150,9 +150,25 @@ function activeScoutAthletes() {
   return (state.data?.athletes || []).filter(athlete => athlete.scout_active && scoutCodeForAthlete(athlete));
 }
 
-function findScoutByCode(code) {
+function scoutCanInvite(athlete) {
+  if (!athlete) return false;
+  if (["blocked", "deleted", "rejected"].includes(athlete.status)) return false;
+  return athlete.scout_active === true || athlete.status === "approved";
+}
+
+function findScoutCandidateByCode(code) {
   const normalized = normalizeScoutCode(code);
-  return activeScoutAthletes().find(athlete => scoutCodeForAthlete(athlete) === normalized) || null;
+  if (!normalized) return null;
+  return (state.data?.athletes || []).find(athlete => scoutCodeForAthlete(athlete) === normalized) || null;
+}
+
+function findScoutByCode(code) {
+  const candidate = findScoutCandidateByCode(code);
+  return scoutCanInvite(candidate) ? candidate : null;
+}
+
+function scoutCodeRequestActions() {
+  return `<button class="btn primary full" type="button" data-request-scout-code>Solicitar asignacion de Scout ROIS</button>`;
 }
 
 function athleteProfileCompleteForScout(athlete) {
@@ -854,7 +870,7 @@ function supabaseApi() {
 
 function bindGlobalEvents() {
   document.querySelectorAll("[data-open-login]").forEach(button => button.addEventListener("click", openLogin));
-  document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModals));
+  document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModalFromButton));
   document.querySelectorAll("[data-dashboard-target]").forEach(button => button.addEventListener("click", () => showDashboardPanel(button.dataset.dashboardTarget)));
   document.querySelectorAll("[data-mobile-menu]").forEach(button => button.addEventListener("click", () => openMobileDashboardMenu(button.dataset.mobileMenu)));
   document.querySelectorAll("[data-close-mobile-menu]").forEach(button => button.addEventListener("click", closeMobileDashboardMenus));
@@ -913,6 +929,7 @@ function handleDashboardDelegatedActions(event) {
   const requestScoutButton = event.target.closest("[data-request-scout-code]");
   if (requestScoutButton) {
     requestScoutCode();
+    return;
   }
 }
 
@@ -1081,6 +1098,17 @@ function closeModals() {
     modal.classList.remove("active");
     modal.classList.remove("profile-modal");
   });
+}
+
+function closeModalFromButton(event) {
+  const modal = event.currentTarget.closest(".modal");
+  const registrationModal = document.getElementById("registrationModal");
+  if (modal?.id === "actionModal" && registrationModal?.classList.contains("active")) {
+    modal.classList.remove("active");
+    modal.classList.remove("profile-modal");
+    return;
+  }
+  closeModals();
 }
 
 function notify(kicker, title, text, actions = "") {
@@ -4404,8 +4432,20 @@ async function submitRegistration(event) {
         return;
       }
       const scoutCode = normalizeScoutCode(form.scout_code.value);
-      if (!scoutCode || !findScoutByCode(scoutCode)) {
-        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta deportiva necesitas un codigo activo de Scout ROIS. Si no tienes uno, solicita asignacion desde el formulario.");
+      if (!scoutCode) {
+        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta deportiva necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
+        form.scout_code.focus();
+        return;
+      }
+      const scoutCandidate = findScoutCandidateByCode(scoutCode);
+      if (!scoutCandidate) {
+        notify("Codigo Scout", "Codigo no encontrado", `El codigo ${scoutCode} no esta asociado a ningun Scout ROIS registrado. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
+        form.scout_code.focus();
+        return;
+      }
+      if (!scoutCanInvite(scoutCandidate)) {
+        notify("Codigo Scout", "Codigo pendiente de habilitacion", `El codigo ${scoutCode} existe, pero todavia no esta habilitado para invitar deportistas. Solicita asignacion para que ROIS valide el acceso.`, scoutCodeRequestActions());
+        form.scout_code.focus();
         return;
       }
       const age = calculateAge(form.birth_date.value);
