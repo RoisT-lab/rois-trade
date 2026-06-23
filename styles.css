@@ -3486,14 +3486,22 @@ input:focus, textarea:focus, select:focus {
 }
 
 #registrationModal {
-  align-items: center;
+  align-items: flex-start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+#registrationModal.active {
+  display: block;
 }
 
 #registrationModal .modal-card {
   width: min(760px, calc(100vw - 32px));
-  max-height: min(88vh, 860px);
+  max-height: none;
+  margin: max(14px, 4vh) auto;
   border-radius: 28px;
-  padding: 28px 32px 24px;
+  padding: 24px 32px 0;
+  overflow: visible;
 }
 
 #registrationTitle {
@@ -3547,6 +3555,19 @@ input:focus, textarea:focus, select:focus {
 #registrationForm .btn.full {
   min-height: 52px;
   margin-top: 2px;
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  border-radius: 999px;
+  box-shadow: 0 -14px 30px rgba(255, 255, 255, 0.92);
+}
+
+#registrationForm .btn.full::before {
+  content: "";
+  position: absolute;
+  inset: -18px 0 100%;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fff);
 }
 
 .modal-actions {
@@ -4225,13 +4246,16 @@ input:focus, textarea:focus, select:focus {
   #registrationModal {
     align-items: end;
     padding: 12px;
+    overflow-y: auto;
   }
 
   #registrationModal .modal-card {
     width: 100%;
-    max-height: calc(100dvh - 24px);
-    padding: 24px 18px 18px;
+    max-height: none;
+    margin: 12px auto;
+    padding: 24px 18px 0;
     border-radius: 28px 28px 22px 22px;
+    overflow: visible;
   }
 
   #registrationTitle {
@@ -4262,8 +4286,9 @@ input:focus, textarea:focus, select:focus {
 
 @media (max-height: 760px) and (min-width: 901px) {
   #registrationModal .modal-card {
-    max-height: calc(100vh - 28px);
-    padding: 22px 28px 20px;
+    max-height: none;
+    margin: 10px auto;
+    padding: 18px 28px 0;
   }
 
   #registrationTitle {
