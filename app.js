@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260622-registration-modal-v59";
+const roisBuild = "20260622-live-sync-v60";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const athleteAnnualFeeAmount = 2500;
@@ -19,6 +19,9 @@ const state = {
 };
 
 let coverCarouselTimers = [];
+let dashboardRefreshTimer = null;
+let dashboardRefreshInFlight = false;
+const dashboardRefreshMs = 12000;
 
 const seed = {
   profiles: configuredDemoAdmin ? [
@@ -269,7 +272,58 @@ async function init() {
     return;
   }
   if (state.session) showView(dashboardViewForRole(state.session.role));
+  startDashboardSync();
 }
+
+function activeDashboardPanelId() {
+  const activeView = document.querySelector("[data-view].active");
+  return activeView?.querySelector("[data-dashboard-panel].active")?.dataset.dashboardPanel || "";
+}
+
+function restoreDashboardPanel(panelId) {
+  if (panelId) showDashboardPanel(panelId);
+}
+
+function renderActiveSurface() {
+  applySessionBranding();
+  renderSession();
+  const activeView = document.body.dataset.activeView || "home";
+  if (activeView === "client") renderClient();
+  else if (activeView === "athlete") renderAthlete();
+  else if (activeView === "admin") renderAdmin();
+  else renderPublic();
+}
+
+async function refreshPlatformData({ render = true } = {}) {
+  if (dashboardRefreshInFlight) return false;
+  if (document.hidden) return false;
+  dashboardRefreshInFlight = true;
+  const panelId = activeDashboardPanelId();
+  try {
+    state.data = await api.loadAll({ background: true });
+    enforceCompanyClientSession();
+    if (render) {
+      renderActiveSurface();
+      restoreDashboardPanel(panelId);
+    }
+    return true;
+  } catch (error) {
+    return false;
+  } finally {
+    dashboardRefreshInFlight = false;
+  }
+}
+
+function startDashboardSync() {
+  if (dashboardRefreshTimer) clearInterval(dashboardRefreshTimer);
+  dashboardRefreshTimer = setInterval(() => {
+    if (state.session) refreshPlatformData();
+  }, dashboardRefreshMs);
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && state.session) refreshPlatformData();
+});
 
 function sessionIsBlocked() {
   const email = String(state.session?.email || "").toLowerCase();
@@ -500,11 +554,30 @@ function supabaseApi() {
   }
   return {
     async loadAll() {
-      const tables = ["profiles", "companies", "athletes", "events", "requests", "sponsorships", "news", "partnerships", "site_settings", "crm", "payments", "uploads", "athlete_posts", "athlete_results", "athlete_expenses", "athlete_deposits", "athlete_notifications", "terms_acceptances"];
+      const tableQueries = {
+        profiles: "select=*&order=created_at.desc&limit=250",
+        companies: "select=*&order=created_at.desc&limit=250",
+        athletes: "select=*&order=created_at.desc&limit=250",
+        events: "select=*&order=created_at.desc&limit=160",
+        requests: "select=*&order=created_at.desc&limit=220",
+        sponsorships: "select=*&order=created_at.desc&limit=220",
+        news: "select=*&order=created_at.desc&limit=120",
+        partnerships: "select=*&order=created_at.desc&limit=120",
+        site_settings: "select=*&limit=100",
+        crm: "select=*&order=created_at.desc&limit=250",
+        payments: "select=*&order=created_at.desc&limit=220",
+        uploads: "select=*&order=created_at.desc&limit=160",
+        athlete_posts: "select=*&order=created_at.desc&limit=160",
+        athlete_results: "select=*&order=created_at.desc&limit=180",
+        athlete_expenses: "select=*&order=created_at.desc&limit=180",
+        athlete_deposits: "select=*&order=created_at.desc&limit=180",
+        athlete_notifications: "select=*&order=created_at.desc&limit=180",
+        terms_acceptances: "select=*&order=created_at.desc&limit=180"
+      };
       const result = {};
-      await Promise.all(tables.map(async table => {
+      await Promise.all(Object.entries(tableQueries).map(async ([table, query]) => {
         try {
-          result[table] = await request(`/rest/v1/${table}?select=*`, { headers: headers() });
+          result[table] = await request(`/rest/v1/${table}?${query}`, { headers: headers() });
         } catch (error) {
           result[table] = [];
         }
