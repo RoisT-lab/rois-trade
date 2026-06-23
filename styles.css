@@ -413,6 +413,186 @@
   }
 }
 
+/* Absolute final registration modal override v59 - do not move above dashboard overrides. */
+#registrationModal.modal.active {
+  display: block !important;
+  align-items: initial !important;
+  justify-content: initial !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 16px !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+#registrationModal .modal-card {
+  width: min(760px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 16px auto 34px !important;
+  padding: 24px 32px 0 !important;
+  overflow: visible !important;
+  border-radius: 28px !important;
+}
+
+#registrationModal #registrationForm {
+  padding-bottom: 92px !important;
+}
+
+#registrationModal #registrationForm .btn.full {
+  position: sticky !important;
+  bottom: 12px !important;
+  z-index: 20 !important;
+  min-height: 54px !important;
+  margin-top: 10px !important;
+  box-shadow: 0 0 0 12px #fff, 0 -18px 35px rgba(255, 255, 255, 0.95) !important;
+}
+
+@media (max-width: 900px), (max-height: 760px) {
+  #registrationModal.modal.active {
+    padding: 10px !important;
+  }
+
+  #registrationModal .modal-card {
+    width: calc(100vw - 20px) !important;
+    margin: 10px auto 28px !important;
+    padding: 20px 14px 0 !important;
+    border-radius: 24px !important;
+  }
+
+  #registrationModal #registrationTitle {
+    max-width: calc(100% - 44px) !important;
+    font-size: clamp(28px, 7vw, 36px) !important;
+    line-height: 1.05 !important;
+  }
+
+  #registrationModal #registrationForm {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding-bottom: 96px !important;
+  }
+}
+
+/* Absolute final registration modal override v59 */
+#registrationModal.modal.active {
+  display: block !important;
+  align-items: initial !important;
+  justify-content: initial !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 16px !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+#registrationModal .modal-card {
+  width: min(760px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 16px auto 34px !important;
+  padding: 24px 32px 0 !important;
+  overflow: visible !important;
+  border-radius: 28px !important;
+}
+
+#registrationModal #registrationForm {
+  padding-bottom: 92px !important;
+}
+
+#registrationModal #registrationForm .btn.full {
+  position: sticky !important;
+  bottom: 12px !important;
+  z-index: 20 !important;
+  min-height: 54px !important;
+  margin-top: 10px !important;
+  box-shadow: 0 0 0 12px #fff, 0 -18px 35px rgba(255, 255, 255, 0.95) !important;
+}
+
+@media (max-width: 900px), (max-height: 760px) {
+  #registrationModal.modal.active {
+    padding: 10px !important;
+  }
+
+  #registrationModal .modal-card {
+    width: calc(100vw - 20px) !important;
+    margin: 10px auto 28px !important;
+    padding: 20px 14px 0 !important;
+    border-radius: 24px !important;
+  }
+
+  #registrationModal #registrationTitle {
+    max-width: calc(100% - 44px) !important;
+    font-size: clamp(28px, 7vw, 36px) !important;
+    line-height: 1.05 !important;
+  }
+
+  #registrationModal #registrationForm {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding-bottom: 96px !important;
+  }
+}
+
+/* Final registration modal override: keeps long forms usable on every viewport. */
+#registrationModal.modal.active {
+  display: block !important;
+  align-items: initial !important;
+  justify-content: initial !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 16px !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+#registrationModal .modal-card {
+  width: min(760px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 16px auto 34px !important;
+  padding: 24px 32px 0 !important;
+  overflow: visible !important;
+  border-radius: 28px !important;
+}
+
+#registrationModal #registrationForm {
+  padding-bottom: 92px !important;
+}
+
+#registrationModal #registrationForm .btn.full {
+  position: sticky !important;
+  bottom: 12px !important;
+  z-index: 20 !important;
+  min-height: 54px !important;
+  margin-top: 10px !important;
+  box-shadow: 0 0 0 12px #fff, 0 -18px 35px rgba(255, 255, 255, 0.95) !important;
+}
+
+@media (max-width: 900px), (max-height: 760px) {
+  #registrationModal.modal.active {
+    padding: 10px !important;
+  }
+
+  #registrationModal .modal-card {
+    width: calc(100vw - 20px) !important;
+    margin: 10px auto 28px !important;
+    padding: 20px 14px 0 !important;
+    border-radius: 24px !important;
+  }
+
+  #registrationModal #registrationTitle {
+    max-width: calc(100% - 44px) !important;
+    font-size: clamp(28px, 7vw, 36px) !important;
+    line-height: 1.05 !important;
+  }
+
+  #registrationModal #registrationForm {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding-bottom: 96px !important;
+  }
+}
+
 /* Client dashboard cover hierarchy v56 */
 #clientView.dashboard.active {
   grid-template-columns: 282px minmax(0, 1fr);
@@ -7087,5 +7267,65 @@ body[data-active-view="home"] .topbar .btn.nav-create-account {
 
   #clientView > .client-dashboard-cover-slot {
     display: none;
+  }
+}
+
+/* Absolute final registration modal override v59 - true EOF */
+#registrationModal.modal.active {
+  display: block !important;
+  align-items: initial !important;
+  justify-content: initial !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 16px !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+#registrationModal .modal-card {
+  width: min(760px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 16px auto 34px !important;
+  padding: 24px 32px 0 !important;
+  overflow: visible !important;
+  border-radius: 28px !important;
+}
+
+#registrationModal #registrationForm {
+  padding-bottom: 92px !important;
+}
+
+#registrationModal #registrationForm .btn.full {
+  position: sticky !important;
+  bottom: 12px !important;
+  z-index: 20 !important;
+  min-height: 54px !important;
+  margin-top: 10px !important;
+  box-shadow: 0 0 0 12px #fff, 0 -18px 35px rgba(255, 255, 255, 0.95) !important;
+}
+
+@media (max-width: 900px), (max-height: 760px) {
+  #registrationModal.modal.active {
+    padding: 10px !important;
+  }
+
+  #registrationModal .modal-card {
+    width: calc(100vw - 20px) !important;
+    margin: 10px auto 28px !important;
+    padding: 20px 14px 0 !important;
+    border-radius: 24px !important;
+  }
+
+  #registrationModal #registrationTitle {
+    max-width: calc(100% - 44px) !important;
+    font-size: clamp(28px, 7vw, 36px) !important;
+    line-height: 1.05 !important;
+  }
+
+  #registrationModal #registrationForm {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding-bottom: 96px !important;
   }
 }

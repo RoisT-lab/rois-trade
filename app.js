@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260622-registration-scroll-v58";
+const roisBuild = "20260622-registration-modal-v59";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const athleteAnnualFeeAmount = 2500;
