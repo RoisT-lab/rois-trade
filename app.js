@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260622-live-sync-v60";
+const roisBuild = "20260625-scout-stable-v62";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const athleteAnnualFeeAmount = 2500;
@@ -19,9 +19,6 @@ const state = {
 };
 
 let coverCarouselTimers = [];
-let dashboardRefreshTimer = null;
-let dashboardRefreshInFlight = false;
-const dashboardRefreshMs = 12000;
 
 const seed = {
   profiles: configuredDemoAdmin ? [
@@ -136,6 +133,10 @@ function normalizeScoutCode(value = "") {
   return String(value || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
+function scoutCodeKey(value = "") {
+  return normalizeScoutCode(value).replace(/[^A-Z0-9]/g, "");
+}
+
 function makeScoutCode(name = "", email = "") {
   const source = `${name}|${email}`.toUpperCase();
   let hash = 0;
@@ -160,9 +161,9 @@ function scoutCanInvite(athlete) {
 }
 
 function findScoutCandidateByCode(code) {
-  const normalized = normalizeScoutCode(code);
+  const normalized = scoutCodeKey(code);
   if (!normalized) return null;
-  return (state.data?.athletes || []).find(athlete => scoutCodeForAthlete(athlete) === normalized) || null;
+  return (state.data?.athletes || []).find(athlete => scoutCodeKey(scoutCodeForAthlete(athlete)) === normalized) || null;
 }
 
 function findScoutByCode(code) {
@@ -272,58 +273,7 @@ async function init() {
     return;
   }
   if (state.session) showView(dashboardViewForRole(state.session.role));
-  startDashboardSync();
 }
-
-function activeDashboardPanelId() {
-  const activeView = document.querySelector("[data-view].active");
-  return activeView?.querySelector("[data-dashboard-panel].active")?.dataset.dashboardPanel || "";
-}
-
-function restoreDashboardPanel(panelId) {
-  if (panelId) showDashboardPanel(panelId);
-}
-
-function renderActiveSurface() {
-  applySessionBranding();
-  renderSession();
-  const activeView = document.body.dataset.activeView || "home";
-  if (activeView === "client") renderClient();
-  else if (activeView === "athlete") renderAthlete();
-  else if (activeView === "admin") renderAdmin();
-  else renderPublic();
-}
-
-async function refreshPlatformData({ render = true } = {}) {
-  if (dashboardRefreshInFlight) return false;
-  if (document.hidden) return false;
-  dashboardRefreshInFlight = true;
-  const panelId = activeDashboardPanelId();
-  try {
-    state.data = await api.loadAll({ background: true });
-    enforceCompanyClientSession();
-    if (render) {
-      renderActiveSurface();
-      restoreDashboardPanel(panelId);
-    }
-    return true;
-  } catch (error) {
-    return false;
-  } finally {
-    dashboardRefreshInFlight = false;
-  }
-}
-
-function startDashboardSync() {
-  if (dashboardRefreshTimer) clearInterval(dashboardRefreshTimer);
-  dashboardRefreshTimer = setInterval(() => {
-    if (state.session) refreshPlatformData();
-  }, dashboardRefreshMs);
-}
-
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && state.session) refreshPlatformData();
-});
 
 function sessionIsBlocked() {
   const email = String(state.session?.email || "").toLowerCase();
@@ -415,6 +365,15 @@ function demoApi() {
   }
   return {
     async loadAll() { return read(); },
+    async validateScoutCode(code) {
+      const data = read();
+      const normalized = scoutCodeKey(code);
+      const candidate = data.athletes.find(athlete => scoutCodeKey(scoutCodeForAthlete(athlete)) === normalized);
+      return {
+        valid: Boolean(candidate && scoutCanInvite(candidate)),
+        exists: Boolean(candidate)
+      };
+    },
     async login(email, password) {
       const data = read();
       const user = data.profiles.find(item => item.email.toLowerCase() === email.toLowerCase() && item.password === password);
@@ -477,7 +436,7 @@ function demoApi() {
         legal_status: payload.isMinor ? "minor_guardian_review" : "adult_self_registered",
         registration_terms_accepted: Boolean(payload.termsAccepted),
         terms_accepted: false,
-        status: "pending",
+        status: "approved",
         visual_status: "approved"
       });
       write(data);
@@ -584,6 +543,25 @@ function supabaseApi() {
       }));
       return result;
     },
+    async validateScoutCode(code) {
+      const normalized = normalizeScoutCode(code);
+      if (!normalized) return { valid: false, exists: false };
+      try {
+        const result = await request("/rest/v1/rpc/is_active_scout_code", {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify({ code: normalized })
+        });
+        const valid = result === true || result === "true" || result?.is_active_scout_code === true;
+        return { valid, exists: valid };
+      } catch (error) {
+        const candidate = findScoutCandidateByCode(normalized);
+        return {
+          valid: Boolean(candidate && scoutCanInvite(candidate)),
+          exists: Boolean(candidate)
+        };
+      }
+    },
     async login(email, password) {
       const preferredAthlete = athleteAnnualFeeExempt(email);
       const auth = await request("/auth/v1/token?grant_type=password", {
@@ -686,7 +664,7 @@ function supabaseApi() {
             legal_status: payload.isMinor ? "minor_guardian_review" : "adult_self_registered",
             registration_terms_accepted: Boolean(payload.termsAccepted),
             terms_accepted: false,
-            status: "pending",
+            status: "approved",
             visual_status: "approved"
           })
         });
@@ -738,7 +716,7 @@ function supabaseApi() {
           legal_status: payload.isMinor ? "minor_guardian_review" : "adult_self_registered",
           registration_terms_accepted: Boolean(payload.termsAccepted),
           terms_accepted: false,
-          status: "pending",
+          status: "approved",
           visual_status: "approved"
         })
       });
@@ -881,7 +859,7 @@ function supabaseApi() {
             category: meta.category || "",
             location: meta.location || "",
             ranking: meta.ranking || "",
-            status: "pending",
+            status: "approved",
             visual_status: "approved",
             terms_accepted: true
           })
@@ -2592,43 +2570,32 @@ function renderAdminUsers() {
 }
 
 function renderAdminAthletes() {
-  panel("admin-athletes", "Deportistas", "Alta, visuales y aprobaciones", `
-    <div class="panel-body">
-      <form id="adminAthleteForm" class="form-grid">
-        <label>Nombre<input name="name" required placeholder="Nombre del deportista"></label>
-        <label>Deporte<input name="sport" required placeholder="Disciplina"></label>
-        <label>Categor\u00eda<input name="category" required placeholder="Ej. Juvenil, amateur, profesional"></label>
-        <label>Ciudad / base<input name="location" required placeholder="Ciudad o club base"></label>
-        <label>Ranking o marca<input name="ranking" placeholder="Ranking, handicap, marca o nivel"></label>
-        <label>Monto anual<input name="annual" type="number" min="0" value="${athleteAnnualFeeAmount}" required></label>
-        <label>Cobro anual<select name="annual_fee_required"><option value="false">No solicitado</option><option value="true">Solicitar pago anual</option></select></label>
-        <label>Ticket mensual<input name="monthly" type="number" min="0" value="5000" required></label>
-        <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="3" required></label>
-        <label style="grid-column:1/-1">Link de pago individual Stripe<input name="sponsor_payment_url" type="url" placeholder="https://buy.stripe.com/..."></label>
-        <label style="grid-column:1/-1">Logos de sponsors actuales<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
-        <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por l\u00ednea, en el mismo orden de los logos. Ej. ROIS Trade"></textarea></label>
-        <label style="grid-column:1/-1">Ficha t\u00e9cnica<textarea name="stats" required placeholder="Resultados, calendario, m\u00e9tricas, logros y objetivo deportivo"></textarea></label>
-        <label style="grid-column:1/-1">Condiciones autorizadas para patrocinadores<textarea name="sponsor_terms" placeholder="Una condici\u00f3n por l\u00ednea. Ej. Menci\u00f3n mensual en redes sociales"></textarea></label>
-        <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" placeholder="https://youtube.com/... o https://vimeo.com/..."></label>
-        <label style="grid-column:1/-1">Propuesta comercial PDF opcional<input name="proposal_pdf" type="file" accept="application/pdf"></label>
-        <label style="grid-column:1/-1">Imagen del deportista<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <button class="btn primary" type="submit">Crear deportista</button>
-      </form>
-      <p class="hint">Las im\u00e1genes nuevas quedan en revisi\u00f3n visual. No aparecen p\u00fablicamente hasta aprobarse.</p>
+  const athletes = [...(state.data.athletes || [])].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const active = athletes.filter(athlete => !["blocked", "deleted", "rejected"].includes(athlete.status));
+  const paid = active.filter(athleteAnnualFeePaid).length;
+  const linked = active.filter(athlete => athlete.sponsor_payment_url).length;
+  const scoutInvited = active.filter(athlete => athlete.invited_by_scout_code).length;
+  panel("admin-athletes", "Deportistas", "Gestión por Scouts ROIS", `
+    <div class="panel-body admin-athlete-summary">
+      <div class="scout-metrics">
+        <div><span>Activos</span><strong>${active.length}</strong></div>
+        <div><span>Con scout</span><strong>${scoutInvited}</strong></div>
+        <div><span>Anualidad pagada</span><strong>${paid}</strong></div>
+        <div><span>Link mensual</span><strong>${linked}</strong></div>
+      </div>
+      <p class="hint">Los deportistas ya no se aprueban manualmente en este panel. Ingresan mediante código Scout ROIS y admin solo gestiona anualidad, link mensual de patrocinio, validación de comisión y bajas operativas.</p>
     </div>
-    ${table(["Visual", "Nombre", "Deporte", "Scout", "Invitado por", "Anualidad", "Perfil", "Comision", "Acciones"], state.data.athletes.map(athlete => [
-      visualThumb(athlete),
-      athlete.name,
-      athlete.sport,
-      athlete.scout_active ? badge(scoutCodeForAthlete(athlete)) : badge("no scout"),
-      athlete.invited_by_scout_code ? badge(normalizeScoutCode(athlete.invited_by_scout_code)) : badge("directo"),
+    ${athletes.length ? table(["Deportista", "Correo", "Scout", "Anualidad", "Perfil", "Pago mensual", "Comisión", "Acciones"], athletes.map(athlete => [
+      `<strong>${escapeHtml(athlete.name || "Deportista")}</strong><br><span class="hint inline">${escapeHtml(athlete.sport || "Perfil por completar")}</span>`,
+      escapeHtml(athlete.email || athlete.contact || "Sin correo"),
+      athlete.invited_by_scout_code ? badge(normalizeScoutCode(athlete.invited_by_scout_code)) : badge("sin código"),
       athleteAnnualFeePaid(athlete) ? badge("pagada") : athleteAnnualFeeRequired(athlete) ? badge("solicitada") : badge("no solicitada"),
       athleteProfileCompleteForScout(athlete) ? badge("completo") : badge("pendiente"),
-      scoutReferralStatus(athlete).eligible ? badge("aprobada") : badge(athlete.scout_validation_status || "review"),
+      athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"),
+      scoutReferralStatus(athlete).eligible ? badge("validada") : badge(athlete.scout_validation_status || "review"),
       athleteAdminActions(athlete)
-    ]))}
+    ])) : `<div class="empty">Los deportistas registrados con código Scout ROIS aparecerán aquí.</div>`}
   `);
-  document.getElementById("adminAthleteForm").addEventListener("submit", submitAdminAthlete);
 }
 
 function athleteAdminActions(athlete) {
@@ -2636,8 +2603,9 @@ function athleteAdminActions(athlete) {
     button(athleteAnnualFeeRequired(athlete) ? "Ocultar anualidad" : "Solicitar anualidad", () => toggleAthleteAnnualFee(athlete))
   ];
   if (!athleteAnnualFeePaid(athlete)) actions.push(button("Marcar pago anual", () => markAthleteAnnualPaid(athlete)));
+  if (!athlete.scout_active) actions.push(button("Activar scout", () => activateScoutNetwork(athlete)));
   if (athlete.invited_by_scout_code && athlete.scout_commission_status !== "approved") actions.push(button("Validar scout", () => validateScoutCommission(athlete)));
-  actions.push(moderationActions("athletes", athlete));
+  actions.push(button("Eliminar", () => deleteContent("athletes", athlete)));
   return actionGroup(actions);
 }
 
@@ -4510,14 +4478,9 @@ async function submitRegistration(event) {
         form.scout_code.focus();
         return;
       }
-      const scoutCandidate = findScoutCandidateByCode(scoutCode);
-      if (!scoutCandidate) {
-        notify("Codigo Scout", "Codigo no encontrado", `El codigo ${scoutCode} no esta asociado a ningun Scout ROIS registrado. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
-        form.scout_code.focus();
-        return;
-      }
-      if (!scoutCanInvite(scoutCandidate)) {
-        notify("Codigo Scout", "Codigo pendiente de habilitacion", `El codigo ${scoutCode} existe, pero todavia no esta habilitado para invitar deportistas. Solicita asignacion para que ROIS valide el acceso.`, scoutCodeRequestActions());
+      const scoutValidation = await api.validateScoutCode(scoutCode);
+      if (!scoutValidation.valid) {
+        notify("Codigo Scout", "Codigo no valido", `El codigo ${scoutCode} no esta activo para registrar deportistas. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
         form.scout_code.focus();
         return;
       }

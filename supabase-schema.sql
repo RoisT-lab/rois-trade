@@ -364,14 +364,17 @@ create or replace function is_active_scout_code(code text)
 returns boolean
 language sql
 security definer
+set search_path = public
 as $$
   select exists (
     select 1 from athletes
-    where upper(regexp_replace(coalesce(nullif(athletes.scout_code, ''), rois_make_scout_code(athletes.name, athletes.email)), '\s+', '', 'g')) = upper(regexp_replace(coalesce(code, ''), '\s+', '', 'g'))
+    where regexp_replace(upper(coalesce(nullif(athletes.scout_code, ''), rois_make_scout_code(athletes.name, athletes.email))), '[^A-Z0-9]', '', 'g') = regexp_replace(upper(coalesce(code, '')), '[^A-Z0-9]', '', 'g')
     and (athletes.scout_active = true or athletes.status = 'approved')
     and coalesce(athletes.status, 'pending') not in ('blocked', 'deleted', 'rejected')
   );
 $$;
+
+grant execute on function is_active_scout_code(text) to anon, authenticated;
 
 drop policy if exists "profiles select own or admin" on profiles;
 drop policy if exists "profiles self insert client" on profiles;
