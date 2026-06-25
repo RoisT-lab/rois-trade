@@ -470,14 +470,14 @@ create policy "athletes admin write" on athletes for all using (is_admin()) with
 create policy "athletes self read" on athletes for select to authenticated using (email = (auth.jwt() ->> 'email'));
 create policy "athletes self insert pending" on athletes for insert to authenticated with check (
   email = (auth.jwt() ->> 'email')
-  and status = 'pending'
+  and status in ('approved', 'pending')
   and is_active_scout_code(invited_by_scout_code)
 );
 create policy "athletes self update" on athletes for update to authenticated using (email = (auth.jwt() ->> 'email')) with check (
   email = (auth.jwt() ->> 'email')
 );
 create policy "athletes public insert pending" on athletes for insert to anon, authenticated with check (
-  status = 'pending'
+  status in ('approved', 'pending')
   and is_active_scout_code(invited_by_scout_code)
   and coalesce(visual_status, 'approved') in ('approved', 'pending_review')
 );
