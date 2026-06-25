@@ -1246,6 +1246,9 @@ function openExternalUrl(url, title) {
 
 function humanError(error) {
   const message = typeof error?.message === "string" ? error.message : JSON.stringify(error);
+  if (message.includes("over_email_send_rate_limit") || message.includes("email rate limit exceeded") || message.includes("429")) {
+    return "Supabase limit\u00f3 temporalmente el env\u00edo de correos de verificaci\u00f3n por demasiados intentos. Para el lanzamiento, desactiva la confirmaci\u00f3n por correo en Supabase o espera unos minutos antes de intentar de nuevo.";
+  }
   if (message.includes("row-level security") || message.includes("42501")) {
     return "La base de datos todav\u00eda est\u00e1 bloqueando este registro. Actualiza las pol\u00edticas de Supabase y vuelve a intentarlo.";
   }
