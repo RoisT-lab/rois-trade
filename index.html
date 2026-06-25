@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ROIS | Plataforma Privada</title>
-  <meta name="rois-build" content="20260625-scout-stable-v62" />
+  <meta name="rois-build" content="20260625-launch-home-v63" />
   <meta name="description" content="ROIS conecta empresas con talento deportivo competitivo, patrocinios institucionales y oportunidades privadas de crecimiento." />
-  <link rel="stylesheet" href="./styles.css?v=20260625-scout-stable-v62" />
+  <link rel="stylesheet" href="./styles.css?v=20260625-launch-home-v63" />
 </head>
 <body>
   <svg class="rois-logo-sprite" aria-hidden="true" focusable="false">
@@ -23,10 +23,8 @@
         <svg class="brand-logo rois-logo-svg" viewBox="0 0 1200 420" role="img" aria-label="ROIS"><use href="#roisLogoSymbol"></use></svg>
       </a>
       <nav class="public-nav" aria-label="Navegación pública">
-        <a href="#partners">Patrocinadores</a>
-        <a href="#events">Eventos</a>
-        <a href="#athletes">Deportistas</a>
-        <a href="#registration">Registro</a>
+        <a href="#rois">ROIS</a>
+        <a href="#registration">Accesos</a>
         <a href="#news">Noticias</a>
       </nav>
       <div class="session-area" id="sessionArea">
@@ -42,56 +40,59 @@
           <div class="hero-copy">
             <p class="eyebrow">Plataforma privada institucional</p>
             <h1>Acceso privado. Redes exclusivas. Crecimiento estratégico.</h1>
-            <p class="lead">Patrocina talento deportivo competitivo desde $5,000 MXN mensuales a traves de una plataforma privada de relaciones, seguimiento y oportunidades institucionales.</p>
+            <p class="lead">ROIS conecta empresas, deportistas competitivos, scouts y alianzas premium en una herramienta privada para activar patrocinios, oportunidades VIP y relaciones institucionales con seguimiento operativo.</p>
           </div>
           <aside class="hero-access" id="registration" aria-label="Accesos al ecosistema ROIS">
             <p class="eyebrow">Accesos ROIS</p>
-            <h2>Solicita acceso al ecosistema.</h2>
+            <h2>Entra al ecosistema ROIS.</h2>
             <div class="registration-grid compact">
               <button class="registration-card primary-card" type="button" data-registration="company">
                 <span class="eyebrow">Empresas</span>
                 <strong>Crear cuenta empresarial</strong>
-                <small>Acceso inmediato al dashboard ROIS.</small>
+                <small>Explora oportunidades, deportistas, Centro VIP, noticias y solicitudes de patrocinio.</small>
                 <em>Crear cuenta</em>
               </button>
               <button class="registration-card" type="button" data-registration="athlete">
                 <span class="eyebrow">Deportistas</span>
                 <strong>Postular perfil deportivo</strong>
-                <small>Explora, configura tu perfil y publica avances.</small>
+                <small>Crea tu perfil, publica reels, documenta resultados y recibe seguimiento de ROIS.</small>
                 <em>Postular</em>
               </button>
-              <button class="registration-card" type="button" data-registration="event">
-                <span class="eyebrow">Eventos</span>
-                <strong>Registrar oportunidad</strong>
-                <small>Envía eventos para evaluación institucional.</small>
-                <em>Registrar</em>
+              <button class="registration-card" type="button" data-registration="athlete">
+                <span class="eyebrow">Scouts</span>
+                <strong>Invitar talento deportivo</strong>
+                <small>La red de scouts ayuda a identificar atletas competitivos con acceso curado.</small>
+                <em>Solicitar código</em>
               </button>
             </div>
           </aside>
         </div>
 
-        <section class="public-section" id="partners">
+        <section class="public-section rois-launch-section" id="rois">
           <div class="section-head">
-            <p class="eyebrow">Patrocinadores oficiales</p>
-            <h2>Red institucional de sponsors y aliados clave.</h2>
+            <p class="eyebrow">Herramienta ROIS</p>
+            <h2>Una plataforma para convertir talento, relaciones y eventos en oportunidades medibles.</h2>
           </div>
-          <div id="publicPartners"></div>
-        </section>
-
-        <section class="public-section" id="events">
-          <div class="section-head">
-            <p class="eyebrow">Eventos</p>
-            <h2>Oportunidades privadas de acceso y patrocinio.</h2>
+          <div class="rois-role-grid">
+            <article class="rois-role-card dark-card">
+              <p class="eyebrow">Empresas</p>
+              <h3>Patrocinios, Centro VIP y acceso a oportunidades privadas.</h3>
+              <p>Las empresas usan ROIS para revisar deportistas, productos derivados de alianzas, noticias del ecosistema y oportunidades premium. Desde su dashboard pueden solicitar patrocinios, explorar perfiles y operar con seguimiento de ROIS.</p>
+              <button class="btn primary" type="button" data-registration="company">Crear cuenta empresarial</button>
+            </article>
+            <article class="rois-role-card">
+              <p class="eyebrow">Deportistas</p>
+              <h3>Perfil profesional, reels, resultados y patrocinadores.</h3>
+              <p>Los deportistas construyen un perfil visible para empresas: publican entrenamientos, documentan resultados, agregan sponsors, suben su plan de trabajo y reciben notificaciones operativas de ROIS.</p>
+              <button class="btn" type="button" data-registration="athlete">Postular perfil</button>
+            </article>
+            <article class="rois-role-card">
+              <p class="eyebrow">Scouts</p>
+              <h3>Red curada para invitar talento competitivo.</h3>
+              <p>Los scouts ROIS invitan atletas con código, dan trazabilidad al origen del talento y participan en un modelo de comisión validado cuando el deportista completa su ingreso y perfil.</p>
+              <button class="btn" type="button" data-registration="athlete">Solicitar código scout</button>
+            </article>
           </div>
-          <div class="public-list" id="publicEvents"></div>
-        </section>
-
-        <section class="public-section" id="athletes">
-          <div class="section-head">
-            <p class="eyebrow">Marketplace Deportistas</p>
-            <h2>Perfiles deportivos listos para patrocinio institucional.</h2>
-          </div>
-          <div class="public-list" id="publicAthletes"></div>
         </section>
 
         <section class="public-section" id="news">
@@ -311,7 +312,7 @@
     </div>
   </div>
 
-  <script src="./app-config.js?v=20260625-scout-stable-v62" charset="UTF-8"></script>
-  <script src="./app.js?v=20260625-scout-stable-v62" charset="UTF-8"></script>
+  <script src="./app-config.js?v=20260625-launch-home-v63" charset="UTF-8"></script>
+  <script src="./app.js?v=20260625-launch-home-v63" charset="UTF-8"></script>
 </body>
 </html>

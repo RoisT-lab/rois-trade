@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260625-scout-stable-v62";
+const roisBuild = "20260625-launch-home-v63";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const athleteAnnualFeeAmount = 2500;
@@ -1297,41 +1297,9 @@ function renderPublic() {
     setupCoverCarousels();
   }
 
-  const publicPartners = state.data.partnerships.filter(item => item.status === "approved" && visualIsPublic(item) && !isVipProduct(item));
-  document.getElementById("publicPartners").innerHTML = publicPartners.length ? `
-    <div class="partner-grid">
-      ${publicPartners.map(partner => partnerCard(partner)).join("")}
-    </div>
-  ` : `<div class="empty">Las alianzas y sponsors aprobados aparecer\u00e1n aqu\u00ed cuando admin los publique.</div>`;
-
-  const publicEvents = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
-  document.getElementById("publicEvents").innerHTML = publicEvents.length ? `
-    <div class="public-feature-grid">
-      ${publicEvents.map(event => publishedCard({
-        item: event,
-        kicker: event.category || "Evento ROIS",
-        title: event.name,
-        text: `${event.date || "Fecha por confirmar"} / ${event.venue || "Sede por confirmar"}`,
-        action: `
-          ${eventPositioningBlock(event)}
-          <div class="action-row">
-            ${eventBrochureLink(event)}
-            <button class="btn" type="button" data-open-login>Solicitar acceso</button>
-          </div>
-        `
-      })).join("")}
-    </div>
-  ` : `<div class="empty">Los eventos aprobados aparecer\u00e1n aqu\u00ed cuando el administrador los publique.</div>`;
-
-  const publicAthletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
-  document.getElementById("publicAthletes").innerHTML = publicAthletes.length ? `
-    <div class="athlete-showcase">
-      ${publicAthletes.map(athlete => athleteCard(athlete, `<button class="btn primary" type="button" data-registration-choice="athlete-profile">Ver perfil</button>`)).join("")}
-    </div>
-  ` : `<div class="empty">Los deportistas aprobados aparecer\u00e1n aqu\u00ed cuando el administrador los publique.</div>`;
-
   const publicNews = state.data.news.filter(item => item.status === "published" && visualIsPublic(item));
-  document.getElementById("publicNews").innerHTML = publicNews.length ? `
+  const publicNewsSlot = document.getElementById("publicNews");
+  if (publicNewsSlot) publicNewsSlot.innerHTML = publicNews.length ? `
     <div class="public-feature-grid">
       ${publicNews.map(news => publishedCard({
         item: news,
