@@ -6,7 +6,7 @@ window.ROIS_CONFIG = {
   notificationEmailWebhook: "",
   stripePaymentLinks: {
     eventRegistration: "https://buy.stripe.com/eVqbJ0exAgeU0dUdeO18c00",
-    athleteAnnualProfile: "https://buy.stripe.com/aFa14mexAgeU9Ou5Mm18c01",
+    athleteAnnualProfile: "https://buy.stripe.com/aFadR8blo6Ek5yedeO18c07",
     roisPartnerMonthly: "https://buy.stripe.com/bJe00igFI3s8d0GfmW18c04",
     officialSponsorMonthly: "https://buy.stripe.com/7sY9AS3SW7Iod0GcaK18c02",
     roisLegacyMonthly: "https://buy.stripe.com/14AdR8gFI0fWbWC0s218c05",
