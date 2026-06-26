@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260625-launch-home-v63";
+const roisBuild = "20260625-cover-first-paint-v64";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const athleteAnnualFeeAmount = 2500;
@@ -19,6 +19,7 @@ const state = {
 };
 
 let coverCarouselTimers = [];
+const coverCacheKey = "rois_cover_cache_v1";
 
 const seed = {
   profiles: configuredDemoAdmin ? [
@@ -248,6 +249,7 @@ function setupAthleteAgeGate() {
 
 async function init() {
   state.session = normalizeSession(state.session);
+  renderPublicShell();
   state.data = await api.loadAll();
   if (state.session && sessionIsBlocked()) {
     state.session = null;
@@ -1297,7 +1299,7 @@ function renderPublic() {
     setupCoverCarousels();
   }
 
-  const publicNews = state.data.news.filter(item => item.status === "published" && visualIsPublic(item));
+  const publicNews = (state.data?.news || []).filter(item => item.status === "published" && visualIsPublic(item));
   const publicNewsSlot = document.getElementById("publicNews");
   if (publicNewsSlot) publicNewsSlot.innerHTML = publicNews.length ? `
     <div class="public-feature-grid">
@@ -1315,8 +1317,15 @@ function renderPublic() {
   document.querySelectorAll("[data-registration]").forEach(button => button.addEventListener("click", () => openRegistration(button.dataset.registration)));
 }
 
+function renderPublicShell() {
+  const coverSlot = document.getElementById("publicHomeCover");
+  if (!coverSlot || coverSlot.innerHTML.trim()) return;
+  coverSlot.innerHTML = coverCarouselMarkup("home");
+  setupCoverCarousels();
+}
+
 function siteSetting(id) {
-  const row = state.data.site_settings.find(item => item.id === id);
+  const row = (state.data?.site_settings || []).find(item => item.id === id);
   if (!row?.value) return null;
   try {
     return JSON.parse(row.value);
@@ -1330,15 +1339,55 @@ function advertisingCoverIds() {
 }
 
 function advertisingCovers() {
-  return advertisingCoverIds()
+  const covers = advertisingCoverIds()
     .map((id, index) => ({ id, index, ...(siteSetting(id) || {}) }))
     .filter(cover => cover.image_url)
     .slice(0, 5);
+  if (covers.length) {
+    cacheAdvertisingCovers(covers);
+    return covers;
+  }
+  return cachedAdvertisingCovers();
+}
+
+function cachedAdvertisingCovers() {
+  try {
+    const covers = JSON.parse(sessionStorage.getItem(coverCacheKey) || "[]");
+    return Array.isArray(covers) ? covers.filter(cover => cover?.image_url).slice(0, 5) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function cacheAdvertisingCovers(covers) {
+  try {
+    sessionStorage.setItem(coverCacheKey, JSON.stringify(covers.map(cover => ({
+      id: cover.id,
+      index: cover.index,
+      title: cover.title || "Portada publicitaria ROIS",
+      image_url: cover.image_url
+    })).slice(0, 5)));
+  } catch (error) {
+    // Cache is optional; the platform still renders the fallback cover.
+  }
+}
+
+function staticCoverFallback(context = "home") {
+  return `
+    <section class="${context === "client" ? "client-ad-cover" : "home-cover"} cover-carousel cover-fallback" data-cover-carousel>
+      <div class="cover-fallback-inner">
+        <svg class="cover-fallback-logo rois-logo-svg" viewBox="0 0 1200 420" role="img" aria-label="ROIS">
+          <use href="#roisLogoSymbol"></use>
+        </svg>
+        <p>Where Opportunity Finds Talent.</p>
+      </div>
+    </section>
+  `;
 }
 
 function coverCarouselMarkup(context = "home") {
   const covers = advertisingCovers();
-  if (!covers.length) return "";
+  if (!covers.length) return staticCoverFallback(context);
   return `
     <section class="${context === "client" ? "client-ad-cover" : "home-cover"} cover-carousel" data-cover-carousel>
       ${covers.map((cover, index) => `

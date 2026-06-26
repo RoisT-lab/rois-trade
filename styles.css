@@ -6444,6 +6444,39 @@ body[data-active-view="home"] .topbar .btn.nav-create-account {
   filter: saturate(0.95) contrast(1.02);
 }
 
+.home-cover.cover-fallback,
+#clientView .client-ad-cover.cover-fallback {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 78% 22%, rgba(255, 255, 255, 0.08), transparent 30%),
+    linear-gradient(135deg, #050505, #111315 58%, #050505);
+}
+
+.cover-fallback-inner {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  width: min(680px, 76%);
+  color: #fff;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.4em;
+  font-size: 12px;
+}
+
+.cover-fallback-logo {
+  width: min(520px, 100%);
+  height: auto;
+}
+
+.cover-fallback-inner p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+}
+
 .cover-admin-preview {
   margin-top: 18px;
   border: 1px solid var(--line);
