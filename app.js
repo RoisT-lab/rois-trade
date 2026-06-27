@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260625-cover-first-paint-v64";
+const roisBuild = "20260626-scout-registration-repair-v65";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const athleteAnnualFeeAmount = 2500;
@@ -115,7 +115,10 @@ function sessionLogoPath() {
 function currentAthlete() {
   if (!state.session || !state.data?.athletes) return null;
   const email = state.session.email?.toLowerCase();
-  return state.data.athletes.find(athlete => (athlete.email || athlete.contact || "").toLowerCase() === email) || null;
+  const sessionId = state.session.id;
+  return state.data.athletes.find(athlete => (athlete.email || athlete.contact || "").toLowerCase() === email)
+    || state.data.athletes.find(athlete => athlete.profile_id && athlete.profile_id === sessionId)
+    || null;
 }
 
 function athleteAnnualFeeExempt(email = state.session?.email, athleteRecord = null) {
@@ -136,6 +139,10 @@ function normalizeScoutCode(value = "") {
 
 function scoutCodeKey(value = "") {
   return normalizeScoutCode(value).replace(/[^A-Z0-9]/g, "");
+}
+
+function scoutCodeLooksValid(value = "") {
+  return /^ROIS[A-Z0-9]{6}$/.test(scoutCodeKey(value));
 }
 
 function makeScoutCode(name = "", email = "") {
@@ -371,9 +378,11 @@ function demoApi() {
       const data = read();
       const normalized = scoutCodeKey(code);
       const candidate = data.athletes.find(athlete => scoutCodeKey(scoutCodeForAthlete(athlete)) === normalized);
+      const activeCandidate = Boolean(candidate && scoutCanInvite(candidate));
       return {
-        valid: Boolean(candidate && scoutCanInvite(candidate)),
-        exists: Boolean(candidate)
+        valid: activeCandidate || scoutCodeLooksValid(code),
+        exists: Boolean(candidate),
+        pendingValidation: !activeCandidate && scoutCodeLooksValid(code)
       };
     },
     async login(email, password) {
@@ -548,6 +557,7 @@ function supabaseApi() {
     async validateScoutCode(code) {
       const normalized = normalizeScoutCode(code);
       if (!normalized) return { valid: false, exists: false };
+      const validFormat = scoutCodeLooksValid(normalized);
       try {
         const result = await request("/rest/v1/rpc/is_active_scout_code", {
           method: "POST",
@@ -555,12 +565,18 @@ function supabaseApi() {
           body: JSON.stringify({ code: normalized })
         });
         const valid = result === true || result === "true" || result?.is_active_scout_code === true;
-        return { valid, exists: valid };
+        return {
+          valid: valid || validFormat,
+          exists: valid,
+          pendingValidation: !valid && validFormat
+        };
       } catch (error) {
         const candidate = findScoutCandidateByCode(normalized);
+        const activeCandidate = Boolean(candidate && scoutCanInvite(candidate));
         return {
-          valid: Boolean(candidate && scoutCanInvite(candidate)),
-          exists: Boolean(candidate)
+          valid: activeCandidate || validFormat,
+          exists: Boolean(candidate),
+          pendingValidation: !activeCandidate && validFormat
         };
       }
     },
@@ -574,7 +590,7 @@ function supabaseApi() {
       const companies = await request(`/rest/v1/companies?select=*&contact=eq.${encodeURIComponent(email)}&limit=1`, {
         headers: headers(auth.access_token)
       });
-      const athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(email)}&limit=1`, {
+      let athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(email)}&limit=1`, {
         headers: headers(auth.access_token)
       });
       const profiles = await request(`/rest/v1/profiles?select=*&id=eq.${auth.user.id}&limit=1`, {
@@ -584,6 +600,16 @@ function supabaseApi() {
         throw new Error("Esta cuenta fue dada de baja o requiere reactivaci\u00f3n por ROIS.");
       }
       const profile = preferredAthlete ? await this.ensureAthleteAccount(auth, { forceRole: true }) : profiles[0] || (auth.user.user_metadata?.role === "athlete" ? await this.ensureAthleteAccount(auth) : await this.ensureClientAccount(auth));
+      if (profile.role === "athlete" && !athletes.length) {
+        try {
+          await this.ensureAthleteAccount(auth, { forceRole: true });
+          athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(email)}&limit=1`, {
+            headers: headers(auth.access_token)
+          });
+        } catch (error) {
+          athletes = [];
+        }
+      }
       if (["blocked", "deleted", "rejected"].includes(profile.status)) throw new Error("Esta cuenta fue dada de baja por ROIS.");
       if (profile.status !== "approved") throw new Error("Este usuario a\u00fan no est\u00e1 aprobado.");
       if (!preferredAthlete && companies.some(company => ["blocked", "deleted", "rejected"].includes(company.status))) throw new Error("Esta empresa fue dada de baja por ROIS.");
@@ -861,6 +887,15 @@ function supabaseApi() {
             category: meta.category || "",
             location: meta.location || "",
             ranking: meta.ranking || "",
+            annual: athleteAnnualFeeAmount,
+            annual_fee_required: false,
+            monthly: 5000,
+            max_sponsors: 3,
+            scout_code: makeScoutCode(name, email),
+            scout_active: false,
+            annual_fee_paid: false,
+            scout_validation_status: "pending",
+            scout_commission_status: "pending",
             status: "approved",
             visual_status: "approved",
             terms_accepted: true

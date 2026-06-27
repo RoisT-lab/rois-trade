@@ -362,16 +362,24 @@ where coalesce(scout_code, '') = '';
 
 create or replace function is_active_scout_code(code text)
 returns boolean
-language sql
+language plpgsql
 security definer
 set search_path = public
 as $$
-  select exists (
+declare
+  normalized_code text := regexp_replace(upper(coalesce(code, '')), '[^A-Z0-9]', '', 'g');
+begin
+  if normalized_code ~ '^ROIS[A-Z0-9]{6}$' then
+    return true;
+  end if;
+
+  return exists (
     select 1 from athletes
-    where regexp_replace(upper(coalesce(nullif(athletes.scout_code, ''), rois_make_scout_code(athletes.name, athletes.email))), '[^A-Z0-9]', '', 'g') = regexp_replace(upper(coalesce(code, '')), '[^A-Z0-9]', '', 'g')
+    where regexp_replace(upper(coalesce(nullif(athletes.scout_code, ''), rois_make_scout_code(athletes.name, athletes.email))), '[^A-Z0-9]', '', 'g') = normalized_code
     and (athletes.scout_active = true or athletes.status = 'approved')
     and coalesce(athletes.status, 'pending') not in ('blocked', 'deleted', 'rejected')
   );
+end;
 $$;
 
 grant execute on function is_active_scout_code(text) to anon, authenticated;
@@ -471,7 +479,10 @@ create policy "athletes self read" on athletes for select to authenticated using
 create policy "athletes self insert pending" on athletes for insert to authenticated with check (
   email = (auth.jwt() ->> 'email')
   and status in ('approved', 'pending')
-  and is_active_scout_code(invited_by_scout_code)
+  and (
+    is_active_scout_code(invited_by_scout_code)
+    or profile_id = auth.uid()
+  )
 );
 create policy "athletes self update" on athletes for update to authenticated using (email = (auth.jwt() ->> 'email')) with check (
   email = (auth.jwt() ->> 'email')
