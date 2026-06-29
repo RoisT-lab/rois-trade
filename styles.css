@@ -1175,6 +1175,204 @@
   }
 }
 
+/* Mobile home launch lock v68 - true EOF override. */
+@media (max-width: 760px) {
+  body[data-active-view="home"] {
+    overflow-x: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: calc(100% - 24px) !important;
+    min-height: 62px !important;
+    margin: 10px auto 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 999px !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand,
+  body[data-active-view="home"] .topbar .public-nav {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .topbar .session-area {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+
+  body[data-active-view="home"] .topbar .btn {
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    font-size: 9px !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .hero {
+    width: min(100%, 480px) !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    padding: 38px 18px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 22px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero #publicHomeCover,
+  body[data-active-view="home"] .hero .home-cover {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .hero-copy,
+  body[data-active-view="home"] .hero-access {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy {
+    order: 1 !important;
+    padding: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy .eyebrow {
+    max-width: 24ch !important;
+    margin: 0 0 14px !important;
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 9ch !important;
+    margin: 0 0 18px !important;
+    font-size: clamp(36px, 13vw, 50px) !important;
+    line-height: 0.96 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero .lead {
+    max-width: 32ch !important;
+    margin: 0 !important;
+    font-size: 15px !important;
+    line-height: 1.55 !important;
+  }
+
+  body[data-active-view="home"] .hero-access {
+    order: 2 !important;
+    padding: 22px !important;
+    border-radius: 28px !important;
+    background: #101113 !important;
+    color: #fff !important;
+    box-shadow: 0 24px 70px rgba(17, 17, 17, 0.16) !important;
+  }
+
+  body[data-active-view="home"] .hero-access h2 {
+    display: block !important;
+    max-width: 12ch !important;
+    margin: 0 0 18px !important;
+    font-size: 25px !important;
+    line-height: 1.06 !important;
+    color: #fff !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact,
+  body[data-active-view="home"] .rois-role-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card,
+  body[data-active-view="home"] .rois-role-card {
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 18px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    column-gap: 12px !important;
+  }
+
+  body[data-active-view="home"] .registration-card strong {
+    font-size: 18px !important;
+    line-height: 1.12 !important;
+  }
+
+  body[data-active-view="home"] .registration-card small {
+    margin-top: 10px !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  body[data-active-view="home"] .registration-card em {
+    align-self: center !important;
+    min-width: 88px !important;
+    padding: 12px 13px !important;
+    border-radius: 999px !important;
+    text-align: center !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .rois-launch-section,
+  body[data-active-view="home"] .public-section {
+    width: min(100%, 480px) !important;
+    margin: 0 auto !important;
+    padding: 28px 18px 20px !important;
+  }
+
+  body[data-active-view="home"] .section-head {
+    display: block !important;
+    margin-bottom: 16px !important;
+  }
+
+  body[data-active-view="home"] .section-head h2 {
+    max-width: 12ch !important;
+    font-size: 30px !important;
+    line-height: 1.04 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-active-view="home"] .hero {
+    padding-inline: 14px !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 8.6ch !important;
+    font-size: clamp(34px, 12.5vw, 44px) !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  body[data-active-view="home"] .registration-card em {
+    width: fit-content !important;
+    margin-top: 14px !important;
+  }
+}
+
 /* Mobile home launch lock v68 - final cascade after legacy mobile rules. */
 @media (max-width: 760px) {
   html,
@@ -7896,6 +8094,112 @@ body[data-active-view="athlete"] .topbar .brand-logo {
   object-fit: cover;
 }
 
+.sponsor-bubble-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.sponsor-bubble {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  width: 78px;
+  margin: 0;
+  text-align: center;
+}
+
+.sponsor-bubble span {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid #dfe3e7;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 16px 35px rgba(17, 17, 17, 0.08);
+}
+
+.sponsor-bubble img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.sponsor-bubble figcaption {
+  max-width: 82px;
+  color: #111;
+  font-size: 9px;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.sponsor-bubble.empty span {
+  border-style: dashed;
+  color: rgba(17, 17, 17, 0.38);
+  font-size: 26px;
+  font-weight: 760;
+  background: #f8fafb;
+  box-shadow: none;
+}
+
+.sponsor-bubble.empty figcaption {
+  color: rgba(17, 17, 17, 0.44);
+}
+
+.sponsor-bubble-strip.compact {
+  gap: 10px;
+}
+
+.sponsor-bubble-strip.compact .sponsor-bubble {
+  width: 62px;
+}
+
+.sponsor-bubble-strip.compact .sponsor-bubble span {
+  width: 54px;
+  height: 54px;
+  border-width: 1px;
+}
+
+.sponsor-bubble-strip.compact .sponsor-bubble figcaption {
+  max-width: 62px;
+  font-size: 8px;
+}
+
+.athlete-social-highlights > .sponsor-bubble-strip {
+  display: flex;
+  width: 100%;
+  min-width: 100%;
+}
+
+.athlete-sponsor-brands > .sponsor-bubble-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.athlete-sponsor-brands .sponsor-bubble-strip .sponsor-bubble img {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  object-fit: cover;
+  filter: none;
+}
+
+.athlete-sponsor-brands .sponsor-bubble-strip .sponsor-bubble span {
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border-radius: 50%;
+}
+
 .athlete-highlight-plus {
   color: rgba(17, 17, 17, 0.34);
   font-size: 36px;
@@ -8577,6 +8881,19 @@ body[data-active-view="home"] .topbar .btn.nav-create-account {
   .athlete-social-highlights span {
     width: 62px;
     height: 62px;
+  }
+
+  .sponsor-bubble-strip {
+    gap: 12px;
+  }
+
+  .sponsor-bubble {
+    width: 66px;
+  }
+
+  .sponsor-bubble span {
+    width: 60px;
+    height: 60px;
   }
 
   .athlete-social-tabs {

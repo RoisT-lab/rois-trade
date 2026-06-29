@@ -504,7 +504,7 @@ function demoApi() {
         annual: athleteAnnualFeeAmount,
         annual_fee_required: false,
         monthly: 5000,
-        max_sponsors: 3,
+        max_sponsors: 10,
         scout_code: makeScoutCode(payload.name, payload.email),
         scout_active: false,
         invited_by_scout_code: payload.scoutCode,
@@ -749,7 +749,7 @@ function supabaseApi() {
             annual: athleteAnnualFeeAmount,
             annual_fee_required: false,
             monthly: 5000,
-            max_sponsors: 3,
+            max_sponsors: 10,
             scout_code: makeScoutCode(payload.name, payload.email),
             scout_active: false,
             invited_by_scout_code: payload.scoutCode,
@@ -801,7 +801,7 @@ function supabaseApi() {
           annual: athleteAnnualFeeAmount,
           annual_fee_required: false,
           monthly: 5000,
-          max_sponsors: 3,
+          max_sponsors: 10,
           scout_code: makeScoutCode(payload.name, payload.email),
           scout_active: false,
           invited_by_scout_code: payload.scoutCode,
@@ -965,7 +965,7 @@ function supabaseApi() {
             annual: athleteAnnualFeeAmount,
             annual_fee_required: false,
             monthly: 5000,
-            max_sponsors: 3,
+            max_sponsors: 10,
             scout_code: makeScoutCode(name, email),
             scout_active: false,
             annual_fee_paid: false,
@@ -2415,17 +2415,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
       </div>
 
       <div class="athlete-social-highlights">
-        ${sponsorHighlights.length ? sponsorHighlights.map((logo) => `
-          <div>
-            <span><img src="${logo.image}" alt="${escapeAttr(logo.name || "Sponsor")}"></span>
-            <strong>${escapeHtml(logo.name || "Sponsor")}</strong>
-          </div>
-        `).join("") : `
-          <div class="athlete-sponsor-empty-note">
-            <span>0/10</span>
-            <strong>Sponsors</strong>
-          </div>
-        `}
+        ${athleteSponsorBubbleStrip(sponsorHighlights, { limit: 10, emptyLabel: "Disponible" })}
       </div>
 
       <div class="athlete-social-tabs">
@@ -2466,11 +2456,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
             <h4>${sponsorHighlights.length}/10 logos publicados</h4>
             <p>Cuando se formaliza un patrocinio, el deportista debe subir el logotipo autorizado para mostrarlo en su perfil.</p>
           </div>
-          ${sponsorHighlights.length ? `
-            <div class="athlete-sponsor-logo-wall">
-              ${sponsorHighlights.map(logo => `<img src="${logo.image}" alt="${escapeAttr(logo.name || "Sponsor")}">`).join("")}
-            </div>
-          ` : ""}
+          ${athleteSponsorBubbleStrip(sponsorHighlights, { limit: 10, emptyLabel: "Disponible" })}
         </div>
         ${hasSponsorships ? `
           <div class="athlete-social-info-grid">
@@ -2502,7 +2488,7 @@ function renderAthleteProfile() {
         <label>Ciudad / base<input name="location" value="${escapeAttr(athlete.location || "")}"></label>
         <label>Ranking o marca<input name="ranking" value="${escapeAttr(athlete.ranking || "")}"></label>
         <label>Ticket mensual objetivo<input name="monthly" type="number" min="0" value="${Number(athlete.monthly || 5000)}"></label>
-        <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="${Number(athlete.max_sponsors || 3)}"></label>
+        <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="${Number(athlete.max_sponsors || 10)}"></label>
         <label>Foto de perfil<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <label style="grid-column:1/-1">Resumen deportivo<textarea name="stats" required placeholder="Resultados, calendario, metricas, logros, objetivos y narrativa para patrocinadores.">${escapeHtml(athlete.stats || "")}</textarea></label>
         <label style="grid-column:1/-1">Plan de trabajo PDF<input name="proposal_pdf" type="file" accept="application/pdf"></label>
@@ -2525,7 +2511,7 @@ function renderAthleteProfile() {
             ${annualRequired ? `<button class="btn" type="button" data-stripe-key="athleteAnnualProfile">Pagar anualidad</button>` : `<span>Completa tu perfil. ROIS habilitara el pago cuando corresponda.</span>`}
           </div>
         </div>
-        ${logos.length ? `<div class="athlete-sponsor-brands" style="grid-column:1/-1"><span>Sponsors actuales</span><div>${logos.map(logo => `<img src="${logo.image}" alt="${logo.name || "Sponsor"}">`).join("")}</div></div>` : ""}
+        <div class="athlete-sponsor-brands" style="grid-column:1/-1"><span>Sponsors actuales</span>${athleteSponsorBubbleStrip(logos, { limit: 10, emptyLabel: "Disponible", compact: true })}</div>
         <button class="btn primary" type="submit">Guardar perfil</button>
       </form>
       </details>
@@ -3368,7 +3354,7 @@ async function submitAthleteRequirements(event) {
     stats: form.stats.value.trim(),
     monthly: Number(form.monthly.value || 5000),
     annual: Number(form.annual.value || 1000),
-    max_sponsors: Number(form.max_sponsors.value || 3),
+    max_sponsors: Number(form.max_sponsors.value || 10),
     video_url: form.video_url.value.trim(),
     terms_accepted: Boolean(form.terms_accepted.checked)
   };
@@ -3413,7 +3399,7 @@ async function submitAthleteProfile(event) {
     location: form.location.value.trim(),
     ranking: form.ranking.value.trim(),
     monthly: Number(form.monthly.value || 5000),
-    max_sponsors: Number(form.max_sponsors.value || 3),
+    max_sponsors: Number(form.max_sponsors.value || 10),
     stats: form.stats.value.trim(),
     video_url: form.video_url.value.trim()
   };
@@ -3730,7 +3716,7 @@ async function submitAdminAthlete(event) {
     annual: Number(form.annual.value || athleteAnnualFeeAmount),
     annual_fee_required: form.annual_fee_required.value === "true",
     monthly: Number(form.monthly.value || 5000),
-    max_sponsors: Number(form.max_sponsors.value || 3),
+    max_sponsors: Number(form.max_sponsors.value || 10),
     scout_code: makeScoutCode(form.name.value, ""),
     scout_active: false,
     invited_by_scout_code: "",
@@ -4420,6 +4406,31 @@ function athleteSponsorLogos(athlete) {
   }
 }
 
+function athleteSponsorBubbleStrip(logosOrAthlete, options = {}) {
+  const limit = Number(options.limit || 10);
+  const logos = (Array.isArray(logosOrAthlete) ? logosOrAthlete : athleteSponsorLogos(logosOrAthlete || {})).slice(0, limit);
+  const showEmpty = options.showEmpty !== false;
+  const total = showEmpty ? limit : logos.length;
+  const compact = options.compact ? " compact" : "";
+  if (!total) return "";
+  return `<div class="sponsor-bubble-strip${compact}" aria-label="Patrocinadores">
+    ${Array.from({ length: total }, (_, index) => {
+      const logo = logos[index];
+      if (logo) {
+        const name = logo.name || `Sponsor ${index + 1}`;
+        return `<figure class="sponsor-bubble filled">
+          <span><img src="${escapeAttr(logo.image)}" alt="${escapeAttr(name)}"></span>
+          <figcaption>${escapeHtml(name)}</figcaption>
+        </figure>`;
+      }
+      return `<figure class="sponsor-bubble empty">
+        <span>+</span>
+        <figcaption>${escapeHtml(options.emptyLabel || "Disponible")}</figcaption>
+      </figure>`;
+    }).join("")}
+  </div>`;
+}
+
 function athleteProposalLink(athlete) {
   if (!athlete.proposal_url) return "";
   const filename = athlete.proposal_name || `${athlete.name || "plan-de-trabajo"}.pdf`;
@@ -4431,7 +4442,7 @@ function athleteCard(athlete, action) {
   const annual = athleteInvestment(athlete).toLocaleString("es-MX");
   const monthly = athleteMonthlyTicket(athlete).toLocaleString("es-MX");
   const logos = athleteSponsorLogos(athlete);
-  const maxSponsors = Number(athlete.max_sponsors || 3);
+  const maxSponsors = Number(athlete.max_sponsors || 10);
   const proposalButton = athleteProposalLink(athlete);
   return `
     <article class="athlete-card">
@@ -4444,12 +4455,10 @@ function athleteCard(athlete, action) {
           <p class="eyebrow">Perfil de patrocinio</p>
           <h3>${athlete.name}</h3>
           <p class="athlete-summary">${athlete.stats || "Perfil deportivo en evaluaci\u00f3n."}</p>
-          ${logos.length ? `
-            <div class="athlete-sponsor-brands">
-              <span>Patrocinadores actuales</span>
-              <div>${logos.map(logo => `<img src="${logo.image}" alt="${logo.name || "Sponsor"}">`).join("")}</div>
-            </div>
-          ` : ""}
+          <div class="athlete-sponsor-brands">
+            <span>Patrocinadores actuales</span>
+            ${athleteSponsorBubbleStrip(logos, { limit: 10, emptyLabel: "Disponible", compact: true })}
+          </div>
         </div>
         <div class="athlete-technical">
           <div><span>Deporte</span><strong>${athlete.sport || "Por definir"}</strong></div>
