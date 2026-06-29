@@ -473,6 +473,1198 @@
   }
 }
 
+/* Mobile launch correction v71 - true final guard for campaign traffic. */
+@media (max-width: 760px) {
+  html,
+  body {
+    overflow-x: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar {
+    width: calc(100vw - 24px) !important;
+    min-height: 62px !important;
+    margin: 10px auto 0 !important;
+    padding: 8px 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand,
+  body[data-active-view="home"] .topbar .public-nav {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .topbar .session-area {
+    width: auto !important;
+    margin-left: auto !important;
+    display: flex !important;
+    gap: 8px !important;
+    flex: 0 0 auto !important;
+  }
+
+  body[data-active-view="home"] .topbar .btn {
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 14px !important;
+    font-size: 9px !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .hero {
+    width: min(100%, 480px) !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    padding: 30px 18px 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero #publicHomeCover,
+  body[data-active-view="home"] .hero .home-cover {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .hero-copy,
+  body[data-active-view="home"] .hero-access {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy {
+    order: 1 !important;
+    padding: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 9.5ch !important;
+    margin: 0 0 16px !important;
+    font-size: clamp(32px, 10.8vw, 42px) !important;
+    line-height: .98 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero .lead {
+    max-width: 31ch !important;
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+  }
+
+  body[data-active-view="home"] .hero-access {
+    order: 2 !important;
+    padding: 22px !important;
+    border: 0 !important;
+    border-radius: 28px !important;
+    background: #101113 !important;
+    color: #fff !important;
+    box-shadow: 0 22px 60px rgba(17, 17, 17, .16) !important;
+  }
+
+  body[data-active-view="home"] .hero-access > .eyebrow,
+  body[data-active-view="home"] .hero-access h2 {
+    display: block !important;
+    color: #fff !important;
+  }
+
+  body[data-active-view="home"] .hero-access h2 {
+    max-width: 12ch !important;
+    margin: 0 0 18px !important;
+    font-size: 24px !important;
+    line-height: 1.06 !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact,
+  body[data-active-view="home"] .rois-role-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card,
+  body[data-active-view="home"] .rois-role-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 18px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  [data-dashboard-panel="admin-athletes"] .panel {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-dashboard-panel="admin-athletes"] .data-table {
+    min-width: 1180px !important;
+  }
+}
+
+/* Mobile launch correction v70 - final override after legacy mobile rules. */
+@media (max-width: 760px) {
+  html,
+  body {
+    overflow-x: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar {
+    width: calc(100vw - 24px) !important;
+    min-height: 62px !important;
+    margin: 10px auto 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 999px !important;
+    justify-content: flex-end !important;
+    overflow: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand,
+  body[data-active-view="home"] .topbar .public-nav {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .topbar .session-area {
+    width: auto !important;
+    margin-left: auto !important;
+    gap: 8px !important;
+  }
+
+  body[data-active-view="home"] .topbar .btn {
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    font-size: 9px !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .hero {
+    width: min(100%, 480px) !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    padding: 30px 18px 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero #publicHomeCover,
+  body[data-active-view="home"] .hero .home-cover {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .hero-copy,
+  body[data-active-view="home"] .hero-access {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy {
+    order: 1 !important;
+    padding: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 9.5ch !important;
+    margin: 0 0 16px !important;
+    font-size: clamp(32px, 10.8vw, 42px) !important;
+    line-height: .98 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero .lead {
+    max-width: 31ch !important;
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+  }
+
+  body[data-active-view="home"] .hero-access {
+    order: 2 !important;
+    padding: 22px !important;
+    border: 0 !important;
+    border-radius: 28px !important;
+    background: #101113 !important;
+    color: #fff !important;
+    box-shadow: 0 22px 60px rgba(17, 17, 17, .16) !important;
+  }
+
+  body[data-active-view="home"] .hero-access > .eyebrow,
+  body[data-active-view="home"] .hero-access h2 {
+    display: block !important;
+    color: #fff !important;
+  }
+
+  body[data-active-view="home"] .hero-access h2 {
+    max-width: 12ch !important;
+    margin: 0 0 18px !important;
+    font-size: 24px !important;
+    line-height: 1.06 !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact,
+  body[data-active-view="home"] .rois-role-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card,
+  body[data-active-view="home"] .rois-role-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 18px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  [data-dashboard-panel="admin-athletes"] .panel {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-dashboard-panel="admin-athletes"] .data-table {
+    min-width: 1180px !important;
+  }
+}
+
+/* Mobile launch correction v69 - final cascade for the public home. */
+@media (max-width: 760px) {
+  html,
+  body {
+    overflow-x: hidden !important;
+  }
+
+  body[data-active-view="home"] .app-shell {
+    overflow-x: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar {
+    width: calc(100vw - 24px) !important;
+    min-height: 62px !important;
+    margin: 10px auto 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 999px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand,
+  body[data-active-view="home"] .topbar .public-nav {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .topbar .session-area {
+    width: auto !important;
+    margin-left: auto !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+
+  body[data-active-view="home"] .topbar .btn {
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .hero {
+    width: min(100%, 480px) !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    padding: 34px 18px 26px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero #publicHomeCover,
+  body[data-active-view="home"] .hero .home-cover {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .hero-copy,
+  body[data-active-view="home"] .hero-access {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero-copy {
+    order: 1 !important;
+    padding: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy .eyebrow {
+    display: block !important;
+    max-width: 22ch !important;
+    margin: 0 0 14px !important;
+    font-size: 9px !important;
+    line-height: 1.35 !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 9.5ch !important;
+    margin: 0 0 18px !important;
+    font-size: clamp(34px, 12.5vw, 48px) !important;
+    line-height: .96 !important;
+    letter-spacing: 0 !important;
+    overflow-wrap: normal !important;
+  }
+
+  body[data-active-view="home"] .hero .lead {
+    max-width: 30ch !important;
+    margin: 0 !important;
+    font-size: 14px !important;
+    line-height: 1.55 !important;
+  }
+
+  body[data-active-view="home"] .hero-access {
+    order: 2 !important;
+    padding: 22px !important;
+    border: 0 !important;
+    border-radius: 28px !important;
+    background: #101113 !important;
+    color: #fff !important;
+    box-shadow: 0 22px 60px rgba(17, 17, 17, .16) !important;
+  }
+
+  body[data-active-view="home"] .hero-access > .eyebrow {
+    display: block !important;
+    margin: 0 0 10px !important;
+    color: rgba(255, 255, 255, .65) !important;
+  }
+
+  body[data-active-view="home"] .hero-access h2 {
+    display: block !important;
+    max-width: 12ch !important;
+    margin: 0 0 18px !important;
+    color: #fff !important;
+    font-size: 24px !important;
+    line-height: 1.06 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact,
+  body[data-active-view="home"] .rois-role-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card,
+  body[data-active-view="home"] .rois-role-card {
+    position: static !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 18px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    column-gap: 12px !important;
+  }
+
+  body[data-active-view="home"] .registration-card .eyebrow {
+    grid-column: 1 / -1 !important;
+    margin: 0 0 10px !important;
+  }
+
+  body[data-active-view="home"] .registration-card strong {
+    font-size: 18px !important;
+    line-height: 1.12 !important;
+  }
+
+  body[data-active-view="home"] .registration-card small {
+    grid-column: 1 / -1 !important;
+    margin-top: 10px !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  body[data-active-view="home"] .registration-card em {
+    min-width: 88px !important;
+    padding: 12px 13px !important;
+    border-radius: 999px !important;
+    text-align: center !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .rois-launch-section,
+  body[data-active-view="home"] .public-section {
+    width: min(100%, 480px) !important;
+    margin: 0 auto !important;
+    padding: 28px 18px 20px !important;
+  }
+
+  body[data-active-view="home"] .section-head {
+    display: block !important;
+    margin-bottom: 16px !important;
+  }
+
+  body[data-active-view="home"] .section-head h2 {
+    max-width: 13ch !important;
+    font-size: 28px !important;
+    line-height: 1.05 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-active-view="home"] .hero h1 {
+    font-size: clamp(31px, 12vw, 42px) !important;
+  }
+
+  body[data-active-view="home"] .hero-access {
+    padding: 20px !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  body[data-active-view="home"] .registration-card em {
+    justify-self: start !important;
+    margin-top: 12px !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  [data-dashboard-panel="admin-athletes"] .panel {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-dashboard-panel="admin-athletes"] .data-table {
+    min-width: 1180px !important;
+  }
+}
+
+/* Mobile home launch lock v68 - true final override. */
+@media (max-width: 760px) {
+  body[data-active-view="home"] {
+    overflow-x: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar {
+    position: relative !important;
+    inset: auto !important;
+    width: calc(100% - 24px) !important;
+    min-height: 62px !important;
+    margin: 10px auto 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 999px !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand,
+  body[data-active-view="home"] .topbar .public-nav {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .topbar .session-area {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+
+  body[data-active-view="home"] .topbar .btn {
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    font-size: 9px !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .hero {
+    width: min(100%, 480px) !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    padding: 38px 18px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 22px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero #publicHomeCover,
+  body[data-active-view="home"] .hero .home-cover {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .hero-copy,
+  body[data-active-view="home"] .hero-access {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy {
+    order: 1 !important;
+    padding: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy .eyebrow {
+    max-width: 24ch !important;
+    margin: 0 0 14px !important;
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 9ch !important;
+    margin: 0 0 18px !important;
+    font-size: clamp(36px, 13vw, 50px) !important;
+    line-height: 0.96 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero .lead {
+    max-width: 32ch !important;
+    margin: 0 !important;
+    font-size: 15px !important;
+    line-height: 1.55 !important;
+  }
+
+  body[data-active-view="home"] .hero-access {
+    order: 2 !important;
+    padding: 22px !important;
+    border-radius: 28px !important;
+    background: #101113 !important;
+    color: #fff !important;
+    box-shadow: 0 24px 70px rgba(17, 17, 17, 0.16) !important;
+  }
+
+  body[data-active-view="home"] .hero-access h2 {
+    display: block !important;
+    max-width: 12ch !important;
+    margin: 0 0 18px !important;
+    font-size: 25px !important;
+    line-height: 1.06 !important;
+    color: #fff !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact,
+  body[data-active-view="home"] .rois-role-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card,
+  body[data-active-view="home"] .rois-role-card {
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 18px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    column-gap: 12px !important;
+  }
+
+  body[data-active-view="home"] .registration-card strong {
+    font-size: 18px !important;
+    line-height: 1.12 !important;
+  }
+
+  body[data-active-view="home"] .registration-card small {
+    margin-top: 10px !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  body[data-active-view="home"] .registration-card em {
+    align-self: center !important;
+    min-width: 88px !important;
+    padding: 12px 13px !important;
+    border-radius: 999px !important;
+    text-align: center !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .rois-launch-section,
+  body[data-active-view="home"] .public-section {
+    width: min(100%, 480px) !important;
+    margin: 0 auto !important;
+    padding: 28px 18px 20px !important;
+  }
+
+  body[data-active-view="home"] .section-head {
+    display: block !important;
+    margin-bottom: 16px !important;
+  }
+
+  body[data-active-view="home"] .section-head h2 {
+    max-width: 12ch !important;
+    font-size: 30px !important;
+    line-height: 1.04 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-active-view="home"] .hero {
+    padding-inline: 14px !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 8.6ch !important;
+    font-size: clamp(34px, 12.5vw, 44px) !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  body[data-active-view="home"] .registration-card em {
+    width: fit-content !important;
+    margin-top: 14px !important;
+  }
+}
+
+/* Mobile home launch lock v68 - final cascade after legacy mobile rules. */
+@media (max-width: 760px) {
+  html,
+  body,
+  .app-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: calc(100% - 24px) !important;
+    min-height: 62px !important;
+    height: auto !important;
+    margin: 10px auto 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 999px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+    z-index: 80 !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand,
+  body[data-active-view="home"] .topbar .brand-logo,
+  body[data-active-view="home"] .topbar .public-nav {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .topbar .session-area {
+    width: 100% !important;
+    margin: 0 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+
+  body[data-active-view="home"] .topbar .btn {
+    height: 42px !important;
+    min-height: 42px !important;
+    min-width: 0 !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] #homeView {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero {
+    width: min(100%, 480px) !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    padding: 38px 18px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 22px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero #publicHomeCover,
+  body[data-active-view="home"] .hero .home-cover {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .hero-copy,
+  body[data-active-view="home"] .hero-access {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy {
+    order: 1 !important;
+    padding: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy .eyebrow {
+    max-width: 24ch !important;
+    margin: 0 0 14px !important;
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 9ch !important;
+    margin: 0 0 18px !important;
+    font-size: clamp(36px, 13vw, 50px) !important;
+    line-height: 0.96 !important;
+    letter-spacing: 0 !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+
+  body[data-active-view="home"] .hero .lead {
+    max-width: 32ch !important;
+    margin: 0 !important;
+    font-size: 15px !important;
+    line-height: 1.55 !important;
+    color: #69717c !important;
+  }
+
+  body[data-active-view="home"] .hero-access {
+    order: 2 !important;
+    padding: 22px !important;
+    border-radius: 28px !important;
+    background: #101113 !important;
+    color: #fff !important;
+    box-shadow: 0 24px 70px rgba(17, 17, 17, 0.16) !important;
+  }
+
+  body[data-active-view="home"] .hero-access > .eyebrow,
+  body[data-active-view="home"] .hero-access h2 {
+    display: block !important;
+  }
+
+  body[data-active-view="home"] .hero-access > .eyebrow {
+    margin: 0 0 10px !important;
+    color: rgba(255, 255, 255, 0.62) !important;
+  }
+
+  body[data-active-view="home"] .hero-access h2 {
+    max-width: 12ch !important;
+    margin: 0 0 18px !important;
+    font-size: 25px !important;
+    line-height: 1.06 !important;
+    color: #fff !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact,
+  body[data-active-view="home"] .rois-role-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card,
+  body[data-active-view="home"] .rois-role-card {
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 18px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    column-gap: 12px !important;
+  }
+
+  body[data-active-view="home"] .registration-card strong {
+    font-size: 18px !important;
+    line-height: 1.12 !important;
+  }
+
+  body[data-active-view="home"] .registration-card small {
+    margin-top: 10px !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  body[data-active-view="home"] .registration-card em {
+    align-self: center !important;
+    min-width: 88px !important;
+    padding: 12px 13px !important;
+    border-radius: 999px !important;
+    text-align: center !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .rois-launch-section,
+  body[data-active-view="home"] .public-section {
+    width: min(100%, 480px) !important;
+    margin: 0 auto !important;
+    padding: 28px 18px 20px !important;
+  }
+
+  body[data-active-view="home"] .section-head {
+    display: block !important;
+    margin-bottom: 16px !important;
+  }
+
+  body[data-active-view="home"] .section-head h2 {
+    max-width: 12ch !important;
+    font-size: 30px !important;
+    line-height: 1.04 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-active-view="home"] .hero {
+    padding-inline: 14px !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 8.6ch !important;
+    font-size: clamp(34px, 12.5vw, 44px) !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  body[data-active-view="home"] .registration-card em {
+    width: fit-content !important;
+    margin-top: 14px !important;
+  }
+}
+
+/* Mobile launch home repair v67 - keep first screen stable before JS finishes. */
+@media (max-width: 760px) {
+  html,
+  body {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  body[data-active-view="home"] .app-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar {
+    position: relative !important;
+    inset: auto !important;
+    width: calc(100% - 22px) !important;
+    min-height: 62px !important;
+    height: auto !important;
+    margin: 10px auto 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 999px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+    z-index: 80 !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand,
+  body[data-active-view="home"] .topbar .public-nav {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .topbar .session-area {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  body[data-active-view="home"] .topbar .btn {
+    flex: 0 0 auto !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    min-width: 0 !important;
+    padding: 0 15px !important;
+    border-radius: 999px !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] #homeView {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero {
+    display: flex !important;
+    flex-direction: column !important;
+    width: min(100%, 480px) !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    padding: 42px 18px 20px !important;
+    gap: 22px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero #publicHomeCover,
+  body[data-active-view="home"] .hero .home-cover {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .hero-copy,
+  body[data-active-view="home"] .hero-access {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy {
+    order: 1 !important;
+  }
+
+  body[data-active-view="home"] .hero-access {
+    order: 2 !important;
+    margin-top: 4px !important;
+    padding: 22px !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 28px !important;
+    background: #101113 !important;
+    color: #fff !important;
+    box-shadow: 0 24px 70px rgba(17, 17, 17, 0.16) !important;
+  }
+
+  body[data-active-view="home"] .hero-copy .eyebrow {
+    max-width: 23ch !important;
+    margin: 0 0 14px !important;
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 9ch !important;
+    margin: 0 0 18px !important;
+    font-size: clamp(38px, 13.5vw, 52px) !important;
+    line-height: 0.96 !important;
+    letter-spacing: 0 !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+
+  body[data-active-view="home"] .hero .lead {
+    max-width: 32ch !important;
+    margin: 0 !important;
+    font-size: 15px !important;
+    line-height: 1.55 !important;
+    color: #69717c !important;
+  }
+
+  body[data-active-view="home"] .hero-access > .eyebrow {
+    display: block !important;
+    max-width: none !important;
+    margin: 0 0 10px !important;
+    color: rgba(255, 255, 255, 0.62) !important;
+  }
+
+  body[data-active-view="home"] .hero-access h2 {
+    display: block !important;
+    max-width: 12ch !important;
+    margin: 0 0 18px !important;
+    font-size: 25px !important;
+    line-height: 1.06 !important;
+    color: #fff !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    column-gap: 12px !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 18px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card .eyebrow {
+    grid-column: 1 / -1 !important;
+    margin: 0 0 8px !important;
+    font-size: 9px !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card strong {
+    grid-column: 1 !important;
+    margin: 0 !important;
+    font-size: 18px !important;
+    line-height: 1.12 !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card small {
+    grid-column: 1 !important;
+    margin-top: 10px !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card em {
+    grid-column: 2 !important;
+    grid-row: 2 / 4 !important;
+    align-self: center !important;
+    min-width: 88px !important;
+    padding: 12px 13px !important;
+    border-radius: 999px !important;
+    text-align: center !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .rois-launch-section {
+    width: min(100%, 480px) !important;
+    margin: 0 auto !important;
+    padding: 28px 18px 20px !important;
+  }
+
+  body[data-active-view="home"] .rois-launch-section .section-head {
+    display: block !important;
+    margin-bottom: 16px !important;
+  }
+
+  body[data-active-view="home"] .rois-launch-section .section-head h2 {
+    max-width: 12ch !important;
+    font-size: 30px !important;
+    line-height: 1.04 !important;
+  }
+
+  body[data-active-view="home"] .rois-role-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    width: 100% !important;
+  }
+
+  body[data-active-view="home"] .rois-role-card {
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 24px !important;
+    border-radius: 28px !important;
+    overflow: visible !important;
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-active-view="home"] .hero {
+    padding-inline: 14px !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    font-size: clamp(35px, 12.6vw, 45px) !important;
+    max-width: 8.7ch !important;
+  }
+
+  body[data-active-view="home"] .hero-access {
+    padding: 19px !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card em {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+    width: fit-content !important;
+    margin-top: 14px !important;
+  }
+}
+
 /* Emergency launch repair v66 - final EOF cascade lock */
 [data-dashboard-panel="admin-athletes"] .panel {
   overflow-x: auto !important;
@@ -8266,5 +9458,144 @@ body[data-active-view="home"] .topbar .btn.nav-create-account {
     grid-template-columns: 1fr !important;
     gap: 8px !important;
     padding-bottom: 96px !important;
+  }
+}
+
+/* Mobile launch correction v72 - absolute final override for public traffic. */
+@media (max-width: 760px) {
+  html,
+  body {
+    overflow-x: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar {
+    width: calc(100vw - 24px) !important;
+    min-height: 62px !important;
+    margin: 10px auto 0 !important;
+    padding: 8px 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand,
+  body[data-active-view="home"] .topbar .public-nav {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .topbar .session-area {
+    width: auto !important;
+    margin-left: auto !important;
+    display: flex !important;
+    gap: 8px !important;
+    flex: 0 0 auto !important;
+  }
+
+  body[data-active-view="home"] .topbar .btn {
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 14px !important;
+    font-size: 9px !important;
+    white-space: nowrap !important;
+  }
+
+  body[data-active-view="home"] .hero {
+    width: min(100%, 480px) !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    padding: 30px 18px 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    overflow: visible !important;
+  }
+
+  body[data-active-view="home"] .hero #publicHomeCover,
+  body[data-active-view="home"] .hero .home-cover {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .hero-copy,
+  body[data-active-view="home"] .hero-access {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero-copy {
+    order: 1 !important;
+    padding: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero h1 {
+    max-width: 9.5ch !important;
+    margin: 0 0 16px !important;
+    font-size: clamp(32px, 10.8vw, 42px) !important;
+    line-height: .98 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body[data-active-view="home"] .hero .lead {
+    max-width: 31ch !important;
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+  }
+
+  body[data-active-view="home"] .hero-access {
+    order: 2 !important;
+    padding: 22px !important;
+    border: 0 !important;
+    border-radius: 28px !important;
+    background: #101113 !important;
+    color: #fff !important;
+    box-shadow: 0 22px 60px rgba(17, 17, 17, .16) !important;
+  }
+
+  body[data-active-view="home"] .hero-access > .eyebrow,
+  body[data-active-view="home"] .hero-access h2 {
+    display: block !important;
+    color: #fff !important;
+  }
+
+  body[data-active-view="home"] .hero-access h2 {
+    max-width: 12ch !important;
+    margin: 0 0 18px !important;
+    font-size: 24px !important;
+    line-height: 1.06 !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact,
+  body[data-active-view="home"] .rois-role-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  body[data-active-view="home"] .registration-grid.compact .registration-card,
+  body[data-active-view="home"] .rois-role-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 18px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  [data-dashboard-panel="admin-athletes"] .panel {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-dashboard-panel="admin-athletes"] .data-table {
+    min-width: 1180px !important;
   }
 }
