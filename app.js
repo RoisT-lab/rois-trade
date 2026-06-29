@@ -10,6 +10,7 @@ const sessionKey = "rois_session_v2";
 const configuredDemoAdmin = config.demoAdminEmail && config.demoAdminPassword;
 const adminEmail = (config.adminEmail || config.demoAdminEmail || "").toLowerCase();
 const fixedLogoPath = config.logoDataUrl || "./assets/rois-logo.png";
+const dataCacheKey = "rois_runtime_data_cache_v1";
 
 const state = {
   session: readSession(),
@@ -44,9 +45,46 @@ const seed = {
   terms_acceptances: []
 };
 
-const api = demoMode ? demoApi() : supabaseApi();
+const api = withCachedLoadAll(demoMode ? demoApi() : supabaseApi());
 
 init();
+
+function normalizeLoadedData(data = {}) {
+  const base = structuredClone(seed);
+  return Object.keys(base).reduce((acc, key) => {
+    acc[key] = Array.isArray(data[key]) ? data[key] : base[key];
+    return acc;
+  }, { ...base, ...data });
+}
+
+function readDataCache() {
+  try {
+    const cached = sessionStorage.getItem(dataCacheKey);
+    return cached ? normalizeLoadedData(JSON.parse(cached)) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function writeDataCache(data) {
+  try {
+    sessionStorage.setItem(dataCacheKey, JSON.stringify(normalizeLoadedData(data)));
+  } catch (error) {
+    // Large media payloads can exceed browser storage. The app should keep working without cache.
+  }
+}
+
+function withCachedLoadAll(sourceApi) {
+  const originalLoadAll = sourceApi.loadAll.bind(sourceApi);
+  return {
+    ...sourceApi,
+    async loadAll() {
+      const data = normalizeLoadedData(await originalLoadAll());
+      writeDataCache(data);
+      return data;
+    }
+  };
+}
 
 function normalizedRole(email, role) {
   if (role === "athlete") return "athlete";
@@ -257,7 +295,9 @@ function setupAthleteAgeGate() {
 async function init() {
   state.session = normalizeSession(state.session);
   renderPublicShell();
-  state.data = await api.loadAll();
+  const cachedData = readDataCache();
+  const shouldRefreshInBackground = Boolean(cachedData);
+  state.data = cachedData || await loadInitialData();
   if (state.session && sessionIsBlocked()) {
     state.session = null;
     clearSession();
@@ -276,12 +316,36 @@ async function init() {
   bindGlobalEvents();
   renderPublic();
   renderSession();
+  optimizeRenderedMedia();
   if (state.pendingSession) {
     showView("home");
     document.getElementById("passwordModal").classList.add("active");
     return;
   }
   if (state.session) showView(dashboardViewForRole(state.session.role));
+  if (shouldRefreshInBackground) refreshDataInBackground();
+}
+
+async function loadInitialData() {
+  try {
+    return await api.loadAll();
+  } catch (error) {
+    return normalizeLoadedData({});
+  }
+}
+
+async function refreshDataInBackground() {
+  try {
+    state.data = await api.loadAll();
+    renderPublic();
+    renderSession();
+    optimizeRenderedMedia();
+    if (state.session) {
+      showView(dashboardViewForRole(state.session.role));
+    }
+  } catch (error) {
+    // Cached data is enough to keep the interface usable while the network recovers.
+  }
 }
 
 function sessionIsBlocked() {
@@ -331,6 +395,17 @@ function handleMissingImages() {
     image.addEventListener("error", () => {
       image.hidden = true;
     });
+  });
+}
+
+function optimizeRenderedMedia(root = document) {
+  root.querySelectorAll("img").forEach(image => {
+    if (!image.hasAttribute("loading")) image.loading = "lazy";
+    image.decoding = "async";
+  });
+  root.querySelectorAll("video").forEach(video => {
+    if (!video.hasAttribute("preload")) video.preload = "metadata";
+    video.playsInline = true;
   });
 }
 
@@ -1027,6 +1102,7 @@ function showView(name) {
   if (name === "client") renderClient();
   if (name === "athlete") renderAthlete();
   if (name === "admin") renderAdmin();
+  optimizeRenderedMedia();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1037,6 +1113,7 @@ function showDashboardPanel(targetId) {
   const nav = document.querySelector(`[data-dashboard-nav="${workspace.dataset.dashboard}"]`);
   workspace.querySelectorAll("[data-dashboard-panel]").forEach(panel => panel.classList.toggle("active", panel === targetPanel));
   nav.querySelectorAll("[data-dashboard-target]").forEach(button => button.classList.toggle("active", button.dataset.dashboardTarget === targetId));
+  optimizeRenderedMedia(targetPanel);
   closeMobileDashboardMenus();
 }
 
