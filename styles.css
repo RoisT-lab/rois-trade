@@ -7890,6 +7890,12 @@ body[data-active-view="athlete"] .topbar .brand-logo {
   background: linear-gradient(135deg, currentColor 45%, transparent 46%);
 }
 
+#clientDashboardCover[hidden],
+#clientView > .client-dashboard-cover-slot[hidden],
+#clientView > .client-dashboard-cover-slot:empty {
+  display: none !important;
+}
+
 #athleteView .side-nav button:hover,
 #athleteView .side-nav button.active {
   background: #f4f6f8;

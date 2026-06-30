@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260626-scout-registration-repair-v65";
+const roisBuild = "20260630-entrepreneur-speed-v77";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
 const athleteAnnualFeeAmount = 2500;
@@ -10,7 +10,7 @@ const sessionKey = "rois_session_v2";
 const configuredDemoAdmin = config.demoAdminEmail && config.demoAdminPassword;
 const adminEmail = (config.adminEmail || config.demoAdminEmail || "").toLowerCase();
 const fixedLogoPath = config.logoDataUrl || "./assets/rois-logo.png";
-const dataCacheKey = "rois_runtime_data_cache_v1";
+const dataCacheKey = "rois_runtime_data_cache_v2";
 
 const state = {
   session: readSession(),
@@ -68,10 +68,27 @@ function readDataCache() {
 
 function writeDataCache(data) {
   try {
-    sessionStorage.setItem(dataCacheKey, JSON.stringify(normalizeLoadedData(data)));
+    sessionStorage.setItem(dataCacheKey, JSON.stringify(cacheSafeData(data)));
   } catch (error) {
     // Large media payloads can exceed browser storage. The app should keep working without cache.
   }
+}
+
+function cacheSafeData(data) {
+  const normalized = normalizeLoadedData(data);
+  return {
+    ...normalized,
+    site_settings: [],
+    uploads: (normalized.uploads || []).map(item => ({
+      id: item.id,
+      type: item.type,
+      status: item.status,
+      title: item.title,
+      name: item.name,
+      created_at: item.created_at,
+      updated_at: item.updated_at
+    }))
+  };
 }
 
 function runtimeDataSignature(data) {
@@ -175,11 +192,35 @@ function sessionLogoPath() {
 
 function currentAthlete() {
   if (!state.session || !state.data?.athletes) return null;
-  const email = state.session.email?.toLowerCase();
+  const email = String(state.session.email || "").toLowerCase();
   const sessionId = state.session.id;
-  return state.data.athletes.find(athlete => (athlete.email || athlete.contact || "").toLowerCase() === email)
+  const profile = (state.data.profiles || []).find(item => item.id === sessionId || String(item.email || "").toLowerCase() === email);
+  const athlete = state.data.athletes.find(athlete => (athlete.email || athlete.contact || "").toLowerCase() === email)
     || state.data.athletes.find(athlete => athlete.profile_id && athlete.profile_id === sessionId)
+    || state.data.athletes.find(athlete => profile?.id && athlete.profile_id === profile.id)
     || null;
+  if (athlete) return athlete;
+  if (state.session.role !== "athlete") return null;
+  return {
+    id: sessionId || email || "athlete-session",
+    profile_id: sessionId,
+    email: state.session.email,
+    contact: state.session.email,
+    name: state.session.name || email.split("@")[0] || "Emprendedor ROIS",
+    sport: "Industria por definir",
+    category: "Etapa por definir",
+    location: "Ciudad por definir",
+    ranking: "Indicador por definir",
+    stats: "Completa tu perfil emprendedor para activar tu ficha ROIS.",
+    monthly: 5000,
+    max_sponsors: 10,
+    status: "approved",
+    visual_status: "approved",
+    annual_fee_required: false,
+    annual_fee_paid: false,
+    scout_status: "pending",
+    is_virtual: true
+  };
 }
 
 function athleteAnnualFeeExempt(email = state.session?.email, athleteRecord = null) {
@@ -625,26 +666,27 @@ function supabaseApi() {
     return text ? JSON.parse(text) : null;
   }
   return {
-    async loadAll() {
+    async loadAll(options = {}) {
+      const lightweight = options.lightweight !== false;
       const tableQueries = {
-        profiles: "select=*&order=created_at.desc&limit=250",
-        companies: "select=*&order=created_at.desc&limit=250",
-        athletes: "select=*&order=created_at.desc&limit=250",
-        events: "select=*&order=created_at.desc&limit=160",
-        requests: "select=*&order=created_at.desc&limit=220",
-        sponsorships: "select=*&order=created_at.desc&limit=220",
-        news: "select=*&order=created_at.desc&limit=120",
-        partnerships: "select=*&order=created_at.desc&limit=120",
-        site_settings: "select=*&limit=100",
-        crm: "select=*&order=created_at.desc&limit=250",
-        payments: "select=*&order=created_at.desc&limit=220",
-        uploads: "select=*&order=created_at.desc&limit=160",
-        athlete_posts: "select=*&order=created_at.desc&limit=160",
-        athlete_results: "select=*&order=created_at.desc&limit=180",
-        athlete_expenses: "select=*&order=created_at.desc&limit=180",
-        athlete_deposits: "select=*&order=created_at.desc&limit=180",
-        athlete_notifications: "select=*&order=created_at.desc&limit=180",
-        terms_acceptances: "select=*&order=created_at.desc&limit=180"
+        profiles: "select=*&order=created_at.desc&limit=180",
+        companies: "select=*&order=created_at.desc&limit=180",
+        athletes: "select=*&order=created_at.desc&limit=180",
+        events: "select=*&order=created_at.desc&limit=100",
+        requests: "select=*&order=created_at.desc&limit=120",
+        sponsorships: "select=*&order=created_at.desc&limit=120",
+        news: "select=*&order=created_at.desc&limit=80",
+        partnerships: "select=*&order=created_at.desc&limit=80",
+        site_settings: lightweight ? "select=id,key,created_at,updated_at&limit=20" : "select=*&limit=100",
+        crm: "select=*&order=created_at.desc&limit=160",
+        payments: "select=*&order=created_at.desc&limit=120",
+        uploads: lightweight ? "select=id,type,status,title,name,created_at,updated_at&order=created_at.desc&limit=40" : "select=*&order=created_at.desc&limit=160",
+        athlete_posts: "select=*&order=created_at.desc&limit=100",
+        athlete_results: "select=*&order=created_at.desc&limit=120",
+        athlete_expenses: "select=*&order=created_at.desc&limit=100",
+        athlete_deposits: "select=*&order=created_at.desc&limit=100",
+        athlete_notifications: "select=*&order=created_at.desc&limit=100",
+        terms_acceptances: "select=*&order=created_at.desc&limit=100"
       };
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const result = {};
@@ -716,7 +758,7 @@ function supabaseApi() {
       if (["blocked", "deleted", "rejected"].includes(profile.status)) throw new Error("Esta cuenta fue dada de baja por ROIS.");
       if (profile.status !== "approved") throw new Error("Este usuario a\u00fan no est\u00e1 aprobado.");
       if (!preferredAthlete && companies.some(company => ["blocked", "deleted", "rejected"].includes(company.status))) throw new Error("Esta empresa fue dada de baja por ROIS.");
-      if (athletes.some(athlete => ["blocked", "deleted", "rejected"].includes(athlete.status))) throw new Error("Esta cuenta deportiva fue dada de baja por ROIS.");
+      if (athletes.some(athlete => ["blocked", "deleted", "rejected"].includes(athlete.status))) throw new Error("Esta cuenta emprendedora fue dada de baja por ROIS.");
       const role = preferredAthlete ? "athlete" : profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(email, profile.role);
       return { id: profile.id, email, role, name: profile.name, token: auth.access_token, mustChangePassword: !!profile.must_change_password };
     },
@@ -1628,10 +1670,11 @@ function clientCompanyLogoMarkup(company) {
 function renderClientOverview() {
   const coverSlot = document.getElementById("clientDashboardCover");
   if (coverSlot) {
-    coverSlot.innerHTML = coverCarouselMarkup("client") || `<section class="client-ad-cover empty-cover"><div><strong>ROIS</strong><span>Espacio publicitario institucional</span></div></section>`;
+    coverSlot.innerHTML = "";
+    coverSlot.hidden = true;
+    coverSlot.setAttribute("aria-hidden", "true");
   }
   document.querySelector(`[data-dashboard-panel="client-overview"]`).innerHTML = clientAdvertisingOverviewMarkup();
-  setupCoverCarousels();
   setupReelAutoplay();
 }
 
@@ -1669,8 +1712,8 @@ function clientAdvertisingOverviewMarkup() {
       <div class="client-priority-grid">
         <section class="client-priority-card client-reels-priority">
           <div class="section-minihead">
-            <p class="eyebrow">Feed deportivo</p>
-            <h3>Reels de deportistas listos para patrocinio.</h3>
+            <p class="eyebrow">Feed de oportunidades</p>
+            <h3>Publicaciones de perfiles listos para patrocinio.</h3>
             <p>Contenido publicado por atletas para que las empresas evaluen talento, narrativa y oportunidad comercial.</p>
           </div>
           ${posts.length ? `
@@ -1973,7 +2016,7 @@ function renderClientFeed() {
   const posts = state.data.athlete_posts
     .filter(post => post.status === "approved")
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  panel("client-feed", "Feed deportivo", "Reels de deportistas listos para patrocinio", posts.length ? `
+  panel("client-feed", "Feed de oportunidades", "Publicaciones de perfiles listos para patrocinio", posts.length ? `
     <div class="panel-body reels-panel-body">
       <div class="reels-feed tiktok-feed" aria-label="Reels deportivos ROIS">
         ${posts.map(post => athleteFeedCard(post)).join("")}
@@ -2203,13 +2246,12 @@ function renderAthlete() {
   renderAthleteSponsorships();
   renderAthleteScouts();
   renderAthleteResults();
-  renderAthleteReels();
   renderAccountSettings("athlete-settings");
 }
 
 function renderAthleteHeader() {
   const athlete = currentAthlete();
-  document.getElementById("athleteAccountEyebrow").textContent = "Cuenta deportiva";
+  document.getElementById("athleteAccountEyebrow").textContent = "Cuenta emprendedora";
   document.getElementById("athleteAccountName").textContent = athlete?.name || state.session?.name || "Deportista ROIS";
   const logo = document.getElementById("athleteProfileLogo");
   if (logo) {
@@ -2297,7 +2339,7 @@ function athleteRequirementStatus(athlete) {
     { key: "terms", label: `Terminos de representacion aceptados con ${roisLegalEntity}`, done: Boolean(athlete?.terms_accepted) }
   ];
   const optional = [
-    { key: "video", label: "Video de competencias o entrenamientos", done: Boolean(athlete?.video_url) },
+    { key: "video", label: "Video o demo del emprendimiento", done: Boolean(athlete?.video_url) },
     { key: "proposal", label: "Propuesta comercial PDF para sponsors", done: Boolean(athlete?.proposal_url) },
     { key: "logos", label: "Logos de patrocinadores actuales", done: athleteSponsorLogos(athlete || {}).length > 0 }
   ];
@@ -2435,8 +2477,8 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
                 if (details.open) details.scrollIntoView({ behavior: "smooth", block: "start" });
               }
             })}
-            ${button("Publicar reel", () => showDashboardPanel("athlete-reels"))}
-            ${athlete.proposal_url ? athleteProposalLink(athlete) : `<span class="pill">Plan pendiente</span>`}
+            ${athlete.proposal_url ? athleteProposalLink(athlete) : `<span class="pill">Propuesta pendiente</span>`}
+            ${athlete.video_url ? `<a class="btn" href="${escapeAttr(athlete.video_url)}" target="_blank" rel="noopener">Ver mi emprendimiento</a>` : `<span class="pill">Emprendimiento pendiente</span>`}
             `}
           </div>
         </div>
@@ -2458,7 +2500,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
           <div class="athlete-social-grid">
             ${posts.map(post => athleteSocialPostTile(post, athlete, { canDelete: !readOnly })).join("")}
           </div>
-        ` : `<div class="empty athlete-social-empty">Tus publicaciones apareceran aqui. Publica entrenamientos, competencia y avances para que las empresas puedan evaluar tu perfil.</div>`}
+        ` : `<div class="empty athlete-social-empty">Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalúen tu perfil.</div>`}
       </div>` : ""}
 
       <div class="athlete-social-tab-content ${showPostsTab ? "" : "active"}" data-athlete-tab-panel="reels">
@@ -2466,7 +2508,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
           <div class="athlete-social-grid reels-only">
             ${posts.map(post => athleteSocialPostTile(post, athlete, { canDelete: !readOnly })).join("")}
           </div>
-        ` : `<div class="empty athlete-social-empty">${readOnly ? "Este deportista aun no ha publicado reels." : "Aun no has publicado reels. Sube videos desde archivos para mostrar entrenamientos, torneos y avances."}</div>`}
+        ` : `<div class="empty athlete-social-empty">${readOnly ? "Este perfil aun no ha publicado contenido." : "Aun no has publicado contenido. Sube avances, videos o evidencia desde archivos para fortalecer tu perfil."}</div>`}
       </div>
 
       <div class="athlete-social-tab-content" data-athlete-tab-panel="results">
@@ -2499,28 +2541,28 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
 function renderAthleteProfile() {
   const athlete = currentAthlete();
   if (!athlete) {
-    panel("athlete-profile", "Mi perfil", "Ficha deportiva", `<div class="empty">No encontramos una ficha deportiva vinculada a tu correo. Contacta a ROIS para asociarla.</div>`);
+    panel("athlete-profile", "Mi perfil", "Ficha emprendedora", `<div class="empty">No encontramos una ficha emprendedora vinculada a tu correo. Contacta a ROIS para asociarla.</div>`);
     return;
   }
   const logos = athleteSponsorLogos(athlete);
   const annualRequired = athleteAnnualFeeRequired(athlete);
-  panel("athlete-profile", "Mi perfil", "Perfil profesional de patrocinio", `
+  panel("athlete-profile", "Mi perfil", "Perfil profesional para sponsors", `
     <div class="panel-body">
       ${athleteProfileHero(athlete, logos)}
       <details class="athlete-edit-drawer" id="athleteEditProfile">
         <summary>Editar informacion profesional</summary>
       <form id="athleteProfileForm" class="form-grid">
         <label>Nombre<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
-        <label>Deporte<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="Disciplina"></label>
+        <label>Industria<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="Industria o disciplina"></label>
         <label>Categor\u00eda<input name="category" value="${escapeAttr(athlete.category || "")}"></label>
-        <label>Ciudad / base<input name="location" value="${escapeAttr(athlete.location || "")}"></label>
-        <label>Ranking o marca<input name="ranking" value="${escapeAttr(athlete.ranking || "")}"></label>
+        <label>Ciudad / base operativa<input name="location" value="${escapeAttr(athlete.location || "")}"></label>
+        <label>Indicador clave / marca<input name="ranking" value="${escapeAttr(athlete.ranking || "")}"></label>
         <label>Ticket mensual objetivo<input name="monthly" type="number" min="0" value="${Number(athlete.monthly || 5000)}"></label>
         <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="${Number(athlete.max_sponsors || 10)}"></label>
         <label>Foto de perfil<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <label style="grid-column:1/-1">Resumen deportivo<textarea name="stats" required placeholder="Resultados, calendario, metricas, logros, objetivos y narrativa para patrocinadores.">${escapeHtml(athlete.stats || "")}</textarea></label>
-        <label style="grid-column:1/-1">Plan de trabajo PDF<input name="proposal_pdf" type="file" accept="application/pdf"></label>
-        <label style="grid-column:1/-1">Video de competencias o entrenamientos opcional<input name="video_url" type="url" value="${escapeAttr(athlete.video_url || "")}" placeholder="YouTube, Vimeo, Drive o reel publicado"></label>
+        <label style="grid-column:1/-1">Resumen emprendedor<textarea name="stats" required placeholder="Avances, hitos, metricas, logros, objetivos y narrativa para patrocinadores.">${escapeHtml(athlete.stats || "")}</textarea></label>
+        <label style="grid-column:1/-1">Propuesta para sponsors PDF<input name="proposal_pdf" type="file" accept="application/pdf"></label>
+        <label style="grid-column:1/-1">Video o demo del emprendimiento opcional<input name="video_url" type="url" value="${escapeAttr(athlete.video_url || "")}" placeholder="YouTube, Vimeo, Drive o video publicado"></label>
         <label style="grid-column:1/-1">Logos de sponsors actuales opcional<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
         <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por linea, en el mismo orden de los logos."></textarea></label>
         <div class="profile-status-grid" style="grid-column:1/-1">
@@ -2549,7 +2591,7 @@ function renderAthleteProfile() {
   document.querySelectorAll("[data-athlete-profile-tab]").forEach(button => {
     button.addEventListener("click", () => activateAthleteProfileTab(button.dataset.athleteProfileTab));
   });
-  if (annualRequired) document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Perfil Deportivo Anual ROIS"));
+  if (annualRequired) document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Anualidad Emprendedora ROIS"));
 }
 
 function renderAthleteSponsorships() {
@@ -2641,7 +2683,7 @@ function renderAthleteResults() {
     <div class="panel-body">
       <form id="athleteResultForm" class="form-grid">
         <label>Mes<input name="month" required placeholder="Junio 2026"></label>
-        <label>Competencia / actividad<input name="event" required placeholder="Torneo, ranking, entrenamiento medido"></label>
+        <label>Hito / actividad<input name="event" required placeholder="Lanzamiento, venta, alianza, resultado o avance medible"></label>
         <label style="grid-column:1/-1">Resultado documentado<textarea name="summary" required placeholder="Resultado, aprendizaje, avance y siguiente objetivo."></textarea></label>
         <label style="grid-column:1/-1">Documento o imagen soporte<input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
         <button class="btn primary" type="submit">Subir resultado</button>
@@ -2655,16 +2697,16 @@ function renderAthleteResults() {
 function renderAthleteReels() {
   const email = state.session?.email || "";
   const posts = state.data.athlete_posts.filter(item => item.athlete_email === email).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  panel("athlete-reels", "Entrenamientos / Reels", "Publica entrenamientos y avances visibles para empresas", `
+  panel("athlete-reels", "Publicaciones", "Publica avances visibles para empresas", `
     <div class="panel-body">
       <form id="athletePostForm" class="form-grid">
-        <label>T\u00edtulo<input name="title" required placeholder="Entrenamiento de potencia"></label>
-        <label>Video del reel<input name="video_file" type="file" required accept="video/mp4,video/webm,video/quicktime"></label>
-        <label style="grid-column:1/-1">Descripci\u00f3n<textarea name="caption" required placeholder="Contexto deportivo y valor para patrocinadores."></textarea></label>
+        <label>T\u00edtulo<input name="title" required placeholder="Avance destacado"></label>
+        <label>Video o archivo de publicaci\u00f3n<input name="video_file" type="file" required accept="video/mp4,video/webm,video/quicktime"></label>
+        <label style="grid-column:1/-1">Descripci\u00f3n<textarea name="caption" required placeholder="Contexto, avance y valor para sponsors."></textarea></label>
         <label style="grid-column:1/-1">Imagen miniatura opcional<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <button class="btn primary" type="submit">Publicar reel</button>
+        <button class="btn primary" type="submit">Publicar contenido</button>
       </form>
-      ${posts.length ? `<div class="athlete-own-reels">${posts.map(post => athleteOwnReelCard(post)).join("")}</div>` : `<div class="empty">Aun no has publicado reels.</div>`}
+      ${posts.length ? `<div class="athlete-own-reels">${posts.map(post => athleteOwnReelCard(post)).join("")}</div>` : `<div class="empty">Aun no has publicado contenido.</div>`}
     </div>
   `);
   document.getElementById("athletePostForm").addEventListener("submit", submitAthletePost);
@@ -3116,7 +3158,7 @@ function renderAdminUploads() {
     ${state.data.uploads.length ? table(["Visual", "Archivo", "Tipo", "Estado", "Acciones"], state.data.uploads.map(item => [
       visualThumb(item), item.name, item.type, badge(item.visual_status || item.status), moderationActions("uploads", item)
     ])) : `<div class="empty">No hay archivos registrados.</div>`}
-    <div class="panel-body"><p class="eyebrow">Reels de deportistas</p></div>
+    <div class="panel-body"><p class="eyebrow">Publicaciones</p></div>
     ${postRows.length ? table(["Visual", "Deportista", "T\u00edtulo", "Video", "Estado", "Acciones"], postRows) : `<div class="empty">No hay reels pendientes.</div>`}
     <div class="panel-body"><p class="eyebrow">Resultados mensuales</p></div>
     ${resultRows.length ? table(["Deportista", "Mes", "Resumen", "Soporte", "Estado", "Acciones"], resultRows) : `<div class="empty">No hay resultados enviados.</div>`}
@@ -4462,7 +4504,7 @@ function athleteSponsorBubbleStrip(logosOrAthlete, options = {}) {
 function athleteProposalLink(athlete) {
   if (!athlete.proposal_url) return "";
   const filename = athlete.proposal_name || `${athlete.name || "plan-de-trabajo"}.pdf`;
-  return `<a class="btn" href="${athlete.proposal_url}" target="_blank" rel="noopener" download="${filename}">Ver plan de trabajo</a>`;
+  return `<a class="btn" href="${athlete.proposal_url}" target="_blank" rel="noopener" download="${filename}">Ver propuesta para sponsors</a>`;
 }
 
 function athleteCard(athlete, action) {
@@ -4590,7 +4632,7 @@ function registrationFields(type) {
         <input name="terms" type="checkbox" required>
         <span>Acepto las condiciones iniciales de ROIS e ${roisLegalEntity}: el perfil deportivo queda sujeto a revision, cualquier patrocinio debe gestionarse por la plataforma y, en caso de menores de edad, se requerira validacion de madre, padre o tutor legal antes de activar representacion comercial.</span>
       </label>
-      <button class="btn primary full" type="submit">Crear cuenta deportiva</button>
+      <button class="btn primary full" type="submit">Crear cuenta emprendedora</button>
     `;
   }
   return `
@@ -4643,7 +4685,7 @@ async function submitRegistration(event) {
       }
       const scoutCode = normalizeScoutCode(form.scout_code.value);
       if (!scoutCode) {
-        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta deportiva necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
+        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta emprendedora necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
         form.scout_code.focus();
         return;
       }
