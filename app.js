@@ -74,14 +74,37 @@ function writeDataCache(data) {
   }
 }
 
+function runtimeDataSignature(data) {
+  const normalized = normalizeLoadedData(data);
+  return Object.keys(seed).map(key => {
+    const rows = Array.isArray(normalized[key]) ? normalized[key] : [];
+    const version = rows.slice(0, 40).map(item => [
+      item.id,
+      item.updated_at,
+      item.created_at,
+      item.status,
+      item.visual_status,
+      item.name,
+      item.title
+    ].filter(Boolean).join(":")).join("|");
+    return `${key}:${rows.length}:${version}`;
+  }).join(";");
+}
+
 function withCachedLoadAll(sourceApi) {
   const originalLoadAll = sourceApi.loadAll.bind(sourceApi);
   return {
     ...sourceApi,
-    async loadAll() {
-      const data = normalizeLoadedData(await originalLoadAll());
-      writeDataCache(data);
-      return data;
+    async loadAll(options = {}) {
+      try {
+        const data = normalizeLoadedData(await originalLoadAll(options));
+        writeDataCache(data);
+        return data;
+      } catch (error) {
+        const fallback = state.data || readDataCache();
+        if (fallback) return normalizeLoadedData(fallback);
+        throw error;
+      }
     }
   };
 }
@@ -298,6 +321,7 @@ async function init() {
   const cachedData = readDataCache();
   const shouldRefreshInBackground = Boolean(cachedData);
   state.data = cachedData || await loadInitialData();
+  state.dataSignature = runtimeDataSignature(state.data);
   if (state.session && sessionIsBlocked()) {
     state.session = null;
     clearSession();
@@ -330,18 +354,21 @@ async function loadInitialData() {
   try {
     return await api.loadAll();
   } catch (error) {
-    return normalizeLoadedData({});
+    return state.data || readDataCache() || normalizeLoadedData({});
   }
 }
 
 async function refreshDataInBackground() {
   try {
-    state.data = await api.loadAll();
-    renderPublic();
-    renderSession();
-    optimizeRenderedMedia();
-    if (state.session) {
-      showView(dashboardViewForRole(state.session.role));
+    const nextData = normalizeLoadedData(await api.loadAll({ background: true }));
+    const nextSignature = runtimeDataSignature(nextData);
+    if (nextSignature !== state.dataSignature) {
+      state.data = nextData;
+      state.dataSignature = nextSignature;
+      writeDataCache(state.data);
+      renderPublic();
+      renderSession();
+      optimizeRenderedMedia();
     }
   } catch (error) {
     // Cached data is enough to keep the interface usable while the network recovers.
@@ -619,15 +646,16 @@ function supabaseApi() {
         athlete_notifications: "select=*&order=created_at.desc&limit=180",
         terms_acceptances: "select=*&order=created_at.desc&limit=180"
       };
+      const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const result = {};
       await Promise.all(Object.entries(tableQueries).map(async ([table, query]) => {
         try {
           result[table] = await request(`/rest/v1/${table}?${query}`, { headers: headers() });
         } catch (error) {
-          result[table] = [];
+          result[table] = Array.isArray(fallback[table]) ? fallback[table] : [];
         }
       }));
-      return result;
+      return normalizeLoadedData(result);
     },
     async validateScoutCode(code) {
       const normalized = normalizeScoutCode(code);
