@@ -1477,8 +1477,8 @@ function renderSession() {
 function renderPublic() {
   const coverSlot = document.getElementById("publicHomeCover");
   if (coverSlot) {
-    coverSlot.innerHTML = coverCarouselMarkup("home");
-    setupCoverCarousels();
+    clearCoverCarousels();
+    coverSlot.innerHTML = featuredCoverMarkup("home");
   }
 
   const publicNews = (state.data?.news || []).filter(item => item.status === "published" && visualIsPublic(item));
@@ -1502,8 +1502,8 @@ function renderPublic() {
 function renderPublicShell() {
   const coverSlot = document.getElementById("publicHomeCover");
   if (!coverSlot || coverSlot.innerHTML.trim()) return;
-  coverSlot.innerHTML = coverCarouselMarkup("home");
-  setupCoverCarousels();
+  clearCoverCarousels();
+  coverSlot.innerHTML = featuredCoverMarkup("home");
 }
 
 function siteSetting(id) {
@@ -1530,6 +1530,14 @@ function advertisingCovers() {
     return covers;
   }
   return cachedAdvertisingCovers();
+}
+
+function featuredAdvertisingCover() {
+  const preferredSlot = siteSetting("featured_home_cover_slot")?.slot || "home_cover";
+  const covers = advertisingCoverIds()
+    .map((id, index) => ({ id, index, ...(siteSetting(id) || {}) }));
+  const selected = covers.find(cover => cover.id === preferredSlot && cover.image_url);
+  return selected || covers.find(cover => cover.image_url) || null;
 }
 
 function cachedAdvertisingCovers() {
@@ -1567,6 +1575,16 @@ function staticCoverFallback(context = "home") {
   `;
 }
 
+function featuredCoverMarkup(context = "home") {
+  const cover = featuredAdvertisingCover();
+  if (!cover?.image_url) return staticCoverFallback(context);
+  return `
+    <section class="${context === "client" ? "client-ad-cover" : "home-cover"} cover-carousel cover-static" data-cover-static>
+      <img class="cover-slide active" src="${cover.image_url}" alt="${escapeAttr(cover.title || "Portada publicitaria ROIS")}">
+    </section>
+  `;
+}
+
 function coverCarouselMarkup(context = "home") {
   const covers = advertisingCovers();
   if (!covers.length) return staticCoverFallback(context);
@@ -1595,6 +1613,11 @@ function setupCoverCarousels() {
     };
     coverCarouselTimers.push(setInterval(() => show(active + 1), 10000));
   });
+}
+
+function clearCoverCarousels() {
+  coverCarouselTimers.forEach(timer => clearInterval(timer));
+  coverCarouselTimers = [];
 }
 
 function renderClient() {
@@ -1765,7 +1788,7 @@ function clientNewsPreviewCard(news) {
 
 function clientExperienceOverviewMarkup() {
   const company = currentCompany();
-  const cover = siteSetting("home_cover");
+  const cover = featuredAdvertisingCover();
   const posts = state.data.athlete_posts
     .filter(post => post.status === "approved")
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -3210,7 +3233,8 @@ function renderAdminUploads() {
 
 function renderAdminUploads() {
   const homeCovers = advertisingCoverIds().map((id, index) => ({ id, index: index + 1, ...(siteSetting(id) || {}) }));
-  const selectedCover = homeCovers.find(cover => cover.image_url) || homeCovers[0];
+  const featuredSlot = siteSetting("featured_home_cover_slot")?.slot || "home_cover";
+  const selectedCover = homeCovers.find(cover => cover.id === featuredSlot) || homeCovers.find(cover => cover.image_url) || homeCovers[0];
   const postRows = state.data.athlete_posts.map(item => [
     visualThumb(item),
     item.athlete_name || item.athlete_email,
@@ -3239,7 +3263,7 @@ function renderAdminUploads() {
   panel("admin-uploads", "Uploads", "Moderaci\u00f3n de visuales, reels, resultados y comprobantes", `
     <div class="panel-body">
       <form id="homeCoverForm" class="form-grid">
-        <label>Espacio publicitario<select name="slot">${homeCovers.map(cover => `<option value="${cover.id}">Portada ${cover.index}${cover.image_url ? " - activa" : ""}</option>`).join("")}</select></label>
+        <label>Espacio publicitario<select name="slot">${homeCovers.map(cover => `<option value="${cover.id}" ${cover.id === featuredSlot ? "selected" : ""}>Portada ${cover.index}${cover.id === featuredSlot ? " - principal" : cover.image_url ? " - activa" : ""}</option>`).join("")}</select></label>
         <label>Titulo interno<input name="title" value="${escapeAttr(selectedCover?.title || "")}" placeholder="Portada publicitaria ROIS"></label>
         <label style="grid-column:1/-1">Nota interna<textarea name="subtitle" placeholder="Uso comercial, patrocinador o campana.">${escapeHtml(selectedCover?.subtitle || "")}</textarea></label>
         <label style="grid-column:1/-1">Imagen de portada<input name="cover" type="file" accept="image/png,image/jpeg,image/webp"></label>
@@ -3251,11 +3275,11 @@ function renderAdminUploads() {
           ${homeCovers.map(cover => cover.image_url ? `
             <div class="cover-admin-preview">
               <img src="${cover.image_url}" alt="Portada ${cover.index}">
-              <span>Portada ${cover.index} activa</span>
+              <span>Portada ${cover.index}${cover.id === featuredSlot ? " principal" : " activa"}</span>
             </div>
           ` : `<div class="cover-admin-preview empty"><span>Portada ${cover.index} disponible</span></div>`).join("")}
         </div>
-      ` : `<p class="hint">Sube hasta 5 portadas horizontales. Recomendado: 1600 x 700 px o proporcion similar. Rotan cada 10 segundos en home y dashboard empresarial.</p>`}
+      ` : `<p class="hint">La portada seleccionada se publica como visual principal estatico en home y dashboard empresarial. Recomendado: 1600 x 700 px o proporcion horizontal similar.</p>`}
     </div>
     <div class="panel-body">
       <form id="uploadForm" class="form-grid">
@@ -3309,7 +3333,11 @@ async function submitHomeCover(event) {
       subtitle: form.subtitle.value.trim()
     })
   });
-  notify("Portada", "Portada publicada", "El banner ya aparece en el home y en el dashboard empresarial.");
+  await api.upsert("site_settings", {
+    id: "featured_home_cover_slot",
+    value: JSON.stringify({ slot })
+  });
+  notify("Portada", "Portada publicada", "La portada principal ya aparece de forma estatica en el home y en el dashboard empresarial.");
   state.data = await api.loadAll();
   renderAdmin();
   renderPublic();
@@ -3319,7 +3347,11 @@ async function submitHomeCover(event) {
 async function clearHomeCover() {
   const slot = document.querySelector("#homeCoverForm [name='slot']")?.value || "home_cover";
   await api.remove("site_settings", slot);
-  notify("Portada", "Portada retirada", "El espacio seleccionado ya no aparece en el carrusel.");
+  const featuredSlot = siteSetting("featured_home_cover_slot")?.slot || "home_cover";
+  if (featuredSlot === slot) {
+    await api.remove("site_settings", "featured_home_cover_slot");
+  }
+  notify("Portada", "Portada retirada", "La portada seleccionada ya no aparece como visual principal.");
   state.data = await api.loadAll();
   renderAdmin();
   renderPublic();
