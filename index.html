@@ -11,13 +11,13 @@
 <body data-active-view="home">
   <svg class="rois-logo-sprite" aria-hidden="true" focusable="false">
     <symbol id="roisLogoSymbol" viewBox="0 0 1200 420">
-      <g fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M128 182H338C374 182 394 203 394 237C394 271 374 292 338 292H140" />
-        <path d="M140 292L312 378" />
-        <rect x="476" y="182" width="288" height="196" rx="98" />
-        <path d="M872 182V378" />
-        <path d="M974 182H1192" />
-        <path d="M974 182C938 182 916 204 916 238C916 272 938 294 974 294H1136C1172 294 1192 316 1192 350C1192 384 1172 406 1136 406H930" />
+      <g fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M118 176H330C366 176 388 198 388 230C388 262 366 284 330 284H160" />
+        <path d="M160 284L320 364" />
+        <rect x="466" y="176" width="286" height="188" rx="94" />
+        <path d="M862 176V364" />
+        <path d="M964 176H1180" />
+        <path d="M964 176C930 176 908 198 908 230C908 262 930 284 964 284H1126C1160 284 1182 306 1182 338C1182 370 1160 392 1126 392H934" />
       </g>
     </symbol>
   </svg>
@@ -498,6 +498,7 @@
         background: #000 !important;
         border: 0 !important;
         box-shadow: none !important;
+        align-self: stretch !important;
       }
 
     body[data-active-view="home"] .premium-hero-visual::before,
@@ -508,11 +509,11 @@
       display: none !important;
     }
 
-    body[data-active-view="home"] .premium-hero .home-cover,
-    body[data-active-view="home"] .premium-hero .cover-fallback,
-    body[data-active-view="home"] .premium-hero .cover-fallback-inner,
-    body[data-active-view="home"] .hero .home-cover,
-    body[data-active-view="home"] .hero .cover-fallback,
+      body[data-active-view="home"] .premium-hero .home-cover,
+      body[data-active-view="home"] .premium-hero .cover-fallback,
+      body[data-active-view="home"] .premium-hero .cover-fallback-inner,
+      body[data-active-view="home"] .hero .home-cover,
+      body[data-active-view="home"] .hero .cover-fallback,
     body[data-active-view="home"] .hero .cover-fallback-inner {
       width: 100% !important;
       min-width: 100% !important;
@@ -525,8 +526,19 @@
       border: 0 !important;
       border-radius: 0 !important;
       background: transparent !important;
-      overflow: hidden !important;
-    }
+        overflow: hidden !important;
+      }
+
+      body[data-active-view="home"] #publicHomeCover > .home-cover,
+      body[data-active-view="home"] #publicHomeCover > .cover-static,
+      body[data-active-view="home"] #publicHomeCover > .cover-fallback {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 560px !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
 
       body[data-active-view="home"] .premium-hero-image,
       body[data-active-view="home"] .hero .home-cover img {
@@ -573,10 +585,11 @@
       flex-direction: column !important;
     }
 
-    body[data-active-view="home"] .membership-visual {
-      height: 214px !important;
-      margin: -6px -6px 26px !important;
-    }
+      body[data-active-view="home"] .membership-visual {
+        height: 214px !important;
+        margin: -6px -6px 26px !important;
+        overflow: hidden !important;
+      }
 
     body[data-active-view="home"] .membership-card .btn {
       margin-top: auto !important;
@@ -601,17 +614,23 @@
       align-items: stretch !important;
     }
 
-    body[data-active-view="home"] .premium-network-panel {
-      min-height: 360px !important;
-    }
-
-      body[data-active-view="home"] .premium-home-footer {
-        padding: 40px 0 22px !important;
-        background: #000 !important;
+      body[data-active-view="home"] .premium-network-panel {
+        min-height: 360px !important;
+        overflow: hidden !important;
       }
 
-      body[data-active-view="home"] .premium-home-footer .premium-brand-image {
-        width: 176px !important;
+      body[data-active-view="home"] .premium-home-footer {
+        display: grid !important;
+        gap: 18px !important;
+        align-content: start !important;
+        padding: 26px 0 18px !important;
+        background: #000 !important;
+        min-height: 0 !important;
+      }
+
+      body[data-active-view="home"] .premium-home-footer .brand-logo {
+        width: 152px !important;
+        height: auto !important;
       }
 
       body[data-active-view="home"] .featured-cover-placeholder {
@@ -685,10 +704,18 @@
         padding: 24px 26px !important;
       }
 
-      body[data-active-view="home"] .premium-home-footer > .premium-brand-image,
       body[data-active-view="home"] .premium-home-footer .brand-logo {
-        padding: 12px 16px !important;
-        background: #000 !important;
+        padding: 0 !important;
+        background: transparent !important;
+      }
+
+      body[data-active-view="home"] .premium-home-footer > p {
+        margin: 0 !important;
+      }
+
+      body[data-active-view="home"] .premium-home-footer-actions,
+      body[data-active-view="home"] .premium-home-footer-meta {
+        margin: 0 !important;
       }
 
       @media (max-width: 1180px) {
@@ -722,6 +749,12 @@
       body[data-active-view="home"] .premium-hero-image,
       body[data-active-view="home"] .hero .home-cover img,
       body[data-active-view="home"] .featured-cover-placeholder {
+        min-height: 420px !important;
+      }
+
+      body[data-active-view="home"] #publicHomeCover > .home-cover,
+      body[data-active-view="home"] #publicHomeCover > .cover-static,
+      body[data-active-view="home"] #publicHomeCover > .cover-fallback {
         min-height: 420px !important;
       }
 
@@ -768,10 +801,8 @@
         min-width: 116px !important;
       }
 
-      body[data-active-view="home"] .premium-brand-image,
       body[data-active-view="home"] .topbar .brand-logo,
-      body[data-active-view="home"] .premium-home-footer .brand-logo,
-      body[data-active-view="home"] .premium-home-footer .premium-brand-image {
+      body[data-active-view="home"] .premium-home-footer .brand-logo {
         width: 116px !important;
       }
 
@@ -827,6 +858,12 @@
       body[data-active-view="home"] .premium-hero-image,
       body[data-active-view="home"] .hero .home-cover img,
       body[data-active-view="home"] .featured-cover-placeholder {
+        min-height: 300px !important;
+      }
+
+      body[data-active-view="home"] #publicHomeCover > .home-cover,
+      body[data-active-view="home"] #publicHomeCover > .cover-static,
+      body[data-active-view="home"] #publicHomeCover > .cover-fallback {
         min-height: 300px !important;
       }
 

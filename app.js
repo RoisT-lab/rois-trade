@@ -78,7 +78,12 @@ function cacheSafeData(data) {
   const normalized = normalizeLoadedData(data);
   return {
     ...normalized,
-    site_settings: [],
+    site_settings: (normalized.site_settings || []).map(item => ({
+      id: item.id,
+      value: item.value,
+      created_at: item.created_at,
+      updated_at: item.updated_at
+    })),
     uploads: (normalized.uploads || []).map(item => ({
       id: item.id,
       type: item.type,
@@ -677,7 +682,7 @@ function supabaseApi() {
         sponsorships: "select=*&order=created_at.desc&limit=120",
         news: "select=*&order=created_at.desc&limit=80",
         partnerships: "select=*&order=created_at.desc&limit=80",
-        site_settings: lightweight ? "select=id,key,created_at,updated_at&limit=20" : "select=*&limit=100",
+        site_settings: lightweight ? "select=id,value,created_at,updated_at&limit=40" : "select=*&limit=100",
         crm: "select=*&order=created_at.desc&limit=160",
         payments: "select=*&order=created_at.desc&limit=120",
         uploads: lightweight ? "select=id,type,status,title,name,created_at,updated_at&order=created_at.desc&limit=40" : "select=*&order=created_at.desc&limit=160",
