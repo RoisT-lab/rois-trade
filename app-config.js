@@ -10,7 +10,10 @@
     roisPartnerMonthly: "https://buy.stripe.com/bJe00igFI3s8d0GfmW18c04",
     officialSponsorMonthly: "https://buy.stripe.com/7sY9AS3SW7Iod0GcaK18c02",
     roisLegacyMonthly: "https://buy.stripe.com/14AdR8gFI0fWbWC0s218c05",
-    strategicRequest: "https://buy.stripe.com/5kQbJ0614aUA5yefmW18c03"
+    strategicRequest: "https://buy.stripe.com/5kQbJ0614aUA5yefmW18c03",
+    companyMonthlyMembership: "https://buy.stripe.com/28EaEWexAaUA2m2b6G18c08",
+    founderMonthlyMembership: "https://buy.stripe.com/00wdR81KOe6Me4Ka2C18c09",
+    athleteMonthlyMembership: "https://buy.stripe.com/fZufZg614geU9Oub6G18c0a"
   }
 };
 
