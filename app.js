@@ -206,12 +206,12 @@ function currentAthlete() {
     profile_id: sessionId,
     email: state.session.email,
     contact: state.session.email,
-    name: state.session.name || email.split("@")[0] || "Emprendedor ROIS",
-    sport: "Industria por definir",
-    category: "Etapa por definir",
+    name: state.session.name || email.split("@")[0] || "Perfil ROIS",
+    sport: "Por definir",
+    category: "Por definir",
     location: "Ciudad por definir",
-    ranking: "Indicador por definir",
-    stats: "Completa tu perfil emprendedor para activar tu ficha ROIS.",
+    ranking: "Por definir",
+    stats: "Completa tu perfil para activar tu ficha ROIS.",
     monthly: 5000,
     max_sponsors: 10,
     status: "approved",
@@ -2251,8 +2251,9 @@ function renderAthlete() {
 
 function renderAthleteHeader() {
   const athlete = currentAthlete();
-  document.getElementById("athleteAccountEyebrow").textContent = "Cuenta emprendedora";
-  document.getElementById("athleteAccountName").textContent = athlete?.name || state.session?.name || "Deportista ROIS";
+  const copy = verticalCopy(athlete);
+  document.getElementById("athleteAccountEyebrow").textContent = copy.accountEyebrow;
+  document.getElementById("athleteAccountName").textContent = athlete?.name || state.session?.name || copy.profileDefaultName;
   const logo = document.getElementById("athleteProfileLogo");
   if (logo) {
     logo.removeAttribute("hidden");
@@ -2274,16 +2275,17 @@ function athleteSocialMedia(post, athlete) {
 
 function athleteSocialPostTile(post, athlete, options = {}) {
   const canDelete = options.canDelete && post.id;
+  const founder = isFounderProfile(athlete);
   return `
     <article class="athlete-social-tile">
       <div class="athlete-social-media">
         ${athleteSocialMedia(post, athlete)}
-        <span>Reel</span>
+        <span>Publicacion</span>
         ${canDelete ? `<button class="media-delete-btn" type="button" data-athlete-delete-post="${escapeAttr(post.id)}">Eliminar</button>` : ""}
       </div>
       <div class="athlete-social-caption">
-        <strong>${escapeHtml(post.title || "Entrenamiento")}</strong>
-        <p>${escapeHtml(post.caption || "Actualizacion deportiva ROIS.")}</p>
+        <strong>${escapeHtml(post.title || (founder ? "Avance de emprendimiento" : "Avance deportivo"))}</strong>
+        <p>${escapeHtml(post.caption || (founder ? "Actualizacion emprendedora ROIS." : "Actualizacion deportiva ROIS."))}</p>
       </div>
     </article>
   `;
@@ -2429,10 +2431,87 @@ function renderAthleteNotifications() {
   `);
 }
 
+const profileVerticalOverrides = {
+  "saidr1521@gmail.com": "athlete",
+  "saidr1521@outlook.es": "founder"
+};
+
+function profileVertical(profile) {
+  const email = String(profile?.email || profile?.contact || state.session?.email || "").toLowerCase();
+  if (profileVerticalOverrides[email]) return profileVerticalOverrides[email];
+  if (!profile) return "athlete";
+  const directType = String(profile.profile_type || profile.vertical || "").trim().toLowerCase();
+  if (directType === "founder") return "founder";
+  const normalize = value => String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const profileText = [profile.sport, profile.category, profile.stats, profile.ranking].map(normalize).join(" ");
+  const founderSignals = ["founder", "founders", "emprendimiento", "emprendedor", "startup", "empresa", "negocio", "industria", "venture", "founder rois"];
+  return founderSignals.some(signal => profileText.includes(signal)) ? "founder" : "athlete";
+}
+
+function isFounderProfile(profile) {
+  return profileVertical(profile) === "founder";
+}
+
+function verticalCopy(profile) {
+  const founder = isFounderProfile(profile);
+  return founder ? {
+    accountEyebrow: "Cuenta emprendedora",
+    profileDefaultName: "Founder ROIS",
+    primaryFieldLabel: "Industria",
+    secondaryFieldLabel: "Etapa",
+    locationLabel: "Ciudad / base operativa",
+    rankingLabel: "Indicador clave / traccion",
+    summaryLabel: "Resumen emprendedor",
+    summaryPlaceholder: "Vision, producto, mercado, traccion, aprendizajes y siguiente paso para sponsors.",
+    proposalLabel: "Propuesta para sponsors PDF",
+    videoLabel: "Video o demo del emprendimiento",
+    profileEmptyText: "No encontramos una ficha emprendedora vinculada a tu correo. Contacta a ROIS para asociarla.",
+    resultsTitle: "Resultados empresariales",
+    resultsSubtitle: "Hitos, avances y evidencia para sponsors",
+    resultMonthPlaceholder: "Junio 2026",
+    resultEventPlaceholder: "Lanzamiento, venta, alianza, cliente, comunidad o avance de producto",
+    resultSummaryPlaceholder: "Resultado, aprendizaje, avance comercial y siguiente objetivo.",
+    sponsorshipsTitle: "Patrocinios",
+    sponsorshipsSubtitle: "Empresas que respaldan tu vision emprendedora",
+    scoutsTitle: "Scouts",
+    scoutsSubtitle: "Invita founders, comunidades y oportunidades estrategicas",
+    postsEmptyText: "Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalúen tu emprendimiento.",
+    profileStatusLabel: "Estado del perfil"
+  } : {
+    accountEyebrow: "Cuenta deportiva",
+    profileDefaultName: "Athlete ROIS",
+    primaryFieldLabel: "Disciplina",
+    secondaryFieldLabel: "Categoria / nivel competitivo",
+    locationLabel: "Ciudad / club / academia",
+    rankingLabel: "Ranking / marca / metrica principal",
+    summaryLabel: "Resumen deportivo",
+    summaryPlaceholder: "Resultados, avances, objetivos, narrativa competitiva y siguiente meta para sponsors.",
+    proposalLabel: "Propuesta para sponsors PDF",
+    videoLabel: "Video o plan deportivo",
+    profileEmptyText: "No encontramos un perfil deportivo vinculado a tu correo. Contacta a ROIS para asociarlo.",
+    resultsTitle: "Resultados deportivos",
+    resultsSubtitle: "Evidencia deportiva para reportar a patrocinadores",
+    resultMonthPlaceholder: "Junio 2026",
+    resultEventPlaceholder: "Torneo, entrenamiento, ranking, marca o competencia",
+    resultSummaryPlaceholder: "Resultado, avance deportivo, aprendizaje y siguiente objetivo.",
+    sponsorshipsTitle: "Patrocinios",
+    sponsorshipsSubtitle: "Solicitudes y condiciones propuestas por empresas",
+    scoutsTitle: "Scouts",
+    scoutsSubtitle: "Invita deportistas y da seguimiento a tus comisiones",
+    postsEmptyText: "Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalúen tu perfil.",
+    profileStatusLabel: "Estado del perfil"
+  };
+}
+
 function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), options = {}) {
   const readOnly = Boolean(options.readOnly);
   const companyView = Boolean(options.companyView);
-  const showPostsTab = !companyView;
+  const founder = isFounderProfile(athlete);
+  const copy = verticalCopy(athlete);
+  const showPostsTab = true;
   const posts = state.data.athlete_posts
     .filter(item => item.athlete_email === athlete.email && item.status === "approved")
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
@@ -2447,6 +2526,24 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
   const hasPosts = posts.length > 0;
   const hasResults = results.length > 0;
   const hasSponsorships = sponsorships.length > 0;
+  const primaryValue = athlete.sport || (founder ? "Industria por definir" : "Disciplina por definir");
+  const secondaryValue = athlete.category || (founder ? "Etapa por definir" : "Categoria por definir");
+  const locationValue = athlete.location || (founder ? "Base por confirmar" : "Ciudad por confirmar");
+  const summaryFallback = founder
+    ? "Perfil emprendedor en construccion. Sube tu vision, avances, resultados empresariales y publicaciones para presentar una propuesta atractiva a sponsors."
+    : "Perfil deportivo en construccion. Sube tu plan de trabajo, resultados y publicaciones para presentar una propuesta atractiva a patrocinadores.";
+  const postsEmptyText = readOnly ? "Este perfil aun no ha publicado contenido." : copy.postsEmptyText;
+  const resultsEmptyText = founder
+    ? "Tus resultados empresariales apareceran aqui. Sube evidencia mensual para fortalecer la confianza de sponsors."
+    : "Tus resultados documentados apareceran aqui. Sube evidencia mensual para construir confianza con patrocinadores.";
+  const sponsorshipEmptyText = founder
+    ? "Aun no hay sponsors o respaldos activos vinculados a tu cuenta."
+    : "Aun no hay solicitudes o patrocinios activos vinculados a tu cuenta.";
+  const sponsorShowcaseText = founder
+    ? "Cuando se formaliza un patrocinio, puedes subir el logotipo autorizado para mostrar el respaldo visible a tu emprendimiento."
+    : "Cuando se formaliza un patrocinio, el deportista debe subir el logotipo autorizado para mostrarlo en su perfil.";
+  const videoCtaLabel = founder ? "Ver mi emprendimiento" : "Ver plan deportivo";
+  const videoPendingLabel = founder ? "Emprendimiento pendiente" : "Plan deportivo pendiente";
   return `
     <section class="athlete-profile-hero athlete-social-profile">
       <div class="athlete-social-header">
@@ -2455,16 +2552,16 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
         </div>
         <div class="athlete-social-bio">
           <div class="athlete-social-name">
-            <h3>${escapeHtml(athlete.name || "Deportista ROIS")}</h3>
+            <h3>${escapeHtml(athlete.name || copy.profileDefaultName)}</h3>
             ${badge(athlete.status === "approved" ? "perfil activo" : "en revision")}
           </div>
           <div class="athlete-social-stats">
-            <div><strong>${posts.length}</strong><span>reels</span></div>
-            <div><strong>${companyView ? sponsorHighlights.length : sponsorships.length}</strong><span>${companyView ? "sponsors" : "solicitudes"}</span></div>
+            <div><strong>${posts.length}</strong><span>publicaciones</span></div>
+            <div><strong>${companyView ? sponsorHighlights.length : sponsorships.length}</strong><span>sponsors</span></div>
             <div><strong>${results.length}</strong><span>resultados</span></div>
           </div>
-          <p><strong>${escapeHtml(athlete.sport || "Disciplina por definir")}</strong> / ${escapeHtml(athlete.category || "Categoria por definir")} / ${escapeHtml(athlete.location || "Base por confirmar")}</p>
-          <p>${escapeHtml(athlete.stats || "Perfil deportivo en construccion. Sube tu plan de trabajo, resultados y reels para presentar una propuesta atractiva a patrocinadores.")}</p>
+          <p><strong>${escapeHtml(primaryValue)}</strong> / ${escapeHtml(secondaryValue)} / ${escapeHtml(locationValue)}</p>
+          <p>${escapeHtml(athlete.stats || summaryFallback)}</p>
           <div class="athlete-social-actions">
             ${readOnly ? `
               ${athleteSponsorCta(athlete, "Solicitar fichaje")}
@@ -2478,7 +2575,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
               }
             })}
             ${athlete.proposal_url ? athleteProposalLink(athlete) : `<span class="pill">Propuesta pendiente</span>`}
-            ${athlete.video_url ? `<a class="btn" href="${escapeAttr(athlete.video_url)}" target="_blank" rel="noopener">Ver mi emprendimiento</a>` : `<span class="pill">Emprendimiento pendiente</span>`}
+            ${athlete.video_url ? `<a class="btn" href="${escapeAttr(athlete.video_url)}" target="_blank" rel="noopener">${videoCtaLabel}</a>` : `<span class="pill">${videoPendingLabel}</span>`}
             `}
           </div>
         </div>
@@ -2489,19 +2586,18 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
       </div>
 
       <div class="athlete-social-tabs">
-        ${showPostsTab ? `<button class="active" type="button" data-athlete-profile-tab="posts">Publicaciones</button>` : ""}
-        <button class="${showPostsTab ? "" : "active"}" type="button" data-athlete-profile-tab="reels">Reels</button>
+        <button class="active" type="button" data-athlete-profile-tab="posts">Publicaciones</button>
         <button type="button" data-athlete-profile-tab="results">Resultados</button>
         <button type="button" data-athlete-profile-tab="sponsorships">Patrocinios</button>
       </div>
 
-      ${showPostsTab ? `<div class="athlete-social-tab-content active" data-athlete-tab-panel="posts">
+      <div class="athlete-social-tab-content active" data-athlete-tab-panel="posts">
         ${hasPosts ? `
           <div class="athlete-social-grid">
             ${posts.map(post => athleteSocialPostTile(post, athlete, { canDelete: !readOnly })).join("")}
           </div>
         ` : `<div class="empty athlete-social-empty">Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalúen tu perfil.</div>`}
-      </div>` : ""}
+      </div>
 
       <div class="athlete-social-tab-content ${showPostsTab ? "" : "active"}" data-athlete-tab-panel="reels">
         ${hasPosts ? `
@@ -2516,7 +2612,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
           <div class="athlete-social-info-grid">
             ${results.map(result => athleteResultTile(result)).join("")}
           </div>
-        ` : `<div class="empty athlete-social-empty">Tus resultados documentados apareceran aqui. Sube evidencia mensual para construir confianza con patrocinadores.</div>`}
+        ` : `<div class="empty athlete-social-empty">${resultsEmptyText}</div>`}
       </div>
 
       <div class="athlete-social-tab-content" data-athlete-tab-panel="sponsorships">
@@ -2524,7 +2620,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
           <div>
             <p class="eyebrow">Vitrina de sponsors</p>
             <h4>${sponsorHighlights.length}/10 logos publicados</h4>
-            <p>Cuando se formaliza un patrocinio, el deportista debe subir el logotipo autorizado para mostrarlo en su perfil.</p>
+            <p>${sponsorShowcaseText}</p>
           </div>
           ${athleteSponsorBubbleStrip(sponsorHighlights, { limit: 10, emptyLabel: "Disponible" })}
         </div>
@@ -2532,7 +2628,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
           <div class="athlete-social-info-grid">
             ${sponsorships.map(item => athleteSponsorshipTile(item)).join("")}
           </div>
-        ` : `<div class="empty athlete-social-empty">Aun no hay solicitudes o patrocinios activos vinculados a tu cuenta.</div>`}
+        ` : `<div class="empty athlete-social-empty">${sponsorshipEmptyText}</div>`}
       </div>
     </section>
   `;
@@ -2540,10 +2636,12 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
 
 function renderAthleteProfile() {
   const athlete = currentAthlete();
+  const copy = verticalCopy(athlete);
   if (!athlete) {
-    panel("athlete-profile", "Mi perfil", "Ficha emprendedora", `<div class="empty">No encontramos una ficha emprendedora vinculada a tu correo. Contacta a ROIS para asociarla.</div>`);
+    panel("athlete-profile", "Mi perfil", "Perfil profesional para sponsors", `<div class="empty">${copy.profileEmptyText}</div>`);
     return;
   }
+  const founder = isFounderProfile(athlete);
   const logos = athleteSponsorLogos(athlete);
   const annualRequired = athleteAnnualFeeRequired(athlete);
   panel("athlete-profile", "Mi perfil", "Perfil profesional para sponsors", `
@@ -2553,21 +2651,21 @@ function renderAthleteProfile() {
         <summary>Editar informacion profesional</summary>
       <form id="athleteProfileForm" class="form-grid">
         <label>Nombre<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
-        <label>Industria<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="Industria o disciplina"></label>
-        <label>Categor\u00eda<input name="category" value="${escapeAttr(athlete.category || "")}"></label>
-        <label>Ciudad / base operativa<input name="location" value="${escapeAttr(athlete.location || "")}"></label>
-        <label>Indicador clave / marca<input name="ranking" value="${escapeAttr(athlete.ranking || "")}"></label>
+        <label>${copy.primaryFieldLabel}<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="${escapeAttr(founder ? "Industria principal" : "Disciplina principal")}"></label>
+        <label>${copy.secondaryFieldLabel}<input name="category" value="${escapeAttr(athlete.category || "")}"></label>
+        <label>${copy.locationLabel}<input name="location" value="${escapeAttr(athlete.location || "")}"></label>
+        <label>${copy.rankingLabel}<input name="ranking" value="${escapeAttr(athlete.ranking || "")}"></label>
         <label>Ticket mensual objetivo<input name="monthly" type="number" min="0" value="${Number(athlete.monthly || 5000)}"></label>
         <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="${Number(athlete.max_sponsors || 10)}"></label>
         <label>Foto de perfil<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <label style="grid-column:1/-1">Resumen emprendedor<textarea name="stats" required placeholder="Avances, hitos, metricas, logros, objetivos y narrativa para patrocinadores.">${escapeHtml(athlete.stats || "")}</textarea></label>
-        <label style="grid-column:1/-1">Propuesta para sponsors PDF<input name="proposal_pdf" type="file" accept="application/pdf"></label>
-        <label style="grid-column:1/-1">Video o demo del emprendimiento opcional<input name="video_url" type="url" value="${escapeAttr(athlete.video_url || "")}" placeholder="YouTube, Vimeo, Drive o video publicado"></label>
+        <label style="grid-column:1/-1">${copy.summaryLabel}<textarea name="stats" required placeholder="${escapeAttr(copy.summaryPlaceholder)}">${escapeHtml(athlete.stats || "")}</textarea></label>
+        <label style="grid-column:1/-1">${copy.proposalLabel}<input name="proposal_pdf" type="file" accept="application/pdf"></label>
+        <label style="grid-column:1/-1">${copy.videoLabel} opcional<input name="video_url" type="url" value="${escapeAttr(athlete.video_url || "")}" placeholder="YouTube, Vimeo, Drive o video publicado"></label>
         <label style="grid-column:1/-1">Logos de sponsors actuales opcional<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
         <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por linea, en el mismo orden de los logos."></textarea></label>
         <div class="profile-status-grid" style="grid-column:1/-1">
           <div>
-            <span>Plan de trabajo</span>
+            <span>${copy.profileStatusLabel}</span>
             <strong>${athlete.proposal_url ? "Cargado" : "Pendiente"}</strong>
             ${athleteProposalLink(athlete)}
           </div>
@@ -2591,11 +2689,12 @@ function renderAthleteProfile() {
   document.querySelectorAll("[data-athlete-profile-tab]").forEach(button => {
     button.addEventListener("click", () => activateAthleteProfileTab(button.dataset.athleteProfileTab));
   });
-  if (annualRequired) document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", "Anualidad Emprendedora ROIS"));
+  if (annualRequired) document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", founder ? "Anualidad Emprendedora ROIS" : "Anualidad Deportiva ROIS"));
 }
 
 function renderAthleteSponsorships() {
   const athlete = currentAthlete();
+  const copy = verticalCopy(athlete);
   const email = state.session?.email || "";
   const name = athlete?.name || state.session?.name || "";
   const rows = state.data.sponsorships.filter(item => item.athlete === name || item.athlete_email === email).map(item => [
@@ -2604,19 +2703,21 @@ function renderAthleteSponsorships() {
     item.details || "Condiciones por confirmar",
     badge(item.status)
   ]);
-  panel("athlete-sponsorships", "Patrocinios", "Solicitudes y condiciones propuestas por empresas", rows.length ? table(["Empresa", "Monto", "Condiciones", "Estado"], rows) : `<div class="empty">Cuando una empresa solicite patrocinarte, aparecer\u00e1 aqu\u00ed.</div>`);
+  panel("athlete-sponsorships", copy.sponsorshipsTitle, copy.sponsorshipsSubtitle, rows.length ? table(["Empresa", "Monto", "Condiciones", "Estado"], rows) : `<div class="empty">Cuando una empresa te contacte para respaldarte, aparecera aqui.</div>`);
 }
 
-function scoutRulesList() {
+function scoutRulesList(profile = currentAthlete()) {
+  const founder = isFounderProfile(profile);
+  const singularProfile = founder ? "founder" : "deportista";
   return `
     <ul class="scout-rules">
-      <li>El scout no puede cobrar dinero directamente al deportista.</li>
+      <li>El scout no puede cobrar dinero directamente al ${singularProfile}.</li>
       <li>El pago de inscripcion se hace unicamente a ROIS.</li>
       <li>La comision es de $${scoutCommissionAmount.toLocaleString("es-MX")} MXN por cuenta pagada y validada.</li>
       <li>No se paga por registros incompletos ni cuentas duplicadas.</li>
       <li>No se puede prometer patrocinio automatico ni decir que ROIS garantiza sponsors.</li>
       <li>ROIS es una plataforma para construir perfil, documentar evolucion y aspirar a patrocinios.</li>
-      <li>Si el atleta es menor de edad, debe existir autorizacion de madre, padre o tutor.</li>
+      <li>${founder ? "Si el founder representa una entidad legal, debe compartir informacion valida y verificable para su revision." : "Si el atleta es menor de edad, debe existir autorizacion de madre, padre o tutor."}</li>
       <li>ROIS puede cancelar comisiones por fraude, abuso o informacion falsa.</li>
     </ul>
   `;
@@ -2624,8 +2725,13 @@ function scoutRulesList() {
 
 function renderAthleteScouts() {
   const athlete = currentAthlete();
+  const copy = verticalCopy(athlete);
+  const founder = isFounderProfile(athlete);
+  const referredLabel = founder ? "Founder" : "Deportista";
+  const referredPlural = founder ? "founders" : "deportistas";
+  const talentLabel = founder ? "talento emprendedor" : "talento deportivo";
   if (!athlete) {
-    panel("athlete-scouts", "Scouts", "Red de invitacion ROIS", `<div class="empty">No encontramos tu perfil deportivo.</div>`);
+    panel("athlete-scouts", copy.scoutsTitle, "Red de invitacion ROIS", `<div class="empty">${copy.profileEmptyText}</div>`);
     return;
   }
   const code = scoutCodeForAthlete(athlete);
@@ -2636,7 +2742,7 @@ function renderAthleteScouts() {
   const rows = referrals.map(item => {
     const status = scoutReferralStatus(item);
     return [
-      escapeHtml(item.name || "Deportista"),
+      escapeHtml(item.name || referredLabel),
       badge(item.created_at ? "registrado" : "registro"),
       status.paid ? badge("pagado") : badge("sin pago"),
       status.profile ? badge("perfil completo") : badge("perfil pendiente"),
@@ -2644,13 +2750,13 @@ function renderAthleteScouts() {
       status.eligible ? `$${scoutCommissionAmount.toLocaleString("es-MX")} MXN` : "$0 MXN"
     ];
   });
-  panel("athlete-scouts", "Scouts", "Invita deportistas y da seguimiento a tus comisiones", `
+  panel("athlete-scouts", copy.scoutsTitle, copy.scoutsSubtitle, `
     <div class="panel-body scout-dashboard">
       <div class="scout-code-card">
         <div>
           <p class="eyebrow">Codigo Scout ROIS</p>
           <h3>${code}</h3>
-          <p>${athlete.scout_active ? "Tu codigo esta activo para invitar deportistas." : "Unete a la red para activar tu codigo y empezar a invitar deportistas."}</p>
+          <p>${athlete.scout_active ? `Tu codigo esta activo para invitar ${referredPlural}.` : `Unete a la red para activar tu codigo y empezar a invitar ${referredPlural}.`}</p>
         </div>
         <div class="scout-actions">
           ${athlete.scout_active ? button("Copiar codigo", () => copyScoutCode(code)) : button("Unirme a Scouts ROIS", () => activateScoutNetwork(athlete))}
@@ -2664,14 +2770,18 @@ function renderAthleteScouts() {
       </div>
       <div class="scout-policy">
         <p class="eyebrow">Reglas obligatorias</p>
-        ${scoutRulesList()}
+        <p>La comision sigue siendo de $${scoutCommissionAmount.toLocaleString("es-MX")} MXN por referido directo activo y validado por ROIS.</p>
+        <p>Comparte tu codigo con ${referredPlural}, comunidades y perfiles alineados con el ${talentLabel} que quieres acercar al ecosistema.</p>
+        ${scoutRulesList(athlete)}
       </div>
     </div>
-    ${rows.length ? table(["Deportista", "Registro", "Pago", "Perfil", "Validacion", "Comision"], rows) : `<div class="empty">Aun no hay deportistas registrados con tu codigo.</div>`}
+    ${rows.length ? table([referredLabel, "Registro", "Pago", "Perfil", "Validacion", "Comision"], rows) : `<div class="empty">Aun no hay ${referredPlural} registrados con tu codigo.</div>`}
   `);
 }
 
 function renderAthleteResults() {
+  const athlete = currentAthlete();
+  const copy = verticalCopy(athlete);
   const email = state.session?.email || "";
   const rows = state.data.athlete_results.filter(item => item.athlete_email === email).map(item => [
     item.month,
@@ -2679,12 +2789,12 @@ function renderAthleteResults() {
     item.proof_url ? `<a class="btn" href="${item.proof_url}" target="_blank" rel="noopener">Ver soporte</a>` : badge("sin soporte"),
     badge(item.status)
   ]);
-  panel("athlete-results", "Resultados mensuales", "Evidencia deportiva para reportar a patrocinadores", `
+  panel("athlete-results", copy.resultsTitle, copy.resultsSubtitle, `
     <div class="panel-body">
       <form id="athleteResultForm" class="form-grid">
-        <label>Mes<input name="month" required placeholder="Junio 2026"></label>
-        <label>Hito / actividad<input name="event" required placeholder="Lanzamiento, venta, alianza, resultado o avance medible"></label>
-        <label style="grid-column:1/-1">Resultado documentado<textarea name="summary" required placeholder="Resultado, aprendizaje, avance y siguiente objetivo."></textarea></label>
+        <label>Mes<input name="month" required placeholder="${escapeAttr(copy.resultMonthPlaceholder)}"></label>
+        <label>Hito / actividad<input name="event" required placeholder="${escapeAttr(copy.resultEventPlaceholder)}"></label>
+        <label style="grid-column:1/-1">Resultado documentado<textarea name="summary" required placeholder="${escapeAttr(copy.resultSummaryPlaceholder)}"></textarea></label>
         <label style="grid-column:1/-1">Documento o imagen soporte<input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
         <button class="btn primary" type="submit">Subir resultado</button>
       </form>
@@ -3458,6 +3568,7 @@ async function submitAthleteProfile(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const athlete = currentAthlete();
+  const founder = isFounderProfile(athlete);
   if (!athlete) return;
   const imageFile = form.image.files[0];
   const proposalFile = form.proposal_pdf.files[0];
@@ -3485,7 +3596,7 @@ async function submitAthleteProfile(event) {
   await api.update("athletes", athlete.id, patch);
   state.session = { ...state.session, name: patch.name };
   saveSession(state.session);
-  notify("Perfil deportivo", "Perfil actualizado", imageFile ? "Tu nueva foto ya esta visible en tu perfil deportivo." : "Tu perfil deportivo fue actualizado.");
+  notify(founder ? "Perfil emprendedor" : "Perfil deportivo", "Perfil actualizado", imageFile ? `Tu nueva foto ya esta visible en tu ${founder ? "perfil emprendedor" : "perfil deportivo"}.` : `Tu ${founder ? "perfil emprendedor" : "perfil deportivo"} fue actualizado.`);
   renderAthlete();
   renderPublic();
 }
@@ -4266,6 +4377,7 @@ function athleteFeedCard(post) {
 
 function athleteOwnReelCard(post) {
   const athlete = currentAthlete() || state.data.athletes.find(item => item.email === post.athlete_email);
+  const founder = isFounderProfile(athlete);
   return `
     <article class="feed-card reel-card own-reel-card">
       <div class="feed-media reel-media">
@@ -4274,12 +4386,12 @@ function athleteOwnReelCard(post) {
       <div class="feed-content reel-content">
         <div>
           <p class="eyebrow">${readableDate(post.created_at)}</p>
-          <h3>${escapeHtml(post.title || "Reel deportivo")}</h3>
-          <p>${escapeHtml(post.caption || "Actualizacion deportiva.")}</p>
+          <h3>${escapeHtml(post.title || (founder ? "Publicacion emprendedora" : "Publicacion deportiva"))}</h3>
+          <p>${escapeHtml(post.caption || (founder ? "Actualizacion emprendedora." : "Actualizacion deportiva."))}</p>
         </div>
         <div class="reel-actions">
           ${post.video_url && !post.video_url.startsWith("data:video") ? `<a class="btn" href="${post.video_url}" target="_blank" rel="noopener">Abrir video</a>` : ""}
-          <button class="btn danger" type="button" data-athlete-delete-post="${escapeAttr(post.id)}">Eliminar reel</button>
+          <button class="btn danger" type="button" data-athlete-delete-post="${escapeAttr(post.id)}">Eliminar publicacion</button>
           ${badge(post.status || "published")}
         </div>
       </div>
@@ -4289,10 +4401,11 @@ function athleteOwnReelCard(post) {
 
 function openAthleteProfileView(athlete) {
   const modal = document.getElementById("actionModal");
+  const founder = isFounderProfile(athlete);
   modal.classList.add("profile-modal");
   notify(
-    "Perfil deportivo",
-    athlete.name || "Deportista ROIS",
+    founder ? "Perfil emprendedor" : "Perfil deportivo",
+    athlete.name || verticalCopy(athlete).profileDefaultName,
     "",
     `<div class="company-athlete-profile">${athleteProfileHero(athlete, athleteSponsorLogos(athlete), { readOnly: true, companyView: true })}</div>`
   );
@@ -4305,19 +4418,20 @@ function openAthleteProfileView(athlete) {
 async function deleteAthletePost(postId) {
   const post = state.data.athlete_posts.find(item => item.id === postId);
   const email = String(state.session?.email || "").toLowerCase();
+  const athlete = currentAthlete() || state.data.athletes.find(item => String(item.email || "").toLowerCase() === email);
   if (!post || String(post.athlete_email || "").toLowerCase() !== email) {
-    notify("Reels", "No autorizado", "Solo puedes eliminar contenido publicado desde tu cuenta.");
+    notify("Publicaciones", "No autorizado", "Solo puedes eliminar contenido publicado desde tu cuenta.");
     return;
   }
   const confirmed = window.confirm(`¿Eliminar "${post.title || "este reel"}"?`);
   if (!confirmed) return;
   try {
     await api.remove("athlete_posts", post.id);
-    notify("Reels", "Contenido eliminado", "El reel fue retirado de tu perfil y del feed empresarial.");
+    notify("Publicaciones", "Contenido eliminado", `La publicacion fue retirada de tu ${isFounderProfile(athlete) ? "perfil emprendedor" : "perfil deportivo"} y del feed empresarial.`);
     renderAthlete();
     renderClient();
   } catch (error) {
-    notify("Reels", "No fue posible eliminar", humanError(error));
+    notify("Publicaciones", "No fue posible eliminar", humanError(error));
   }
 }
 
