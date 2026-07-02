@@ -1480,6 +1480,7 @@ function renderPublic() {
     clearCoverCarousels();
     coverSlot.innerHTML = featuredCoverMarkup("home");
   }
+  renderHomeVisualSlots();
 
   const publicNews = (state.data?.news || []).filter(item => item.status === "published" && visualIsPublic(item));
   const publicNewsSlot = document.getElementById("publicNews");
@@ -1501,9 +1502,12 @@ function renderPublic() {
 
 function renderPublicShell() {
   const coverSlot = document.getElementById("publicHomeCover");
-  if (!coverSlot || coverSlot.innerHTML.trim()) return;
-  clearCoverCarousels();
-  coverSlot.innerHTML = featuredCoverMarkup("home");
+  if (!coverSlot) return;
+  if (!coverSlot.innerHTML.trim()) {
+    clearCoverCarousels();
+    coverSlot.innerHTML = featuredCoverMarkup("home");
+  }
+  renderHomeVisualSlots();
 }
 
 function siteSetting(id) {
@@ -1517,14 +1521,28 @@ function siteSetting(id) {
 }
 
 function advertisingCoverIds() {
-  return ["home_cover", "home_cover_2", "home_cover_3", "home_cover_4", "home_cover_5"];
+  return ["home_cover", "home_cover_2", "home_cover_3", "home_cover_4", "home_cover_5", "home_cover_6"];
+}
+
+function homeVisualSlotDefinitions() {
+  return [
+    { id: "home_cover", index: 1, label: "Portada principal", empty: "Portada principal disponible" },
+    { id: "home_cover_2", index: 2, label: "Tarjeta Empresas", empty: "Tarjeta Empresas disponible" },
+    { id: "home_cover_3", index: 3, label: "Tarjeta Founders", empty: "Tarjeta Founders disponible" },
+    { id: "home_cover_4", index: 4, label: "Tarjeta Athletes", empty: "Tarjeta Athletes disponible" },
+    { id: "home_cover_5", index: 5, label: "Visual Alianzas", empty: "Visual Alianzas disponible" },
+    { id: "home_cover_6", index: 6, label: "Visual Perfil", empty: "Visual Perfil disponible" }
+  ];
+}
+
+function homeVisualSlots() {
+  return homeVisualSlotDefinitions().map(slot => ({ ...slot, ...(siteSetting(slot.id) || {}) }));
 }
 
 function advertisingCovers() {
-  const covers = advertisingCoverIds()
-    .map((id, index) => ({ id, index, ...(siteSetting(id) || {}) }))
-    .filter(cover => cover.image_url)
-    .slice(0, 5);
+  const covers = homeVisualSlots()
+    .filter(cover => cover.id === "home_cover" && cover.image_url)
+    .slice(0, 1);
   if (covers.length) {
     cacheAdvertisingCovers(covers);
     return covers;
@@ -1533,11 +1551,11 @@ function advertisingCovers() {
 }
 
 function featuredAdvertisingCover() {
-  const preferredSlot = siteSetting("featured_home_cover_slot")?.slot || "home_cover";
-  const covers = advertisingCoverIds()
-    .map((id, index) => ({ id, index, ...(siteSetting(id) || {}) }));
-  const selected = covers.find(cover => cover.id === preferredSlot && cover.image_url);
-  return selected || covers.find(cover => cover.image_url) || null;
+  return homeVisualSlots().find(slot => slot.id === "home_cover" && slot.image_url) || null;
+}
+
+function homeVisualSlot(slotId) {
+  return homeVisualSlots().find(slot => slot.id === slotId) || null;
 }
 
 function cachedAdvertisingCovers() {
@@ -1564,12 +1582,11 @@ function cacheAdvertisingCovers(covers) {
 
 function staticCoverFallback(context = "home") {
   return `
-    <section class="${context === "client" ? "client-ad-cover" : "home-cover"} cover-carousel cover-fallback" data-cover-carousel>
-      <div class="cover-fallback-inner">
-        <svg class="cover-fallback-logo rois-logo-svg" viewBox="0 0 1200 420" role="img" aria-label="ROIS">
-          <use href="#roisLogoSymbol"></use>
-        </svg>
-        <p>Where Opportunity Finds Talent.</p>
+    <section class="${context === "client" ? "client-ad-cover" : "home-cover"} cover-carousel cover-fallback cover-static" data-cover-static>
+      <div class="featured-cover-placeholder">
+        <p class="eyebrow">PORTADA ROIS</p>
+        <h3>Espacio principal disponible</h3>
+        <p>Publica una portada horizontal desde el panel administrador para activar este espacio.</p>
       </div>
     </section>
   `;
@@ -1583,6 +1600,24 @@ function featuredCoverMarkup(context = "home") {
       <img class="cover-slide active" src="${cover.image_url}" alt="${escapeAttr(cover.title || "Portada publicitaria ROIS")}">
     </section>
   `;
+}
+
+function homeVisualMarkup(slotId) {
+  const slot = homeVisualSlot(slotId);
+  if (slot?.image_url) {
+    return `<img src="${slot.image_url}" alt="${escapeAttr(slot.title || slot.label || "Visual ROIS")}">`;
+  }
+  return `
+    <div class="home-visual-placeholder">
+      <span>${escapeHtml(slot?.label || "Espacio visual")}</span>
+    </div>
+  `;
+}
+
+function renderHomeVisualSlots() {
+  document.querySelectorAll("[data-home-visual]").forEach(slot => {
+    slot.innerHTML = homeVisualMarkup(slot.dataset.homeVisual);
+  });
 }
 
 function coverCarouselMarkup(context = "home") {
@@ -3232,9 +3267,8 @@ function renderAdminUploads() {
 }
 
 function renderAdminUploads() {
-  const homeCovers = advertisingCoverIds().map((id, index) => ({ id, index: index + 1, ...(siteSetting(id) || {}) }));
-  const featuredSlot = siteSetting("featured_home_cover_slot")?.slot || "home_cover";
-  const selectedCover = homeCovers.find(cover => cover.id === featuredSlot) || homeCovers.find(cover => cover.image_url) || homeCovers[0];
+  const homeCovers = homeVisualSlots();
+  const selectedCover = homeCovers.find(cover => cover.id === "home_cover") || homeCovers[0];
   const postRows = state.data.athlete_posts.map(item => [
     visualThumb(item),
     item.athlete_name || item.athlete_email,
@@ -3263,23 +3297,23 @@ function renderAdminUploads() {
   panel("admin-uploads", "Uploads", "Moderaci\u00f3n de visuales, reels, resultados y comprobantes", `
     <div class="panel-body">
       <form id="homeCoverForm" class="form-grid">
-        <label>Espacio publicitario<select name="slot">${homeCovers.map(cover => `<option value="${cover.id}" ${cover.id === featuredSlot ? "selected" : ""}>Portada ${cover.index}${cover.id === featuredSlot ? " - principal" : cover.image_url ? " - activa" : ""}</option>`).join("")}</select></label>
+        <label>Espacio visual<select name="slot">${homeCovers.map(cover => `<option value="${cover.id}">${cover.label}${cover.image_url ? " - activo" : ""}</option>`).join("")}</select></label>
         <label>Titulo interno<input name="title" value="${escapeAttr(selectedCover?.title || "")}" placeholder="Portada publicitaria ROIS"></label>
         <label style="grid-column:1/-1">Nota interna<textarea name="subtitle" placeholder="Uso comercial, patrocinador o campana.">${escapeHtml(selectedCover?.subtitle || "")}</textarea></label>
-        <label style="grid-column:1/-1">Imagen de portada<input name="cover" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <button class="btn primary" type="submit">Publicar portada</button>
-        <button class="btn" type="button" id="clearHomeCover">Quitar portada seleccionada</button>
+        <label style="grid-column:1/-1">Imagen del espacio<input name="cover" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <button class="btn primary" type="submit">Publicar visual</button>
+        <button class="btn" type="button" id="clearHomeCover">Quitar visual seleccionado</button>
       </form>
       ${homeCovers.some(cover => cover.image_url) ? `
         <div class="admin-cover-grid">
           ${homeCovers.map(cover => cover.image_url ? `
             <div class="cover-admin-preview">
               <img src="${cover.image_url}" alt="Portada ${cover.index}">
-              <span>Portada ${cover.index}${cover.id === featuredSlot ? " principal" : " activa"}</span>
+              <span>${cover.label}</span>
             </div>
-          ` : `<div class="cover-admin-preview empty"><span>Portada ${cover.index} disponible</span></div>`).join("")}
+          ` : `<div class="cover-admin-preview empty"><span>${cover.empty}</span></div>`).join("")}
         </div>
-      ` : `<p class="hint">La portada seleccionada se publica como visual principal estatico en home y dashboard empresarial. Recomendado: 1600 x 700 px o proporcion horizontal similar.</p>`}
+      ` : `<p class="hint">Cada recuadro visual del home se publica desde aquí. Usa proporciones horizontales para portada y alianzas, y proporciones editoriales para tarjetas.</p>`}
     </div>
     <div class="panel-body">
       <form id="uploadForm" class="form-grid">
@@ -3308,7 +3342,13 @@ function renderAdminUploads() {
     notify("Uploads", "Archivo registrado", "El visual qued\u00f3 pendiente de revisi\u00f3n.");
     renderAdmin();
   });
-  document.getElementById("homeCoverForm").addEventListener("submit", submitHomeCover);
+  const homeCoverForm = document.getElementById("homeCoverForm");
+  homeCoverForm.addEventListener("submit", submitHomeCover);
+  homeCoverForm.slot.addEventListener("change", () => {
+    const slot = homeVisualSlot(homeCoverForm.slot.value);
+    homeCoverForm.title.value = slot?.title || "";
+    homeCoverForm.subtitle.value = slot?.subtitle || "";
+  });
   document.getElementById("clearHomeCover")?.addEventListener("click", clearHomeCover);
 }
 
@@ -3333,11 +3373,7 @@ async function submitHomeCover(event) {
       subtitle: form.subtitle.value.trim()
     })
   });
-  await api.upsert("site_settings", {
-    id: "featured_home_cover_slot",
-    value: JSON.stringify({ slot })
-  });
-  notify("Portada", "Portada publicada", "La portada principal ya aparece de forma estatica en el home y en el dashboard empresarial.");
+  notify("Portada", "Visual publicado", slot === "home_cover" ? "La portada principal ya aparece en el home y en el dashboard empresarial." : "El visual seleccionado ya aparece en su espacio del home.");
   state.data = await api.loadAll();
   renderAdmin();
   renderPublic();
@@ -3347,11 +3383,7 @@ async function submitHomeCover(event) {
 async function clearHomeCover() {
   const slot = document.querySelector("#homeCoverForm [name='slot']")?.value || "home_cover";
   await api.remove("site_settings", slot);
-  const featuredSlot = siteSetting("featured_home_cover_slot")?.slot || "home_cover";
-  if (featuredSlot === slot) {
-    await api.remove("site_settings", "featured_home_cover_slot");
-  }
-  notify("Portada", "Portada retirada", "La portada seleccionada ya no aparece como visual principal.");
+  notify("Portada", "Visual retirado", slot === "home_cover" ? "La portada principal ya no aparece en el home." : "El visual seleccionado ya no aparece en ese recuadro.");
   state.data = await api.loadAll();
   renderAdmin();
   renderPublic();

@@ -11,16 +11,20 @@
 <body data-active-view="home">
   <svg class="rois-logo-sprite" aria-hidden="true" focusable="false">
     <symbol id="roisLogoSymbol" viewBox="0 0 1200 420">
-      <path d="M130 185H315C354 185 354 245 315 245H190L320 315" stroke="#fff" stroke-width="10" stroke-linecap="square" stroke-linejoin="round" />
-      <rect x="455" y="185" width="180" height="92" rx="46" stroke="#fff" stroke-width="10" />
-      <path d="M780 185V277" stroke="#fff" stroke-width="10" stroke-linecap="square" />
-      <path d="M940 185H1090M940 185C910 185 910 235 940 235H1060C1090 235 1090 277 1060 277H910" stroke="#fff" stroke-width="10" stroke-linecap="square" stroke-linejoin="round" />
+      <g fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M128 182H338C374 182 394 203 394 237C394 271 374 292 338 292H140" />
+        <path d="M140 292L312 378" />
+        <rect x="476" y="182" width="288" height="196" rx="98" />
+        <path d="M872 182V378" />
+        <path d="M974 182H1192" />
+        <path d="M974 182C938 182 916 204 916 238C916 272 938 294 974 294H1136C1172 294 1192 316 1192 350C1192 384 1172 406 1136 406H930" />
+      </g>
     </symbol>
   </svg>
   <div id="app" class="app-shell">
     <header class="topbar">
         <a href="#home" class="brand" data-route="home" aria-label="ROIS">
-          <img class="brand-logo premium-brand-image" src="./assets-home/logo-rois.png" alt="ROIS" />
+          <svg class="brand-logo rois-logo-svg" viewBox="0 0 1200 420" role="img" aria-label="ROIS"><use href="#roisLogoSymbol"></use></svg>
         </a>
       <nav class="public-nav" aria-label="Navegación pública">
         <a href="#network">Alianzas</a>
@@ -59,7 +63,7 @@
           </div>
           <div class="rois-role-grid">
             <article class="rois-role-card dark-card membership-card company">
-              <div class="membership-visual visual-company"><img src="./assets-home/rois-card-company.png" alt="Empresas ROIS" /></div>
+              <div class="membership-visual visual-company" data-home-visual="home_cover_2"></div>
               <p class="eyebrow">EMPRESAS</p>
               <h3>Accede a talento patrocinable.</h3>
               <p>Encuentra founders y athletes con perfiles documentados, resultados visibles y espacios de patrocinio disponibles.</p>
@@ -67,7 +71,7 @@
               <button class="btn primary" type="button" data-registration="company">CREAR CUENTA EMPRESA</button>
             </article>
             <article class="rois-role-card membership-card founder">
-              <div class="membership-visual visual-founder"><img src="./assets-home/rois-card-founder.png" alt="Founders ROIS" /></div>
+              <div class="membership-visual visual-founder" data-home-visual="home_cover_3"></div>
               <p class="eyebrow">FOUNDERS</p>
               <h3>Convierte tu visión en un activo patrocinable.</h3>
               <p>Construye tu perfil, presenta tu propuesta para sponsors, documenta avances y activa tu red de crecimiento.</p>
@@ -76,7 +80,7 @@
               <button class="btn" type="button" data-registration="founder">UNIRME COMO FOUNDER</button>
             </article>
             <article class="rois-role-card membership-card athlete">
-              <div class="membership-visual visual-athlete"><img src="./assets-home/rois-card-athlete.png" alt="Athletes ROIS" /></div>
+              <div class="membership-visual visual-athlete" data-home-visual="home_cover_4"></div>
               <p class="eyebrow">ATHLETES</p>
               <h3>Lleva tu carrera al siguiente nivel.</h3>
               <p>Documenta tu trayectoria, resultados, publicaciones y valor para patrocinadores en un perfil profesional.</p>
@@ -118,7 +122,7 @@
             <h2>Una red privada para convertir talento en crecimiento.</h2>
           </div>
           <div class="premium-network-band">
-            <div class="premium-network-panel premium-network-left"><img src="./assets-home/rois-f1-alliance.png" alt="Alianzas ROIS" /></div>
+            <div class="premium-network-panel premium-network-left" data-home-visual="home_cover_5"></div>
             <div class="premium-network-center">
               <p class="eyebrow">ALIANZAS QUE ABREN PUERTAS</p>
               <h3>Capital, presencia y alianzas.</h3>
@@ -139,7 +143,7 @@
                 </article>
               </div>
             </div>
-            <div class="premium-network-panel premium-network-right"><img src="./assets-home/rois-profile-woman.png" alt="Perfil ROIS" /></div>
+            <div class="premium-network-panel premium-network-right" data-home-visual="home_cover_6"></div>
           </div>
         </section>
 
@@ -163,7 +167,7 @@
           <div class="public-list" id="publicNews"></div>
         </section>
         <footer class="premium-home-footer" id="footer">
-          <img class="brand-logo premium-brand-image" src="./assets-home/logo-rois.png" alt="ROIS" />
+          <svg class="brand-logo rois-logo-svg" viewBox="0 0 1200 420" role="img" aria-label="ROIS"><use href="#roisLogoSymbol"></use></svg>
           <p>DONDE EL TALENTO CONECTA CON EL FUTURO.</p>
           <div class="premium-home-footer-actions">
             <p>Operado por IntelliQuant S.A.P.I. de C.V.</p>
@@ -642,6 +646,35 @@
         margin: 0;
         color: rgba(244, 246, 248, 0.68);
         line-height: 1.7;
+      }
+
+      body[data-active-view="home"] .membership-visual img,
+      body[data-active-view="home"] .premium-network-panel img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      body[data-active-view="home"] .home-visual-placeholder {
+        width: 100%;
+        height: 100%;
+        min-height: inherit;
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-start;
+        padding: 18px;
+        background:
+          radial-gradient(circle at 68% 28%, rgba(255, 255, 255, 0.12), transparent 18%),
+          linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)),
+          linear-gradient(135deg, #08090a, #13161a 62%, #090909);
+      }
+
+      body[data-active-view="home"] .home-visual-placeholder span {
+        color: rgba(244, 246, 248, 0.82);
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
       }
 
       body[data-active-view="home"] #publicNews .empty {
