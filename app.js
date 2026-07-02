@@ -564,11 +564,11 @@ function demoApi() {
         profile_id: id,
         email: payload.email,
         name: payload.name,
-        sport: "Por definir",
-        category: "",
-        location: "",
+        sport: payload.sport || "Por definir",
+        category: payload.category || "",
+        location: payload.location || "",
         ranking: "",
-        stats: "",
+        stats: payload.stats || "",
         annual: athleteAnnualFeeAmount,
         annual_fee_required: false,
         monthly: 5000,
@@ -811,11 +811,11 @@ function supabaseApi() {
           body: JSON.stringify({
             email: payload.email,
             name: payload.name,
-            sport: "Por definir",
-            category: "",
-            location: "",
+            sport: payload.sport || "Por definir",
+            category: payload.category || "",
+            location: payload.location || "",
             ranking: "",
-            stats: "",
+            stats: payload.stats || "",
             annual: athleteAnnualFeeAmount,
             annual_fee_required: false,
             monthly: 5000,
@@ -863,11 +863,11 @@ function supabaseApi() {
           profile_id: authUser.id,
           email: payload.email,
           name: payload.name,
-          sport: "Por definir",
-          category: "",
-          location: "",
+          sport: payload.sport || "Por definir",
+          category: payload.category || "",
+          location: payload.location || "",
           ranking: "",
-          stats: "",
+          stats: payload.stats || "",
           annual: athleteAnnualFeeAmount,
           annual_fee_required: false,
           monthly: 5000,
@@ -4686,11 +4686,17 @@ async function sponsorLogoPayload(fileList, namesValue = "") {
 
 function openRegistration(type) {
   state.registrationType = type;
-  const title = type === "company" ? "Crear cuenta de empresa" : type === "athlete" ? "Registro de deportista" : "Registro de evento";
+  const title = type === "company"
+    ? "Crear cuenta de empresa"
+    : type === "founder"
+      ? "Registro de founder"
+      : type === "athlete"
+        ? "Registro de deportista"
+        : "Registro de evento";
   document.getElementById("registrationKicker").textContent = "Registro ROIS";
   document.getElementById("registrationTitle").textContent = title;
   document.getElementById("registrationForm").innerHTML = registrationFields(type);
-  setupAthleteAgeGate();
+  if (type === "athlete") setupAthleteAgeGate();
   document.getElementById("registrationModal").classList.add("active");
 }
 
@@ -4746,7 +4752,28 @@ function registrationFields(type) {
         <input name="terms" type="checkbox" required>
         <span>Acepto las condiciones iniciales de ROIS e ${roisLegalEntity}: el perfil deportivo queda sujeto a revision, cualquier patrocinio debe gestionarse por la plataforma y, en caso de menores de edad, se requerira validacion de madre, padre o tutor legal antes de activar representacion comercial.</span>
       </label>
-      <button class="btn primary full" type="submit">Crear cuenta emprendedora</button>
+      <button class="btn primary full" type="submit">Crear cuenta athlete</button>
+    `;
+  }
+  if (type === "founder") {
+    return `
+      <label>Nombre del founder<input name="name" required placeholder="Nombre del founder"></label>
+      <label>Correo<input name="email" type="email" required placeholder="correo@founder.com"></label>
+      <label style="grid-column:1/-1">Nombre del emprendimiento<input name="venture_name" required placeholder="Nombre del proyecto o empresa"></label>
+      <label>Industria<input name="industry" required placeholder="Tecnologia, salud, consumo, fintech..."></label>
+      <label>Etapa<input name="stage" required placeholder="Idea, MVP, traccion, crecimiento"></label>
+      <label>Ciudad<input name="city" required placeholder="Ciudad base"></label>
+      <label>Contrasena<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Minimo 8 caracteres"></label>
+      <label>Confirmar contrasena<input name="confirm" type="password" minlength="8" autocomplete="new-password" required placeholder="Repite tu contrasena"></label>
+      <div class="registration-note" style="grid-column:1/-1">
+        <p class="eyebrow">Membresia founder</p>
+        <p>Tu cuenta founder usa compatibilidad tecnica con el perfil ROIS actual. Despues de entrar podras completar tu propuesta para sponsors, avances, resultados y activar tu codigo de referidos.</p>
+      </div>
+      <label class="check-option" style="grid-column:1/-1">
+        <input name="terms" type="checkbox" required>
+        <span>Acepto las condiciones iniciales de ROIS e ${roisLegalEntity}: mi perfil emprendedor queda sujeto a revision y cualquier relacion comercial o patrocinio se gestiona dentro de la plataforma.</span>
+      </label>
+      <button class="btn primary full" type="submit">Crear cuenta founder</button>
     `;
   }
   return `
@@ -4831,7 +4858,11 @@ async function submitRegistration(event) {
         guardianPhone: isMinor ? form.guardian_phone.value.trim() : "",
         guardianRelationship: isMinor ? form.guardian_relationship.value : "",
         guardianConsent: isMinor ? form.guardian_consent.checked : false,
-        termsAccepted: form.terms.checked
+        termsAccepted: form.terms.checked,
+        sport: "Por definir",
+        category: "",
+        location: "",
+        stats: ""
       });
       closeModals();
       if (signup.confirmed) {
@@ -4842,6 +4873,49 @@ async function submitRegistration(event) {
         renderAthlete();
         showView("athlete");
         notify("Perfil deportivo", "Bienvenido a ROIS", isMinor ? "Cuenta creada con autorización de tutor. ROIS revisará la documentación antes de activar patrocinios." : "Explora tu dashboard y completa tu perfil profesional. ROIS habilitara el pago anual desde admin cuando corresponda.");
+      } else {
+        showVerificationNotice(signup.email || form.email.value);
+      }
+      renderAdmin();
+      renderPublic();
+      return;
+    } else if (type === "founder") {
+      if (form.password.value !== form.confirm.value) {
+        notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrase\u00f1a para crear tu cuenta founder.");
+        return;
+      }
+      const founderIndustry = form.industry.value.trim() || "Founder ROIS";
+      const founderStage = form.stage.value.trim();
+      const founderCity = form.city.value.trim();
+      const ventureName = form.venture_name.value.trim();
+      const founderStats = `Founder ROIS. Emprendimiento: ${ventureName}. Industria: ${founderIndustry}. Etapa: ${founderStage}. Ciudad: ${founderCity}.`;
+      const signup = await api.signupAthlete({
+        email: form.email.value,
+        password: form.password.value,
+        name: form.name.value,
+        scoutCode: "",
+        birthDate: "",
+        isMinor: false,
+        guardianName: "",
+        guardianEmail: "",
+        guardianPhone: "",
+        guardianRelationship: "",
+        guardianConsent: false,
+        termsAccepted: form.terms.checked,
+        sport: founderIndustry || "Founder ROIS",
+        category: founderStage,
+        location: founderCity,
+        stats: founderStats
+      });
+      closeModals();
+      if (signup.confirmed) {
+        state.session = signup.session;
+        saveSession(state.session);
+        await api.insert("terms_acceptances", { user_email: form.email.value, user_role: "athlete", version: "founder-registration-v1-intelliquant", status: "accepted" });
+        renderSession();
+        renderAthlete();
+        showView("athlete");
+        notify("Perfil founder", "Bienvenido a ROIS", "Tu cuenta founder ya puede completar perfil, propuesta para sponsors y resultados dentro del dashboard.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }

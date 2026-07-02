@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -22,7 +22,7 @@
       <a href="#home" class="brand" data-route="home" aria-label="ROIS">
         <svg class="brand-logo rois-logo-svg" viewBox="0 0 1200 420" role="img" aria-label="ROIS"><use href="#roisLogoSymbol"></use></svg>
       </a>
-      <nav class="public-nav" aria-label="Navegación pública">
+      <nav class="public-nav" aria-label="NavegaciÃ³n pÃºblica">
         <a href="#rois">ROIS</a>
         <a href="#registration">Accesos</a>
         <a href="#news">Noticias</a>
@@ -36,6 +36,41 @@
     <main>
       <section class="view active" id="homeView" data-view="home">
         <div class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">Plataforma privada institucional</p>
+            <h1>Patrocina, construye reputacion y convierte talento en oportunidades.</h1>
+            <p class="lead">ROIS conecta empresas, founders y athletes dentro de una plataforma privada para construir perfiles patrocinables, generar visibilidad, documentar resultados y activar relaciones comerciales.</p>
+            <div class="actions">
+              <button class="btn primary hero-cta" type="button" data-registration="company">Crear cuenta empresa</button>
+              <button class="btn hero-cta" type="button" data-registration="founder">Unirme como founder</button>
+              <button class="btn subtle hero-cta" type="button" data-registration="athlete">Unirme como athlete</button>
+            </div>
+            <p class="hint">Operado por IntelliQuant S.A.P.I. de C.V.</p>
+          </div>
+          <aside class="hero-access" id="registration" aria-label="Accesos al ecosistema ROIS">
+            <p class="eyebrow">Accesos ROIS</p>
+            <h2>Tres membresias. Una red privada.</h2>
+            <div class="registration-grid compact">
+              <button class="registration-card primary-card" type="button" data-registration="company">
+                <span class="eyebrow">EMPRESAS</span>
+                <strong>Accede a founders y athletes patrocinables.</strong>
+                <small>Explora perfiles, identifica talento, activa patrocinios y construye presencia dentro de una red privada operada por ROIS.</small>
+                <em>$5,000 MXN + IVA / mes</em>
+              </button>
+              <button class="registration-card" type="button" data-registration="founder">
+                <span class="eyebrow">FOUNDERS</span>
+                <strong>Construye una vision patrocinable.</strong>
+                <small>Crea tu perfil emprendedor, documenta avances, presenta tu propuesta para sponsors y activa tu codigo de referidos.</small>
+                <em>$2,500 MXN + IVA / mes</em>
+              </button>
+              <button class="registration-card" type="button" data-registration="athlete">
+                <span class="eyebrow">ATHLETES</span>
+                <strong>Convierte tu carrera deportiva en un activo patrocinable.</strong>
+                <small>Documenta resultados, publicaciones, sponsors y evolucion deportiva en un perfil profesional para marcas y empresas.</small>
+                <em>$2,500 MXN + IVA / mes</em>
+              </button>
+            </div>
+          </aside>
           <div id="publicHomeCover">
             <section class="home-cover cover-carousel cover-fallback" data-cover-carousel>
               <div class="cover-fallback-inner">
@@ -46,60 +81,84 @@
               </div>
             </section>
           </div>
-          <div class="hero-copy">
-            <p class="eyebrow">Plataforma privada institucional</p>
-            <h1>Acceso privado. Redes exclusivas. Crecimiento estratégico.</h1>
-            <p class="lead">ROIS conecta empresas, deportistas competitivos, scouts y alianzas premium en una herramienta privada para activar patrocinios, oportunidades VIP y relaciones institucionales con seguimiento operativo.</p>
-          </div>
-          <aside class="hero-access" id="registration" aria-label="Accesos al ecosistema ROIS">
-            <p class="eyebrow">Accesos ROIS</p>
-            <h2>Entra al ecosistema ROIS.</h2>
-            <div class="registration-grid compact">
-              <button class="registration-card primary-card" type="button" data-registration="company">
-                <span class="eyebrow">Empresas</span>
-                <strong>Crear cuenta empresarial</strong>
-                <small>Explora oportunidades, deportistas, Centro VIP, noticias y solicitudes de patrocinio.</small>
-                <em>Crear cuenta</em>
-              </button>
-              <button class="registration-card" type="button" data-registration="athlete">
-                <span class="eyebrow">Deportistas</span>
-                <strong>Postular perfil deportivo</strong>
-                <small>Crea tu perfil, publica reels, documenta resultados y recibe seguimiento de ROIS.</small>
-                <em>Postular</em>
-              </button>
-              <button class="registration-card" type="button" data-registration="athlete">
-                <span class="eyebrow">Scouts</span>
-                <strong>Invitar talento deportivo</strong>
-                <small>La red de scouts ayuda a identificar atletas competitivos con acceso curado.</small>
-                <em>Solicitar código</em>
-              </button>
-            </div>
-          </aside>
         </div>
 
         <section class="public-section rois-launch-section" id="rois">
           <div class="section-head">
+            <p class="eyebrow">Accesos ROIS</p>
+            <h2>Empresas, Founders y Athletes con rutas claras para activar membresias pagadas.</h2>
+          </div>
+          <div class="rois-role-grid">
+            <article class="rois-role-card dark-card">
+              <p class="eyebrow">EMPRESAS</p>
+              <h3>Accede a founders y athletes patrocinables.</h3>
+              <p>Explora perfiles, identifica talento, activa patrocinios y construye presencia dentro de una red privada operada por ROIS.</p>
+              <p><strong>$5,000 MXN + IVA / mes</strong></p>
+              <button class="btn primary" type="button" data-registration="company">Crear cuenta empresa</button>
+            </article>
+            <article class="rois-role-card">
+              <p class="eyebrow">FOUNDERS</p>
+              <h3>Construye una vision patrocinable.</h3>
+              <p>Crea tu perfil emprendedor, documenta avances, presenta tu propuesta para sponsors y activa tu codigo de referidos.</p>
+              <p><strong>$2,500 MXN + IVA / mes</strong></p>
+              <p>Gana $500 MXN mensuales por cada referido directo activo.</p>
+              <button class="btn" type="button" data-registration="founder">Unirme como founder</button>
+            </article>
+            <article class="rois-role-card">
+              <p class="eyebrow">ATHLETES</p>
+              <h3>Convierte tu carrera deportiva en un activo patrocinable.</h3>
+              <p>Documenta resultados, publicaciones, sponsors y evolucion deportiva en un perfil profesional para marcas y empresas.</p>
+              <p><strong>$2,500 MXN + IVA / mes</strong></p>
+              <p>Gana $500 MXN mensuales por cada referido directo activo.</p>
+              <button class="btn" type="button" data-registration="athlete">Unirme como athlete</button>
+            </article>
+          </div>
+        </section>
+
+        <section class="public-section">
+          <div class="section-head">
+            <p class="eyebrow">Como funciona</p>
+            <h2>Tres pasos simples para entrar a la red privada ROIS.</h2>
+          </div>
+          <div class="rois-role-grid">
+            <article class="rois-role-card">
+              <p class="eyebrow">Paso 1</p>
+              <h3>Elige tu membresia</h3>
+              <p>Empresa, Founder o Athlete.</p>
+            </article>
+            <article class="rois-role-card">
+              <p class="eyebrow">Paso 2</p>
+              <h3>Crea tu perfil</h3>
+              <p>Completa datos, vision, redes, resultados y propuesta para sponsors.</p>
+            </article>
+            <article class="rois-role-card">
+              <p class="eyebrow">Paso 3</p>
+              <h3>Activa oportunidades</h3>
+              <p>Usa tu perfil, tus sponsors, tu codigo de referidos y tus resultados para crecer dentro de ROIS.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="public-section">
+          <div class="section-head">
             <p class="eyebrow">Herramienta ROIS</p>
-            <h2>Una plataforma para convertir talento, relaciones y eventos en oportunidades medibles.</h2>
+            <h2>Una plataforma privada para convertir reputacion, resultados y relaciones en oportunidades comerciales.</h2>
           </div>
           <div class="rois-role-grid">
             <article class="rois-role-card dark-card">
               <p class="eyebrow">Empresas</p>
-              <h3>Patrocinios, Centro VIP y acceso a oportunidades privadas.</h3>
-              <p>Las empresas usan ROIS para revisar deportistas, productos derivados de alianzas, noticias del ecosistema y oportunidades premium. Desde su dashboard pueden solicitar patrocinios, explorar perfiles y operar con seguimiento de ROIS.</p>
-              <button class="btn primary" type="button" data-registration="company">Crear cuenta empresarial</button>
+              <h3>Acceso a talento patrocinable</h3>
+              <p>Las empresas encuentran founders y athletes con perfiles documentados, resultados visibles y espacios de patrocinio disponibles.</p>
             </article>
             <article class="rois-role-card">
-              <p class="eyebrow">Deportistas</p>
-              <h3>Perfil profesional, reels, resultados y patrocinadores.</h3>
-              <p>Los deportistas construyen un perfil visible para empresas: publican entrenamientos, documentan resultados, agregan sponsors, suben su plan de trabajo y reciben notificaciones operativas de ROIS.</p>
-              <button class="btn" type="button" data-registration="athlete">Postular perfil</button>
+              <p class="eyebrow">Founders</p>
+              <h3>Perfil, sponsors y red de crecimiento</h3>
+              <p>Los founders construyen reputacion, explican su vision, documentan avances y generan valor para patrocinadores.</p>
             </article>
             <article class="rois-role-card">
-              <p class="eyebrow">Scouts</p>
-              <h3>Red curada para invitar talento competitivo.</h3>
-              <p>Los scouts ROIS invitan atletas con código, dan trazabilidad al origen del talento y participan en un modelo de comisión validado cuando el deportista completa su ingreso y perfil.</p>
-              <button class="btn" type="button" data-registration="athlete">Solicitar código scout</button>
+              <p class="eyebrow">Athletes</p>
+              <h3>Resultados, carrera y patrocinadores</h3>
+              <p>Los athletes muestran su trayectoria, resultados y narrativa deportiva para convertirse en perfiles patrocinables.</p>
             </article>
           </div>
         </section>
@@ -114,18 +173,18 @@
       </section>
 
       <section class="view dashboard" id="clientView" data-view="client">
-        <div class="mobile-appbar" aria-label="Navegación móvil cliente">
-          <button class="mobile-avatar" type="button" data-mobile-menu="client" aria-label="Abrir menú"><img src="./assets/rois-isotipo-cropped.png" alt="ROIS" /></button>
-          <button class="mobile-app-action" type="button" data-mobile-menu="client" aria-label="Abrir menú">☰</button>
+        <div class="mobile-appbar" aria-label="NavegaciÃ³n mÃ³vil cliente">
+          <button class="mobile-avatar" type="button" data-mobile-menu="client" aria-label="Abrir menÃº"><img src="./assets/rois-isotipo-cropped.png" alt="ROIS" /></button>
+          <button class="mobile-app-action" type="button" data-mobile-menu="client" aria-label="Abrir menÃº">â˜°</button>
         </div>
-        <button class="mobile-dash-toggle" type="button" data-mobile-menu="client" aria-label="Abrir menú de cliente">
+        <button class="mobile-dash-toggle" type="button" data-mobile-menu="client" aria-label="Abrir menÃº de cliente">
           <span></span><span></span><span></span>
-          <strong>Menú</strong>
+          <strong>MenÃº</strong>
         </button>
-        <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar menú"></button>
+        <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar menÃº"></button>
         <div class="client-dashboard-cover-slot" id="clientDashboardCover"></div>
         <aside class="sidebar">
-          <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menú">×</button>
+          <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menÃº">Ã—</button>
           <nav class="side-nav" data-dashboard-nav="client">
             <button class="active" type="button" data-dashboard-target="client-overview">Inicio</button>
             <button type="button" data-dashboard-target="client-events">Eventos</button>
@@ -135,7 +194,7 @@
             <button type="button" data-dashboard-target="client-marketplace">Marketplace Deportistas</button>
             <button type="button" data-dashboard-target="client-register">Registrar Evento</button>
             <button type="button" data-dashboard-target="client-payments">Pagos</button>
-            <button type="button" data-dashboard-target="client-settings">Configuración</button>
+            <button type="button" data-dashboard-target="client-settings">ConfiguraciÃ³n</button>
           </nav>
         </aside>
         <div class="workspace" data-dashboard="client">
@@ -162,17 +221,17 @@
       </section>
 
       <section class="view dashboard athlete-social" id="athleteView" data-view="athlete">
-        <div class="mobile-appbar" aria-label="Navegación móvil deportista">
-          <button class="mobile-avatar" type="button" data-mobile-menu="athlete" aria-label="Abrir menú"><img src="./assets/rois-isotipo-cropped.png" alt="ROIS" /></button>
-          <button class="mobile-app-action" type="button" data-mobile-menu="athlete" aria-label="Abrir menú">☰</button>
+        <div class="mobile-appbar" aria-label="NavegaciÃ³n mÃ³vil deportista">
+          <button class="mobile-avatar" type="button" data-mobile-menu="athlete" aria-label="Abrir menÃº"><img src="./assets/rois-isotipo-cropped.png" alt="ROIS" /></button>
+          <button class="mobile-app-action" type="button" data-mobile-menu="athlete" aria-label="Abrir menÃº">â˜°</button>
         </div>
-        <button class="mobile-dash-toggle" type="button" data-mobile-menu="athlete" aria-label="Abrir menú deportista">
+        <button class="mobile-dash-toggle" type="button" data-mobile-menu="athlete" aria-label="Abrir menÃº deportista">
           <span></span><span></span><span></span>
-          <strong>Menú</strong>
+          <strong>MenÃº</strong>
         </button>
-        <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar menú"></button>
+        <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar menÃº"></button>
         <aside class="sidebar">
-          <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menú">×</button>
+          <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menÃº">Ã—</button>
           <nav class="side-nav" data-dashboard-nav="athlete">
             <button class="active" type="button" data-dashboard-target="athlete-profile">Perfil</button>
             <button type="button" data-dashboard-target="athlete-notifications">Notificaciones</button>
@@ -191,7 +250,7 @@
                 <h1 id="athleteAccountName">Panel deportista</h1>
               </div>
             </div>
-            <button class="btn" type="button" data-logout>Cerrar sesión</button>
+            <button class="btn" type="button" data-logout>Cerrar sesiÃ³n</button>
           </div>
           <div class="kpis" id="athleteKpis"></div>
           <section class="dash-section active" data-dashboard-panel="athlete-profile"></section>
@@ -204,17 +263,17 @@
       </section>
 
       <section class="view dashboard" id="adminView" data-view="admin">
-        <div class="mobile-appbar" aria-label="Navegación móvil administrador">
-          <button class="mobile-avatar" type="button" data-mobile-menu="admin" aria-label="Abrir menú"><img src="./assets/rois-isotipo-cropped.png" alt="ROIS" /></button>
-          <button class="mobile-app-action" type="button" data-mobile-menu="admin" aria-label="Abrir menú">☰</button>
+        <div class="mobile-appbar" aria-label="NavegaciÃ³n mÃ³vil administrador">
+          <button class="mobile-avatar" type="button" data-mobile-menu="admin" aria-label="Abrir menÃº"><img src="./assets/rois-isotipo-cropped.png" alt="ROIS" /></button>
+          <button class="mobile-app-action" type="button" data-mobile-menu="admin" aria-label="Abrir menÃº">â˜°</button>
         </div>
-        <button class="mobile-dash-toggle" type="button" data-mobile-menu="admin" aria-label="Abrir menú administrador">
+        <button class="mobile-dash-toggle" type="button" data-mobile-menu="admin" aria-label="Abrir menÃº administrador">
           <span></span><span></span><span></span>
-          <strong>Menú</strong>
+          <strong>MenÃº</strong>
         </button>
-        <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar menú"></button>
+        <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar menÃº"></button>
         <aside class="sidebar">
-          <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menú">×</button>
+          <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menÃº">Ã—</button>
           <nav class="side-nav" data-dashboard-nav="admin">
             <button class="active" type="button" data-dashboard-target="admin-users">Usuarios</button>
             <button type="button" data-dashboard-target="admin-athletes">Deportistas</button>
@@ -227,17 +286,17 @@
             <button type="button" data-dashboard-target="admin-payments">Pagos</button>
             <button type="button" data-dashboard-target="admin-uploads">Uploads</button>
             <button type="button" data-dashboard-target="admin-launch">Lanzamiento</button>
-            <button type="button" data-dashboard-target="admin-stats">Estadísticas</button>
-            <button type="button" data-dashboard-target="admin-settings">Configuración</button>
+            <button type="button" data-dashboard-target="admin-stats">EstadÃ­sticas</button>
+            <button type="button" data-dashboard-target="admin-settings">ConfiguraciÃ³n</button>
           </nav>
         </aside>
         <div class="workspace" data-dashboard="admin">
           <div class="workspace-head">
             <div>
-              <p class="eyebrow">Operación interna</p>
+              <p class="eyebrow">OperaciÃ³n interna</p>
               <h1>Panel administrador</h1>
             </div>
-            <button class="btn" type="button" data-logout>Cerrar sesión</button>
+            <button class="btn" type="button" data-logout>Cerrar sesiÃ³n</button>
           </div>
           <div class="kpis" id="adminKpis"></div>
           <section class="dash-section active" data-dashboard-panel="admin-users"></section>
@@ -260,24 +319,24 @@
 
   <div class="modal" id="loginModal" aria-hidden="true">
     <div class="modal-card">
-      <button class="modal-close" type="button" data-close-modal>×</button>
+      <button class="modal-close" type="button" data-close-modal>Ã—</button>
       <p class="eyebrow">Acceso ROIS</p>
       <h2>Ingreso privado</h2>
       <form id="loginForm">
         <label>Correo
           <input name="email" type="email" autocomplete="email" placeholder="correo autorizado" required />
         </label>
-        <label>Contraseña
-          <input name="password" type="password" autocomplete="current-password" placeholder="contraseña" required />
+        <label>ContraseÃ±a
+          <input name="password" type="password" autocomplete="current-password" placeholder="contraseÃ±a" required />
         </label>
         <button class="btn primary full" type="submit">Entrar</button>
       </form>
-      <button class="link-button" type="button" data-open-recovery>Recuperar contraseña</button>
+      <button class="link-button" type="button" data-open-recovery>Recuperar contraseÃ±a</button>
       <form id="recoveryForm" class="recovery-form" hidden>
-        <label>Correo de recuperación
+        <label>Correo de recuperaciÃ³n
           <input name="email" type="email" autocomplete="email" placeholder="correo registrado" required />
         </label>
-        <button class="btn full" type="submit">Enviar enlace de recuperación</button>
+        <button class="btn full" type="submit">Enviar enlace de recuperaciÃ³n</button>
       </form>
     </div>
   </div>
@@ -285,23 +344,23 @@
   <div class="modal" id="passwordModal" aria-hidden="true">
     <div class="modal-card">
       <p class="eyebrow">Primer acceso</p>
-      <h2>Cambia tu contraseña</h2>
-      <p class="hint">Por seguridad, el primer acceso requiere definir una contraseña nueva.</p>
+      <h2>Cambia tu contraseÃ±a</h2>
+      <p class="hint">Por seguridad, el primer acceso requiere definir una contraseÃ±a nueva.</p>
       <form id="passwordForm">
-        <label>Nueva contraseña
+        <label>Nueva contraseÃ±a
           <input name="password" type="password" minlength="8" autocomplete="new-password" required />
         </label>
-        <label>Confirmar contraseña
+        <label>Confirmar contraseÃ±a
           <input name="confirm" type="password" minlength="8" autocomplete="new-password" required />
         </label>
-        <button class="btn primary full" type="submit">Guardar contraseña</button>
+        <button class="btn primary full" type="submit">Guardar contraseÃ±a</button>
       </form>
     </div>
   </div>
 
   <div class="modal" id="registrationModal" aria-hidden="true">
     <div class="modal-card">
-      <button class="modal-close" type="button" data-close-modal>×</button>
+      <button class="modal-close" type="button" data-close-modal>Ã—</button>
       <p class="eyebrow" id="registrationKicker">Registro</p>
       <h2 id="registrationTitle">Nuevo registro</h2>
       <form id="registrationForm"></form>
@@ -310,9 +369,9 @@
 
   <div class="modal" id="actionModal" aria-hidden="true">
     <div class="modal-card">
-      <button class="modal-close" type="button" data-close-modal>×</button>
+      <button class="modal-close" type="button" data-close-modal>Ã—</button>
       <p class="eyebrow" id="actionKicker">ROIS</p>
-      <h2 id="actionTitle">Acción completada</h2>
+      <h2 id="actionTitle">AcciÃ³n completada</h2>
       <p id="actionText" class="hint"></p>
       <div class="modal-actions" id="actionActions"></div>
       <button class="btn primary full" type="button" data-close-modal>Continuar</button>
@@ -323,3 +382,5 @@
   <script src="./app.js?v=20260630-stable-data-v75" charset="UTF-8"></script>
 </body>
 </html>
+
+
