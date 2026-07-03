@@ -3035,6 +3035,7 @@ function renderAdminPanel(targetId) {
     "admin-news": renderAdminNews,
     "admin-partners": renderAdminPartners,
     "admin-crm": renderAdminCrm,
+    "admin-revenue": renderAdminRevenue,
     "admin-payments": renderAdminPayments,
     "admin-uploads": renderAdminUploads,
     "admin-launch": renderAdminLaunch,
@@ -3047,6 +3048,7 @@ function renderAdminPanel(targetId) {
 function renderAdminKpis() {
   const pendingUsers = state.data.profiles.filter(item => item.status === "pending").length + state.data.companies.filter(item => item.status === "pending").length;
   const paid = state.data.payments.filter(item => item.status === "paid").reduce((sum, item) => sum + Number(item.amount), 0);
+  const pendingRevenue = state.data.payments.filter(item => item.status !== "paid").reduce((sum, item) => sum + Number(item.amount), 0);
   const athletes = adminAthleteRecords().length;
   const founders = adminFounderRecords().length;
   const companies = state.data.companies.length;
@@ -3056,8 +3058,40 @@ function renderAdminKpis() {
     ["Deportistas", athletes],
     ["Founders", founders],
     ["Pagos", `$${paid.toLocaleString("es-MX")}`],
+    ["Pendiente", `$${pendingRevenue.toLocaleString("es-MX")}`],
     ["CRM", state.data.crm.length]
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
+}
+
+function revenueVertical(payment) {
+  const key = payment.product_key || "";
+  const concept = String(payment.concept || "").toLowerCase();
+  if (key === "companyMonthlyMembership") return "Membresia Empresa";
+  if (key === "founderMonthlyMembership") return "Membresia Founder";
+  if (key === "athleteMonthlyMembership") return "Membresia Athlete";
+  if (key === "eventRegistration") return "Eventos";
+  if (key.includes("sponsor") || concept.includes("patrocinio")) return "Patrocinios";
+  if (key.includes("partner") || key.includes("legacy") || key.includes("strategic")) return "Alianzas / Centro VIP";
+  return "Otros ingresos";
+}
+
+function revenueDashboardType(payment) {
+  const key = payment.product_key || "";
+  const concept = String(payment.concept || "").toLowerCase();
+  if (key === "companyMonthlyMembership") return "Empresa";
+  if (key === "founderMonthlyMembership") return "Founder";
+  if (key === "athleteMonthlyMembership") return "Athlete";
+  if (key === "eventRegistration") return "Evento";
+  if (concept.includes("patrocinio")) return "Sponsor";
+  return "General";
+}
+
+function revenueStatusLabel(payment) {
+  if (payment.status === "paid") return "Pagado";
+  if (payment.status === "pending") return "Pendiente";
+  if (payment.status === "payment_started") return "Checkout iniciado";
+  if (payment.status === "review") return "Revision";
+  return payment.status || "Pendiente";
 }
 
 function renderAdminUsers() {
@@ -3438,6 +3472,128 @@ function renderAdminPayments() {
     ${deposits.length ? table(["Deportista", "Periodo", "Monto", "Comprobante", "Estado"], deposits) : `<div class="empty">No hay dep\u00f3sitos cargados todav\u00eda.</div>`}
   `);
   document.getElementById("adminDepositForm").addEventListener("submit", submitAdminDeposit);
+}
+
+function renderAdminRevenue() {
+  const payments = [...(state.data.payments || [])]
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  const totalPaid = payments
+    .filter(payment => payment.status === "paid")
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+
+  const totalPending = payments
+    .filter(payment => payment.status !== "paid")
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+
+  const byVertical = payments.reduce((acc, payment) => {
+    const vertical = revenueVertical(payment);
+    acc[vertical] = acc[vertical] || { count: 0, pending: 0, paid: 0 };
+    acc[vertical].count += 1;
+    if (payment.status === "paid") {
+      acc[vertical].paid += Number(payment.amount || 0);
+    } else {
+      acc[vertical].pending += Number(payment.amount || 0);
+    }
+    return acc;
+  }, {});
+
+  const verticalCards = Object.entries(byVertical).map(([vertical, data]) => `
+    <article class="launch-card revenue-card">
+      <p class="eyebrow">${escapeHtml(vertical)}</p>
+      <h3>$${Number(data.paid).toLocaleString("es-MX")} MXN</h3>
+      <p>Pagado</p>
+      <p class="hint">$${Number(data.pending).toLocaleString("es-MX")} MXN pendiente · ${data.count} registros</p>
+    </article>
+  `).join("");
+
+  const rows = payments.map(payment => [
+    readableDate(payment.created_at),
+    badge(revenueVertical(payment)),
+    escapeHtml(payment.company || "Sin nombre"),
+    escapeHtml(payment.concept || "Pago ROIS"),
+    `$${Number(payment.amount || 0).toLocaleString("es-MX")} MXN`,
+    escapeHtml(payment.product_key || "manual"),
+    badge(revenueStatusLabel(payment)),
+    badge(revenueDashboardType(payment)),
+    payment.status === "paid" ? "Pagado" : button("Marcar pagado", () => markPaid(payment.id))
+  ]);
+
+  panel("admin-revenue", "Ingresos", "Trazabilidad financiera por vertical de ROIS", `
+    <div class="panel-body">
+      <div class="scout-metrics">
+        <div><span>Pagado</span><strong>$${totalPaid.toLocaleString("es-MX")}</strong></div>
+        <div><span>Pendiente</span><strong>$${totalPending.toLocaleString("es-MX")}</strong></div>
+        <div><span>Registros</span><strong>${payments.length}</strong></div>
+        <div><span>Verticales</span><strong>${Object.keys(byVertical).length}</strong></div>
+      </div>
+    </div>
+    <div class="panel-body">
+      ${verticalCards ? `<div class="launch-sponsor-grid revenue-grid">${verticalCards}</div>` : `<div class="empty">Aun no hay ingresos registrados.</div>`}
+    </div>
+    ${rows.length ? table(["Fecha", "Vertical", "Cuenta", "Concepto", "Monto", "Product Key", "Estado", "Dashboard", "Accion"], rows) : `<div class="empty">Aun no hay pagos registrados.</div>`}
+  `);
+}
+
+function renderAdminRevenue() {
+  const payments = [...(state.data.payments || [])]
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  const totalPaid = payments
+    .filter(payment => payment.status === "paid")
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+
+  const totalPending = payments
+    .filter(payment => payment.status !== "paid")
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+
+  const byVertical = payments.reduce((acc, payment) => {
+    const vertical = revenueVertical(payment);
+    acc[vertical] = acc[vertical] || { count: 0, pending: 0, paid: 0 };
+    acc[vertical].count += 1;
+    if (payment.status === "paid") {
+      acc[vertical].paid += Number(payment.amount || 0);
+    } else {
+      acc[vertical].pending += Number(payment.amount || 0);
+    }
+    return acc;
+  }, {});
+
+  const verticalCards = Object.entries(byVertical).map(([vertical, data]) => `
+    <article class="launch-card revenue-card">
+      <p class="eyebrow">${escapeHtml(vertical)}</p>
+      <h3>$${Number(data.paid).toLocaleString("es-MX")} MXN</h3>
+      <p>Pagado</p>
+      <p class="hint">$${Number(data.pending).toLocaleString("es-MX")} MXN pendiente - ${data.count} registros</p>
+    </article>
+  `).join("");
+
+  const rows = payments.map(payment => [
+    readableDate(payment.created_at),
+    badge(revenueVertical(payment)),
+    escapeHtml(payment.company || "Sin nombre"),
+    escapeHtml(payment.concept || "Pago ROIS"),
+    `$${Number(payment.amount || 0).toLocaleString("es-MX")} MXN`,
+    escapeHtml(payment.product_key || "manual"),
+    badge(revenueStatusLabel(payment)),
+    badge(revenueDashboardType(payment)),
+    payment.status === "paid" ? "Pagado" : button("Marcar pagado", () => markPaid(payment.id))
+  ]);
+
+  panel("admin-revenue", "Ingresos", "Trazabilidad financiera por vertical de ROIS", `
+    <div class="panel-body">
+      <div class="scout-metrics">
+        <div><span>Pagado</span><strong>$${totalPaid.toLocaleString("es-MX")}</strong></div>
+        <div><span>Pendiente</span><strong>$${totalPending.toLocaleString("es-MX")}</strong></div>
+        <div><span>Registros</span><strong>${payments.length}</strong></div>
+        <div><span>Verticales</span><strong>${Object.keys(byVertical).length}</strong></div>
+      </div>
+    </div>
+    <div class="panel-body">
+      ${verticalCards ? `<div class="launch-sponsor-grid revenue-grid">${verticalCards}</div>` : `<div class="empty">Aun no hay ingresos registrados.</div>`}
+    </div>
+    ${rows.length ? table(["Fecha", "Vertical", "Cuenta", "Concepto", "Monto", "Product Key", "Estado", "Dashboard", "Accion"], rows) : `<div class="empty">Aun no hay pagos registrados.</div>`}
+  `);
 }
 
 function renderAdminUploads() {
