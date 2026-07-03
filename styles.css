@@ -612,6 +612,47 @@
   }
 }
 
+/* ROIS HEADER LOGO WIDTH FIX */
+body[data-active-view="home"] .topbar {
+  grid-template-columns: 190px 1fr auto !important;
+}
+
+body[data-active-view="home"] .topbar .brand {
+  width: 190px !important;
+  min-width: 190px !important;
+  max-width: 190px !important;
+  overflow: visible !important;
+}
+
+body[data-active-view="home"] .topbar .brand img,
+body[data-active-view="home"] .topbar .brand-logo,
+body[data-active-view="home"] .topbar .rois-logo-image {
+  width: 178px !important;
+  max-width: 178px !important;
+  max-height: 38px !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+}
+
+@media (max-width: 760px) {
+  body[data-active-view="home"] .topbar {
+    grid-template-columns: 118px 1fr !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand {
+    width: 118px !important;
+    min-width: 118px !important;
+    max-width: 118px !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand img,
+  body[data-active-view="home"] .topbar .brand-logo,
+  body[data-active-view="home"] .topbar .rois-logo-image {
+    width: 112px !important;
+    max-width: 112px !important;
+  }
+}
+
 /* ROIS LOGO PREMIUM FINISH */
 body[data-active-view="home"] .topbar {
   width: min(1480px, calc(100vw - 36px)) !important;
