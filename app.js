@@ -3131,22 +3131,101 @@ function revenueStatusLabel(payment) {
   return payment.status || "Pendiente";
 }
 
+function normalizedAccountEmail(value = "") {
+  return String(value || "").trim().toLowerCase();
+}
+
+function accountStatusPriority(statuses = []) {
+  const normalized = statuses.map(status => String(status || "").toLowerCase());
+  if (normalized.includes("approved")) return "approved";
+  if (normalized.includes("pending")) return "pending";
+  if (normalized.includes("blocked")) return "blocked";
+  if (normalized.includes("rejected")) return "rejected";
+  if (normalized.includes("deleted")) return "deleted";
+  return statuses[0] || "pending";
+}
+
+function accountTypeLabels(account) {
+  const labels = [];
+  if (account.profile?.role === "admin") labels.push("Admin");
+  const founderProfile = account.athlete && isFounderProfile(account.athlete);
+  const founderBase = !account.athlete && account.profile && profileVertical(account.profile) === "founder";
+  if (founderProfile || founderBase) {
+    labels.push("Founder");
+  } else if (account.athlete) {
+    labels.push("Deportista");
+  } else if (account.profile?.role === "athlete") {
+    labels.push("Deportista");
+  }
+  if (account.company) labels.push("Empresa");
+  if (account.profile && account.profile.role === "client" && !account.company) {
+    labels.push("Cliente");
+  }
+  if (!labels.length && account.profile) labels.push(account.profile.role || "Usuario");
+  return [...new Set(labels)];
+}
+
+function accountDisplayName(account) {
+  return account.company?.name || account.athlete?.name || account.profile?.name || account.email || "Usuario ROIS";
+}
+
+function accountRecordStatus(account) {
+  const statuses = [
+    account.profile?.status,
+    account.company?.status,
+    account.athlete?.status
+  ].filter(Boolean);
+  return accountStatusPriority(statuses);
+}
+
+function adminAccountRecords() {
+  const map = new Map();
+  const ensure = email => {
+    const normalized = normalizedAccountEmail(email);
+    if (!normalized) return null;
+    if (!map.has(normalized)) {
+      map.set(normalized, { email: normalized, profile: null, company: null, athlete: null });
+    }
+    return map.get(normalized);
+  };
+
+  (state.data.profiles || []).forEach(profile => {
+    const account = ensure(profile.email);
+    if (account) account.profile = profile;
+  });
+
+  (state.data.companies || []).forEach(company => {
+    const account = ensure(company.contact);
+    if (account) account.company = company;
+  });
+
+  (state.data.athletes || []).forEach(athlete => {
+    const account = ensure(athlete.email || athlete.contact);
+    if (account) account.athlete = athlete;
+  });
+
+  return [...map.values()].sort((a, b) => {
+    const aName = accountDisplayName(a).toLowerCase();
+    const bName = accountDisplayName(b).toLowerCase();
+    return aName.localeCompare(bName);
+  });
+}
+
 function renderAdminUsers() {
-  const profileRows = state.data.profiles.map(user => [
-    user.name,
-    user.email,
-    badge(user.role === "admin" ? "admin" : user.role === "athlete" ? "deportista" : "cliente"),
-    badge(user.status),
-    userActions(user, "profiles")
+  const accounts = adminAccountRecords();
+  const rows = accounts.map(account => [
+    escapeHtml(accountDisplayName(account)),
+    escapeHtml(account.email || "Sin correo"),
+    accountTypeLabels(account).map(label => badge(label)).join(" "),
+    badge(accountRecordStatus(account)),
+    accountActions(account)
   ]);
-  const companyRows = state.data.companies.map(company => [
-    company.name,
-    company.contact || "Sin correo",
-    badge("empresa"),
-    badge(company.status),
-    userActions(company, "companies")
-  ]);
-  panel("admin-users", "Usuarios", "Aprobaciones y control de clientes", table(["Nombre", "Correo", "Tipo", "Estado", "Acciones"], [...profileRows, ...companyRows]));
+  panel(
+    "admin-users",
+    "Usuarios",
+    "Aprobaciones, bajas y control de cuentas ROIS",
+    rows.length ? table(["Nombre", "Correo", "Tipo", "Estado", "Acciones"], rows) : `<div class="empty">No hay usuarios registrados.</div>`
+  );
 }
 
 function renderAdminAthletes() {
@@ -3903,6 +3982,23 @@ function actionGroup(actions) {
   return `<div class="table-actions">${actions.join("")}</div>`;
 }
 
+function accountActions(account) {
+  const email = normalizedAccountEmail(account.email);
+  const actions = [];
+  const status = accountRecordStatus(account);
+  if (email === normalizedAccountEmail(state.session?.email)) {
+    return "Sesion activa";
+  }
+  if (status !== "approved") {
+    actions.push(button("Aprobar", () => approveAccount(account)));
+  }
+  if (!["blocked", "deleted"].includes(status)) {
+    actions.push(button("Dar de baja", () => blockAccount(account)));
+  }
+  actions.push(button("Borrar definitivo", () => hardDeleteAccount(account)));
+  return actionGroup(actions);
+}
+
 function userActions(user, tableName) {
   const actions = [];
   if (user.status !== "approved") {
@@ -4138,6 +4234,68 @@ async function approve(tableName, id) {
   renderPublic();
   if (state.session?.role === "client") renderClient();
   if (state.session?.role === "athlete") renderAthlete();
+}
+
+async function approveAccount(account) {
+  const updates = [];
+  if (account.profile) {
+    const role = account.profile.role === "admin" ? "admin" : account.athlete ? "athlete" : "client";
+    updates.push(api.update("profiles", account.profile.id, { status: "approved", role }));
+  }
+  if (account.company) {
+    updates.push(api.update("companies", account.company.id, { status: "approved" }));
+  }
+  if (account.athlete) {
+    updates.push(api.update("athletes", account.athlete.id, { status: "approved", visual_status: account.athlete.visual_status || "approved" }));
+  }
+  await Promise.all(updates);
+  notify("Usuarios", "Cuenta aprobada", "La cuenta agrupada quedo aprobada correctamente.");
+  state.data = await api.loadAll({ lightweight: false, admin: true });
+  renderAdmin();
+  renderPublic();
+}
+
+async function blockAccount(account) {
+  const confirmed = window.confirm(`¿Dar de baja la cuenta "${accountDisplayName(account)}"? El usuario ya no podra ingresar a ROIS.`);
+  if (!confirmed) return;
+  const updates = [];
+  if (account.profile) updates.push(api.update("profiles", account.profile.id, { status: "blocked" }));
+  if (account.company) updates.push(api.update("companies", account.company.id, { status: "blocked" }));
+  if (account.athlete) updates.push(api.update("athletes", account.athlete.id, { status: "blocked" }));
+  await Promise.all(updates);
+  notify("Usuarios", "Cuenta dada de baja", "La cuenta fue bloqueada en los modulos operativos.");
+  state.data = await api.loadAll({ lightweight: false, admin: true });
+  renderAdmin();
+}
+
+async function hardDeleteAccount(account) {
+  const email = normalizedAccountEmail(account.email);
+  if (!email) {
+    notify("Usuarios", "Correo no encontrado", "No se puede borrar una cuenta sin correo identificable.");
+    return;
+  }
+  if (email === normalizedAccountEmail(state.session?.email)) {
+    notify("Usuarios", "Accion bloqueada", "No puedes borrar la cuenta de la sesion activa.");
+    return;
+  }
+  const typed = window.prompt(`Esta accion eliminara definitivamente la cuenta operativa ${email} de profiles, companies y athletes. Escribe BORRAR para confirmar.`);
+  if (typed !== "BORRAR") {
+    notify("Usuarios", "Borrado cancelado", "No se realizaron cambios.");
+    return;
+  }
+  const removals = [];
+  if (account.profile?.id) removals.push(api.remove("profiles", account.profile.id));
+  if (account.company?.id) removals.push(api.remove("companies", account.company.id));
+  if (account.athlete?.id) removals.push(api.remove("athletes", account.athlete.id));
+  await Promise.all(removals);
+  notify(
+    "Usuarios",
+    "Cuenta eliminada",
+    "La cuenta fue eliminada de profiles, companies y athletes. Los registros financieros y de trazabilidad se conservaron."
+  );
+  state.data = await api.loadAll({ lightweight: false, admin: true });
+  renderAdmin();
+  renderPublic();
 }
 
 async function approveUser(user, tableName) {
