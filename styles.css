@@ -612,6 +612,232 @@
   }
 }
 
+/* ROIS HOME TYPOGRAPHY 04G */
+:root {
+  --rois-display: "Avenir Next", "Montserrat", "Inter", "Segoe UI", Arial, sans-serif;
+  --rois-body: "Inter", "Segoe UI", Arial, sans-serif;
+}
+
+body[data-active-view="home"] {
+  font-family: var(--rois-body);
+}
+
+body[data-active-view="home"] h1,
+body[data-active-view="home"] h2,
+body[data-active-view="home"] h3,
+body[data-active-view="home"] .premium-network-center h3,
+body[data-active-view="home"] .premium-final-cta h2 {
+  font-family: var(--rois-display) !important;
+  font-weight: 300 !important;
+  letter-spacing: 0.02em !important;
+}
+
+body[data-active-view="home"] .eyebrow,
+body[data-active-view="home"] .public-nav a,
+body[data-active-view="home"] .premium-hero .lead,
+body[data-active-view="home"] .premium-hero-meta,
+body[data-active-view="home"] .hint,
+body[data-active-view="home"] .membership-card p,
+body[data-active-view="home"] .premium-home-footer > p,
+body[data-active-view="home"] .premium-home-footer-actions p,
+body[data-active-view="home"] .premium-home-footer-meta {
+  font-family: var(--rois-body) !important;
+}
+
+body[data-active-view="home"] .topbar {
+  min-height: 72px !important;
+  padding: 14px clamp(24px, 4vw, 54px) !important;
+  grid-template-columns: 128px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+}
+
+body[data-active-view="home"] .topbar .brand {
+  display: flex !important;
+  align-items: center !important;
+  width: 128px !important;
+  min-width: 128px !important;
+  padding: 0 !important;
+}
+
+body[data-active-view="home"] .topbar .rois-logo-image,
+body[data-active-view="home"] .topbar .brand-logo {
+  width: 124px !important;
+  height: auto !important;
+  display: block !important;
+  object-fit: contain !important;
+}
+
+body[data-active-view="home"] .public-nav a {
+  font-size: 10px !important;
+  letter-spacing: 0.28em !important;
+  font-weight: 600 !important;
+}
+
+body[data-active-view="home"] .eyebrow {
+  letter-spacing: 0.32em !important;
+  font-weight: 700 !important;
+}
+
+body[data-active-view="home"] .premium-hero .hero-copy {
+  max-width: 620px !important;
+  padding-left: clamp(34px, 4vw, 72px) !important;
+  padding-right: clamp(28px, 3vw, 52px) !important;
+}
+
+body[data-active-view="home"] .premium-hero h1 {
+  font-family: var(--rois-display) !important;
+  max-width: 9.5ch !important;
+  font-size: clamp(58px, 5.4vw, 96px) !important;
+  line-height: 0.92 !important;
+  font-weight: 300 !important;
+  letter-spacing: 0.015em !important;
+  text-transform: uppercase !important;
+}
+
+body[data-active-view="home"] .premium-hero .lead,
+body[data-active-view="home"] .premium-hero-meta,
+body[data-active-view="home"] .hint {
+  letter-spacing: 0.18em !important;
+  line-height: 1.75 !important;
+}
+
+body[data-active-view="home"] .premium-access-section .section-head,
+body[data-active-view="home"] .premium-network-section .section-head {
+  display: block !important;
+  text-align: left !important;
+  margin-bottom: 42px !important;
+}
+
+body[data-active-view="home"] .premium-access-section .section-head h2,
+body[data-active-view="home"] .premium-network-section .section-head h2 {
+  max-width: 980px !important;
+  justify-self: start !important;
+  font-family: var(--rois-display) !important;
+  font-size: clamp(42px, 4.2vw, 68px) !important;
+  line-height: 1.02 !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.015em !important;
+  margin: 0 !important;
+}
+
+body[data-active-view="home"] .membership-card h3 {
+  font-family: var(--rois-display) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1.22 !important;
+  text-transform: uppercase !important;
+}
+
+body[data-active-view="home"] .membership-card p {
+  line-height: 1.72 !important;
+}
+
+body[data-active-view="home"] .premium-network-center h3 {
+  font-size: clamp(28px, 2.6vw, 40px) !important;
+  line-height: 1.06 !important;
+  letter-spacing: 0.04em !important;
+}
+
+body[data-active-view="home"] .premium-final-cta .section-head h2 {
+  max-width: 980px !important;
+  margin: 0 auto !important;
+  font-family: var(--rois-display) !important;
+  font-size: clamp(42px, 4.4vw, 72px) !important;
+  line-height: 1.04 !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.02em !important;
+  text-align: center !important;
+}
+
+body[data-active-view="home"] .premium-home-footer {
+  width: min(1440px, calc(100vw - 48px)) !important;
+  margin: 0 auto !important;
+  padding: 56px 0 34px !important;
+  display: grid !important;
+  justify-items: center !important;
+  text-align: center !important;
+  gap: 24px !important;
+  background: #000 !important;
+}
+
+body[data-active-view="home"] .premium-home-footer .rois-logo-image,
+body[data-active-view="home"] .premium-home-footer .brand-logo {
+  width: 150px !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0 auto !important;
+  object-fit: contain !important;
+}
+
+body[data-active-view="home"] .premium-home-footer > p {
+  margin: 0 !important;
+  text-align: center !important;
+  font-size: 12px !important;
+  letter-spacing: 0.28em !important;
+  text-transform: uppercase !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-actions {
+  width: 100% !important;
+  display: grid !important;
+  justify-items: center !important;
+  text-align: center !important;
+  gap: 20px !important;
+  padding: 28px 0 !important;
+  border-top: 1px solid rgba(255,255,255,.08) !important;
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-actions p {
+  margin: 0 !important;
+  text-align: center !important;
+  font-size: 12px !important;
+  letter-spacing: 0.24em !important;
+  text-transform: uppercase !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-actions .btn {
+  justify-self: center !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 22px !important;
+  width: 100% !important;
+}
+
+@media (max-width: 760px) {
+  body[data-active-view="home"] .premium-hero h1 {
+    font-size: clamp(42px, 12vw, 58px) !important;
+    max-width: 9.5ch !important;
+  }
+
+  body[data-active-view="home"] .topbar .rois-logo-image,
+  body[data-active-view="home"] .topbar .brand-logo {
+    width: 96px !important;
+  }
+
+  body[data-active-view="home"] .premium-access-section .section-head h2,
+  body[data-active-view="home"] .premium-network-section .section-head h2,
+  body[data-active-view="home"] .premium-final-cta .section-head h2 {
+    font-size: clamp(34px, 9vw, 48px) !important;
+    line-height: 1.06 !important;
+  }
+
+  body[data-active-view="home"] .premium-home-footer {
+    width: calc(100vw - 24px) !important;
+    padding: 42px 0 28px !important;
+  }
+
+  body[data-active-view="home"] .premium-home-footer-meta {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+}
+
 /* ROIS HOME FINAL VISUAL FIX */
 body[data-active-view="home"] .topbar {
   grid-template-columns: 104px minmax(0, 1fr) auto !important;
