@@ -473,46 +473,15 @@
   }
 }
 
-/* Mobile launch correction v71 - true final guard for campaign traffic. */
 @media (max-width: 760px) {
   html,
   body {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 24px) !important;
-    min-height: 62px !important;
-    margin: 10px auto 0 !important;
-    padding: 8px 10px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-    border-radius: 999px !important;
-    overflow: hidden !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand,
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    width: auto !important;
-    margin-left: auto !important;
-    display: flex !important;
-    gap: 8px !important;
-    flex: 0 0 auto !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 42px !important;
-    min-height: 42px !important;
-    padding: 0 14px !important;
-    font-size: 9px !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] .hero {
     width: min(100%, 480px) !important;
@@ -621,217 +590,33 @@
 }
 
 
-/* ROIS FOOTER LAYOUT 04H */
-body[data-active-view="home"] .premium-home-footer {
-  width: min(1380px, calc(100vw - 64px)) !important;
-  margin: 0 auto !important;
-  padding: 54px 0 26px !important;
-  display: grid !important;
-  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr) !important;
-  grid-template-areas:
-    "logo meta"
-    "tagline meta"
-    "actions meta" !important;
-  column-gap: clamp(56px, 8vw, 120px) !important;
-  row-gap: 28px !important;
-  align-items: start !important;
-  justify-items: start !important;
-  text-align: left !important;
-}
 
-body[data-active-view="home"] .premium-home-footer .rois-logo-image,
-body[data-active-view="home"] .premium-home-footer .brand-logo {
-  grid-area: logo !important;
-  width: 150px !important;
-  height: auto !important;
-  margin: 0 !important;
-  justify-self: start !important;
-}
 
-body[data-active-view="home"] .premium-home-footer > p {
-  grid-area: tagline !important;
-  width: 100% !important;
-  max-width: 560px !important;
-  margin: 0 !important;
-  text-align: left !important;
-  font-size: 12px !important;
-  line-height: 1.7 !important;
-  letter-spacing: 0.28em !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions {
-  grid-area: actions !important;
-  width: 100% !important;
-  max-width: 560px !important;
-  margin: 0 !important;
-  padding: 24px 0 0 !important;
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  justify-items: start !important;
-  align-items: start !important;
-  gap: 18px !important;
-  text-align: left !important;
-  border-top: 1px solid rgba(255,255,255,.08) !important;
-  border-bottom: 0 !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions p {
-  width: 100% !important;
-  margin: 0 !important;
-  text-align: left !important;
-  font-size: 12px !important;
-  letter-spacing: 0.24em !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions .btn {
-  justify-self: start !important;
-  margin: 0 !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-meta {
-  grid-area: meta !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding-left: clamp(28px, 3vw, 44px) !important;
-  border-left: 1px solid rgba(255,255,255,.18) !important;
-  display: grid !important;
-  justify-content: start !important;
-  justify-items: start !important;
-  align-content: start !important;
-  gap: 18px !important;
-  text-align: left !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-meta span {
-  display: block !important;
-  width: 100% !important;
-  margin: 0 !important;
-  text-align: left !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-meta span:last-child {
-  margin-top: 8px !important;
-  opacity: 0.72 !important;
-}
 
 @media (max-width: 900px) {
-  body[data-active-view="home"] .premium-home-footer {
-    width: calc(100vw - 28px) !important;
-    grid-template-columns: 1fr !important;
-    grid-template-areas:
-      "logo"
-      "tagline"
-      "actions"
-      "meta" !important;
-    row-gap: 22px !important;
-    justify-items: center !important;
-    text-align: center !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer .rois-logo-image,
-  body[data-active-view="home"] .premium-home-footer .brand-logo,
-  body[data-active-view="home"] .premium-home-footer > p,
-  body[data-active-view="home"] .premium-home-footer-actions,
-  body[data-active-view="home"] .premium-home-footer-actions p,
-  body[data-active-view="home"] .premium-home-footer-actions .btn,
-  body[data-active-view="home"] .premium-home-footer-meta,
-  body[data-active-view="home"] .premium-home-footer-meta span {
-    justify-self: center !important;
-    text-align: center !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer > p,
-  body[data-active-view="home"] .premium-home-footer-actions {
-    max-width: 100% !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer-meta {
-    padding-left: 0 !important;
-    border-left: 0 !important;
-    border-top: 1px solid rgba(255,255,255,.08) !important;
-    padding-top: 20px !important;
-    gap: 12px !important;
-  }
 }
 
-/* ROIS FOOTER ALIGN FIX */
-body[data-active-view="home"] .premium-home-footer {
-  width: min(1320px, calc(100vw - 64px)) !important;
-  margin: 0 auto !important;
-  padding: 48px 0 26px !important;
-  display: grid !important;
-  justify-items: center !important;
-  align-items: center !important;
-  text-align: center !important;
-  gap: 20px !important;
-}
 
-body[data-active-view="home"] .premium-home-footer .rois-logo-image,
-body[data-active-view="home"] .premium-home-footer .brand-logo {
-  width: 142px !important;
-  height: auto !important;
-  display: block !important;
-  margin: 0 auto !important;
-}
 
-body[data-active-view="home"] .premium-home-footer > p {
-  width: 100% !important;
-  margin: 0 !important;
-  text-align: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions {
-  width: 100% !important;
-  max-width: 1320px !important;
-  margin: 0 auto !important;
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  justify-items: center !important;
-  align-items: center !important;
-  text-align: center !important;
-  gap: 18px !important;
-  padding: 22px 0 !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions p {
-  width: 100% !important;
-  margin: 0 !important;
-  text-align: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions .btn {
-  margin: 0 auto !important;
-  justify-self: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-meta {
-  width: 100% !important;
-  margin: 0 auto !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 18px !important;
-  text-align: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-meta span {
-  text-align: center !important;
-}
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .premium-home-footer {
-    width: calc(100vw - 24px) !important;
-    padding: 38px 0 24px !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer-meta {
-    flex-direction: column !important;
-    gap: 12px !important;
-  }
 }
 
-/* ROIS HOME TYPOGRAPHY 04G */
 :root {
   --rois-display: "Avenir Next", "Montserrat", "Inter", "Segoe UI", Arial, sans-serif;
   --rois-body: "Inter", "Segoe UI", Arial, sans-serif;
@@ -851,46 +636,10 @@ body[data-active-view="home"] .premium-final-cta h2 {
   letter-spacing: 0.02em !important;
 }
 
-body[data-active-view="home"] .eyebrow,
-body[data-active-view="home"] .public-nav a,
-body[data-active-view="home"] .premium-hero .lead,
-body[data-active-view="home"] .premium-hero-meta,
-body[data-active-view="home"] .hint,
-body[data-active-view="home"] .membership-card p,
-body[data-active-view="home"] .premium-home-footer > p,
-body[data-active-view="home"] .premium-home-footer-actions p,
-body[data-active-view="home"] .premium-home-footer-meta {
-  font-family: var(--rois-body) !important;
-}
 
-body[data-active-view="home"] .topbar {
-  min-height: 72px !important;
-  padding: 14px clamp(24px, 4vw, 54px) !important;
-  grid-template-columns: 128px minmax(0, 1fr) auto !important;
-  align-items: center !important;
-}
 
-body[data-active-view="home"] .topbar .brand {
-  display: flex !important;
-  align-items: center !important;
-  width: 128px !important;
-  min-width: 128px !important;
-  padding: 0 !important;
-}
 
-body[data-active-view="home"] .topbar .rois-logo-image,
-body[data-active-view="home"] .topbar .brand-logo {
-  width: 124px !important;
-  height: auto !important;
-  display: block !important;
-  object-fit: contain !important;
-}
 
-body[data-active-view="home"] .public-nav a {
-  font-size: 10px !important;
-  letter-spacing: 0.28em !important;
-  font-weight: 600 !important;
-}
 
 body[data-active-view="home"] .eyebrow {
   letter-spacing: 0.32em !important;
@@ -968,65 +717,12 @@ body[data-active-view="home"] .premium-final-cta .section-head h2 {
   text-align: center !important;
 }
 
-body[data-active-view="home"] .premium-home-footer {
-  width: min(1440px, calc(100vw - 48px)) !important;
-  margin: 0 auto !important;
-  padding: 56px 0 34px !important;
-  display: grid !important;
-  justify-items: center !important;
-  text-align: center !important;
-  gap: 24px !important;
-  background: #000 !important;
-}
 
-body[data-active-view="home"] .premium-home-footer .rois-logo-image,
-body[data-active-view="home"] .premium-home-footer .brand-logo {
-  width: 150px !important;
-  height: auto !important;
-  display: block !important;
-  margin: 0 auto !important;
-  object-fit: contain !important;
-}
 
-body[data-active-view="home"] .premium-home-footer > p {
-  margin: 0 !important;
-  text-align: center !important;
-  font-size: 12px !important;
-  letter-spacing: 0.28em !important;
-  text-transform: uppercase !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions {
-  width: 100% !important;
-  display: grid !important;
-  justify-items: center !important;
-  text-align: center !important;
-  gap: 20px !important;
-  padding: 28px 0 !important;
-  border-top: 1px solid rgba(255,255,255,.08) !important;
-  border-bottom: 1px solid rgba(255,255,255,.08) !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions p {
-  margin: 0 !important;
-  text-align: center !important;
-  font-size: 12px !important;
-  letter-spacing: 0.24em !important;
-  text-transform: uppercase !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions .btn {
-  justify-self: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-meta {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  justify-content: center !important;
-  text-align: center !important;
-  gap: 22px !important;
-  width: 100% !important;
-}
 
 @media (max-width: 760px) {
   body[data-active-view="home"] .premium-hero h1 {
@@ -1034,10 +730,6 @@ body[data-active-view="home"] .premium-home-footer-meta {
     max-width: 9.5ch !important;
   }
 
-  body[data-active-view="home"] .topbar .rois-logo-image,
-  body[data-active-view="home"] .topbar .brand-logo {
-    width: 96px !important;
-  }
 
   body[data-active-view="home"] .premium-access-section .section-head h2,
   body[data-active-view="home"] .premium-network-section .section-head h2,
@@ -1046,150 +738,32 @@ body[data-active-view="home"] .premium-home-footer-meta {
     line-height: 1.06 !important;
   }
 
-  body[data-active-view="home"] .premium-home-footer {
-    width: calc(100vw - 24px) !important;
-    padding: 42px 0 28px !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer-meta {
-    flex-direction: column !important;
-    gap: 12px !important;
-  }
 }
 
-/* ROIS HOME FINAL VISUAL FIX */
-body[data-active-view="home"] .topbar {
-  grid-template-columns: 104px minmax(0, 1fr) auto !important;
-  gap: 18px !important;
-  align-items: center !important;
-}
 
-body[data-active-view="home"] .topbar .brand {
-  width: 104px !important;
-  min-width: 104px !important;
-  padding: 0 !important;
-}
 
-body[data-active-view="home"] .rois-logo-image,
-body[data-active-view="home"] .topbar .brand-logo {
-  width: 104px !important;
-  height: auto !important;
-  max-width: 100% !important;
-  object-fit: contain !important;
-  display: block !important;
-}
 
-body[data-active-view="home"] .public-nav {
-  justify-self: center !important;
-  min-width: 0 !important;
-}
 
-body[data-active-view="home"] .premium-home-footer {
-  width: min(1380px, calc(100vw - 40px)) !important;
-  margin: 0 auto !important;
-  padding: 40px 0 22px !important;
-  display: grid !important;
-  justify-items: center !important;
-  text-align: center !important;
-  gap: 18px !important;
-}
 
-body[data-active-view="home"] .premium-home-footer .rois-logo-image,
-body[data-active-view="home"] .premium-home-footer .brand-logo {
-  width: 128px !important;
-  height: auto !important;
-}
 
-body[data-active-view="home"] .premium-home-footer > p {
-  margin: 0 !important;
-  text-align: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions {
-  width: 100% !important;
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  justify-items: center !important;
-  align-items: center !important;
-  gap: 18px !important;
-  padding: 18px 0 !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions p {
-  margin: 0 !important;
-  text-align: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions .btn {
-  justify-self: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-meta {
-  width: 100% !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 18px !important;
-  text-align: center !important;
-}
 
 @media (max-width: 1180px) {
-  body[data-active-view="home"] .topbar {
-    grid-template-columns: 96px minmax(0, 1fr) auto !important;
-    gap: 14px !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    width: 96px !important;
-    min-width: 96px !important;
-  }
 
-  body[data-active-view="home"] .rois-logo-image,
-  body[data-active-view="home"] .topbar .brand-logo {
-    width: 96px !important;
-  }
 }
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .premium-home-footer .rois-logo-image,
-  body[data-active-view="home"] .premium-home-footer .brand-logo {
-    width: 110px !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer-meta {
-    gap: 12px !important;
-    flex-direction: column !important;
-  }
 }
 
-/* ROIS HOME POLISH 04F */
-body[data-active-view="home"] .topbar {
-  grid-template-columns: 124px minmax(0, 1fr) auto !important;
-  gap: 22px !important;
-}
 
-body[data-active-view="home"] .topbar .brand {
-  width: 124px !important;
-  min-width: 124px !important;
-  padding: 0 !important;
-}
 
-body[data-active-view="home"] .rois-logo-image,
-body[data-active-view="home"] .topbar .brand-logo {
-  display: block !important;
-  width: 124px !important;
-  height: auto !important;
-  max-width: 100% !important;
-  object-fit: contain !important;
-  background: transparent !important;
-}
 
-body[data-active-view="home"] .public-nav {
-  min-width: 0 !important;
-}
 
 body[data-active-view="home"] .premium-access-section .section-head {
   display: block !important;
@@ -1263,55 +837,14 @@ body[data-active-view="home"] .premium-network-right img {
   object-position: center center !important;
 }
 
-body[data-active-view="home"] .premium-home-footer {
-  display: grid !important;
-  justify-items: center !important;
-  text-align: center !important;
-  gap: 22px !important;
-  padding: 48px 0 28px !important;
-}
 
-body[data-active-view="home"] .premium-home-footer .rois-logo-image,
-body[data-active-view="home"] .premium-home-footer .brand-logo {
-  width: 140px !important;
-  height: auto !important;
-}
 
-body[data-active-view="home"] .premium-home-footer > p {
-  margin: 0 !important;
-  text-align: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions {
-  width: 100% !important;
-  display: grid !important;
-  grid-template-columns: 1fr auto 1fr !important;
-  align-items: center !important;
-  justify-items: center !important;
-  gap: 24px !important;
-  padding: 22px 0 !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions p {
-  grid-column: 1 / -1 !important;
-  margin: 0 !important;
-  text-align: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions .btn {
-  grid-column: 2 !important;
-  justify-self: center !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-meta {
-  justify-content: center !important;
-  text-align: center !important;
-}
 
 @media (max-width: 1100px) {
-  body[data-active-view="home"] .topbar {
-    grid-template-columns: 124px 1fr auto !important;
-  }
 
   body[data-active-view="home"] .membership-card {
     min-height: 0 !important;
@@ -1323,19 +856,8 @@ body[data-active-view="home"] .premium-home-footer-meta {
 }
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .topbar {
-    grid-template-columns: 96px auto !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    width: 96px !important;
-    min-width: 96px !important;
-  }
 
-  body[data-active-view="home"] .rois-logo-image,
-  body[data-active-view="home"] .topbar .brand-logo {
-    width: 96px !important;
-  }
 
   body[data-active-view="home"] .premium-access-section .section-head {
     margin-bottom: 24px !important;
@@ -1350,69 +872,16 @@ body[data-active-view="home"] .premium-home-footer-meta {
     height: 220px !important;
   }
 
-  body[data-active-view="home"] .premium-home-footer {
-    padding: 34px 0 24px !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer .rois-logo-image,
-  body[data-active-view="home"] .premium-home-footer .brand-logo {
-    width: 116px !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer-actions {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer-actions .btn {
-    grid-column: 1 !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer-meta {
-    gap: 12px !important;
-    flex-direction: column !important;
-  }
 }
 
-/* ROIS STATIC HOME FINAL */
-body[data-active-view="home"] .topbar {
-  width: min(1480px, calc(100vw - 32px));
-  min-height: 78px;
-  margin: 0 auto;
-  padding: 14px 28px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 28px;
-  background: #000;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-left: 0;
-  border-right: 0;
-}
 
-body[data-active-view="home"] .topbar .brand {
-  display: inline-flex;
-  align-items: center;
-  width: 148px;
-  min-width: 148px;
-  padding: 8px 0;
-}
 
-body[data-active-view="home"] .public-nav {
-  justify-self: center;
-}
 
-body[data-active-view="home"] .session-area {
-  justify-self: end;
-}
 
-body[data-active-view="home"] .rois-logo-image {
-  display: block;
-  width: 148px;
-  height: auto;
-  object-fit: contain;
-  background: transparent;
-}
 
 body[data-active-view="home"] .premium-hero,
 body[data-active-view="home"] .hero {
@@ -1490,10 +959,6 @@ body[data-active-view="home"] .premium-hero-image {
   object-position: center center;
 }
 
-body[data-active-view="home"] .public-section,
-body[data-active-view="home"] .premium-home-footer {
-  width: min(1480px, calc(100vw - 32px));
-}
 
 body[data-active-view="home"] .premium-access-section .section-head,
 body[data-active-view="home"] .premium-network-section .section-head {
@@ -1558,28 +1023,9 @@ body[data-active-view="home"] .premium-network-panel {
   min-height: 360px;
 }
 
-body[data-active-view="home"] .premium-home-footer {
-  margin: 0 auto;
-  display: grid;
-  gap: 18px;
-  padding: 26px 0 18px;
-  background: #000;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
 
-body[data-active-view="home"] .premium-home-footer .rois-logo-image {
-  width: 154px;
-}
 
-body[data-active-view="home"] .premium-home-footer > p,
-body[data-active-view="home"] .premium-home-footer-actions,
-body[data-active-view="home"] .premium-home-footer-meta {
-  margin: 0;
-}
 
-body[data-active-view="home"] .premium-home-footer > p {
-  letter-spacing: 0.18em;
-}
 
 body[data-active-view="home"] #publicNews .empty {
   border-radius: 28px;
@@ -1590,10 +1036,6 @@ body[data-active-view="home"] #publicNews .empty {
 }
 
 @media (max-width: 1180px) {
-  body[data-active-view="home"] .topbar {
-    padding: 14px 18px;
-    gap: 18px;
-  }
 
   body[data-active-view="home"] .premium-hero,
   body[data-active-view="home"] .hero {
@@ -1640,26 +1082,9 @@ body[data-active-view="home"] #publicNews .empty {
 }
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 20px);
-    min-height: 64px;
-    padding: 10px 12px;
-    grid-template-columns: 1fr auto;
-    gap: 10px;
-  }
 
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    width: 112px;
-    min-width: 112px;
-  }
 
-  body[data-active-view="home"] .rois-logo-image {
-    width: 112px;
-  }
 
   body[data-active-view="home"] .premium-hero,
   body[data-active-view="home"] .hero {
@@ -1704,10 +1129,6 @@ body[data-active-view="home"] #publicNews .empty {
     min-height: 340px;
   }
 
-  body[data-active-view="home"] .public-section,
-  body[data-active-view="home"] .premium-home-footer {
-    width: calc(100vw - 20px);
-  }
 
   body[data-active-view="home"] .premium-access-section .section-head h2,
   body[data-active-view="home"] .premium-network-section .section-head h2,
@@ -1735,49 +1156,10 @@ body[data-active-view="home"] #publicNews .empty {
   }
 }
 
-/* ROIS home end-of-file override */
-body[data-active-view="home"] .topbar {
-  width: min(1480px, calc(100vw - 32px)) !important;
-  min-height: 78px !important;
-  margin: 0 auto !important;
-  padding: 14px 28px !important;
-  display: grid !important;
-  grid-template-columns: auto 1fr auto !important;
-  align-items: center !important;
-  gap: 28px !important;
-  background: rgba(5, 5, 5, 0.94) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-left: 0 !important;
-  border-right: 0 !important;
-  border-radius: 0 !important;
-}
 
-body[data-active-view="home"] .topbar .brand {
-  display: inline-flex !important;
-  width: 148px !important;
-  min-width: 148px !important;
-}
 
-body[data-active-view="home"] .premium-brand-image,
-body[data-active-view="home"] .topbar .brand-logo,
-body[data-active-view="home"] .premium-home-footer .brand-logo,
-body[data-active-view="home"] .premium-home-footer .premium-brand-image {
-  display: block !important;
-  width: 148px !important;
-  max-width: 100% !important;
-  height: auto !important;
-  object-fit: contain !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
 
-body[data-active-view="home"] .public-nav {
-  justify-self: center !important;
-}
 
-body[data-active-view="home"] .session-area {
-  justify-self: end !important;
-}
 
 body[data-active-view="home"] .premium-hero,
 body[data-active-view="home"] .hero {
@@ -1874,10 +1256,6 @@ body[data-active-view="home"] .hero .home-cover img {
   filter: brightness(0.96) contrast(1.04) saturate(0.94) !important;
 }
 
-body[data-active-view="home"] .public-section,
-body[data-active-view="home"] .premium-home-footer {
-  width: min(1480px, calc(100vw - 32px)) !important;
-}
 
 body[data-active-view="home"] .premium-access-section .section-head,
 body[data-active-view="home"] .premium-network-section .section-head {
@@ -1940,19 +1318,9 @@ body[data-active-view="home"] .premium-network-panel {
   min-height: 360px !important;
 }
 
-body[data-active-view="home"] .premium-home-footer {
-  padding: 40px 0 22px !important;
-}
 
-body[data-active-view="home"] .premium-home-footer .premium-brand-image {
-  width: 154px !important;
-}
 
 @media (max-width: 1180px) {
-  body[data-active-view="home"] .topbar {
-    padding: 14px 18px !important;
-    gap: 18px !important;
-  }
 
   body[data-active-view="home"] .premium-hero,
   body[data-active-view="home"] .hero {
@@ -2003,32 +1371,9 @@ body[data-active-view="home"] .premium-home-footer .premium-brand-image {
 }
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 20px) !important;
-    min-height: 64px !important;
-    padding: 10px 12px !important;
-    display: grid !important;
-    grid-template-columns: 1fr auto !important;
-    gap: 10px !important;
-    border-radius: 0 !important;
-  }
 
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    display: inline-flex !important;
-    width: 116px !important;
-    min-width: 116px !important;
-  }
 
-  body[data-active-view="home"] .premium-brand-image,
-  body[data-active-view="home"] .topbar .brand-logo,
-  body[data-active-view="home"] .premium-home-footer .brand-logo,
-  body[data-active-view="home"] .premium-home-footer .premium-brand-image {
-    width: 116px !important;
-  }
 
   body[data-active-view="home"] .premium-hero,
   body[data-active-view="home"] .hero {
@@ -2083,10 +1428,6 @@ body[data-active-view="home"] .premium-home-footer .premium-brand-image {
     min-height: 340px !important;
   }
 
-  body[data-active-view="home"] .public-section,
-  body[data-active-view="home"] .premium-home-footer {
-    width: calc(100vw - 20px) !important;
-  }
 
   body[data-active-view="home"] .premium-access-section .section-head h2,
   body[data-active-view="home"] .premium-network-section .section-head h2,
@@ -2114,49 +1455,10 @@ body[data-active-view="home"] .premium-home-footer .premium-brand-image {
   }
 }
 
-/* ROIS home final cascade lock */
-body[data-active-view="home"] .topbar {
-  width: min(1480px, calc(100vw - 32px)) !important;
-  min-height: 78px !important;
-  margin: 0 auto !important;
-  padding: 14px 28px !important;
-  display: grid !important;
-  grid-template-columns: auto 1fr auto !important;
-  align-items: center !important;
-  gap: 28px !important;
-  background: rgba(5, 5, 5, 0.94) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-left: 0 !important;
-  border-right: 0 !important;
-  border-radius: 0 !important;
-}
 
-body[data-active-view="home"] .topbar .brand {
-  display: inline-flex !important;
-  width: 148px !important;
-  min-width: 148px !important;
-}
 
-body[data-active-view="home"] .premium-brand-image,
-body[data-active-view="home"] .topbar .brand-logo,
-body[data-active-view="home"] .premium-home-footer .brand-logo,
-body[data-active-view="home"] .premium-home-footer .premium-brand-image {
-  display: block !important;
-  width: 148px !important;
-  max-width: 100% !important;
-  height: auto !important;
-  object-fit: contain !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
 
-body[data-active-view="home"] .public-nav {
-  justify-self: center !important;
-}
 
-body[data-active-view="home"] .session-area {
-  justify-self: end !important;
-}
 
 body[data-active-view="home"] .premium-hero,
 body[data-active-view="home"] .hero {
@@ -2253,10 +1555,6 @@ body[data-active-view="home"] .hero .home-cover img {
   filter: brightness(0.96) contrast(1.04) saturate(0.94) !important;
 }
 
-body[data-active-view="home"] .public-section,
-body[data-active-view="home"] .premium-home-footer {
-  width: min(1480px, calc(100vw - 32px)) !important;
-}
 
 body[data-active-view="home"] .premium-access-section .section-head,
 body[data-active-view="home"] .premium-network-section .section-head {
@@ -2319,19 +1617,9 @@ body[data-active-view="home"] .premium-network-panel {
   min-height: 360px !important;
 }
 
-body[data-active-view="home"] .premium-home-footer {
-  padding: 40px 0 22px !important;
-}
 
-body[data-active-view="home"] .premium-home-footer .premium-brand-image {
-  width: 154px !important;
-}
 
 @media (max-width: 1180px) {
-  body[data-active-view="home"] .topbar {
-    padding: 14px 18px !important;
-    gap: 18px !important;
-  }
 
   body[data-active-view="home"] .premium-hero,
   body[data-active-view="home"] .hero {
@@ -2382,32 +1670,9 @@ body[data-active-view="home"] .premium-home-footer .premium-brand-image {
 }
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 20px) !important;
-    min-height: 64px !important;
-    padding: 10px 12px !important;
-    display: grid !important;
-    grid-template-columns: 1fr auto !important;
-    gap: 10px !important;
-    border-radius: 0 !important;
-  }
 
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    display: inline-flex !important;
-    width: 116px !important;
-    min-width: 116px !important;
-  }
 
-  body[data-active-view="home"] .premium-brand-image,
-  body[data-active-view="home"] .topbar .brand-logo,
-  body[data-active-view="home"] .premium-home-footer .brand-logo,
-  body[data-active-view="home"] .premium-home-footer .premium-brand-image {
-    width: 116px !important;
-  }
 
   body[data-active-view="home"] .premium-hero,
   body[data-active-view="home"] .hero {
@@ -2462,10 +1727,6 @@ body[data-active-view="home"] .premium-home-footer .premium-brand-image {
     min-height: 340px !important;
   }
 
-  body[data-active-view="home"] .public-section,
-  body[data-active-view="home"] .premium-home-footer {
-    width: calc(100vw - 20px) !important;
-  }
 
   body[data-active-view="home"] .premium-access-section .section-head h2,
   body[data-active-view="home"] .premium-network-section .section-head h2,
@@ -2493,51 +1754,10 @@ body[data-active-view="home"] .premium-home-footer .premium-brand-image {
   }
 }
 
-/* ROIS home surgical correction v73 */
-body[data-active-view="home"] .topbar {
-  width: min(1480px, calc(100vw - 32px)) !important;
-  min-height: 78px !important;
-  margin: 0 auto !important;
-  padding: 14px 28px !important;
-  display: grid !important;
-  grid-template-columns: auto 1fr auto !important;
-  align-items: center !important;
-  gap: 28px !important;
-  background: rgba(5, 5, 5, 0.94) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-left: 0 !important;
-  border-right: 0 !important;
-  border-radius: 0 !important;
-  backdrop-filter: blur(14px);
-}
 
-body[data-active-view="home"] .topbar .brand {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  width: 148px !important;
-  min-width: 148px !important;
-}
 
-body[data-active-view="home"] .premium-brand-image,
-body[data-active-view="home"] .topbar .brand-logo,
-body[data-active-view="home"] .premium-home-footer .brand-logo {
-  display: block !important;
-  width: 148px !important;
-  max-width: 100% !important;
-  height: auto !important;
-  object-fit: contain !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
 
-body[data-active-view="home"] .public-nav {
-  justify-self: center !important;
-}
 
-body[data-active-view="home"] .session-area {
-  justify-self: end !important;
-}
 
 body[data-active-view="home"] .premium-hero {
   width: min(1480px, calc(100vw - 32px)) !important;
@@ -2717,29 +1937,11 @@ body[data-active-view="home"] .premium-network-right img {
   object-position: center 18% !important;
 }
 
-body[data-active-view="home"] .premium-home-footer {
-  width: min(1480px, calc(100vw - 32px)) !important;
-  padding: 40px 0 22px !important;
-}
 
-body[data-active-view="home"] .premium-home-footer .premium-brand-image {
-  width: 154px !important;
-}
 
-body[data-active-view="home"] .premium-home-footer > p {
-  margin: 24px 0 18px !important;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions {
-  align-items: center !important;
-}
 
 @media (max-width: 1180px) {
-  body[data-active-view="home"] .topbar {
-    grid-template-columns: auto 1fr auto !important;
-    padding: 14px 18px !important;
-    gap: 18px !important;
-  }
 
   body[data-active-view="home"] .premium-hero {
     min-height: 0 !important;
@@ -2785,30 +1987,9 @@ body[data-active-view="home"] .premium-home-footer-actions {
 }
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 20px) !important;
-    grid-template-columns: 1fr auto !important;
-    min-height: 64px !important;
-    padding: 10px 12px !important;
-    gap: 10px !important;
-  }
 
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    display: inline-flex !important;
-    width: 116px !important;
-    min-width: 116px !important;
-  }
 
-  body[data-active-view="home"] .premium-brand-image,
-  body[data-active-view="home"] .topbar .brand-logo,
-  body[data-active-view="home"] .premium-home-footer .brand-logo,
-  body[data-active-view="home"] .premium-home-footer .premium-brand-image {
-    width: 116px !important;
-  }
 
   body[data-active-view="home"] .premium-hero {
     width: calc(100vw - 20px) !important;
@@ -2852,10 +2033,6 @@ body[data-active-view="home"] .premium-home-footer-actions {
     min-height: 340px !important;
   }
 
-  body[data-active-view="home"] .public-section,
-  body[data-active-view="home"] .premium-home-footer {
-    width: calc(100vw - 20px) !important;
-  }
 
   body[data-active-view="home"] .premium-access-section .section-head h2,
   body[data-active-view="home"] .premium-network-section .section-head h2,
@@ -2882,14 +2059,7 @@ body[data-active-view="home"] .premium-home-footer-actions {
     min-height: 260px !important;
   }
 
-  body[data-active-view="home"] .premium-home-footer {
-    padding-top: 30px !important;
-  }
 
-  body[data-active-view="home"] .premium-home-footer-actions,
-  body[data-active-view="home"] .premium-home-footer-meta {
-    gap: 14px !important;
-  }
 }
 
 body[data-active-view="home"] .premium-hero-visual::before,
@@ -2898,30 +2068,8 @@ body[data-active-view="home"] .premium-hero-visual::after {
   display: none !important;
 }
 
-/* ROIS premium home v2 */
-body[data-active-view="home"] .topbar {
-  justify-content: space-between !important;
-  gap: 24px !important;
-  padding: 18px 28px !important;
-  border-radius: 0 !important;
-  width: min(100vw, 100%) !important;
-  max-width: none !important;
-  margin: 0 !important;
-  background: rgba(5, 5, 5, 0.96) !important;
-  border: 0 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(18px);
-}
 
-body[data-active-view="home"] .topbar .brand {
-  flex: 0 0 auto !important;
-}
 
-body[data-active-view="home"] .topbar .brand-logo {
-  width: 138px !important;
-  color: #fff !important;
-}
 
 body[data-active-view="home"] .premium-brand-image {
   display: block;
@@ -2930,59 +2078,11 @@ body[data-active-view="home"] .premium-brand-image {
   object-fit: contain;
 }
 
-body[data-active-view="home"] .public-nav {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex: 1 1 auto !important;
-  gap: 32px !important;
-}
 
-body[data-active-view="home"] .public-nav a {
-  color: rgba(255, 255, 255, 0.7) !important;
-  font-size: 11px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.24em !important;
-  text-transform: uppercase !important;
-}
 
-body[data-active-view="home"] .session-area {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  flex: 0 0 auto !important;
-}
 
-body[data-active-view="home"] .session-area .btn {
-  min-height: 42px !important;
-  padding: 0 20px !important;
-  border-radius: 2px !important;
-  font-size: 10px !important;
-  letter-spacing: 0.2em !important;
-  text-transform: uppercase !important;
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
-  color: #fff !important;
-}
 
-body[data-active-view="home"] .session-area .btn.primary,
-body[data-active-view="home"] .rois-premium-home .btn.primary {
-  position: relative;
-  overflow: hidden;
-}
 
-body[data-active-view="home"] .session-area .btn.primary::after,
-body[data-active-view="home"] .rois-premium-home .btn.primary::after,
-body[data-active-view="home"] .premium-home-footer .btn::after {
-  content: "";
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 1px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(45, 125, 255, 0.95), transparent);
-  box-shadow: 0 0 12px rgba(45, 125, 255, 0.6);
-}
 
 body[data-active-view="home"] .rois-premium-home {
   padding-bottom: 0 !important;
@@ -3061,19 +2161,6 @@ body[data-active-view="home"] .premium-hero .actions {
   gap: 12px !important;
 }
 
-body[data-active-view="home"] .premium-hero .hero-cta,
-body[data-active-view="home"] .premium-final-cta .hero-cta,
-body[data-active-view="home"] .premium-home-footer .btn {
-  min-height: 44px !important;
-  padding: 0 22px !important;
-  border-radius: 2px !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
-  background: rgba(255, 255, 255, 0.02) !important;
-  color: #fff !important;
-  font-size: 10px !important;
-  letter-spacing: 0.24em !important;
-  text-transform: uppercase !important;
-}
 
 body[data-active-view="home"] .premium-hero .hint {
   margin-top: 26px !important;
@@ -3471,48 +2558,10 @@ body[data-active-view="home"] .premium-final-cta .section-head {
   text-align: center !important;
 }
 
-body[data-active-view="home"] .premium-home-footer {
-  width: min(1440px, calc(100vw - 48px)) !important;
-  padding: 26px 0 20px !important;
-  display: grid !important;
-  gap: 18px !important;
-}
 
-body[data-active-view="home"] .premium-home-footer > p {
-  margin: 0;
-  color: rgba(255,255,255,.82);
-  font-size: 14px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-}
 
-body[data-active-view="home"] .premium-home-footer-actions {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 20px 0;
-  border-top: 1px solid rgba(255,255,255,.08);
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
 
-body[data-active-view="home"] .premium-home-footer-actions p {
-  margin: 0;
-  color: rgba(168,176,186,.78);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
 
-body[data-active-view="home"] .premium-home-footer-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 22px;
-  color: rgba(168,176,186,.56);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
 
 @media (max-width: 1100px) {
   body[data-active-view="home"] .premium-hero {
@@ -3547,39 +2596,11 @@ body[data-active-view="home"] .premium-home-footer-meta {
 }
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 24px) !important;
-    margin: 10px auto 0 !important;
-    padding: 12px 14px !important;
-    border: 1px solid rgba(255,255,255,.08) !important;
-    border-radius: 14px !important;
-    justify-content: space-between !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand,
-  body[data-active-view="home"] .topbar .public-nav {
-    display: flex !important;
-  }
 
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .session-area {
-    margin-left: auto !important;
-  }
 
-  body[data-active-view="home"] .session-area .btn {
-    min-height: 40px !important;
-    padding: 0 12px !important;
-    font-size: 9px !important;
-  }
 
-  body[data-active-view="home"] .premium-hero,
-  body[data-active-view="home"] .public-section,
-  body[data-active-view="home"] .premium-home-footer {
-    width: calc(100vw - 24px) !important;
-  }
 
   body[data-active-view="home"] .premium-hero .hero-copy {
     padding: 68px 0 20px !important;
@@ -3622,60 +2643,20 @@ body[data-active-view="home"] .premium-home-footer-meta {
     display: none !important;
   }
 
-  body[data-active-view="home"] .premium-home-footer-actions {
-    flex-direction: column;
-    align-items: flex-start;
-  }
 
-  body[data-active-view="home"] .premium-home-footer-meta {
-    gap: 12px;
-    flex-direction: column;
-  }
 }
 
-/* Mobile launch correction v70 - final override after legacy mobile rules. */
 @media (max-width: 760px) {
   html,
   body {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 24px) !important;
-    min-height: 62px !important;
-    margin: 10px auto 0 !important;
-    padding: 8px 10px !important;
-    border-radius: 999px !important;
-    justify-content: space-between !important;
-    overflow: hidden !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    display: flex !important;
-  }
 
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    width: auto !important;
-    margin-left: auto !important;
-    gap: 8px !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand-logo {
-    width: 112px !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 42px !important;
-    min-height: 42px !important;
-    padding: 0 14px !important;
-    border-radius: 999px !important;
-    font-size: 9px !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] .hero {
     width: min(100%, 480px) !important;
@@ -3775,7 +2756,6 @@ body[data-active-view="home"] .premium-home-footer-meta {
   }
 }
 
-/* Mobile launch correction v69 - final cascade for the public home. */
 @media (max-width: 760px) {
   html,
   body {
@@ -3786,41 +2766,9 @@ body[data-active-view="home"] .premium-home-footer-meta {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 24px) !important;
-    min-height: 62px !important;
-    margin: 10px auto 0 !important;
-    padding: 8px 10px !important;
-    border-radius: 999px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-    overflow: hidden !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand,
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    width: auto !important;
-    margin-left: auto !important;
-    display: flex !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 42px !important;
-    min-height: 42px !important;
-    padding: 0 14px !important;
-    border-radius: 999px !important;
-    font-size: 9px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] .hero {
     width: min(100%, 480px) !important;
@@ -4007,45 +2955,14 @@ body[data-active-view="home"] .premium-home-footer-meta {
   }
 }
 
-/* Mobile home launch lock v68 - true final override. */
 @media (max-width: 760px) {
   body[data-active-view="home"] {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    position: relative !important;
-    inset: auto !important;
-    width: calc(100% - 24px) !important;
-    min-height: 62px !important;
-    margin: 10px auto 0 !important;
-    padding: 8px 10px !important;
-    border-radius: 999px !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-    overflow: hidden !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand,
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 42px !important;
-    min-height: 42px !important;
-    padding: 0 14px !important;
-    border-radius: 999px !important;
-    font-size: 9px !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] .hero {
     width: min(100%, 480px) !important;
@@ -4203,47 +3120,14 @@ body[data-active-view="home"] .premium-home-footer-meta {
   }
 }
 
-/* Mobile home launch lock v68 - true EOF override. */
 @media (max-width: 760px) {
   body[data-active-view="home"] {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    width: calc(100% - 24px) !important;
-    min-height: 62px !important;
-    margin: 10px auto 0 !important;
-    padding: 8px 10px !important;
-    border-radius: 999px !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-    overflow: hidden !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand,
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 42px !important;
-    min-height: 42px !important;
-    padding: 0 14px !important;
-    border-radius: 999px !important;
-    font-size: 9px !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] .hero {
     width: min(100%, 480px) !important;
@@ -4401,7 +3285,6 @@ body[data-active-view="home"] .premium-home-footer-meta {
   }
 }
 
-/* Mobile home launch lock v68 - final cascade after legacy mobile rules. */
 @media (max-width: 760px) {
   html,
   body,
@@ -4411,49 +3294,9 @@ body[data-active-view="home"] .premium-home-footer-meta {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    width: calc(100% - 24px) !important;
-    min-height: 62px !important;
-    height: auto !important;
-    margin: 10px auto 0 !important;
-    padding: 8px 10px !important;
-    border-radius: 999px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-    overflow: hidden !important;
-    z-index: 80 !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand,
-  body[data-active-view="home"] .topbar .brand-logo,
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    width: 100% !important;
-    margin: 0 !important;
-    display: flex !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 42px !important;
-    min-height: 42px !important;
-    min-width: 0 !important;
-    padding: 0 14px !important;
-    border-radius: 999px !important;
-    font-size: 9px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] #homeView {
     padding: 0 !important;
@@ -4628,7 +3471,6 @@ body[data-active-view="home"] .premium-home-footer-meta {
   }
 }
 
-/* Mobile launch home repair v67 - keep first screen stable before JS finishes. */
 @media (max-width: 760px) {
   html,
   body {
@@ -4643,49 +3485,9 @@ body[data-active-view="home"] .premium-home-footer-meta {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    position: relative !important;
-    inset: auto !important;
-    width: calc(100% - 22px) !important;
-    min-height: 62px !important;
-    height: auto !important;
-    margin: 10px auto 0 !important;
-    padding: 8px 10px !important;
-    border-radius: 999px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-    overflow: hidden !important;
-    z-index: 80 !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand,
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    flex: 0 0 auto !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    min-width: 0 !important;
-    padding: 0 15px !important;
-    border-radius: 999px !important;
-    font-size: 9px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] #homeView {
     width: 100% !important;
@@ -4891,7 +3693,6 @@ body[data-active-view="home"] .premium-home-footer-meta {
   }
 }
 
-/* Emergency launch repair v66 - final EOF cascade lock */
 [data-dashboard-panel="admin-athletes"] .panel {
   overflow-x: auto !important;
   overflow-y: visible !important;
@@ -4939,60 +3740,11 @@ body[data-active-view="home"] .premium-home-footer-meta {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    width: calc(100% - 20px) !important;
-    min-height: 66px !important;
-    margin: 10px auto 0 !important;
-    padding: 10px !important;
-    border-radius: 999px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
-    position: relative !important;
-    z-index: 50 !important;
-  }
 
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    display: flex !important;
-    align-items: center !important;
-    flex: 0 1 auto !important;
-    width: auto !important;
-    min-width: 76px !important;
-    max-width: 96px !important;
-    overflow: hidden !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand-logo,
-  body[data-active-view="home"] .topbar .rois-logo {
-    width: 92px !important;
-    max-width: 92px !important;
-    height: auto !important;
-    display: block !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    margin-left: auto !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 7px !important;
-    flex: 0 0 auto !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 44px !important;
-    min-height: 44px !important;
-    padding: 0 13px !important;
-    border-radius: 999px !important;
-    font-size: 9px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] .hero {
     display: flex !important;
@@ -5108,7 +3860,6 @@ body[data-active-view="home"] .premium-home-footer-meta {
   }
 }
 
-/* Emergency launch repair v66 - final cascade lock */
 [data-dashboard-panel="admin-athletes"] .panel {
   overflow-x: auto !important;
   overflow-y: visible !important;
@@ -5157,60 +3908,11 @@ body[data-active-view="home"] .premium-home-footer-meta {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    width: calc(100% - 20px) !important;
-    min-height: 66px !important;
-    margin: 10px auto 0 !important;
-    padding: 10px !important;
-    border-radius: 999px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
-    position: relative !important;
-    z-index: 50 !important;
-  }
 
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    display: flex !important;
-    align-items: center !important;
-    flex: 0 1 auto !important;
-    width: auto !important;
-    min-width: 76px !important;
-    max-width: 96px !important;
-    overflow: hidden !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand-logo,
-  body[data-active-view="home"] .topbar .rois-logo {
-    width: 92px !important;
-    max-width: 92px !important;
-    height: auto !important;
-    display: block !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    margin-left: auto !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 7px !important;
-    flex: 0 0 auto !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 44px !important;
-    min-height: 44px !important;
-    padding: 0 13px !important;
-    border-radius: 999px !important;
-    font-size: 9px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] .hero {
     display: flex !important;
@@ -5327,7 +4029,6 @@ body[data-active-view="home"] .premium-home-footer-meta {
   }
 }
 
-/* Emergency launch repair v66 - mobile conversion + admin athlete actions */
 [data-dashboard-panel="admin-athletes"] .panel {
   overflow-x: auto !important;
   overflow-y: visible !important;
@@ -5383,60 +4084,11 @@ body[data-active-view="home"] .premium-home-footer-meta {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    width: calc(100% - 20px) !important;
-    min-height: 66px !important;
-    margin: 10px auto 0 !important;
-    padding: 10px !important;
-    border-radius: 999px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
-    position: relative !important;
-    z-index: 50 !important;
-  }
 
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    display: flex !important;
-    align-items: center !important;
-    flex: 0 1 auto !important;
-    width: auto !important;
-    min-width: 76px !important;
-    max-width: 96px !important;
-    overflow: hidden !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand-logo,
-  body[data-active-view="home"] .topbar .rois-logo {
-    width: 92px !important;
-    max-width: 92px !important;
-    height: auto !important;
-    display: block !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    margin-left: auto !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 7px !important;
-    flex: 0 0 auto !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 44px !important;
-    min-height: 44px !important;
-    padding: 0 13px !important;
-    border-radius: 999px !important;
-    font-size: 9px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] .hero {
     display: flex !important;
@@ -10250,37 +8902,14 @@ h3 {
       linear-gradient(180deg, #f8fafb 0%, #f4f6f8 42%, #ffffff 100%);
   }
 
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 28px);
-    height: 74px;
-    margin-top: 14px;
-    padding: 0 12px 0 14px;
-    border-radius: 999px;
-  }
 
   body[data-active-view="home"] .brand {
     min-width: 0;
   }
 
-  body[data-active-view="home"] .brand-logo {
-    width: 150px;
-    height: 50px;
-  }
 
-  body[data-active-view="home"] .public-nav {
-    display: none;
-  }
 
-  body[data-active-view="home"] .session-area .pill {
-    display: none;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    width: auto;
-    min-width: 92px;
-    min-height: 48px;
-    padding: 0 18px;
-  }
 
   .hero {
     width: calc(100vw - 30px);
@@ -10425,13 +9054,7 @@ h3 {
 }
 
 @media (max-width: 560px) {
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 24px);
-  }
 
-  body[data-active-view="home"] .brand-logo {
-    width: 132px;
-  }
 
   .mobile-appbar {
     padding-inline: 16px;
@@ -10547,13 +9170,6 @@ body.rois-brand-ready .side-logo {
     flex: 0 0 auto;
   }
 
-  body[data-active-view="home"] .topbar {
-    background: rgba(8, 9, 10, 0.97);
-    border-color: rgba(244, 246, 248, 0.12);
-    justify-content: space-between;
-    gap: 10px;
-    overflow: hidden;
-  }
 
   body[data-active-view="home"] .brand {
     min-width: 0;
@@ -10562,23 +9178,8 @@ body.rois-brand-ready .side-logo {
     overflow: hidden;
   }
 
-  body[data-active-view="home"] .brand-logo {
-    width: 160px;
-    height: 58px;
-    transform: scale(1.18);
-  }
 
-  body[data-active-view="home"] .session-area {
-    position: relative;
-    z-index: 2;
-    flex: 0 0 auto;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    border-color: rgba(244, 246, 248, 0.22);
-    background: rgba(244, 246, 248, 0.06);
-    color: #f7f4eb;
-  }
 }
 
 @media (max-width: 560px) {
@@ -10599,22 +9200,12 @@ body.rois-brand-ready .side-logo {
     font-size: 10px;
   }
 
-  body[data-active-view="home"] .brand-logo {
-    width: 136px;
-    height: 54px;
-    transform: scale(1.14);
-  }
 
   body[data-active-view="home"] .brand {
     flex-basis: 150px;
     width: 150px;
   }
 
-  body[data-active-view="home"] .topbar .btn {
-    min-width: 84px;
-    padding-inline: 14px;
-    font-size: 10px;
-  }
 }
 
 /* Mobile dashboard header cleanup: no search, stable ROIS avatar. */
@@ -11565,24 +10156,8 @@ body[data-active-view="athlete"] .topbar .brand-logo {
   }
 }
 
-/* Public logo and home cover */
-body[data-active-view="home"] .topbar {
-  justify-content: space-between;
-}
 
-body[data-active-view="home"] .topbar .brand {
-  display: inline-flex !important;
-  align-items: center;
-  width: 184px;
-  min-width: 184px;
-  height: 58px;
-}
 
-body[data-active-view="home"] .topbar .brand-logo {
-  width: 184px;
-  max-height: 58px;
-  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.18));
-}
 
 body[data-active-view="home"] .rois-logo-sprite {
   display: block !important;
@@ -11592,10 +10167,6 @@ body[data-active-view="home"] .rois-logo-sprite {
   overflow: hidden;
 }
 
-body[data-active-view="home"] .topbar .public-nav {
-  margin-left: auto;
-  margin-right: auto;
-}
 
 body:not([data-active-view="home"]) .topbar .brand,
 .sidebar .side-logo {
@@ -11656,11 +10227,6 @@ body[data-active-view="home"] .hero .home-cover {
   color: #111;
 }
 
-body[data-active-view="home"] .topbar .btn.nav-create-account {
-  background: #fff;
-  border-color: #fff;
-  color: #111;
-}
 
 body[data-active-view="home"] {
   background:
@@ -11676,57 +10242,13 @@ body[data-active-view="home"] #homeView {
   background: transparent;
 }
 
-body[data-active-view="home"] .topbar {
-  width: min(1380px, calc(100vw - 40px));
-  background: rgba(5, 5, 5, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(18px);
-}
 
-body[data-active-view="home"] .topbar .brand-logo,
-body[data-active-view="home"] .premium-home-footer .brand-logo {
-  color: #fff;
-  fill: #fff;
-}
 
-body[data-active-view="home"] .public-nav {
-  gap: 28px;
-}
 
-body[data-active-view="home"] .public-nav a {
-  color: rgba(244, 246, 248, 0.72);
-  font-size: 12px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
 
-body[data-active-view="home"] .public-nav a:hover {
-  color: #fff;
-  text-shadow: 0 0 18px rgba(45, 125, 255, 0.35);
-}
 
-body[data-active-view="home"] .topbar .btn {
-  min-height: 44px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f4f6f8;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
 
-body[data-active-view="home"] .topbar .btn:hover,
-body[data-active-view="home"] .rois-premium-home .btn:hover {
-  border-color: rgba(45, 125, 255, 0.55);
-  box-shadow: 0 0 0 1px rgba(45, 125, 255, 0.2), 0 12px 32px rgba(45, 125, 255, 0.18);
-}
 
-body[data-active-view="home"] .topbar .btn.nav-create-account,
-body[data-active-view="home"] .rois-premium-home .btn.primary {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
-}
 
 body[data-active-view="home"] .rois-premium-home {
   padding-bottom: 72px;
@@ -12044,20 +10566,7 @@ body[data-active-view="home"] .premium-final-cta .section-head {
   margin-bottom: 28px;
 }
 
-body[data-active-view="home"] .premium-home-footer {
-  width: min(1380px, calc(100vw - 40px));
-  margin: 0 auto;
-  padding: 42px 0 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  display: grid;
-  gap: 10px;
-  justify-items: start;
-  color: #65717d;
-}
 
-body[data-active-view="home"] .premium-home-footer .brand-logo {
-  width: 138px;
-}
 
 @media (max-width: 1100px) {
   body[data-active-view="home"] .premium-hero {
@@ -12079,25 +10588,9 @@ body[data-active-view="home"] .premium-home-footer .brand-logo {
 }
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 24px);
-    padding-inline: 14px;
-  }
 
-  body[data-active-view="home"] .public-nav {
-    gap: 14px;
-  }
 
-  body[data-active-view="home"] .public-nav a {
-    font-size: 10px;
-    letter-spacing: 0.16em;
-  }
 
-  body[data-active-view="home"] .premium-hero,
-  body[data-active-view="home"] .public-section,
-  body[data-active-view="home"] .premium-home-footer {
-    width: calc(100vw - 24px);
-  }
 
   body[data-active-view="home"] .premium-hero {
     padding-top: 94px;
@@ -12252,23 +10745,10 @@ body[data-active-view="home"] .premium-home-footer .brand-logo {
 }
 
 @media (max-width: 900px) {
-  body[data-active-view="home"] .topbar .brand,
-  body[data-active-view="home"] .topbar .brand-logo {
-    width: 142px;
-    min-width: 142px;
-  }
 }
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .topbar {
-    justify-content: space-between;
-  }
 
-  body[data-active-view="home"] .topbar .brand,
-  body[data-active-view="home"] .topbar .brand-logo {
-    width: 128px;
-    min-width: 128px;
-  }
 
   .hero #publicHomeCover {
     display: none;
@@ -13113,55 +11593,11 @@ body[data-active-view="home"] .premium-home-footer .brand-logo {
 }
 
 @media (max-width: 760px) {
-  body[data-active-view="home"] .topbar {
-    width: calc(100% - 20px) !important;
-    min-height: 66px !important;
-    margin: 10px auto 0 !important;
-    padding: 10px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
-    border-radius: 999px !important;
-    position: relative !important;
-    z-index: 50 !important;
-  }
 
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand {
-    display: flex !important;
-    width: auto !important;
-    min-width: 76px !important;
-    max-width: 96px !important;
-    overflow: hidden !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand-logo,
-  body[data-active-view="home"] .topbar .rois-logo {
-    width: 92px !important;
-    max-width: 92px !important;
-    height: auto !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    margin-left: auto !important;
-    display: flex !important;
-    gap: 7px !important;
-    flex: 0 0 auto !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 44px !important;
-    min-height: 44px !important;
-    padding: 0 13px !important;
-    border-radius: 999px !important;
-    font-size: 9px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] .hero {
     display: flex !important;
@@ -13297,46 +11733,15 @@ body[data-active-view="home"] .premium-home-footer .brand-logo {
   }
 }
 
-/* Mobile launch correction v72 - absolute final override for public traffic. */
 @media (max-width: 760px) {
   html,
   body {
     overflow-x: hidden !important;
   }
 
-  body[data-active-view="home"] .topbar {
-    width: calc(100vw - 24px) !important;
-    min-height: 62px !important;
-    margin: 10px auto 0 !important;
-    padding: 8px 10px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-    border-radius: 999px !important;
-    overflow: hidden !important;
-  }
 
-  body[data-active-view="home"] .topbar .brand,
-  body[data-active-view="home"] .topbar .public-nav {
-    display: none !important;
-  }
 
-  body[data-active-view="home"] .topbar .session-area {
-    width: auto !important;
-    margin-left: auto !important;
-    display: flex !important;
-    gap: 8px !important;
-    flex: 0 0 auto !important;
-  }
 
-  body[data-active-view="home"] .topbar .btn {
-    height: 42px !important;
-    min-height: 42px !important;
-    padding: 0 14px !important;
-    font-size: 9px !important;
-    white-space: nowrap !important;
-  }
 
   body[data-active-view="home"] .hero {
     width: min(100%, 480px) !important;
@@ -13435,7 +11840,9 @@ body[data-active-view="home"] .premium-home-footer .brand-logo {
     min-width: 1180px !important;
   }
 }
-/* ROIS FINAL HEADER FOOTER OVERRIDE — ABSOLUTE LAST BLOCK */
+
+
+/* ROIS FINAL HEADER FOOTER LOCK - SINGLE SOURCE OF TRUTH */
 body[data-active-view="home"] .topbar {
   width: 100% !important;
   height: 68px !important;
@@ -13663,3 +12070,4 @@ body[data-active-view="home"] .premium-home-footer-meta span {
     gap: 10px !important;
   }
 }
+
