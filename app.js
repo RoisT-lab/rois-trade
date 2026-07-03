@@ -1513,6 +1513,59 @@ function openExternalUrl(url, title) {
   return true;
 }
 
+function registrationPaymentConfig(type, payload = {}) {
+  if (type === "company") {
+    return {
+      productKey: "companyMonthlyMembership",
+      title: "Membresia mensual Empresa ROIS",
+      concept: "Membresia mensual Empresa ROIS",
+      amount: 5000,
+      payer: payload.company || payload.name || payload.email || "Empresa ROIS"
+    };
+  }
+
+  if (type === "founder") {
+    return {
+      productKey: "founderMonthlyMembership",
+      title: "Membresia mensual Founder ROIS",
+      concept: "Membresia mensual Founder ROIS",
+      amount: 2500,
+      payer: payload.name || payload.email || "Founder ROIS"
+    };
+  }
+
+  if (type === "athlete") {
+    return {
+      productKey: "athleteMonthlyMembership",
+      title: "Membresia mensual Athlete ROIS",
+      concept: "Membresia mensual Athlete ROIS",
+      amount: 2500,
+      payer: payload.name || payload.email || "Athlete ROIS"
+    };
+  }
+
+  return null;
+}
+
+async function registerMembershipPayment(type, payload = {}) {
+  const payment = registrationPaymentConfig(type, payload);
+  if (!payment) return null;
+
+  try {
+    await api.insert("payments", {
+      concept: payment.concept,
+      amount: payment.amount,
+      company: payment.payer,
+      status: "pending",
+      product_key: payment.productKey
+    });
+  } catch (error) {
+    // No bloquear el registro si el log de pago falla.
+  }
+
+  return payment;
+}
+
 function humanError(error) {
   const message = typeof error?.message === "string" ? error.message : JSON.stringify(error);
   if (message.includes("over_email_send_rate_limit") || message.includes("email rate limit exceeded") || message.includes("429")) {
@@ -5150,4 +5203,172 @@ async function submitRegistration(event) {
 }
 
 
+
+async function submitRegistration(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const type = state.registrationType;
+  let paymentAction = null;
+  try {
+    if (type === "company") {
+      if (form.password.value !== form.confirm.value) {
+        notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrase\u00f1a para crear tu cuenta.");
+        return;
+      }
+      const signup = await api.signupCompany({
+        company: form.name.value,
+        email: form.email.value,
+        contact: form.contact.value,
+        interest: form.interest.value,
+        password: form.password.value
+      });
+      closeModals();
+      if (signup.confirmed) {
+        state.session = signup.session;
+        saveSession(state.session);
+        await api.insert("terms_acceptances", { user_email: form.email.value, user_role: "client", version: "company-sponsorship-v1", status: "accepted" });
+        const membershipPayment = await registerMembershipPayment("company", {
+          company: form.name.value,
+          email: form.email.value
+        });
+        renderSession();
+        renderClient();
+        showView("client");
+        if (membershipPayment) openStripeCheckout(membershipPayment.productKey, membershipPayment.title);
+        notify("Cuenta creada", "Bienvenido a ROIS", "Tu dashboard de cliente ya est\u00e1 activo. Completa el pago mensual en Stripe para activar tu membres\u00eda.");
+      } else {
+        showVerificationNotice(signup.email || form.email.value);
+      }
+      renderAdmin();
+      renderPublic();
+      return;
+    } else if (type === "athlete") {
+      if (form.password.value !== form.confirm.value) {
+        notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrase\u00f1a para crear tu cuenta de deportista.");
+        return;
+      }
+      const scoutCode = normalizeScoutCode(form.scout_code.value);
+      if (!scoutCode) {
+        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta emprendedora necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
+        form.scout_code.focus();
+        return;
+      }
+      const scoutValidation = await api.validateScoutCode(scoutCode);
+      if (!scoutValidation.valid) {
+        notify("Codigo Scout", "Codigo no valido", `El codigo ${scoutCode} no esta activo para registrar deportistas. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
+        form.scout_code.focus();
+        return;
+      }
+      const age = calculateAge(form.birth_date.value);
+      if (age === null || age < 0) {
+        notify("Registro", "Fecha de nacimiento inv\u00e1lida", "Ingresa una fecha de nacimiento v\u00e1lida para continuar.");
+        return;
+      }
+      const isMinor = age < 18;
+      if (isMinor && (!form.guardian_name.value.trim() || !form.guardian_email.value.trim() || !form.guardian_phone.value.trim() || !form.guardian_relationship.value || !form.guardian_consent.checked)) {
+        notify("Registro", "Autorizaci\u00f3n de tutor requerida", "Para registrar a un deportista menor de edad necesitamos datos y consentimiento expreso de madre, padre o tutor legal.");
+        return;
+      }
+      const signup = await api.signupAthlete({
+        email: form.email.value,
+        password: form.password.value,
+        name: form.name.value,
+        scoutCode,
+        birthDate: form.birth_date.value,
+        isMinor,
+        guardianName: isMinor ? form.guardian_name.value.trim() : "",
+        guardianEmail: isMinor ? form.guardian_email.value.trim() : "",
+        guardianPhone: isMinor ? form.guardian_phone.value.trim() : "",
+        guardianRelationship: isMinor ? form.guardian_relationship.value : "",
+        guardianConsent: isMinor ? form.guardian_consent.checked : false,
+        termsAccepted: form.terms.checked,
+        sport: "Por definir",
+        category: "",
+        location: "",
+        stats: ""
+      });
+      closeModals();
+      if (signup.confirmed) {
+        state.session = signup.session;
+        saveSession(state.session);
+        await api.insert("terms_acceptances", { user_email: form.email.value, user_role: isMinor ? "athlete_minor_guardian" : "athlete", version: isMinor ? "athlete-minor-guardian-consent-v1-intelliquant" : "athlete-registration-v1-intelliquant", status: "accepted" });
+        const membershipPayment = await registerMembershipPayment("athlete", {
+          name: form.name.value,
+          email: form.email.value
+        });
+        renderSession();
+        renderAthlete();
+        showView("athlete");
+        if (membershipPayment) openStripeCheckout(membershipPayment.productKey, membershipPayment.title);
+        notify("Perfil deportivo", "Bienvenido a ROIS", "Tu dashboard ya est\u00e1 activo. Completa el pago mensual en Stripe para activar tu membres\u00eda Athlete ROIS.");
+      } else {
+        showVerificationNotice(signup.email || form.email.value);
+      }
+      renderAdmin();
+      renderPublic();
+      return;
+    } else if (type === "founder") {
+      if (form.password.value !== form.confirm.value) {
+        notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrase\u00f1a para crear tu cuenta founder.");
+        return;
+      }
+      const founderIndustry = form.industry.value.trim() || "Founder ROIS";
+      const founderStage = form.stage.value.trim();
+      const founderCity = form.city.value.trim();
+      const ventureName = form.venture_name.value.trim();
+      const founderStats = `Founder ROIS. Emprendimiento: ${ventureName}. Industria: ${founderIndustry}. Etapa: ${founderStage}. Ciudad: ${founderCity}.`;
+      const signup = await api.signupAthlete({
+        email: form.email.value,
+        password: form.password.value,
+        name: form.name.value,
+        scoutCode: "",
+        birthDate: "",
+        isMinor: false,
+        guardianName: "",
+        guardianEmail: "",
+        guardianPhone: "",
+        guardianRelationship: "",
+        guardianConsent: false,
+        termsAccepted: form.terms.checked,
+        sport: founderIndustry || "Founder ROIS",
+        category: founderStage,
+        location: founderCity,
+        stats: founderStats
+      });
+      closeModals();
+      if (signup.confirmed) {
+        state.session = signup.session;
+        saveSession(state.session);
+        await api.insert("terms_acceptances", { user_email: form.email.value, user_role: "founder", version: "founder-registration-v1-intelliquant", status: "accepted" });
+        const membershipPayment = await registerMembershipPayment("founder", {
+          name: form.name.value,
+          email: form.email.value
+        });
+        renderSession();
+        renderAthlete();
+        showView("athlete");
+        if (membershipPayment) openStripeCheckout(membershipPayment.productKey, membershipPayment.title);
+        notify("Perfil founder", "Bienvenido a ROIS", "Tu dashboard founder ya est\u00e1 activo. Completa el pago mensual en Stripe para activar tu membres\u00eda Founder ROIS.");
+      } else {
+        showVerificationNotice(signup.email || form.email.value);
+      }
+      renderAdmin();
+      renderPublic();
+      return;
+    } else {
+      const image_url = await fileToDataUrl(form.image.files[0]);
+      await api.insert("events", { name: form.name.value, category: form.category.value, venue: form.venue.value, date: form.date.value, status: "pending", image_url, visual_status: image_url ? "pending_review" : "approved" });
+      paymentAction = ["eventRegistration", "Registro de Evento ROIS"];
+    }
+    closeModals();
+    notify("Registro", "Solicitud recibida", "El registro qued\u00f3 pendiente de aprobaci\u00f3n en el panel administrador.");
+    if (paymentAction) {
+      openStripeCheckout(paymentAction[0], paymentAction[1]);
+    }
+    renderAdmin();
+    renderPublic();
+  } catch (error) {
+    notify("Registro", "No fue posible registrar", humanError(error));
+  }
+}
 
