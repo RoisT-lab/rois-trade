@@ -21,6 +21,7 @@ const state = {
 
 let coverCarouselTimers = [];
 const coverCacheKey = "rois_cover_cache_v1";
+let adminDataHydrated = false;
 
 const seed = {
   profiles: configuredDemoAdmin ? [
@@ -282,6 +283,14 @@ function scoutCodeForAthlete(athlete = currentAthlete()) {
 
 function activeScoutAthletes() {
   return (state.data?.athletes || []).filter(athlete => athlete.scout_active && scoutCodeForAthlete(athlete));
+}
+
+function adminAthleteRecords() {
+  return (state.data?.athletes || []).filter(item => !isFounderProfile(item));
+}
+
+function adminFounderRecords() {
+  return (state.data?.athletes || []).filter(item => isFounderProfile(item));
 }
 
 function scoutCanInvite(athlete) {
@@ -688,25 +697,29 @@ function supabaseApi() {
   return {
     async loadAll(options = {}) {
       const lightweight = options.lightweight !== false;
+      const adminMode = options.admin === true || state.session?.role === "admin";
+      const mainLimit = adminMode ? 1000 : 180;
+      const mediumLimit = adminMode ? 500 : 120;
+      const smallLimit = adminMode ? 300 : 80;
       const tableQueries = {
-        profiles: "select=*&order=created_at.desc&limit=180",
-        companies: "select=*&order=created_at.desc&limit=180",
-        athletes: "select=*&order=created_at.desc&limit=180",
-        events: "select=*&order=created_at.desc&limit=100",
-        requests: "select=*&order=created_at.desc&limit=120",
-        sponsorships: "select=*&order=created_at.desc&limit=120",
-        news: "select=*&order=created_at.desc&limit=80",
-        partnerships: "select=*&order=created_at.desc&limit=80",
-        site_settings: lightweight ? "select=id,value,created_at,updated_at&limit=40" : "select=*&limit=100",
-        crm: "select=*&order=created_at.desc&limit=160",
-        payments: "select=*&order=created_at.desc&limit=120",
-        uploads: lightweight ? "select=id,type,status,title,name,created_at,updated_at&order=created_at.desc&limit=40" : "select=*&order=created_at.desc&limit=160",
-        athlete_posts: "select=*&order=created_at.desc&limit=100",
-        athlete_results: "select=*&order=created_at.desc&limit=120",
-        athlete_expenses: "select=*&order=created_at.desc&limit=100",
-        athlete_deposits: "select=*&order=created_at.desc&limit=100",
-        athlete_notifications: "select=*&order=created_at.desc&limit=100",
-        terms_acceptances: "select=*&order=created_at.desc&limit=100"
+        profiles: `select=*&order=created_at.desc&limit=${mainLimit}`,
+        companies: `select=*&order=created_at.desc&limit=${mainLimit}`,
+        athletes: `select=*&order=created_at.desc&limit=${mainLimit}`,
+        events: `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        requests: `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        sponsorships: `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        news: `select=*&order=created_at.desc&limit=${smallLimit}`,
+        partnerships: `select=*&order=created_at.desc&limit=${smallLimit}`,
+        site_settings: lightweight ? `select=id,value,created_at,updated_at&limit=${Math.min(smallLimit, 80)}` : `select=*&limit=${smallLimit}`,
+        crm: `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        payments: `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        uploads: lightweight ? `select=id,type,status,title,name,created_at,updated_at&order=created_at.desc&limit=${Math.min(smallLimit, 80)}` : `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        athlete_posts: `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        athlete_results: `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        athlete_expenses: `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        athlete_deposits: `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        athlete_notifications: `select=*&order=created_at.desc&limit=${mediumLimit}`,
+        terms_acceptances: `select=*&order=created_at.desc&limit=${mediumLimit}`
       };
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const result = {};
@@ -1230,7 +1243,19 @@ function showView(name) {
   document.querySelectorAll("[data-view]").forEach(view => view.classList.toggle("active", view.dataset.view === name));
   if (name === "client") renderClient();
   if (name === "athlete") renderAthlete();
-  if (name === "admin") renderAdmin();
+  if (name === "admin") {
+    renderAdmin();
+    if (!adminDataHydrated) {
+      adminDataHydrated = true;
+      api.loadAll({ lightweight: false, admin: true }).then(data => {
+        state.data = normalizeLoadedData(data);
+        writeDataCache(state.data);
+        renderAdmin();
+      }).catch(() => {
+        // Keep the current admin view responsive even if the background refresh fails.
+      });
+    }
+  }
   optimizeRenderedMedia();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1240,6 +1265,7 @@ function showDashboardPanel(targetId) {
   if (!targetPanel) return;
   const workspace = targetPanel.closest("[data-dashboard]");
   const nav = document.querySelector(`[data-dashboard-nav="${workspace.dataset.dashboard}"]`);
+  if (workspace.dataset.dashboard === "admin") renderAdminPanel(targetId);
   workspace.querySelectorAll("[data-dashboard-panel]").forEach(panel => panel.classList.toggle("active", panel === targetPanel));
   nav.querySelectorAll("[data-dashboard-target]").forEach(button => button.classList.toggle("active", button.dataset.dashboardTarget === targetId));
   optimizeRenderedMedia(targetPanel);
@@ -2941,26 +2967,41 @@ function renderAthleteReels() {
 
 function renderAdmin() {
   renderAdminKpis();
-  renderAdminUsers();
-  renderAdminAthletes();
-  renderAdminPaymentLinks();
-  renderAdminAthleteNotifications();
-  renderAdminEvents();
-  renderAdminNews();
-  renderAdminPartners();
-  renderAdminCrm();
-  renderAdminPayments();
-  renderAdminUploads();
-  renderAdminLaunch();
-  renderAdminStats();
-  renderAccountSettings("admin-settings");
+  const activePanel = document.querySelector('[data-dashboard="admin"] [data-dashboard-panel].active')?.dataset.dashboardPanel || "admin-users";
+  renderAdminPanel(activePanel);
+}
+
+function renderAdminPanel(targetId) {
+  const map = {
+    "admin-users": renderAdminUsers,
+    "admin-athletes": renderAdminAthletes,
+    "admin-founders": renderAdminFounders,
+    "admin-payment-links": renderAdminPaymentLinks,
+    "admin-athlete-notifications": renderAdminAthleteNotifications,
+    "admin-events": renderAdminEvents,
+    "admin-news": renderAdminNews,
+    "admin-partners": renderAdminPartners,
+    "admin-crm": renderAdminCrm,
+    "admin-payments": renderAdminPayments,
+    "admin-uploads": renderAdminUploads,
+    "admin-launch": renderAdminLaunch,
+    "admin-stats": renderAdminStats,
+    "admin-settings": () => renderAccountSettings("admin-settings")
+  };
+  if (map[targetId]) map[targetId]();
 }
 
 function renderAdminKpis() {
   const pendingUsers = state.data.profiles.filter(item => item.status === "pending").length + state.data.companies.filter(item => item.status === "pending").length;
   const paid = state.data.payments.filter(item => item.status === "paid").reduce((sum, item) => sum + Number(item.amount), 0);
+  const athletes = adminAthleteRecords().length;
+  const founders = adminFounderRecords().length;
+  const companies = state.data.companies.length;
   document.getElementById("adminKpis").innerHTML = [
     ["Pendientes", pendingUsers],
+    ["Empresas", companies],
+    ["Deportistas", athletes],
+    ["Founders", founders],
     ["Pagos", `$${paid.toLocaleString("es-MX")}`],
     ["CRM", state.data.crm.length]
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
@@ -2985,7 +3026,7 @@ function renderAdminUsers() {
 }
 
 function renderAdminAthletes() {
-  const athletes = [...(state.data.athletes || [])].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const athletes = [...adminAthleteRecords()].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const active = athletes.filter(athlete => !["blocked", "deleted", "rejected"].includes(athlete.status));
   const paid = active.filter(athleteAnnualFeePaid).length;
   const linked = active.filter(athlete => athlete.sponsor_payment_url).length;
@@ -3022,6 +3063,45 @@ function athleteAdminActions(athlete) {
   if (athlete.invited_by_scout_code && athlete.scout_commission_status !== "approved") actions.push(button("Validar scout", () => validateScoutCommission(athlete)));
   actions.push(button("Eliminar", () => deleteContent("athletes", athlete)));
   return actionGroup(actions);
+}
+
+function founderAdminTraction(athlete) {
+  const ranking = String(athlete.ranking || "").trim();
+  if (ranking) return ranking;
+  const stats = String(athlete.stats || "").trim();
+  return stats.length > 96 ? `${stats.slice(0, 96).trim()}...` : (stats || "Por definir");
+}
+
+function founderAdminStatus(athlete) {
+  return `${badge(athlete.status || "pending")} ${badge(athlete.visual_status || "pendiente visual")}`;
+}
+
+function renderAdminFounders() {
+  const founders = [...adminFounderRecords()].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const active = founders.filter(founder => !["blocked", "deleted", "rejected"].includes(founder.status));
+  const linked = active.filter(founder => founder.sponsor_payment_url).length;
+  panel("admin-founders", "Founders", "Gestion administrativa de perfiles founder con compatibilidad tecnica athlete", `
+    <div class="panel-body admin-athlete-summary">
+      <div class="scout-metrics">
+        <div><span>Founders activos</span><strong>${active.length}</strong></div>
+        <div><span>Link mensual</span><strong>${linked}</strong></div>
+        <div><span>Industria definida</span><strong>${active.filter(founder => founder.sport && founder.sport !== "Por definir").length}</strong></div>
+        <div><span>Etapa definida</span><strong>${active.filter(founder => founder.category).length}</strong></div>
+      </div>
+      <p class="hint">Los founders viven tecnicamente en athletes. Esta vista solo separa administrativamente los perfiles detectados como founder dentro de ROIS.</p>
+    </div>
+    ${founders.length ? table(["Founder", "Correo", "Industria", "Etapa", "Traccion", "Ticket mensual", "Sponsors", "Estado", "Acciones"], founders.map(founder => [
+      `<strong>${escapeHtml(founder.name || "Founder")}</strong>`,
+      escapeHtml(founder.email || founder.contact || "Sin correo"),
+      escapeHtml(founder.sport || "Por definir"),
+      escapeHtml(founder.category || "Por definir"),
+      escapeHtml(founderAdminTraction(founder)),
+      `$${Number(founder.monthly || 0).toLocaleString("es-MX")} MXN`,
+      escapeHtml(String(founder.max_sponsors || 0)),
+      founderAdminStatus(founder),
+      athleteAdminActions(founder)
+    ])) : `<div class="empty">Aun no hay founders registrados en ROIS.</div>`}
+  `);
 }
 
 function athleteStripePaymentInfo(athlete) {
@@ -3079,12 +3159,16 @@ function renderAdminPaymentLinks() {
 
 function athletePaymentLinkCard(athlete) {
   const info = athleteStripePaymentInfo(athlete);
+  const founder = isFounderProfile(athlete);
+  const label = founder ? "Founder ROIS" : "Athlete ROIS";
+  const monthlyLabel = founder ? "Membresia / patrocinio mensual founder" : "Patrocinio mensual athlete";
   return `
     <article class="payment-link-card">
       <div class="payment-link-card-head">
         <div>
-          <p class="eyebrow">${escapeHtml(athlete.sport || "Deportista ROIS")}</p>
+          <p class="eyebrow">${escapeHtml(label)}</p>
           <h3>${escapeHtml(athlete.name || "Deportista")}</h3>
+          <p class="hint">${escapeHtml(monthlyLabel)}</p>
         </div>
         ${athlete.sponsor_payment_url ? badge("link activo") : badge("pendiente")}
       </div>
@@ -3136,7 +3220,10 @@ async function submitAthletePaymentLink(event) {
 function renderAdminAthleteNotifications() {
   const athleteOptions = state.data.athletes
     .filter(athlete => athlete.email)
-    .map(athlete => `<option value="${escapeAttr(athlete.email || "")}">${escapeHtml(athlete.name || "Deportista")} - ${escapeHtml(athlete.email || "")}</option>`)
+    .map(athlete => {
+      const label = isFounderProfile(athlete) ? "Founder" : "Athlete";
+      return `<option value="${escapeAttr(athlete.email || "")}">[${escapeHtml(label)}] ${escapeHtml(athlete.name || "Perfil")} - ${escapeHtml(athlete.email || "")}</option>`;
+    })
     .join("");
   const rows = (state.data.athlete_notifications || []).map(item => [
     item.athlete_name || item.athlete_email,

@@ -612,6 +612,15 @@
   }
 }
 
+[data-dashboard-panel="admin-founders"] .panel {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+[data-dashboard-panel="admin-founders"] .data-table {
+  min-width: 1180px !important;
+}
+
 /* ROIS FOOTER LAYOUT 04H */
 body[data-active-view="home"] .premium-home-footer {
   width: min(1380px, calc(100vw - 64px)) !important;
