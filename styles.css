@@ -621,6 +621,200 @@
   min-width: 1180px !important;
 }
 
+/* ROIS FINAL HEADER + FOOTER LOCK */
+body[data-active-view="home"] .topbar {
+  min-height: 72px !important;
+  height: 72px !important;
+  padding: 0 clamp(28px, 3vw, 52px) !important;
+  display: grid !important;
+  grid-template-columns: 132px 1fr auto !important;
+  align-items: center !important;
+  gap: clamp(24px, 3vw, 48px) !important;
+  background: #000 !important;
+}
+
+body[data-active-view="home"] .topbar .brand {
+  width: 132px !important;
+  min-width: 132px !important;
+  max-width: 132px !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  overflow: hidden !important;
+}
+
+body[data-active-view="home"] .topbar .brand img,
+body[data-active-view="home"] .topbar .brand-logo,
+body[data-active-view="home"] .topbar .rois-logo-image {
+  width: 126px !important;
+  max-width: 126px !important;
+  height: auto !important;
+  max-height: 36px !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+  display: block !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body[data-active-view="home"] .public-nav {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: clamp(28px, 4vw, 72px) !important;
+}
+
+body[data-active-view="home"] .public-nav a {
+  font-size: 10px !important;
+  letter-spacing: 0.28em !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+body[data-active-view="home"] .session-area {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+body[data-active-view="home"] .premium-home-footer {
+  width: min(1440px, calc(100vw - 48px)) !important;
+  margin: 0 auto !important;
+  padding: 54px 0 32px !important;
+  display: grid !important;
+  justify-items: center !important;
+  text-align: center !important;
+  gap: 0 !important;
+  background: #000 !important;
+  border-top: 1px solid rgba(255,255,255,.08) !important;
+}
+
+body[data-active-view="home"] .footer-brand-block {
+  width: 100% !important;
+  display: grid !important;
+  justify-items: center !important;
+  text-align: center !important;
+  gap: 22px !important;
+  padding-bottom: 34px !important;
+}
+
+body[data-active-view="home"] .premium-home-footer .rois-logo-image,
+body[data-active-view="home"] .premium-home-footer .brand-logo {
+  width: 168px !important;
+  max-width: 168px !important;
+  height: auto !important;
+  max-height: none !important;
+  display: block !important;
+  object-fit: contain !important;
+  margin: 0 auto !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body[data-active-view="home"] .footer-brand-block p {
+  margin: 0 !important;
+  color: rgba(244,246,248,.86) !important;
+  font-size: 12px !important;
+  letter-spacing: .34em !important;
+  line-height: 1.8 !important;
+  text-transform: uppercase !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-actions {
+  width: 100% !important;
+  display: grid !important;
+  justify-items: center !important;
+  text-align: center !important;
+  gap: 24px !important;
+  padding: 32px 0 !important;
+  border-top: 1px solid rgba(255,255,255,.08) !important;
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-actions p {
+  margin: 0 !important;
+  color: rgba(168,176,186,.78) !important;
+  font-size: 12px !important;
+  letter-spacing: .28em !important;
+  line-height: 1.8 !important;
+  text-transform: uppercase !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-actions .btn {
+  justify-self: center !important;
+  min-width: 230px !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-meta {
+  width: 100% !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 18px 26px !important;
+  padding-top: 28px !important;
+  color: rgba(168,176,186,.58) !important;
+  font-size: 10px !important;
+  letter-spacing: .22em !important;
+  line-height: 1.8 !important;
+  text-transform: uppercase !important;
+}
+
+@media (max-width: 760px) {
+  body[data-active-view="home"] .topbar {
+    grid-template-columns: 100px 1fr !important;
+    height: auto !important;
+    min-height: 64px !important;
+    padding: 10px 14px !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand {
+    width: 100px !important;
+    min-width: 100px !important;
+    max-width: 100px !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand img,
+  body[data-active-view="home"] .topbar .brand-logo,
+  body[data-active-view="home"] .topbar .rois-logo-image {
+    width: 96px !important;
+    max-width: 96px !important;
+    max-height: 28px !important;
+  }
+
+  body[data-active-view="home"] .public-nav {
+    display: none !important;
+  }
+
+  body[data-active-view="home"] .premium-home-footer {
+    width: calc(100vw - 24px) !important;
+    padding: 42px 0 28px !important;
+  }
+
+  body[data-active-view="home"] .premium-home-footer .rois-logo-image,
+  body[data-active-view="home"] .premium-home-footer .brand-logo {
+    width: 138px !important;
+    max-width: 138px !important;
+  }
+
+  body[data-active-view="home"] .footer-brand-block p,
+  body[data-active-view="home"] .premium-home-footer-actions p {
+    max-width: 34ch !important;
+    letter-spacing: .22em !important;
+  }
+
+  body[data-active-view="home"] .premium-home-footer-meta {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+}
+
 /* ROIS FOOTER LAYOUT 04H */
 body[data-active-view="home"] .premium-home-footer {
   width: min(1380px, calc(100vw - 64px)) !important;
