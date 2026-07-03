@@ -13435,40 +13435,40 @@ body[data-active-view="home"] .premium-home-footer .brand-logo {
     min-width: 1180px !important;
   }
 }
-/* ROIS FINAL HEADER FOOTER LOCK — DO NOT MOVE */
+/* ROIS FINAL HEADER FOOTER OVERRIDE — ABSOLUTE LAST BLOCK */
 body[data-active-view="home"] .topbar {
   width: 100% !important;
-  min-height: 72px !important;
-  height: 72px !important;
+  height: 68px !important;
+  min-height: 68px !important;
   margin: 0 !important;
-  padding: 0 clamp(28px, 3vw, 54px) !important;
+  padding: 0 32px !important;
   display: grid !important;
-  grid-template-columns: 210px minmax(0, 1fr) auto !important;
+  grid-template-columns: 150px minmax(0, 1fr) auto !important;
   align-items: center !important;
-  gap: clamp(28px, 4vw, 72px) !important;
+  gap: 32px !important;
   background: #000 !important;
   border-bottom: 1px solid rgba(255,255,255,.08) !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 
 body[data-active-view="home"] .topbar .brand {
-  width: 210px !important;
-  min-width: 210px !important;
-  max-width: 210px !important;
-  height: 44px !important;
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+  height: 32px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 
 body[data-active-view="home"] .topbar .brand img,
 body[data-active-view="home"] .topbar .brand-logo,
 body[data-active-view="home"] .topbar .rois-logo-image {
-  width: 190px !important;
-  max-width: 190px !important;
+  width: 128px !important;
+  max-width: 128px !important;
   height: auto !important;
-  max-height: 38px !important;
+  max-height: 28px !important;
   display: block !important;
   object-fit: contain !important;
   object-position: left center !important;
@@ -13481,19 +13481,21 @@ body[data-active-view="home"] .topbar .rois-logo-image {
 }
 
 body[data-active-view="home"] .public-nav {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: clamp(34px, 4.4vw, 82px) !important;
   min-width: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: clamp(28px, 4vw, 70px) !important;
+  overflow: hidden !important;
 }
 
 body[data-active-view="home"] .public-nav a {
   font-size: 10px !important;
-  letter-spacing: .28em !important;
+  line-height: 1 !important;
+  letter-spacing: .26em !important;
   font-weight: 600 !important;
   white-space: nowrap !important;
-  color: rgba(244,246,248,.74) !important;
+  color: rgba(244,246,248,.76) !important;
 }
 
 body[data-active-view="home"] .session-area {
@@ -13501,20 +13503,30 @@ body[data-active-view="home"] .session-area {
   align-items: center !important;
   justify-content: flex-end !important;
   gap: 12px !important;
+  white-space: nowrap !important;
 }
 
-/* Footer centered final */
+body[data-active-view="home"] .session-area .btn {
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0 22px !important;
+  font-size: 10px !important;
+  letter-spacing: .18em !important;
+}
+
 body[data-active-view="home"] .premium-home-footer {
-  width: min(1440px, calc(100vw - 48px)) !important;
+  width: min(1280px, calc(100vw - 48px)) !important;
   margin: 0 auto !important;
-  padding: 56px 0 34px !important;
+  padding: 52px 0 34px !important;
   display: grid !important;
   grid-template-columns: 1fr !important;
   justify-items: center !important;
+  align-items: center !important;
   text-align: center !important;
   gap: 0 !important;
   background: #000 !important;
   border-top: 1px solid rgba(255,255,255,.08) !important;
+  overflow: hidden !important;
 }
 
 body[data-active-view="home"] .footer-brand-block {
@@ -13523,13 +13535,13 @@ body[data-active-view="home"] .footer-brand-block {
   justify-items: center !important;
   text-align: center !important;
   gap: 22px !important;
-  padding-bottom: 34px !important;
+  padding: 0 0 32px !important;
 }
 
 body[data-active-view="home"] .premium-home-footer .rois-logo-image,
 body[data-active-view="home"] .premium-home-footer .brand-logo {
-  width: 168px !important;
-  max-width: 168px !important;
+  width: 156px !important;
+  max-width: 156px !important;
   height: auto !important;
   display: block !important;
   object-fit: contain !important;
@@ -13545,35 +13557,36 @@ body[data-active-view="home"] .premium-home-footer .brand-logo {
 body[data-active-view="home"] .footer-brand-block p {
   max-width: 100% !important;
   margin: 0 !important;
+  text-align: center !important;
   color: rgba(244,246,248,.86) !important;
   font-size: 12px !important;
   letter-spacing: .34em !important;
   line-height: 1.8 !important;
   text-transform: uppercase !important;
-  text-align: center !important;
 }
 
 body[data-active-view="home"] .premium-home-footer-actions {
   width: 100% !important;
-  max-width: 980px !important;
+  max-width: 920px !important;
   display: grid !important;
   justify-items: center !important;
   text-align: center !important;
-  gap: 24px !important;
-  padding: 32px 0 !important;
+  gap: 22px !important;
+  padding: 30px 0 !important;
   border-top: 1px solid rgba(255,255,255,.08) !important;
   border-bottom: 1px solid rgba(255,255,255,.08) !important;
+  border-left: 0 !important;
 }
 
 body[data-active-view="home"] .premium-home-footer-actions p {
   width: 100% !important;
   margin: 0 !important;
+  text-align: center !important;
   color: rgba(168,176,186,.78) !important;
   font-size: 12px !important;
   letter-spacing: .28em !important;
   line-height: 1.8 !important;
   text-transform: uppercase !important;
-  text-align: center !important;
 }
 
 body[data-active-view="home"] .premium-home-footer-actions .btn {
@@ -13589,14 +13602,15 @@ body[data-active-view="home"] .premium-home-footer-meta {
   justify-content: center !important;
   align-items: center !important;
   gap: 18px 26px !important;
-  padding-top: 28px !important;
+  padding: 28px 0 0 !important;
   border-left: 0 !important;
+  border-top: 0 !important;
+  text-align: center !important;
   color: rgba(168,176,186,.58) !important;
   font-size: 10px !important;
   letter-spacing: .22em !important;
   line-height: 1.8 !important;
   text-transform: uppercase !important;
-  text-align: center !important;
 }
 
 body[data-active-view="home"] .premium-home-footer-meta span {
@@ -13607,25 +13621,26 @@ body[data-active-view="home"] .premium-home-footer-meta span {
 
 @media (max-width: 760px) {
   body[data-active-view="home"] .topbar {
-    grid-template-columns: 126px 1fr !important;
-    min-height: 64px !important;
+    grid-template-columns: 110px 1fr !important;
     height: auto !important;
+    min-height: 62px !important;
     padding: 10px 14px !important;
+    gap: 12px !important;
   }
 
   body[data-active-view="home"] .topbar .brand {
-    width: 126px !important;
-    min-width: 126px !important;
-    max-width: 126px !important;
-    height: 30px !important;
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
+    height: 28px !important;
   }
 
   body[data-active-view="home"] .topbar .brand img,
   body[data-active-view="home"] .topbar .brand-logo,
   body[data-active-view="home"] .topbar .rois-logo-image {
-    width: 118px !important;
-    max-width: 118px !important;
-    max-height: 28px !important;
+    width: 104px !important;
+    max-width: 104px !important;
+    max-height: 26px !important;
   }
 
   body[data-active-view="home"] .public-nav {
@@ -13639,8 +13654,8 @@ body[data-active-view="home"] .premium-home-footer-meta span {
 
   body[data-active-view="home"] .premium-home-footer .rois-logo-image,
   body[data-active-view="home"] .premium-home-footer .brand-logo {
-    width: 142px !important;
-    max-width: 142px !important;
+    width: 136px !important;
+    max-width: 136px !important;
   }
 
   body[data-active-view="home"] .premium-home-footer-meta {
