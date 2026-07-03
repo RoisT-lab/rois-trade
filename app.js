@@ -157,14 +157,29 @@ function clearSession() {
   localStorage.removeItem(sessionKey);
 }
 
+function authParamsFromUrl() {
+  const combined = new URLSearchParams();
+  [window.location.search, window.location.hash].forEach(source => {
+    const normalized = String(source || "").replace(/^[#?]/, "");
+    if (!normalized) return;
+    const partial = new URLSearchParams(normalized);
+    partial.forEach((value, key) => combined.set(key, value));
+  });
+  return combined;
+}
+
 async function recoverySessionFromUrl() {
-  const params = new URLSearchParams(window.location.hash.replace(/^#/, "") || window.location.search.replace(/^\?/, ""));
+  const params = authParamsFromUrl();
   const isRecovery = params.get("type") === "recovery";
   const token = params.get("access_token");
-  if (!isRecovery || !token) return null;
-  history.replaceState(null, document.title, window.location.pathname);
+  const tokenHash = params.get("token_hash") || params.get("token");
+  if (!isRecovery || (!token && !tokenHash)) return null;
   try {
-    return await api.recoverySession(token);
+    const session = token
+      ? await api.recoverySession(token)
+      : await api.recoverySessionFromTokenHash(tokenHash);
+    history.replaceState(null, document.title, window.location.pathname);
+    return session;
   } catch (error) {
     notify("Recuperaci\u00f3n", "Enlace no v\u00e1lido", "Solicita un nuevo enlace para cambiar tu contrase\u00f1a.");
     return null;
@@ -931,19 +946,58 @@ function supabaseApi() {
       });
       return { email };
     },
+    async recoverySessionFromTokenHash(tokenHash) {
+      const auth = await request("/auth/v1/verify", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          type: "recovery",
+          token_hash: tokenHash
+        })
+      });
+      const accessToken = auth.session?.access_token || auth.access_token;
+      if (!accessToken) throw new Error("Recovery token invalid");
+      return this.recoverySession(accessToken);
+    },
     async recoverySession(accessToken) {
       const user = await request("/auth/v1/user", {
         headers: headers(accessToken)
       });
-      const profiles = await request(`/rest/v1/profiles?select=*&id=eq.${user.id}&limit=1`, {
-        headers: headers(accessToken)
-      });
-      const profile = profiles[0] || (user.user_metadata?.role === "athlete" ? await this.ensureAthleteAccount({ user, access_token: accessToken }) : await this.ensureClientAccount({ user, access_token: accessToken }));
-      const companies = await request(`/rest/v1/companies?select=id&contact=eq.${encodeURIComponent(user.email)}&limit=1`, {
-        headers: headers(accessToken)
-      });
+      let profiles = [];
+      try {
+        profiles = await request(`/rest/v1/profiles?select=*&id=eq.${user.id}&limit=1`, {
+          headers: headers(accessToken)
+        });
+      } catch (error) {
+        profiles = [];
+      }
+      let profile = profiles[0] || null;
+      if (!profile) {
+        try {
+          profile = user.user_metadata?.role === "athlete"
+            ? await this.ensureAthleteAccount({ user, access_token: accessToken })
+            : await this.ensureClientAccount({ user, access_token: accessToken });
+        } catch (error) {
+          profile = {
+            id: user.id,
+            email: user.email,
+            role: user.user_metadata?.role === "athlete" ? "athlete" : "client",
+            name: user.user_metadata?.name || user.email?.split("@")[0] || "Perfil ROIS",
+            status: "approved",
+            must_change_password: true
+          };
+        }
+      }
+      let companies = [];
+      try {
+        companies = await request(`/rest/v1/companies?select=id&contact=eq.${encodeURIComponent(user.email)}&limit=1`, {
+          headers: headers(accessToken)
+        });
+      } catch (error) {
+        companies = [];
+      }
       const role = profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(user.email, profile.role);
-      return { id: profile.id, email: user.email, role, name: profile.name, token: accessToken, mustChangePassword: true };
+      return { id: profile.id || user.id, email: user.email, role, name: profile.name || user.user_metadata?.name || user.email?.split("@")[0] || "Perfil ROIS", token: accessToken, mustChangePassword: true };
     },
     async ensureClientAccount(auth, fallback = {}) {
       const token = auth.access_token || auth.session?.access_token;
