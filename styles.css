@@ -12127,3 +12127,81 @@ body[data-active-view="home"] .topbar .rois-logo-image {
     max-width: none !important;
   }
 }
+/* ROIS HEADER HARMONY LOCK - ABSOLUTE LAST */
+body[data-active-view="home"] .topbar {
+  height: 68px !important;
+  min-height: 68px !important;
+  padding: 0 28px !important;
+  grid-template-columns: 136px minmax(0, 1fr) auto !important;
+  gap: 26px !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+
+body[data-active-view="home"] .topbar .brand {
+  width: 136px !important;
+  min-width: 136px !important;
+  max-width: 136px !important;
+  height: 30px !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+body[data-active-view="home"] .topbar .brand img,
+body[data-active-view="home"] .topbar .brand-logo,
+body[data-active-view="home"] .topbar .rois-logo-image {
+  width: auto !important;
+  max-width: none !important;
+  height: 24px !important;
+  max-height: 24px !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+  display: block !important;
+}
+
+body[data-active-view="home"] .public-nav {
+  gap: clamp(24px, 3.2vw, 56px) !important;
+}
+
+body[data-active-view="home"] .public-nav a {
+  letter-spacing: .24em !important;
+}
+
+body[data-active-view="home"] .session-area {
+  gap: 10px !important;
+}
+
+body[data-active-view="home"] .session-area .btn {
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 0 20px !important;
+  letter-spacing: .16em !important;
+}
+
+@media (max-width: 760px) {
+  body[data-active-view="home"] .topbar {
+    grid-template-columns: 124px 1fr !important;
+    min-height: 60px !important;
+    height: auto !important;
+    padding: 10px 14px !important;
+    gap: 12px !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand {
+    width: 124px !important;
+    min-width: 124px !important;
+    max-width: 124px !important;
+    height: 26px !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand img,
+  body[data-active-view="home"] .topbar .brand-logo,
+  body[data-active-view="home"] .topbar .rois-logo-image {
+    height: 20px !important;
+    max-height: 20px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
