@@ -289,8 +289,45 @@ function adminAthleteRecords() {
   return (state.data?.athletes || []).filter(item => !isFounderProfile(item));
 }
 
+function founderProfileRecordsWithoutAthlete() {
+  const athletes = state.data?.athletes || [];
+  const profiles = state.data?.profiles || [];
+  const athleteEmails = new Set(
+    athletes
+      .map(item => String(item.email || item.contact || "").toLowerCase())
+      .filter(Boolean)
+  );
+  return profiles
+    .filter(profile => {
+      const email = String(profile.email || "").toLowerCase();
+      if (!email || athleteEmails.has(email)) return false;
+      return profileVertical(profile) === "founder";
+    })
+    .map(profile => ({
+      id: `profile-founder-${profile.id || profile.email}`,
+      profile_id: profile.id,
+      email: profile.email,
+      contact: profile.email,
+      name: profile.name || profile.email?.split("@")[0] || "Founder ROIS",
+      sport: profile.industry || profile.vertical || "Founder ROIS",
+      category: profile.stage || "Por definir",
+      location: profile.location || "Por definir",
+      ranking: "",
+      stats: "Cuenta founder registrada en profiles. Falta completar ficha emprendedora en ROIS.",
+      monthly: 2500,
+      max_sponsors: 0,
+      status: profile.status || "approved",
+      visual_status: "profile_only",
+      profile_type: "founder",
+      is_virtual_founder_profile: true,
+      created_at: profile.created_at
+    }));
+}
+
 function adminFounderRecords() {
-  return (state.data?.athletes || []).filter(item => isFounderProfile(item));
+  const athleteFounders = (state.data?.athletes || []).filter(item => isFounderProfile(item));
+  const profileFounders = founderProfileRecordsWithoutAthlete();
+  return [...athleteFounders, ...profileFounders];
 }
 
 function scoutCanInvite(athlete) {
@@ -3160,7 +3197,17 @@ function founderAdminTraction(athlete) {
 }
 
 function founderAdminStatus(athlete) {
+  if (athlete.is_virtual_founder_profile) {
+    return `${badge("perfil base")} ${badge(athlete.status || "approved")}`;
+  }
   return `${badge(athlete.status || "pending")} ${badge(athlete.visual_status || "pendiente visual")}`;
+}
+
+function founderAdminActions(founder) {
+  if (founder.is_virtual_founder_profile) {
+    return badge("perfil base");
+  }
+  return athleteAdminActions(founder);
 }
 
 function renderAdminFounders() {
@@ -3186,7 +3233,7 @@ function renderAdminFounders() {
       `$${Number(founder.monthly || 0).toLocaleString("es-MX")} MXN`,
       escapeHtml(String(founder.max_sponsors || 0)),
       founderAdminStatus(founder),
-      athleteAdminActions(founder)
+      founderAdminActions(founder)
     ])) : `<div class="empty">Aun no hay founders registrados en ROIS.</div>`}
   `);
 }
