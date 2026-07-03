@@ -12248,3 +12248,17 @@ body[data-active-view="home"] .topbar .rois-logo-image {
     max-width: none !important;
   }
 }
+
+/* ROIS REMOVE LOWER CTAS */
+body[data-active-view="home"] .premium-final-cta {
+  padding-bottom: clamp(56px, 7vw, 88px) !important;
+}
+
+body[data-active-view="home"] .premium-final-cta .section-head {
+  margin-bottom: 0 !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-actions {
+  gap: 0 !important;
+  padding: 24px 0 !important;
+}
