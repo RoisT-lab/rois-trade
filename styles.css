@@ -612,6 +612,83 @@
   }
 }
 
+/* ROIS FOOTER ALIGN FIX */
+body[data-active-view="home"] .premium-home-footer {
+  width: min(1320px, calc(100vw - 64px)) !important;
+  margin: 0 auto !important;
+  padding: 48px 0 26px !important;
+  display: grid !important;
+  justify-items: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  gap: 20px !important;
+}
+
+body[data-active-view="home"] .premium-home-footer .rois-logo-image,
+body[data-active-view="home"] .premium-home-footer .brand-logo {
+  width: 142px !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+body[data-active-view="home"] .premium-home-footer > p {
+  width: 100% !important;
+  margin: 0 !important;
+  text-align: center !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-actions {
+  width: 100% !important;
+  max-width: 1320px !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  justify-items: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  gap: 18px !important;
+  padding: 22px 0 !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-actions p {
+  width: 100% !important;
+  margin: 0 !important;
+  text-align: center !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-actions .btn {
+  margin: 0 auto !important;
+  justify-self: center !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-meta {
+  width: 100% !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 18px !important;
+  text-align: center !important;
+}
+
+body[data-active-view="home"] .premium-home-footer-meta span {
+  text-align: center !important;
+}
+
+@media (max-width: 760px) {
+  body[data-active-view="home"] .premium-home-footer {
+    width: calc(100vw - 24px) !important;
+    padding: 38px 0 24px !important;
+  }
+
+  body[data-active-view="home"] .premium-home-footer-meta {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+}
+
 /* ROIS HOME TYPOGRAPHY 04G */
 :root {
   --rois-display: "Avenir Next", "Montserrat", "Inter", "Segoe UI", Arial, sans-serif;
