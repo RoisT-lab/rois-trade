@@ -12205,3 +12205,46 @@ body[data-active-view="home"] .session-area .btn {
     max-width: none !important;
   }
 }
+/* ROIS HEADER SCALE FINAL - ABSOLUTE LAST */
+body[data-active-view="home"] .topbar {
+  grid-template-columns: 122px minmax(0, 1fr) auto !important;
+  gap: 24px !important;
+}
+
+body[data-active-view="home"] .topbar .brand {
+  width: 122px !important;
+  min-width: 122px !important;
+  max-width: 122px !important;
+  height: 24px !important;
+}
+
+body[data-active-view="home"] .topbar .brand img,
+body[data-active-view="home"] .topbar .brand-logo,
+body[data-active-view="home"] .topbar .rois-logo-image {
+  height: 18px !important;
+  max-height: 18px !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+@media (max-width: 760px) {
+  body[data-active-view="home"] .topbar {
+    grid-template-columns: 112px 1fr !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand {
+    width: 112px !important;
+    min-width: 112px !important;
+    max-width: 112px !important;
+    height: 22px !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand img,
+  body[data-active-view="home"] .topbar .brand-logo,
+  body[data-active-view="home"] .topbar .rois-logo-image {
+    height: 16px !important;
+    max-height: 16px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
