@@ -1977,9 +1977,9 @@ function clientExperienceOverviewMarkup() {
     <div class="company-profile-layout">
       <section class="company-profile-card executive-company-card">
           <div class="company-cover">
-            ${cover?.image_url ? `<img src="${cover.image_url}" alt="Portada ROIS">` : `<div class="company-cover-fallback"><span>ROIS</span><small>Strategic partnerships · athletes · investment</small></div>`}
+            ${cover?.image_url ? `<img src="${cover.image_url}" alt="Portada ROIS">` : `<div class="company-cover-fallback"><span>ROIS</span><small>Strategic partnerships Â· athletes Â· investment</small></div>`}
           </div>
-          <button class="btn company-cover-logout" type="button" data-logout>Cerrar sesión</button>
+          <button class="btn company-cover-logout" type="button" data-logout>Cerrar sesiÃ³n</button>
           <div class="company-profile-body">
             <div class="company-profile-logo">${clientCompanyLogoMarkup(company)}</div>
             <div class="company-profile-copy">
@@ -2006,7 +2006,7 @@ function clientExperienceOverviewMarkup() {
         <section class="premium-command-panel">
           <div class="section-minihead">
             <p class="eyebrow">Mesa de oportunidades</p>
-            <h3>Productos privados listos para evaluación empresarial.</h3>
+            <h3>Productos privados listos para evaluaciÃ³n empresarial.</h3>
             <p>ROIS concentra alianzas, inventario deportivo y eventos premium para que tu empresa pueda solicitar disponibilidad, recibir seguimiento y cerrar operaciones desde un solo lugar.</p>
           </div>
           <div class="premium-alliance-grid command">
@@ -2016,7 +2016,7 @@ function clientExperienceOverviewMarkup() {
 
         <section class="client-decision-board">
           <div class="section-minihead">
-            <p class="eyebrow">Ruta de decisión</p>
+            <p class="eyebrow">Ruta de decisiÃ³n</p>
             <h3>De la oportunidad al cierre comercial.</h3>
           </div>
           <div class="client-step-grid">
@@ -2067,7 +2067,7 @@ function clientExperienceOverviewMarkup() {
         </div>
         <div class="company-reels-widget">
           <div class="section-minihead">
-            <p class="eyebrow">Señales del ecosistema</p>
+            <p class="eyebrow">SeÃ±ales del ecosistema</p>
             <h3>Reels de atletas listos para patrocinio.</h3>
           </div>
           ${posts.length ? `
@@ -2674,7 +2674,7 @@ function verticalCopy(profile) {
     sponsorshipsSubtitle: "Empresas que respaldan tu vision emprendedora",
     scoutsTitle: "Scouts",
     scoutsSubtitle: "Invita founders, comunidades y oportunidades estrategicas",
-    postsEmptyText: "Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalúen tu emprendimiento.",
+    postsEmptyText: "Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalÃºen tu emprendimiento.",
     profileStatusLabel: "Estado del perfil"
   } : {
     accountEyebrow: "Cuenta deportiva",
@@ -2697,7 +2697,7 @@ function verticalCopy(profile) {
     sponsorshipsSubtitle: "Solicitudes y condiciones propuestas por empresas",
     scoutsTitle: "Scouts",
     scoutsSubtitle: "Invita deportistas y da seguimiento a tus comisiones",
-    postsEmptyText: "Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalúen tu perfil.",
+    postsEmptyText: "Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalÃºen tu perfil.",
     profileStatusLabel: "Estado del perfil"
   };
 }
@@ -2792,7 +2792,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
           <div class="athlete-social-grid">
             ${posts.map(post => athleteSocialPostTile(post, athlete, { canDelete: !readOnly })).join("")}
           </div>
-        ` : `<div class="empty athlete-social-empty">Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalúen tu perfil.</div>`}
+        ` : `<div class="empty athlete-social-empty">Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalÃºen tu perfil.</div>`}
       </div>
 
       <div class="athlete-social-tab-content ${showPostsTab ? "" : "active"}" data-athlete-tab-panel="reels">
@@ -3118,7 +3118,7 @@ function renderAdminAthletes() {
   const paid = active.filter(athleteAnnualFeePaid).length;
   const linked = active.filter(athlete => athlete.sponsor_payment_url).length;
   const scoutInvited = active.filter(athlete => athlete.invited_by_scout_code).length;
-  panel("admin-athletes", "Deportistas", "Gestión por Scouts ROIS", `
+  panel("admin-athletes", "Deportistas", "GestiÃ³n por Scouts ROIS", `
     <div class="panel-body admin-athlete-summary">
       <div class="scout-metrics">
         <div><span>Activos</span><strong>${active.length}</strong></div>
@@ -3126,18 +3126,18 @@ function renderAdminAthletes() {
         <div><span>Anualidad pagada</span><strong>${paid}</strong></div>
         <div><span>Link mensual</span><strong>${linked}</strong></div>
       </div>
-      <p class="hint">Los deportistas ya no se aprueban manualmente en este panel. Ingresan mediante código Scout ROIS y admin solo gestiona anualidad, link mensual de patrocinio, validación de comisión y bajas operativas.</p>
+      <p class="hint">Los deportistas ya no se aprueban manualmente en este panel. Ingresan mediante cÃ³digo Scout ROIS y admin solo gestiona anualidad, link mensual de patrocinio, validaciÃ³n de comisiÃ³n y bajas operativas.</p>
     </div>
-    ${athletes.length ? table(["Deportista", "Correo", "Scout", "Anualidad", "Perfil", "Pago mensual", "Comisión", "Acciones"], athletes.map(athlete => [
+    ${athletes.length ? table(["Deportista", "Correo", "Scout", "Anualidad", "Perfil", "Pago mensual", "ComisiÃ³n", "Acciones"], athletes.map(athlete => [
       `<strong>${escapeHtml(athlete.name || "Deportista")}</strong><br><span class="hint inline">${escapeHtml(athlete.sport || "Perfil por completar")}</span>`,
       escapeHtml(athlete.email || athlete.contact || "Sin correo"),
-      athlete.invited_by_scout_code ? badge(normalizeScoutCode(athlete.invited_by_scout_code)) : badge("sin código"),
+      athlete.invited_by_scout_code ? badge(normalizeScoutCode(athlete.invited_by_scout_code)) : badge("sin cÃ³digo"),
       athleteAnnualFeePaid(athlete) ? badge("pagada") : athleteAnnualFeeRequired(athlete) ? badge("solicitada") : badge("no solicitada"),
       athleteProfileCompleteForScout(athlete) ? badge("completo") : badge("pendiente"),
       athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"),
       scoutReferralStatus(athlete).eligible ? badge("validada") : badge(athlete.scout_validation_status || "review"),
       athleteAdminActions(athlete)
-    ])) : `<div class="empty">Los deportistas registrados con código Scout ROIS aparecerán aquí.</div>`}
+    ])) : `<div class="empty">Los deportistas registrados con cÃ³digo Scout ROIS aparecerÃ¡n aquÃ­.</div>`}
   `);
 }
 
@@ -3474,66 +3474,6 @@ function renderAdminPayments() {
   document.getElementById("adminDepositForm").addEventListener("submit", submitAdminDeposit);
 }
 
-function renderAdminRevenue() {
-  const payments = [...(state.data.payments || [])]
-    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-
-  const totalPaid = payments
-    .filter(payment => payment.status === "paid")
-    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-
-  const totalPending = payments
-    .filter(payment => payment.status !== "paid")
-    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-
-  const byVertical = payments.reduce((acc, payment) => {
-    const vertical = revenueVertical(payment);
-    acc[vertical] = acc[vertical] || { count: 0, pending: 0, paid: 0 };
-    acc[vertical].count += 1;
-    if (payment.status === "paid") {
-      acc[vertical].paid += Number(payment.amount || 0);
-    } else {
-      acc[vertical].pending += Number(payment.amount || 0);
-    }
-    return acc;
-  }, {});
-
-  const verticalCards = Object.entries(byVertical).map(([vertical, data]) => `
-    <article class="launch-card revenue-card">
-      <p class="eyebrow">${escapeHtml(vertical)}</p>
-      <h3>$${Number(data.paid).toLocaleString("es-MX")} MXN</h3>
-      <p>Pagado</p>
-      <p class="hint">$${Number(data.pending).toLocaleString("es-MX")} MXN pendiente · ${data.count} registros</p>
-    </article>
-  `).join("");
-
-  const rows = payments.map(payment => [
-    readableDate(payment.created_at),
-    badge(revenueVertical(payment)),
-    escapeHtml(payment.company || "Sin nombre"),
-    escapeHtml(payment.concept || "Pago ROIS"),
-    `$${Number(payment.amount || 0).toLocaleString("es-MX")} MXN`,
-    escapeHtml(payment.product_key || "manual"),
-    badge(revenueStatusLabel(payment)),
-    badge(revenueDashboardType(payment)),
-    payment.status === "paid" ? "Pagado" : button("Marcar pagado", () => markPaid(payment.id))
-  ]);
-
-  panel("admin-revenue", "Ingresos", "Trazabilidad financiera por vertical de ROIS", `
-    <div class="panel-body">
-      <div class="scout-metrics">
-        <div><span>Pagado</span><strong>$${totalPaid.toLocaleString("es-MX")}</strong></div>
-        <div><span>Pendiente</span><strong>$${totalPending.toLocaleString("es-MX")}</strong></div>
-        <div><span>Registros</span><strong>${payments.length}</strong></div>
-        <div><span>Verticales</span><strong>${Object.keys(byVertical).length}</strong></div>
-      </div>
-    </div>
-    <div class="panel-body">
-      ${verticalCards ? `<div class="launch-sponsor-grid revenue-grid">${verticalCards}</div>` : `<div class="empty">Aun no hay ingresos registrados.</div>`}
-    </div>
-    ${rows.length ? table(["Fecha", "Vertical", "Cuenta", "Concepto", "Monto", "Product Key", "Estado", "Dashboard", "Accion"], rows) : `<div class="empty">Aun no hay pagos registrados.</div>`}
-  `);
-}
 
 function renderAdminRevenue() {
   const payments = [...(state.data.payments || [])]
@@ -3668,7 +3608,7 @@ function renderAdminUploads() {
             </div>
           ` : `<div class="cover-admin-preview empty"><span>${cover.empty}</span></div>`).join("")}
         </div>
-      ` : `<p class="hint">Cada recuadro visual del home se publica desde aquí. Usa proporciones horizontales para portada y alianzas, y proporciones editoriales para tarjetas.</p>`}
+      ` : `<p class="hint">Cada recuadro visual del home se publica desde aquÃ­. Usa proporciones horizontales para portada y alianzas, y proporciones editoriales para tarjetas.</p>`}
     </div>
     <div class="panel-body">
       <form id="uploadForm" class="form-grid">
@@ -4842,7 +4782,7 @@ async function deleteAthletePost(postId) {
     notify("Publicaciones", "No autorizado", "Solo puedes eliminar contenido publicado desde tu cuenta.");
     return;
   }
-  const confirmed = window.confirm(`¿Eliminar "${post.title || "este reel"}"?`);
+  const confirmed = window.confirm(`Â¿Eliminar "${post.title || "este reel"}"?`);
   if (!confirmed) return;
   try {
     await api.remove("athlete_posts", post.id);
@@ -5257,12 +5197,12 @@ async function submitRegistration(event) {
       }
       const age = calculateAge(form.birth_date.value);
       if (age === null || age < 0) {
-        notify("Registro", "Fecha de nacimiento inválida", "Ingresa una fecha de nacimiento válida para continuar.");
+        notify("Registro", "Fecha de nacimiento invÃ¡lida", "Ingresa una fecha de nacimiento vÃ¡lida para continuar.");
         return;
       }
       const isMinor = age < 18;
       if (isMinor && (!form.guardian_name.value.trim() || !form.guardian_email.value.trim() || !form.guardian_phone.value.trim() || !form.guardian_relationship.value || !form.guardian_consent.checked)) {
-        notify("Registro", "Autorización de tutor requerida", "Para registrar a un deportista menor de edad necesitamos datos y consentimiento expreso de madre, padre o tutor legal.");
+        notify("Registro", "AutorizaciÃ³n de tutor requerida", "Para registrar a un deportista menor de edad necesitamos datos y consentimiento expreso de madre, padre o tutor legal.");
         return;
       }
       const signup = await api.signupAthlete({
@@ -5291,7 +5231,7 @@ async function submitRegistration(event) {
         renderSession();
         renderAthlete();
         showView("athlete");
-        notify("Perfil deportivo", "Bienvenido a ROIS", isMinor ? "Cuenta creada con autorización de tutor. ROIS revisará la documentación antes de activar patrocinios." : "Explora tu dashboard y completa tu perfil profesional. ROIS habilitara el pago anual desde admin cuando corresponda.");
+        notify("Perfil deportivo", "Bienvenido a ROIS", isMinor ? "Cuenta creada con autorizaciÃ³n de tutor. ROIS revisarÃ¡ la documentaciÃ³n antes de activar patrocinios." : "Explora tu dashboard y completa tu perfil profesional. ROIS habilitara el pago anual desde admin cuando corresponda.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }
