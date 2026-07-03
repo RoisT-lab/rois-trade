@@ -12071,3 +12071,59 @@ body[data-active-view="home"] .premium-home-footer-meta span {
   }
 }
 
+/* ROIS HEADER LOGO HARD LOCK - FINAL */
+body[data-active-view="home"] .topbar {
+  overflow: visible !important;
+  grid-template-columns: 180px minmax(0, 1fr) auto !important;
+}
+
+body[data-active-view="home"] .topbar .brand {
+  width: 180px !important;
+  min-width: 180px !important;
+  max-width: 180px !important;
+  height: 34px !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+body[data-active-view="home"] .topbar .brand img,
+body[data-active-view="home"] .topbar .brand-logo,
+body[data-active-view="home"] .topbar .rois-logo-image {
+  width: auto !important;
+  max-width: none !important;
+  height: 26px !important;
+  max-height: 26px !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+@media (max-width: 760px) {
+  body[data-active-view="home"] .topbar {
+    grid-template-columns: 132px 1fr !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand {
+    width: 132px !important;
+    min-width: 132px !important;
+    max-width: 132px !important;
+    height: 28px !important;
+  }
+
+  body[data-active-view="home"] .topbar .brand img,
+  body[data-active-view="home"] .topbar .brand-logo,
+  body[data-active-view="home"] .topbar .rois-logo-image {
+    height: 22px !important;
+    max-height: 22px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
