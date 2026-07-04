@@ -3082,10 +3082,17 @@ function renderAdminPanel(targetId) {
   if (map[targetId]) map[targetId]();
 }
 
+const fiscalConfig = {
+  ivaRate: 0.16,
+  isrRate: 0.30,
+  scoutCommissionMonthly: 500
+};
+
 function renderAdminKpis() {
   const pendingUsers = state.data.profiles.filter(item => item.status === "pending").length + state.data.companies.filter(item => item.status === "pending").length;
   const paid = state.data.payments.filter(item => item.status === "paid").reduce((sum, item) => sum + Number(item.amount), 0);
   const pendingRevenue = state.data.payments.filter(item => item.status !== "paid").reduce((sum, item) => sum + Number(item.amount), 0);
+  const taxSummary = revenueTaxSummary(state.data.payments || []);
   const athletes = adminAthleteRecords().length;
   const founders = adminFounderRecords().length;
   const companies = state.data.companies.length;
@@ -3096,8 +3103,89 @@ function renderAdminKpis() {
     ["Founders", founders],
     ["Pagos", `$${paid.toLocaleString("es-MX")}`],
     ["Pendiente", `$${pendingRevenue.toLocaleString("es-MX")}`],
+    ["Neto estimado", money(taxSummary.estimatedNetIncome)],
     ["CRM", state.data.crm.length]
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
+}
+
+function paymentBaseAmount(payment) {
+  return Number(payment.amount || 0);
+}
+
+function paymentIvaAmount(payment) {
+  return paymentBaseAmount(payment) * fiscalConfig.ivaRate;
+}
+
+function paymentTotalWithIva(payment) {
+  return paymentBaseAmount(payment) + paymentIvaAmount(payment);
+}
+
+function isMembershipPayment(payment) {
+  return [
+    "companyMonthlyMembership",
+    "founderMonthlyMembership",
+    "athleteMonthlyMembership"
+  ].includes(payment.product_key);
+}
+
+function isScoutCommissionEligiblePayment(payment) {
+  return ["founderMonthlyMembership", "athleteMonthlyMembership"].includes(payment.product_key);
+}
+
+function paymentScoutCommission(payment) {
+  if (!isScoutCommissionEligiblePayment(payment)) return 0;
+  const accountName = String(payment.company || "").toLowerCase();
+  const athlete = (state.data.athletes || []).find(item => {
+    const name = String(item.name || "").toLowerCase();
+    const email = String(item.email || item.contact || "").toLowerCase();
+    return (name && accountName.includes(name)) || (email && accountName.includes(email));
+  });
+  if (athlete?.invited_by_scout_code || athlete?.scout_code || athlete?.scout_active) {
+    return fiscalConfig.scoutCommissionMonthly;
+  }
+  return fiscalConfig.scoutCommissionMonthly;
+}
+
+function estimatedDeductibleExpenses() {
+  return 0;
+}
+
+function revenueTaxSummary(payments = []) {
+  const membershipPayments = payments.filter(isMembershipPayment);
+  const membershipBaseRevenue = membershipPayments.reduce((sum, payment) => {
+    return sum + paymentBaseAmount(payment);
+  }, 0);
+  const ivaTransferred = membershipPayments.reduce((sum, payment) => {
+    return sum + paymentIvaAmount(payment);
+  }, 0);
+  const totalCollectedWithIva = membershipBaseRevenue + ivaTransferred;
+  const scoutCommissions = membershipPayments.reduce((sum, payment) => {
+    return sum + paymentScoutCommission(payment);
+  }, 0);
+  const deductibleExpenses = estimatedDeductibleExpenses();
+  const taxableProfit = Math.max(
+    0,
+    membershipBaseRevenue - scoutCommissions - deductibleExpenses
+  );
+  const estimatedIsr = taxableProfit * fiscalConfig.isrRate;
+  const estimatedNetIncome = membershipBaseRevenue - scoutCommissions - estimatedIsr - deductibleExpenses;
+  const totalTaxReserve = ivaTransferred + estimatedIsr;
+  return {
+    membershipPayments,
+    membershipBaseRevenue,
+    ivaTransferred,
+    totalCollectedWithIva,
+    scoutCommissions,
+    deductibleExpenses,
+    taxableProfit,
+    estimatedIsr,
+    estimatedNetIncome,
+    totalTaxReserve
+  };
+}
+
+function money(value) {
+  return `$${Number(value || 0).toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN`;
 }
 
 function revenueVertical(payment) {
@@ -3604,6 +3692,7 @@ function renderAdminPayments() {
 function renderAdminRevenue() {
   const payments = [...(state.data.payments || [])]
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const taxSummary = revenueTaxSummary(payments);
 
   const totalPaid = payments
     .filter(payment => payment.status === "paid")
@@ -3646,6 +3735,18 @@ function renderAdminRevenue() {
     payment.status === "paid" ? "Pagado" : button("Marcar pagado", () => markPaid(payment.id))
   ]);
 
+  const taxRows = [
+    ["Ingreso membresias sin IVA", money(taxSummary.membershipBaseRevenue), "Base comercial antes de IVA"],
+    ["IVA trasladado 16%", money(taxSummary.ivaTransferred), "Impuesto cobrado al cliente; reservar para entero mensual"],
+    ["Total cobrado con IVA", money(taxSummary.totalCollectedWithIva), "Flujo total recibido por membresias"],
+    ["Comisiones Scouts", money(taxSummary.scoutCommissions), "Estimacion de $500 MXN por founder/athlete elegible"],
+    ["Gastos deducibles", money(taxSummary.deductibleExpenses), "Placeholder hasta crear modulo de gastos"],
+    ["Utilidad estimada para ISR", money(taxSummary.taxableProfit), "Membresias sin IVA - scouts - deducibles"],
+    ["ISR estimado 30%", money(taxSummary.estimatedIsr), "Estimacion interna de ISR persona moral"],
+    ["Ingreso neto estimado", money(taxSummary.estimatedNetIncome), "Despues de scouts e ISR; no incluye IVA"],
+    ["Reserva fiscal total", money(taxSummary.totalTaxReserve), "IVA + ISR estimado"]
+  ];
+
   panel("admin-revenue", "Ingresos", "Trazabilidad financiera por vertical de ROIS", `
     <div class="panel-body">
       <div class="scout-metrics">
@@ -3658,6 +3759,24 @@ function renderAdminRevenue() {
     <div class="panel-body">
       ${verticalCards ? `<div class="launch-sponsor-grid revenue-grid">${verticalCards}</div>` : `<div class="empty">Aun no hay ingresos registrados.</div>`}
     </div>
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Impuestos y net revenue</p>
+        <h3>Estimacion fiscal sobre membresias ROIS.</h3>
+        <p>IVA 16% trasladado al cliente e ISR estimado 30% sobre utilidad antes de impuestos. No sustituye calculo contable final.</p>
+      </div>
+      <div class="scout-metrics">
+        <div><span>Membresias sin IVA</span><strong>${money(taxSummary.membershipBaseRevenue)}</strong></div>
+        <div><span>IVA trasladado</span><strong>${money(taxSummary.ivaTransferred)}</strong></div>
+        <div><span>Total cobrado</span><strong>${money(taxSummary.totalCollectedWithIva)}</strong></div>
+        <div><span>Comisiones Scouts</span><strong>${money(taxSummary.scoutCommissions)}</strong></div>
+        <div><span>Utilidad ISR estimada</span><strong>${money(taxSummary.taxableProfit)}</strong></div>
+        <div><span>ISR estimado</span><strong>${money(taxSummary.estimatedIsr)}</strong></div>
+        <div><span>Reserva fiscal</span><strong>${money(taxSummary.totalTaxReserve)}</strong></div>
+        <div><span>Ingreso neto</span><strong>${money(taxSummary.estimatedNetIncome)}</strong></div>
+      </div>
+    </div>
+    ${table(["Concepto", "Monto", "Criterio"], taxRows)}
     ${rows.length ? table(["Fecha", "Vertical", "Cuenta", "Concepto", "Monto", "Product Key", "Estado", "Dashboard", "Accion"], rows) : `<div class="empty">Aun no hay pagos registrados.</div>`}
   `);
 }
