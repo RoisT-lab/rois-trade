@@ -2786,7 +2786,6 @@ function renderAthlete() {
   renderAthleteKpis();
   renderAthleteNotifications();
   renderAthleteProfile();
-  renderAthleteSponsorships();
   renderAthleteScouts();
   renderAthleteResults();
   renderAccountSettings("athlete-settings");
@@ -3060,7 +3059,6 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
     .slice(0, 12);
   const email = athlete.email || state.session?.email || "";
-  const sponsorships = state.data.sponsorships.filter(item => item.athlete === athlete.name || item.athlete_email === email);
   const results = state.data.athlete_results.filter(item => item.athlete_email === email);
   const profilePhoto = athlete.image_url
     ? `<img src="${athlete.image_url}" alt="${escapeAttr(athlete.name)}">`
@@ -3068,7 +3066,6 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
   const sponsorHighlights = logos.slice(0, 10);
   const hasPosts = posts.length > 0;
   const hasResults = results.length > 0;
-  const hasSponsorships = sponsorships.length > 0;
   const primaryValue = athlete.sport || (founder ? "Industria por definir" : "Disciplina por definir");
   const secondaryValue = athlete.category || (founder ? "Etapa por definir" : "Categoria por definir");
   const locationValue = athlete.location || (founder ? "Base por confirmar" : "Ciudad por confirmar");
@@ -3079,12 +3076,6 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
   const resultsEmptyText = founder
     ? "Tus resultados empresariales apareceran aqui. Sube evidencia mensual para fortalecer la confianza de sponsors."
     : "Tus resultados documentados apareceran aqui. Sube evidencia mensual para construir confianza con patrocinadores.";
-  const sponsorshipEmptyText = founder
-    ? "Aun no hay sponsors o respaldos activos vinculados a tu cuenta."
-    : "Aun no hay solicitudes o patrocinios activos vinculados a tu cuenta.";
-  const sponsorShowcaseText = founder
-    ? "Cuando se formaliza un patrocinio, puedes subir el logotipo autorizado para mostrar el respaldo visible a tu emprendimiento."
-    : "Cuando se formaliza un patrocinio, el deportista debe subir el logotipo autorizado para mostrarlo en su perfil.";
   const videoCtaLabel = founder ? "Ver mi emprendimiento" : "Ver plan deportivo";
   const videoPendingLabel = founder ? "Emprendimiento pendiente" : "Plan deportivo pendiente";
   return `
@@ -3100,7 +3091,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
           </div>
           <div class="athlete-social-stats">
             <div><strong>${posts.length}</strong><span>publicaciones</span></div>
-            <div><strong>${companyView ? sponsorHighlights.length : sponsorships.length}</strong><span>sponsors</span></div>
+            <div><strong>${sponsorHighlights.length}</strong><span>sponsors</span></div>
             <div><strong>${results.length}</strong><span>resultados</span></div>
           </div>
           <p><strong>${escapeHtml(primaryValue)}</strong> / ${escapeHtml(secondaryValue)} / ${escapeHtml(locationValue)}</p>
@@ -3131,7 +3122,6 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
       <div class="athlete-social-tabs">
         <button class="active" type="button" data-athlete-profile-tab="posts">Publicaciones</button>
         <button type="button" data-athlete-profile-tab="results">Resultados</button>
-        <button type="button" data-athlete-profile-tab="sponsorships">Patrocinios</button>
       </div>
 
       <div class="athlete-social-tab-content active" data-athlete-tab-panel="posts">
@@ -3156,22 +3146,6 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
             ${results.map(result => athleteResultTile(result)).join("")}
           </div>
         ` : `<div class="empty athlete-social-empty">${resultsEmptyText}</div>`}
-      </div>
-
-      <div class="athlete-social-tab-content" data-athlete-tab-panel="sponsorships">
-        <div class="athlete-sponsor-showcase">
-          <div>
-            <p class="eyebrow">Vitrina de sponsors</p>
-            <h4>${sponsorHighlights.length}/10 logos publicados</h4>
-            <p>${sponsorShowcaseText}</p>
-          </div>
-          ${athleteSponsorBubbleStrip(sponsorHighlights, { limit: 10, emptyLabel: "Disponible" })}
-        </div>
-        ${hasSponsorships ? `
-          <div class="athlete-social-info-grid">
-            ${sponsorships.map(item => athleteSponsorshipTile(item)).join("")}
-          </div>
-        ` : `<div class="empty athlete-social-empty">${sponsorshipEmptyText}</div>`}
       </div>
     </section>
   `;
