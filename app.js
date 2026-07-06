@@ -465,6 +465,34 @@ async function loadInitialData() {
   }
 }
 
+async function hydrateDashboardData(forceFull = false) {
+  try {
+    const data = await api.loadAll({
+      lightweight: !forceFull,
+      admin: state.session?.role === "admin"
+    });
+
+    state.data = normalizeLoadedData(data);
+    state.dataSignature = runtimeDataSignature(state.data);
+    writeDataCache(state.data);
+
+    renderPublic();
+    renderSession();
+
+    if (state.session) {
+      const view = dashboardViewForRole(state.session.role);
+      if (view === "client") renderClient();
+      if (view === "athlete") renderAthlete();
+      if (view === "admin") renderAdmin();
+    }
+
+    optimizeRenderedMedia();
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 async function refreshDataInBackground() {
   try {
     const nextData = normalizeLoadedData(await api.loadAll({ background: true }));
@@ -475,6 +503,12 @@ async function refreshDataInBackground() {
       writeDataCache(state.data);
       renderPublic();
       renderSession();
+      if (state.session) {
+        const view = dashboardViewForRole(state.session.role);
+        if (view === "client") renderClient();
+        if (view === "athlete") renderAthlete();
+        if (view === "admin") renderAdmin();
+      }
       optimizeRenderedMedia();
     }
   } catch (error) {
@@ -1278,17 +1312,19 @@ function handleDashboardDelegatedActions(event) {
 function showView(name) {
   document.body.dataset.activeView = name;
   document.querySelectorAll("[data-view]").forEach(view => view.classList.toggle("active", view.dataset.view === name));
-  if (name === "client") renderClient();
-  if (name === "athlete") renderAthlete();
+  if (name === "client") {
+    renderClient();
+    hydrateDashboardData(true);
+  }
+  if (name === "athlete") {
+    renderAthlete();
+    hydrateDashboardData(true);
+  }
   if (name === "admin") {
     renderAdmin();
     if (!adminDataHydrated) {
       adminDataHydrated = true;
-      api.loadAll({ lightweight: false, admin: true }).then(data => {
-        state.data = normalizeLoadedData(data);
-        writeDataCache(state.data);
-        renderAdmin();
-      }).catch(() => {
+      hydrateDashboardData(true).catch(() => {
         // Keep the current admin view responsive even if the background refresh fails.
       });
     }
@@ -1338,6 +1374,11 @@ async function submitLogin(event) {
     state.session = session;
     saveSession(state.session);
     closeModals();
+    try {
+      await hydrateDashboardData(true);
+    } catch (error) {
+      // If hydration fails, the dashboard can still open with current cached data.
+    }
     renderSession();
     showView(dashboardViewForRole(state.session.role));
   } catch (error) {
@@ -1912,12 +1953,21 @@ function clientFounderRecords() {
     .filter(item => isFounderProfile(item))
     .filter(item => !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase()))
     .filter(item => visualIsPublic(item));
-  const profileFounders = typeof founderProfileRecordsWithoutAthlete === "function"
+  const athleteEmails = new Set(
+    athleteFounders
+      .map(item => String(item.email || item.contact || "").toLowerCase())
+      .filter(Boolean)
+  );
+  const profileFounders = (typeof founderProfileRecordsWithoutAthlete === "function"
     ? founderProfileRecordsWithoutAthlete()
-    : [];
-  const visibleProfileFounders = profileFounders
-    .filter(item => !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase()));
-  return [...athleteFounders, ...visibleProfileFounders];
+    : []
+  ).filter(item => {
+    const email = String(item.email || item.contact || "").toLowerCase();
+    if (!email || athleteEmails.has(email)) return false;
+    return !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase());
+  });
+
+  return [...athleteFounders, ...profileFounders];
 }
 
 function renderClientOverview() {
