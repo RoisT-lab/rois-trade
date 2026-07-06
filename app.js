@@ -1761,10 +1761,7 @@ function renderPublic() {
   const publicNewsSlot = document.getElementById("publicNews");
   if (publicNewsSlot) publicNewsSlot.innerHTML = publicNews.length ? `
     <div class="public-feature-grid">
-      ${publicNews.map(news => editorialNewsCard(news, {
-        kicker: "Nota ROIS",
-        text: news.summary
-      })).join("")}
+      ${publicNews.map(publicEditorialNewsCard).join("")}
     </div>
   ` : `<div class="empty">Las noticias publicadas aparecer\u00e1n aqu\u00ed.</div>`;
 
@@ -5323,25 +5320,35 @@ function editorialPreviewText(text = "") {
 
 function editorialNewsCard(item, options = {}) {
   const image = item.image_url || "./assets/rois-logo.png";
-  const kicker = options.kicker || "ROIS";
+  const kicker = options.kicker || "Nota ROIS";
   const title = options.title || item.title || "Actualizacion ROIS";
   const rawText = options.text || item.summary || "Informacion disponible para miembros aprobados.";
   const bodyText = options.preview ? editorialPreviewText(rawText) : rawText;
+  const action = options.action || newsInteractionBar(item) || "";
 
   return `
-    <article class="published-card editorial-card editorial-news-card">
-      <div class="published-cover editorial-cover">
-        <img src="${image}" alt="${escapeAttr(title || "ROIS")}">
+    <article class="editorial-news-card">
+      <div class="editorial-news-cover">
+        <img src="${escapeAttr(image)}" alt="${escapeAttr(title || "Nota ROIS")}">
       </div>
-      <div class="published-content editorial-content">
+      <div class="editorial-news-body">
         <p class="eyebrow">${escapeHtml(kicker)}</p>
-        <h3>${escapeHtml(title)}</h3>
+        <h2>${escapeHtml(title)}</h2>
         <div class="editorial-body">
           ${formatEditorialBody(bodyText)}
         </div>
+        ${action}
       </div>
     </article>
   `;
+}
+
+function publicEditorialNewsCard(news) {
+  return editorialNewsCard(news, {
+    kicker: "Nota ROIS",
+    text: news.summary,
+    action: `<div class="social-actions public-social"><button class="btn" type="button" data-open-login>Me gusta</button><button class="btn" type="button" data-open-login>Comentar</button><button class="btn" type="button" data-open-login>Compartir</button></div>`
+  });
 }
 
 function videoEmbedUrl(url = "") {
