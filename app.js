@@ -1839,6 +1839,7 @@ function renderClient() {
   renderClientNews();
   renderClientSponsors();
   renderClientMarketplace();
+  renderClientFounders();
   renderClientRegister();
   renderClientPayments();
   renderAccountSettings("client-settings");
@@ -1900,6 +1901,18 @@ function clientCompanyLogoMarkup(company) {
   `;
 }
 
+function clientAthleteRecords() {
+  return (state.data.athletes || [])
+    .filter(item => !isFounderProfile(item))
+    .filter(item => item.status === "approved" && visualIsPublic(item));
+}
+
+function clientFounderRecords() {
+  return (state.data.athletes || [])
+    .filter(item => isFounderProfile(item))
+    .filter(item => item.status === "approved" && visualIsPublic(item));
+}
+
 function renderClientOverview() {
   const coverSlot = document.getElementById("clientDashboardCover");
   if (coverSlot) {
@@ -1919,11 +1932,12 @@ function clientAdvertisingOverviewMarkup() {
   const news = state.data.news
     .filter(item => item.status === "published" && visualIsPublic(item))
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const athletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
+  const athletes = clientAthleteRecords();
+  const founders = clientFounderRecords();
   const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
   const companyName = company?.name || state.session?.name || "Empresa ROIS";
   const interest = company?.interest || "Oportunidades premium";
-  const description = company?.description || "Cuenta empresarial habilitada para revisar Centro VIP, talento deportivo, eventos privados y productos administrados por ROIS.";
+  const description = company?.description || "Cuenta empresarial habilitada para revisar Centro VIP, athletes, founders, eventos privados y productos administrados por ROIS.";
 
   return `
     <div class="client-ad-home">
@@ -1936,7 +1950,8 @@ function clientAdvertisingOverviewMarkup() {
           <p>${escapeHtml(description)}</p>
           <div class="company-profile-actions">
             <button class="btn primary" type="button" data-dashboard-shortcut="client-sponsors">Explorar Centro VIP</button>
-            <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver deportistas</button>
+            <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver mercado de fichajes</button>
+            <button class="btn" type="button" data-dashboard-shortcut="client-founders">Ver founders</button>
             <button class="btn" type="button" data-dashboard-shortcut="client-settings">Editar perfil</button>
           </div>
         </div>
@@ -1945,15 +1960,15 @@ function clientAdvertisingOverviewMarkup() {
       <div class="client-priority-grid">
         <section class="client-priority-card client-reels-priority">
           <div class="section-minihead">
-            <p class="eyebrow">Feed de oportunidades</p>
-            <h3>Publicaciones de perfiles listos para patrocinio.</h3>
-            <p>Contenido publicado por atletas para que las empresas evaluen talento, narrativa y oportunidad comercial.</p>
+            <p class="eyebrow">Activos ROIS listos para evaluacion</p>
+            <h3>Contenido publicado por perfiles listos para patrocinio.</h3>
+            <p>Contenido publicado por athletes y founders para que las empresas evaluen talento, narrativa, traccion y oportunidad comercial.</p>
           </div>
           ${posts.length ? `
             <div class="reels-feed tiktok-feed compact-reels" aria-label="Reels deportivos ROIS">
               ${posts.slice(0, 5).map(post => athleteFeedCard(post)).join("")}
             </div>
-          ` : `<div class="empty slim">Los reels publicados por deportistas apareceran aqui.</div>`}
+          ` : `<div class="empty slim">Las publicaciones de athletes y founders apareceran aqui cuando esten aprobadas.</div>`}
         </section>
 
         <section class="client-priority-card">
@@ -1973,7 +1988,8 @@ function clientAdvertisingOverviewMarkup() {
         </div>
         <div class="company-action-grid">
           ${clientOperationCard("Centro VIP", "Productos con imagen derivados de alianzas estrategicas.", "client-sponsors", "Ver productos")}
-          ${clientOperationCard("Marketplace", `${athletes.length} perfiles deportivos para evaluar.`, "client-marketplace", "Revisar")}
+          ${clientOperationCard("Mercado de fichajes", `${athletes.length} athletes listos para evaluar.`, "client-marketplace", "Revisar")}
+          ${clientOperationCard("Founders", `${founders.length} perfiles emprendedores para evaluar.`, "client-founders", "Explorar")}
           ${clientOperationCard("Eventos", `${events.length} oportunidades privadas publicadas por ROIS.`, "client-events", "Calendario")}
           ${clientOperationCard("Pagos", "Stripe, solicitudes y compromisos activos.", "client-payments", "Ver pagos")}
         </div>
@@ -2004,11 +2020,12 @@ function clientExperienceOverviewMarkup() {
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const alliances = premiumAllianceCatalog();
   const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
-  const athletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
+  const athletes = clientAthleteRecords();
+  const founders = clientFounderRecords();
   const news = state.data.news.filter(item => item.status === "published" && visualIsPublic(item));
   const companyName = company?.name || state.session?.name || "Empresa ROIS";
-  const interest = company?.interest || "Patrocinios, eventos y talento deportivo";
-  const description = company?.description || "Cuenta empresarial habilitada para revisar oportunidades, solicitar patrocinios, acceder a eventos privados y operar alianzas premium dentro del ecosistema ROIS.";
+  const interest = company?.interest || "Patrocinios, eventos y activos comerciales";
+  const description = company?.description || "Cuenta empresarial habilitada para revisar oportunidades, solicitar patrocinios, acceder a eventos privados y operar alianzas premium con athletes y founders dentro del ecosistema ROIS.";
 
   return `
     <div class="company-profile-layout">
@@ -2026,7 +2043,8 @@ function clientExperienceOverviewMarkup() {
               <p>${escapeHtml(description)}</p>
               <div class="company-profile-actions">
                 <button class="btn primary" type="button" data-dashboard-shortcut="client-alliances">Explorar alianzas premium</button>
-                <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver deportistas</button>
+                <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver mercado de fichajes</button>
+                <button class="btn" type="button" data-dashboard-shortcut="client-founders">Ver founders</button>
                 <button class="btn" type="button" data-dashboard-shortcut="client-settings">Editar perfil</button>
               </div>
             </div>
@@ -2034,7 +2052,8 @@ function clientExperienceOverviewMarkup() {
           <div class="company-signal-strip">
             <div><span>${alliances.length}</span><small>Alianzas activas</small></div>
             <div><span>${events.length}</span><small>Eventos privados</small></div>
-            <div><span>${athletes.length}</span><small>Deportistas</small></div>
+            <div><span>${athletes.length}</span><small>Athletes</small></div>
+            <div><span>${founders.length}</span><small>Founders</small></div>
             <div><span>${news.length}</span><small>Noticias ROIS</small></div>
           </div>
       </section>
@@ -2044,7 +2063,7 @@ function clientExperienceOverviewMarkup() {
           <div class="section-minihead">
             <p class="eyebrow">Mesa de oportunidades</p>
             <h3>Productos privados listos para evaluaciÃ³n empresarial.</h3>
-            <p>ROIS concentra alianzas, inventario deportivo y eventos premium para que tu empresa pueda solicitar disponibilidad, recibir seguimiento y cerrar operaciones desde un solo lugar.</p>
+              <p>ROIS concentra alianzas, athletes, founders y eventos premium para que tu empresa pueda solicitar disponibilidad, recibir seguimiento y cerrar operaciones desde un solo lugar.</p>
           </div>
           <div class="premium-alliance-grid command">
             ${alliances.slice(0, 2).map(alliance => allianceCard(alliance, true)).join("")}
@@ -2065,14 +2084,14 @@ function clientExperienceOverviewMarkup() {
             </article>
             <article>
               <span>02</span>
-              <h4>Evalua talento deportivo</h4>
-              <p>Consulta perfiles, reels, resultados y tickets mensuales antes de solicitar patrocinio.</p>
-              <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver deportistas</button>
+              <h4>Evalua mercado de fichajes</h4>
+              <p>Consulta athletes con resultados, narrativa y tickets mensuales antes de solicitar patrocinio.</p>
+              <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver mercado de fichajes</button>
             </article>
             <article>
               <span>03</span>
               <h4>Solicita y activa</h4>
-              <p>ROIS valida disponibilidad, contratos, pagos y seguimiento operativo con el aliado o deportista.</p>
+              <p>ROIS valida disponibilidad, contratos, pagos y seguimiento operativo con el activo comercial o aliado seleccionado.</p>
               <button class="btn" type="button" data-dashboard-shortcut="client-sponsors">Ver patrocinios</button>
             </article>
           </div>
@@ -2085,7 +2104,8 @@ function clientExperienceOverviewMarkup() {
           </div>
           <div class="company-action-grid">
             ${clientOperationCard("Productos premium", "Suites, patrocinios F1, Los 300 y experiencias privadas.", "client-alliances", "Solicitar")}
-            ${clientOperationCard("Talento deportivo", `${athletes.length} perfiles listos para evaluacion.`, "client-marketplace", "Revisar")}
+            ${clientOperationCard("Mercado de fichajes", `${athletes.length} athletes listos para evaluacion.`, "client-marketplace", "Revisar")}
+            ${clientOperationCard("Founders", `${founders.length} perfiles emprendedores para evaluar.`, "client-founders", "Explorar")}
             ${clientOperationCard("Eventos privados", `${events.length} oportunidades publicadas por ROIS.`, "client-events", "Calendario")}
             ${clientOperationCard("Pagos y cierre", "Consulta pagos, solicitudes y proximos pasos de operacion.", "client-payments", "Ver pagos")}
           </div>
@@ -2096,7 +2116,7 @@ function clientExperienceOverviewMarkup() {
         <div class="client-next-steps">
           <p class="eyebrow">Siguiente mejor accion</p>
           <h3>Revisa las alianzas premium y solicita disponibilidad.</h3>
-          <p>Para empresas nuevas, el camino mas eficiente es elegir un producto de F1, Los 300 o un deportista y abrir una solicitud. ROIS hace el seguimiento comercial.</p>
+          <p>Para empresas nuevas, el camino mas eficiente es elegir un producto de F1, Los 300, un athlete o un founder y abrir una solicitud. ROIS hace el seguimiento comercial.</p>
           <div>
             <button class="btn primary" type="button" data-dashboard-shortcut="client-alliances">Ver productos</button>
             <button class="btn" type="button" data-dashboard-shortcut="client-feed">Ver feed</button>
@@ -2105,13 +2125,13 @@ function clientExperienceOverviewMarkup() {
         <div class="company-reels-widget">
           <div class="section-minihead">
             <p class="eyebrow">SeÃ±ales del ecosistema</p>
-            <h3>Reels de atletas listos para patrocinio.</h3>
+            <h3>Publicaciones de athletes y founders listas para evaluacion.</h3>
           </div>
           ${posts.length ? `
             <div class="reels-feed tiktok-feed compact-reels" aria-label="Reels deportivos ROIS">
               ${posts.slice(0, 6).map(post => athleteFeedCard(post)).join("")}
             </div>
-          ` : `<div class="empty slim">Los reels publicados por deportistas apareceran aqui.</div>`}
+          ` : `<div class="empty slim">Las publicaciones de athletes y founders apareceran aqui cuando esten aprobadas.</div>`}
         </div>
       </aside>
     </div>
@@ -2249,13 +2269,13 @@ function renderClientFeed() {
   const posts = state.data.athlete_posts
     .filter(post => post.status === "approved")
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  panel("client-feed", "Feed de oportunidades", "Publicaciones de perfiles listos para patrocinio", posts.length ? `
+  panel("client-feed", "Oportunidades", "Contenido publicado por athletes y founders listos para evaluacion comercial", posts.length ? `
     <div class="panel-body reels-panel-body">
       <div class="reels-feed tiktok-feed" aria-label="Reels deportivos ROIS">
         ${posts.map(post => athleteFeedCard(post)).join("")}
       </div>
     </div>
-  ` : `<div class="empty">Los reels publicados por deportistas apareceran aqui.</div>`);
+  ` : `<div class="empty">Las publicaciones de athletes y founders apareceran aqui cuando esten aprobadas.</div>`);
   setupReelAutoplay();
 }
 
@@ -2273,12 +2293,13 @@ function renderClientHeader() {
 
 function renderClientKpis() {
   const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item)).length;
-  const athletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item)).length;
+  const athletes = clientAthleteRecords().length;
+  const founders = clientFounderRecords().length;
   const news = state.data.news.filter(item => item.status === "published" && visualIsPublic(item)).length;
   document.getElementById("clientKpis").innerHTML = [
     ["Eventos", events],
-    ["Deportistas", athletes],
-    ["Noticias", news],
+    ["Athletes", athletes],
+    ["Founders", founders],
     ["Pagos", state.data.payments.filter(item => item.status !== "paid").length]
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
@@ -2365,14 +2386,74 @@ function vipProductCard(product) {
 }
 
 function renderClientMarketplace() {
-  const athletes = state.data.athletes.filter(item => item.status === "approved" && visualIsPublic(item));
-  panel("client-marketplace", "Marketplace Deportistas", "Perfiles aprobados para sponsor", athletes.length ? `
+  const athletes = clientAthleteRecords();
+  panel("client-marketplace", "Mercado de fichajes", "Athletes listos para evaluacion comercial y patrocinio.", athletes.length ? `
     <div class="panel-body">
       <div class="athlete-showcase compact">
         ${athletes.map(athlete => athleteCard(athlete, athleteSponsorCta(athlete))).join("")}
       </div>
     </div>
-  ` : `<div class="empty">A\u00fan no hay deportistas aprobados para patrocinio.</div>`);
+  ` : `<div class="empty">Los athletes aprobados apareceran aqui cuando esten listos para evaluacion empresarial.</div>`);
+}
+
+function founderMarketCard(founder) {
+  const image = founder.image_url || "./assets/rois-isotipo-cropped.png";
+  const industry = founder.sport || "Industria por definir";
+  const stage = founder.category || "Etapa por definir";
+  const location = founder.location || "Base por confirmar";
+  const summary = founder.stats || "Perfil founder en construccion dentro de ROIS.";
+  const ticket = Number(founder.monthly || 2500).toLocaleString("es-MX");
+  const proposalButton = athleteProposalLink(founder);
+
+  return `
+    <article class="athlete-card founder-card">
+      <div class="athlete-media">
+        <img src="${image}" alt="${escapeAttr(founder.name || "Founder ROIS")}">
+        <span class="pill media-pill">Founder</span>
+      </div>
+      <div class="athlete-info">
+        <div>
+          <p class="eyebrow">Perfil founder</p>
+          <h3>${escapeHtml(founder.name || "Founder ROIS")}</h3>
+          <p class="athlete-summary">${escapeHtml(summary)}</p>
+        </div>
+        <div class="athlete-technical">
+          <div><span>Industria</span><strong>${escapeHtml(industry)}</strong></div>
+          <div><span>Etapa</span><strong>${escapeHtml(stage)}</strong></div>
+          <div><span>Base</span><strong>${escapeHtml(location)}</strong></div>
+          <div><span>Traccion</span><strong>${escapeHtml(founder.ranking || "En evaluacion")}</strong></div>
+        </div>
+        <div class="athlete-metrics">
+          <div><span>Ticket mensual</span><strong>$${ticket} MXN</strong></div>
+          <div><span>Tipo</span><strong>Founder ROIS</strong></div>
+        </div>
+        <div class="athlete-decision">
+          <p>Ideal para empresas interesadas en innovacion, visibilidad emprendedora, alianzas estrategicas y construccion de reputacion comercial.</p>
+          <div class="athlete-actions">
+            ${proposalButton}
+            <button class="btn" type="button" data-athlete-profile="${escapeAttr(founder.id)}">Ver perfil</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderClientFounders() {
+  const founders = clientFounderRecords();
+  panel("client-founders", "Founders", "Founders listos para evaluacion comercial", `
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Founder ROIS</p>
+        <h3>Emprendedores listos para construir relaciones comerciales.</h3>
+        <p>Explora founders con propuesta de valor, traccion, narrativa comercial y potencial de colaboracion con empresas.</p>
+      </div>
+      ${founders.length
+        ? `<div class="athlete-showcase compact founder-market-grid">${founders.map(founder => founderMarketCard(founder)).join("")}</div>`
+        : `<div class="empty">Los founders aprobados apareceran aqui cuando su perfil este listo para evaluacion empresarial.</div>`
+      }
+    </div>
+  `);
 }
 
 function renderClientRegister() {
@@ -5087,7 +5168,7 @@ function openAthleteSponsorConfigurator(athlete) {
     : athleteSponsorConditions();
   const monthly = athleteMonthlyTicket(athlete);
   notify(
-    "Marketplace Deportistas",
+    "Mercado de fichajes",
     `Patrocinar a ${athlete.name}`,
     "Selecciona las condiciones de valor que quieres explorar con ROIS. El acuerdo final se valida cuidando la meta deportiva del atleta.",
     `
