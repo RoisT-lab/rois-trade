@@ -6002,7 +6002,7 @@ function registrationFields(type) {
   `;
 }
 
-async function submitRegistration(event) {
+async function submitRegistrationLegacy(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const type = state.registrationType;
