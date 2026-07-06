@@ -1684,6 +1684,68 @@ function registrationPaymentConfig(type, payload = {}) {
   return null;
 }
 
+const eventRegistrationFee = {
+  productKey: "eventRegistration",
+  title: "Publicacion de Evento ROIS",
+  concept: "Fee de publicacion de evento ROIS",
+  amount: 25000,
+  taxMode: "iva_included",
+  description: "Fee general por publicacion, revision y activacion comercial de evento dentro de ROIS."
+};
+
+function eventSuccessFeeOptions() {
+  return [
+    {
+      value: "listing_5",
+      label: "Listing / Publicacion - 5%",
+      rate: 5,
+      description: "ROIS publica el evento y permite solicitudes entrantes de empresas interesadas."
+    },
+    {
+      value: "introduction_10",
+      label: "Sponsor Introduction - 10%",
+      rate: 10,
+      description: "ROIS presenta empresas calificadas y facilita la conexion inicial."
+    },
+    {
+      value: "development_15",
+      label: "Commercial Development - 15%",
+      rate: 15,
+      description: "ROIS participa activamente en prospeccion, seguimiento y presentacion comercial."
+    },
+    {
+      value: "mandate_20",
+      label: "Strategic Sponsor Mandate - 20%",
+      rate: 20,
+      description: "ROIS participa en originacion, curaduria, negociacion, cierre y seguimiento de sponsors estrategicos."
+    }
+  ];
+}
+
+function eventSuccessFeeRate(value) {
+  const option = eventSuccessFeeOptions().find(item => item.value === value);
+  return option?.rate || 5;
+}
+
+function eventSuccessFeeLabel(value) {
+  const option = eventSuccessFeeOptions().find(item => item.value === value);
+  return option?.label || "Listing / Publicacion - 5%";
+}
+
+function eventSuccessFeeSelectMarkup() {
+  return `
+    <label style="grid-column:1/-1">
+      Nivel de involucramiento ROIS
+      <select name="success_fee_level" required>
+        ${eventSuccessFeeOptions().map(option => `<option value="${option.value}">${option.label}</option>`).join("")}
+      </select>
+    </label>
+    <p class="hint" style="grid-column:1/-1">
+      Ademas del fee fijo de publicacion de $25,000 MXN IVA incluido, el evento acepta un success fee ROIS del 5% al 20% sobre sponsors cerrados a traves de la plataforma o gestion comercial de ROIS. El porcentaje depende del nivel de involucramiento seleccionado.
+    </p>
+  `;
+}
+
 async function registerMembershipPayment(type, payload = {}) {
   const payment = registrationPaymentConfig(type, payload);
   if (!payment) return null;
@@ -1701,6 +1763,69 @@ async function registerMembershipPayment(type, payload = {}) {
   }
 
   return payment;
+}
+
+async function registerEventPublicationPayment(eventName, payer = "", successFeeLevel = "listing_5") {
+  const successFeeLabel = eventSuccessFeeLabel(successFeeLevel);
+  try {
+    try {
+      await api.insert("payments", {
+        concept: `${eventRegistrationFee.concept} - ${eventName}`,
+        amount: eventRegistrationFee.amount,
+        company: payer || "Empresa ROIS",
+        status: "pending",
+        product_key: eventRegistrationFee.productKey,
+        details: `Success fee seleccionado: ${successFeeLabel}`
+      });
+    } catch (error) {
+      await api.insert("payments", {
+        concept: `${eventRegistrationFee.concept} - ${eventName}`,
+        amount: eventRegistrationFee.amount,
+        company: payer || "Empresa ROIS",
+        status: "pending",
+        product_key: eventRegistrationFee.productKey
+      });
+    }
+  } catch (error) {
+    // No bloquear el registro si el log de pago falla.
+  }
+
+  return eventRegistrationFee;
+}
+
+async function insertEventRegistrationRecord(payload) {
+  const successFeeLevel = payload.success_fee_level || "listing_5";
+  const successFeeRate = eventSuccessFeeRate(successFeeLevel);
+  const successFeeCopy = `Success fee ROIS: ${eventSuccessFeeLabel(successFeeLevel)}. Rate: ${successFeeRate}% sobre sponsors cerrados mediante ROIS.`;
+  const baseRecord = {
+    name: payload.name,
+    category: payload.category,
+    venue: payload.venue,
+    date: payload.date,
+    status: "pending",
+    image_url: payload.image_url || "",
+    visual_status: payload.image_url ? "pending_review" : "approved"
+  };
+
+  try {
+    await api.insert("events", {
+      ...baseRecord,
+      event_scope: payload.event_scope || "",
+      sponsor_levels: payload.sponsor_levels || "",
+      success_fee_level: successFeeLevel,
+      success_fee_rate: successFeeRate
+    });
+  } catch (error) {
+    try {
+      await api.insert("events", {
+        ...baseRecord,
+        event_scope: [payload.event_scope || "", successFeeCopy].filter(Boolean).join("\n\n"),
+        sponsor_levels: [payload.sponsor_levels || "", `Modelo success fee ROIS: ${eventSuccessFeeLabel(successFeeLevel)}`, `Rate: ${successFeeRate}%`].filter(Boolean).join("\n")
+      });
+    } catch (fallbackError) {
+      await api.insert("events", baseRecord);
+    }
+  }
 }
 
 function humanError(error) {
@@ -2541,20 +2666,43 @@ function renderClientRegister() {
   panel("client-register", "Registrar Evento", "Env\u00edo a revisi\u00f3n", `
     <div class="panel-body">
       <form id="eventForm" class="form-grid">
-        <label>Nombre<input name="name" required placeholder="T\u00edtulo del evento"></label>
+        <label>Evento<input name="name" required placeholder="Nombre del evento"></label>
         <label>Sede<input name="venue" required placeholder="Sede o ciudad"></label>
-        <label>Categor\u00eda<input name="category" required placeholder="Ejecutivo, patrocinio, membres\u00eda"></label>
+        <label>Categor\u00eda<input name="category" required placeholder="Ejecutivo, sponsor, membresia, networking"></label>
         <label>Fecha<input name="date" required placeholder="Por confirmar"></label>
-        <button class="btn primary" type="submit">Registrar y pagar evento</button>
+        <label style="grid-column:1/-1">Descripcion comercial del evento<textarea name="event_scope" required placeholder="Audiencia, alcance, sectores, tomadores de decision, medios, impacto esperado y por que una empresa deberia patrocinar este evento."></textarea></label>
+        <label style="grid-column:1/-1">Paquetes o patrocinio buscado<textarea name="sponsor_levels" placeholder="Describe niveles, tickets, beneficios o tipo de sponsor buscado."></textarea></label>
+        ${eventSuccessFeeSelectMarkup()}
+        <div class="registration-note" style="grid-column:1/-1">
+          <p class="eyebrow">Modelo de success fee ROIS</p>
+          <p>Ademas del fee fijo de publicacion de $25,000 MXN IVA incluido, ROIS podra cobrar un success fee del 5% al 20% sobre sponsors cerrados a traves de la plataforma o gestion comercial de ROIS. El porcentaje depende del nivel de involucramiento seleccionado.</p>
+          <p class="hint">El success fee aplica unicamente sobre sponsors, patrocinios o ingresos comerciales cerrados mediante presentacion, gestion o intervencion comercial de ROIS. Las condiciones finales podran documentarse en contrato o acuerdo comercial especifico.</p>
+        </div>
+        <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <p class="hint" style="grid-column:1/-1">Publicar un evento en ROIS requiere un fee general de $25,000 MXN IVA incluido por evento. El evento queda sujeto a revision ROIS. El fee cubre publicacion, revision editorial y activacion comercial dentro de la plataforma. No garantiza patrocinio.</p>
+        <button class="btn primary" type="submit">Enviar evento y pagar fee ROIS</button>
       </form>
     </div>
   `);
   document.getElementById("eventForm").addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
-    await api.insert("events", { name: form.name.value, venue: form.venue.value, category: form.category.value, date: form.date.value, status: "pending" });
-    openStripeCheckout("eventRegistration", "Registro de Evento ROIS");
-    notify("Eventos", "Evento registrado", "El evento fue enviado a revisi\u00f3n del administrador.");
+    const eventName = form.name.value.trim();
+    const image_url = await fileToDataUrl(form.image.files?.[0]);
+    const successFeeLevel = form.success_fee_level?.value || "listing_5";
+    await insertEventRegistrationRecord({
+      name: eventName,
+      venue: form.venue.value,
+      category: form.category.value,
+      date: form.date.value,
+      event_scope: form.event_scope?.value || "",
+      sponsor_levels: form.sponsor_levels?.value || "",
+      success_fee_level: successFeeLevel,
+      image_url
+    });
+    await registerEventPublicationPayment(eventName, state.session?.name || currentCompany()?.name || "Empresa ROIS", successFeeLevel);
+    openStripeCheckout(eventRegistrationFee.productKey, eventRegistrationFee.title);
+    notify("Eventos", "Evento registrado", "Tu evento quedo pendiente de revision. Abrimos el checkout para cubrir el fee fijo de publicacion ROIS por $25,000 MXN IVA incluido. El modelo de success fee seleccionado sera aplicado sobre sponsors cerrados mediante ROIS.");
     renderClient();
   });
 }
@@ -5837,11 +5985,20 @@ function registrationFields(type) {
   }
   return `
     <label>Evento<input name="name" required placeholder="Nombre del evento"></label>
-    <label>Categor\u00eda<input name="category" required placeholder="Ejecutivo, patrocinio, membres\u00eda"></label>
+    <label>Categor\u00eda<input name="category" required placeholder="Ejecutivo, sponsor, membresia, networking"></label>
     <label>Sede<input name="venue" required placeholder="Sede o ciudad"></label>
     <label>Fecha<input name="date" required placeholder="Por confirmar"></label>
+    <label style="grid-column:1/-1">Descripcion comercial del evento<textarea name="event_scope" required placeholder="Audiencia, alcance, sectores, tomadores de decision, medios, impacto esperado y por que una empresa deberia patrocinar este evento."></textarea></label>
+    <label style="grid-column:1/-1">Paquetes o patrocinio buscado<textarea name="sponsor_levels" placeholder="Describe niveles, tickets, beneficios o tipo de sponsor buscado."></textarea></label>
+    ${eventSuccessFeeSelectMarkup()}
+    <div class="registration-note" style="grid-column:1/-1">
+      <p class="eyebrow">Modelo de success fee ROIS</p>
+      <p>Ademas del fee fijo de publicacion de $25,000 MXN IVA incluido, ROIS podra cobrar un success fee del 5% al 20% sobre sponsors cerrados a traves de la plataforma o gestion comercial de ROIS. El porcentaje depende del nivel de involucramiento seleccionado.</p>
+      <p class="hint">El success fee aplica unicamente sobre sponsors, patrocinios o ingresos comerciales cerrados mediante presentacion, gestion o intervencion comercial de ROIS. Las condiciones finales podran documentarse en contrato o acuerdo comercial especifico.</p>
+    </div>
     <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-    <button class="btn primary full" type="submit">Enviar y pagar evento</button>
+    <p class="hint">Publicar un evento en ROIS requiere un fee general de $25,000 MXN IVA incluido por evento. El evento queda sujeto a revision antes de mostrarse a empresas. El fee cubre publicacion, revision editorial y activacion comercial dentro de la plataforma. No garantiza patrocinio.</p>
+    <button class="btn primary full" type="submit">Enviar evento y pagar fee ROIS</button>
   `;
 }
 
@@ -5982,12 +6139,24 @@ async function submitRegistration(event) {
       renderPublic();
       return;
     } else {
-      const image_url = await fileToDataUrl(form.image.files[0]);
-      await api.insert("events", { name: form.name.value, category: form.category.value, venue: form.venue.value, date: form.date.value, status: "pending", image_url, visual_status: image_url ? "pending_review" : "approved" });
-      paymentAction = ["eventRegistration", "Registro de Evento ROIS"];
+      const eventName = form.name.value.trim();
+      const image_url = await fileToDataUrl(form.image.files?.[0]);
+      const successFeeLevel = form.success_fee_level?.value || "listing_5";
+      await insertEventRegistrationRecord({
+        name: eventName,
+        category: form.category.value,
+        venue: form.venue.value,
+        date: form.date.value,
+        event_scope: form.event_scope?.value || "",
+        sponsor_levels: form.sponsor_levels?.value || "",
+        success_fee_level: successFeeLevel,
+        image_url
+      });
+      await registerEventPublicationPayment(eventName, state.session?.name || form.name.value || "Empresa ROIS", successFeeLevel);
+      paymentAction = [eventRegistrationFee.productKey, eventRegistrationFee.title];
     }
     closeModals();
-    notify("Registro", "Solicitud recibida", "El registro qued\u00f3 pendiente de aprobaci\u00f3n en el panel administrador.");
+    notify("Registro", "Evento registrado", "Tu evento quedo pendiente de revision. Abrimos el checkout para cubrir el fee fijo de publicacion ROIS por $25,000 MXN IVA incluido. El modelo de success fee seleccionado sera aplicado sobre sponsors cerrados mediante ROIS.");
     if (paymentAction) {
       openStripeCheckout(paymentAction[0], paymentAction[1]);
     }
@@ -6152,12 +6321,49 @@ async function submitRegistration(event) {
       renderPublic();
       return;
     } else {
+      const eventName = form.name.value.trim();
       const image_url = await fileToDataUrl(form.image.files[0]);
-      await api.insert("events", { name: form.name.value, category: form.category.value, venue: form.venue.value, date: form.date.value, status: "pending", image_url, visual_status: image_url ? "pending_review" : "approved" });
-      paymentAction = ["eventRegistration", "Registro de Evento ROIS"];
+      const successFeeLevel = form.success_fee_level?.value || "listing_5";
+      const successFeeRate = eventSuccessFeeRate(successFeeLevel);
+      const successFeeCopy = `Success fee ROIS: ${eventSuccessFeeLabel(successFeeLevel)}. Rate: ${successFeeRate}% sobre sponsors cerrados mediante ROIS.`;
+      const eventRecord = {
+        name: eventName,
+        category: form.category.value,
+        venue: form.venue.value,
+        date: form.date.value,
+        event_scope: `${form.event_scope?.value || ""}\n\n${successFeeCopy}`.trim(),
+        sponsor_levels: form.sponsor_levels?.value || "",
+        status: "pending",
+        image_url,
+        visual_status: image_url ? "pending_review" : "approved"
+      };
+
+      try {
+        await api.insert("events", {
+          ...eventRecord,
+          success_fee_level: successFeeLevel,
+          success_fee_rate: successFeeRate
+        });
+      } catch (error) {
+        await api.insert("events", eventRecord);
+      }
+
+      try {
+        await api.insert("payments", {
+          concept: `${eventRegistrationFee.concept} - ${eventName}`,
+          amount: eventRegistrationFee.amount,
+          company: state.session?.name || "Empresa ROIS",
+          status: "pending",
+          product_key: eventRegistrationFee.productKey
+        });
+      } catch (error) {
+        // No bloquear checkout si el log interno falla.
+      }
+
+      paymentAction = [eventRegistrationFee.productKey, eventRegistrationFee.title];
     }
     closeModals();
-    notify("Registro", "Solicitud recibida", "El registro qued\u00f3 pendiente de aprobaci\u00f3n en el panel administrador.");
+    notify("Evento registrado", "Fee de publicacion ROIS", "Tu evento quedo pendiente de revision. Abrimos el checkout para cubrir el fee fijo de publicacion ROIS por $25,000 MXN IVA incluido. El modelo de success fee seleccionado aplicara sobre sponsors cerrados mediante ROIS.");
     if (paymentAction) {
       openStripeCheckout(paymentAction[0], paymentAction[1]);
     }
