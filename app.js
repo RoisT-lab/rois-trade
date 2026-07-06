@@ -1908,9 +1908,16 @@ function clientAthleteRecords() {
 }
 
 function clientFounderRecords() {
-  return (state.data.athletes || [])
+  const athleteFounders = (state.data.athletes || [])
     .filter(item => isFounderProfile(item))
-    .filter(item => item.status === "approved" && visualIsPublic(item));
+    .filter(item => !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase()))
+    .filter(item => visualIsPublic(item));
+  const profileFounders = typeof founderProfileRecordsWithoutAthlete === "function"
+    ? founderProfileRecordsWithoutAthlete()
+    : [];
+  const visibleProfileFounders = profileFounders
+    .filter(item => !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase()));
+  return [...athleteFounders, ...visibleProfileFounders];
 }
 
 function renderClientOverview() {
@@ -1921,14 +1928,10 @@ function renderClientOverview() {
     coverSlot.setAttribute("aria-hidden", "true");
   }
   document.querySelector(`[data-dashboard-panel="client-overview"]`).innerHTML = clientAdvertisingOverviewMarkup();
-  setupReelAutoplay();
 }
 
 function clientAdvertisingOverviewMarkup() {
   const company = currentCompany();
-  const posts = state.data.athlete_posts
-    .filter(post => post.status === "approved")
-    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const news = state.data.news
     .filter(item => item.status === "published" && visualIsPublic(item))
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -1957,21 +1960,7 @@ function clientAdvertisingOverviewMarkup() {
         </div>
       </section>
 
-      <div class="client-priority-grid">
-        <section class="client-priority-card client-reels-priority">
-          <div class="section-minihead">
-            <p class="eyebrow">Activos ROIS listos para evaluacion</p>
-            <h3>Contenido publicado por perfiles listos para patrocinio.</h3>
-            <p>Contenido publicado por athletes y founders para que las empresas evaluen talento, narrativa, traccion y oportunidad comercial.</p>
-          </div>
-          ${posts.length ? `
-            <div class="reels-feed tiktok-feed compact-reels" aria-label="Reels deportivos ROIS">
-              ${posts.slice(0, 5).map(post => athleteFeedCard(post)).join("")}
-            </div>
-          ` : `<div class="empty slim">Las publicaciones de athletes y founders apareceran aqui cuando esten aprobadas.</div>`}
-        </section>
-
-        <section class="client-priority-card">
+        <section class="client-priority-card client-news-priority full-width">
           <div class="section-minihead">
             <p class="eyebrow">Noticias ROIS</p>
             <h3>Actualizaciones publicadas por administracion.</h3>
@@ -1979,7 +1968,6 @@ function clientAdvertisingOverviewMarkup() {
           </div>
           ${news.length ? `<div class="client-news-stack">${news.slice(0, 4).map(clientNewsPreviewCard).join("")}</div>` : `<div class="empty slim">Las noticias publicadas por admin apareceran aqui.</div>`}
         </section>
-      </div>
 
       <section class="company-operations-card">
         <div class="section-minihead">
@@ -2401,9 +2389,13 @@ function founderMarketCard(founder) {
   const industry = founder.sport || "Industria por definir";
   const stage = founder.category || "Etapa por definir";
   const location = founder.location || "Base por confirmar";
-  const summary = founder.stats || "Perfil founder en construccion dentro de ROIS.";
+  const summary = founder.stats || "Cuenta founder registrada en ROIS. Falta completar ficha emprendedora.";
   const ticket = Number(founder.monthly || 2500).toLocaleString("es-MX");
   const proposalButton = athleteProposalLink(founder);
+  const traction = founder.ranking || founder.stats || "Cuenta founder registrada en ROIS. Falta completar ficha emprendedora.";
+  const profileAction = founder.is_virtual_founder_profile
+    ? `<span class="pill">Perfil base</span>`
+    : `<button class="btn" type="button" data-athlete-profile="${escapeAttr(founder.id)}">Ver perfil</button>`;
 
   return `
     <article class="athlete-card founder-card">
@@ -2421,17 +2413,17 @@ function founderMarketCard(founder) {
           <div><span>Industria</span><strong>${escapeHtml(industry)}</strong></div>
           <div><span>Etapa</span><strong>${escapeHtml(stage)}</strong></div>
           <div><span>Base</span><strong>${escapeHtml(location)}</strong></div>
-          <div><span>Traccion</span><strong>${escapeHtml(founder.ranking || "En evaluacion")}</strong></div>
+          <div><span>Traccion</span><strong>${escapeHtml(traction)}</strong></div>
         </div>
         <div class="athlete-metrics">
           <div><span>Ticket mensual</span><strong>$${ticket} MXN</strong></div>
-          <div><span>Tipo</span><strong>Founder ROIS</strong></div>
+          <div><span>Tipo</span><strong>${founder.is_virtual_founder_profile ? "Founder base" : "Founder ROIS"}</strong></div>
         </div>
         <div class="athlete-decision">
           <p>Ideal para empresas interesadas en innovacion, visibilidad emprendedora, alianzas estrategicas y construccion de reputacion comercial.</p>
           <div class="athlete-actions">
             ${proposalButton}
-            <button class="btn" type="button" data-athlete-profile="${escapeAttr(founder.id)}">Ver perfil</button>
+            ${profileAction}
           </div>
         </div>
       </div>
