@@ -10905,6 +10905,10 @@ body[data-active-view="home"] .premium-final-cta .section-head {
   display: block;
   min-height: 0;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
+  background: #1f2328;
+  box-shadow: none;
 }
 
 .editorial-cover {
@@ -10912,9 +10916,9 @@ body[data-active-view="home"] .premium-final-cta .section-head {
   aspect-ratio: 16 / 9;
   min-height: 0;
   overflow: hidden;
-  border-radius: 24px;
   background: #050505;
-  margin-bottom: 24px;
+  margin-bottom: 0;
+  border-radius: 0;
 }
 
 .editorial-cover img {
@@ -10927,24 +10931,46 @@ body[data-active-view="home"] .premium-final-cta .section-head {
 
 .published-content.editorial-content {
   display: block;
-  max-width: 920px;
-  padding: 0 0 24px;
+  max-width: none;
+  padding: 22px 26px 26px;
+  background: #1f2328;
+}
+
+.editorial-content .eyebrow {
+  color: rgba(255, 255, 255, 0.56);
 }
 
 .editorial-content h3 {
-  margin: 8px 0 14px;
-  font-size: clamp(28px, 3vw, 48px);
-  line-height: 1.05;
+  margin: 6px 0 18px;
+  color: #f5f7fa;
+  font-size: clamp(32px, 3.2vw, 54px);
+  line-height: 1.04;
   letter-spacing: -0.04em;
+  font-weight: 600;
 }
 
-.editorial-content p:not(.eyebrow) {
+.editorial-body {
+  display: grid;
+  gap: 22px;
+}
+
+.editorial-body p {
+  margin: 0;
+  color: rgba(244, 246, 248, 0.9);
   font-size: 15px;
   line-height: 1.75;
 }
 
 .editorial-content .social-actions {
   margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.editorial-content .social-actions .btn {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f5f7fa;
 }
 
 #clientView .client-news-stack,
@@ -10969,12 +10995,16 @@ body[data-active-view="home"] .premium-final-cta .section-head {
 
 @media (max-width: 760px) {
   .editorial-cover {
-    margin-bottom: 18px;
+    aspect-ratio: 16 / 10;
   }
 
   .editorial-content h3 {
-    font-size: clamp(24px, 8vw, 34px);
+    font-size: clamp(26px, 8vw, 36px);
     line-height: 1.08;
+  }
+
+  .published-content.editorial-content {
+    padding: 18px 18px 22px;
   }
 }
 
