@@ -324,6 +324,64 @@ function founderProfileRecordsWithoutAthlete() {
     }));
 }
 
+async function ensureFounderAthleteRecordFromProfile(email) {
+  const normalized = String(email || "").toLowerCase();
+  if (!normalized) return null;
+
+  const existing = (state.data.athletes || []).find(item =>
+    String(item.email || item.contact || "").toLowerCase() === normalized
+  );
+
+  if (existing) return existing;
+
+  const profile = (state.data.profiles || []).find(item =>
+    String(item.email || "").toLowerCase() === normalized
+  );
+
+  if (!profile) return null;
+  if (profileVertical(profile) !== "founder") return null;
+
+  const record = {
+    profile_id: profile.id,
+    email: profile.email,
+    name: profile.name || profile.email.split("@")[0] || "Founder ROIS",
+    sport: "Founder ROIS",
+    category: "Por definir",
+    location: "Queretaro",
+    ranking: "",
+    stats: "Founder ROIS en construccion. Perfil emprendedor preparado para desarrollar propuesta de valor, narrativa comercial, traccion y oportunidades con empresas dentro de ROIS.",
+    annual: 0,
+    annual_fee_required: false,
+    monthly: 2500,
+    max_sponsors: 10,
+    scout_code: makeScoutCode(profile.name || "Founder ROIS", profile.email),
+    scout_active: false,
+    annual_fee_paid: false,
+    scout_validation_status: "pending",
+    scout_commission_status: "pending",
+    registration_terms_accepted: true,
+    terms_accepted: false,
+    status: "approved",
+    visual_status: "approved",
+    profile_type: "founder",
+    vertical: "founder"
+  };
+
+  try {
+    await api.insert("athletes", record);
+    state.data = await api.loadAll({ lightweight: false, admin: state.session?.role === "admin" });
+    return (state.data.athletes || []).find(item =>
+      String(item.email || item.contact || "").toLowerCase() === normalized
+    ) || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function ensureCriticalFounderRecords() {
+  await ensureFounderAthleteRecordFromProfile("saidr1521@outlook.es");
+}
+
 function adminFounderRecords() {
   const athleteFounders = (state.data?.athletes || []).filter(item => isFounderProfile(item));
   const profileFounders = founderProfileRecordsWithoutAthlete();
@@ -473,6 +531,7 @@ async function hydrateDashboardData(forceFull = false) {
     });
 
     state.data = normalizeLoadedData(data);
+    await ensureCriticalFounderRecords();
     state.dataSignature = runtimeDataSignature(state.data);
     writeDataCache(state.data);
 
