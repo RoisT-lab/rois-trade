@@ -1761,7 +1761,10 @@ function renderPublic() {
   const publicNewsSlot = document.getElementById("publicNews");
   if (publicNewsSlot) publicNewsSlot.innerHTML = publicNews.length ? `
     <div class="public-feature-grid">
-      ${publicNews.map(news => editorialNewsCard(news, { kicker: "Nota ROIS", preview: true })).join("")}
+      ${publicNews.map(news => editorialNewsCard(news, {
+        kicker: "Nota ROIS",
+        text: news.summary
+      })).join("")}
     </div>
   ` : `<div class="empty">Las noticias publicadas aparecer\u00e1n aqu\u00ed.</div>`;
 
@@ -1930,7 +1933,6 @@ function renderClient() {
   renderClientOverview();
   renderClientEvents();
   renderClientFeed();
-  renderClientNews();
   renderClientSponsors();
   renderClientMarketplace();
   renderClientFounders();
@@ -2038,9 +2040,6 @@ function clientAdvertisingOverviewMarkup() {
   const news = state.data.news
     .filter(item => item.status === "published" && visualIsPublic(item))
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const athletes = clientAthleteRecords();
-  const founders = clientFounderRecords();
-  const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
   const companyName = company?.name || state.session?.name || "Empresa ROIS";
   const interest = company?.interest || "Oportunidades premium";
   const description = company?.description || "Cuenta empresarial habilitada para revisar Centro VIP, athletes, founders, eventos privados y productos administrados por ROIS.";
@@ -2063,28 +2062,17 @@ function clientAdvertisingOverviewMarkup() {
         </div>
       </section>
 
-        <section class="client-priority-card client-news-priority full-width">
+        <section class="client-editorial-feed">
           <div class="section-minihead">
             <p class="eyebrow">Noticias ROIS</p>
             <h3>Actualizaciones publicadas por administracion.</h3>
             <p>Mensajes, aperturas de inventario, alianzas y oportunidades que requieren atencion empresarial.</p>
           </div>
-          ${news.length ? `<div class="client-news-stack">${news.slice(0, 4).map(clientNewsPreviewCard).join("")}</div>` : `<div class="empty slim">Las noticias publicadas por admin apareceran aqui.</div>`}
+          ${news.length ? `<div class="editorial-news-stack">${news.map(item => editorialNewsCard(item, {
+            kicker: "Nota ROIS",
+            text: item.summary
+          })).join("")}</div>` : `<div class="empty">Las noticias publicadas por admin apareceran aqui.</div>`}
         </section>
-
-      <section class="company-operations-card">
-        <div class="section-minihead">
-          <p class="eyebrow">Centro de operaciones</p>
-          <h3>Accesos principales para activar oportunidades.</h3>
-        </div>
-        <div class="company-action-grid">
-          ${clientOperationCard("Centro VIP", "Productos con imagen derivados de alianzas estrategicas.", "client-sponsors", "Ver productos")}
-          ${clientOperationCard("Mercado de fichajes", `${athletes.length} athletes listos para evaluar.`, "client-marketplace", "Revisar")}
-          ${clientOperationCard("Founders", `${founders.length} perfiles emprendedores para evaluar.`, "client-founders", "Explorar")}
-          ${clientOperationCard("Eventos", `${events.length} oportunidades privadas publicadas por ROIS.`, "client-events", "Calendario")}
-          ${clientOperationCard("Pagos", "Stripe, solicitudes y compromisos activos.", "client-payments", "Ver pagos")}
-        </div>
-      </section>
     </div>
   `;
 }
