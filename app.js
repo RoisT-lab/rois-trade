@@ -3088,11 +3088,43 @@ const fiscalConfig = {
   scoutCommissionMonthly: 500
 };
 
+const fixedExpenseConfig = [
+  {
+    id: "vehicle-rent",
+    name: "Renta vehiculo",
+    amount: 11600,
+    frequency: "monthly",
+    category: "Movilidad comercial",
+    priority: "alta",
+    status: "active"
+  },
+  {
+    id: "department-rent",
+    name: "Renta departamento",
+    amount: 12000,
+    frequency: "monthly",
+    category: "Vivienda / base operativa",
+    priority: "alta",
+    status: "active"
+  },
+  {
+    id: "veronica-payment",
+    name: "Pago Veronica",
+    amount: 5000,
+    frequency: "monthly",
+    category: "Obligacion financiera",
+    priority: "alta",
+    status: "active_until_december",
+    notes: "Pago mensual hasta diciembre. Despues vienen pagos fuertes por definir."
+  }
+];
+
 function renderAdminKpis() {
   const pendingUsers = state.data.profiles.filter(item => item.status === "pending").length + state.data.companies.filter(item => item.status === "pending").length;
-  const paid = state.data.payments.filter(item => item.status === "paid").reduce((sum, item) => sum + Number(item.amount), 0);
-  const pendingRevenue = state.data.payments.filter(item => item.status !== "paid").reduce((sum, item) => sum + Number(item.amount), 0);
-  const taxSummary = revenueTaxSummary(state.data.payments || []);
+  const paymentRecords = incomePayments(state.data.payments || []);
+  const paid = paymentRecords.filter(item => item.status === "paid").reduce((sum, item) => sum + Number(item.amount), 0);
+  const pendingRevenue = paymentRecords.filter(item => item.status !== "paid").reduce((sum, item) => sum + Number(item.amount), 0);
+  const taxSummary = revenueTaxSummary(paymentRecords);
   const athletes = adminAthleteRecords().length;
   const founders = adminFounderRecords().length;
   const companies = state.data.companies.length;
@@ -3118,6 +3150,18 @@ function paymentIvaAmount(payment) {
 
 function paymentTotalWithIva(payment) {
   return paymentBaseAmount(payment) + paymentIvaAmount(payment);
+}
+
+function isExpensePayment(payment) {
+  return payment.product_key === "manualExpense" || payment.product_key === "fixedExpense";
+}
+
+function incomePayments(payments = []) {
+  return payments.filter(payment => !isExpensePayment(payment));
+}
+
+function expensePayments(payments = []) {
+  return payments.filter(isExpensePayment);
 }
 
 function isMembershipPayment(payment) {
@@ -3150,8 +3194,24 @@ function estimatedDeductibleExpenses() {
   return 0;
 }
 
+function monthlyFixedExpenses() {
+  return fixedExpenseConfig
+    .filter(item => item.status !== "inactive")
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+}
+
+function manualMonthlyExpenses(payments = []) {
+  return expensePayments(payments)
+    .filter(payment => payment.status !== "deleted")
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+}
+
+function totalMonthlyOperatingExpenses(payments = []) {
+  return monthlyFixedExpenses() + manualMonthlyExpenses(payments);
+}
+
 function revenueTaxSummary(payments = []) {
-  const membershipPayments = payments.filter(isMembershipPayment);
+  const membershipPayments = incomePayments(payments).filter(isMembershipPayment);
   const membershipBaseRevenue = membershipPayments.reduce((sum, payment) => {
     return sum + paymentBaseAmount(payment);
   }, 0);
@@ -3181,6 +3241,30 @@ function revenueTaxSummary(payments = []) {
     estimatedIsr,
     estimatedNetIncome,
     totalTaxReserve
+  };
+}
+
+function netCashflowAfterExpenses(payments = []) {
+  const taxSummary = revenueTaxSummary(incomePayments(payments));
+  const expenses = totalMonthlyOperatingExpenses(payments);
+
+  return {
+    ...taxSummary,
+    fixedExpenses: monthlyFixedExpenses(),
+    manualExpenses: manualMonthlyExpenses(payments),
+    totalOperatingExpenses: expenses,
+    netAfterOperatingExpenses: taxSummary.estimatedNetIncome - expenses
+  };
+}
+
+function breakEvenMemberships(payments = []) {
+  const averageNetWithScout = 1400;
+  const averageNetWithoutScout = 1750;
+  const expenses = totalMonthlyOperatingExpenses(payments);
+
+  return {
+    conservative: Math.ceil(expenses / averageNetWithScout),
+    noScout: Math.ceil(expenses / averageNetWithoutScout)
   };
 }
 
@@ -3217,6 +3301,35 @@ function revenueStatusLabel(payment) {
   if (payment.status === "payment_started") return "Checkout iniciado";
   if (payment.status === "review") return "Revision";
   return payment.status || "Pendiente";
+}
+
+async function submitManualExpense(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+
+  const record = {
+    concept: form.concept.value.trim(),
+    amount: Number(form.amount.value || 0),
+    company: form.company.value.trim(),
+    status: form.status.value,
+    product_key: "manualExpense"
+  };
+
+  const detailText = [
+    `Categoria: ${form.category.value}`,
+    `Notas: ${form.notes.value || "Sin notas"}`
+  ].join(" | ");
+
+  try {
+    await api.insert("payments", { ...record, details: detailText });
+  } catch (error) {
+    await api.insert("payments", record);
+  }
+
+  notify("Finanzas", "Egreso registrado", "El nuevo egreso quedo agregado al control financiero.");
+  form.reset();
+  state.data = await api.loadAll({ lightweight: false, admin: true });
+  renderAdmin();
 }
 
 function normalizedAccountEmail(value = "") {
@@ -3692,17 +3805,21 @@ function renderAdminPayments() {
 function renderAdminRevenue() {
   const payments = [...(state.data.payments || [])]
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const taxSummary = revenueTaxSummary(payments);
+  const income = incomePayments(payments);
+  const expenses = expensePayments(payments);
+  const taxSummary = revenueTaxSummary(income);
+  const cashflow = netCashflowAfterExpenses(payments);
+  const breakEven = breakEvenMemberships(payments);
 
-  const totalPaid = payments
+  const totalPaid = income
     .filter(payment => payment.status === "paid")
     .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
 
-  const totalPending = payments
+  const totalPending = income
     .filter(payment => payment.status !== "paid")
     .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
 
-  const byVertical = payments.reduce((acc, payment) => {
+  const byVertical = income.reduce((acc, payment) => {
     const vertical = revenueVertical(payment);
     acc[vertical] = acc[vertical] || { count: 0, pending: 0, paid: 0 };
     acc[vertical].count += 1;
@@ -3723,7 +3840,7 @@ function renderAdminRevenue() {
     </article>
   `).join("");
 
-  const rows = payments.map(payment => [
+  const rows = income.map(payment => [
     readableDate(payment.created_at),
     badge(revenueVertical(payment)),
     escapeHtml(payment.company || "Sin nombre"),
@@ -3747,12 +3864,30 @@ function renderAdminRevenue() {
     ["Reserva fiscal total", money(taxSummary.totalTaxReserve), "IVA + ISR estimado"]
   ];
 
+  const fixedExpenseRows = fixedExpenseConfig.map(item => [
+    item.name,
+    money(item.amount),
+    item.frequency,
+    item.category,
+    item.priority,
+    item.notes || "Activo"
+  ]);
+
+  const manualExpenseRows = expenses.map(payment => [
+    readableDate(payment.created_at),
+    escapeHtml(payment.concept || "Egreso"),
+    escapeHtml(payment.company || "Sin proveedor"),
+    money(payment.amount),
+    badge(payment.status || "pending"),
+    payment.status === "paid" ? "Pagado" : button("Marcar pagado", () => markPaid(payment.id))
+  ]);
+
   panel("admin-revenue", "Ingresos", "Trazabilidad financiera por vertical de ROIS", `
     <div class="panel-body">
       <div class="scout-metrics">
         <div><span>Pagado</span><strong>$${totalPaid.toLocaleString("es-MX")}</strong></div>
         <div><span>Pendiente</span><strong>$${totalPending.toLocaleString("es-MX")}</strong></div>
-        <div><span>Registros</span><strong>${payments.length}</strong></div>
+        <div><span>Registros</span><strong>${income.length}</strong></div>
         <div><span>Verticales</span><strong>${Object.keys(byVertical).length}</strong></div>
       </div>
     </div>
@@ -3777,8 +3912,53 @@ function renderAdminRevenue() {
       </div>
     </div>
     ${table(["Concepto", "Monto", "Criterio"], taxRows)}
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Egresos fijos y flujo neto</p>
+        <h3>Control de obligaciones operativas mensuales.</h3>
+        <p>Incluye vehiculo, departamento, pago a Veronica y egresos manuales registrados.</p>
+      </div>
+      <div class="scout-metrics">
+        <div><span>Egresos fijos</span><strong>${money(cashflow.fixedExpenses)}</strong></div>
+        <div><span>Egresos manuales</span><strong>${money(cashflow.manualExpenses)}</strong></div>
+        <div><span>Total egresos</span><strong>${money(cashflow.totalOperatingExpenses)}</strong></div>
+        <div><span>Flujo libre</span><strong>${money(cashflow.netAfterOperatingExpenses)}</strong></div>
+        <div><span>Break-even conservador</span><strong>${breakEven.conservative} membresias</strong></div>
+        <div><span>Break-even sin Scout</span><strong>${breakEven.noScout} membresias</strong></div>
+      </div>
+    </div>
+    ${table(["Egreso", "Monto mensual", "Frecuencia", "Categoria", "Prioridad", "Notas"], fixedExpenseRows)}
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Registrar nuevo egreso</p>
+        <h3>Pagos operativos fuera de las membresias mensuales.</h3>
+      </div>
+      <form id="manualExpenseForm" class="form-grid">
+        <label>Concepto<input name="concept" required placeholder="Gasolina, contador, pago proveedor..."></label>
+        <label>Beneficiario / proveedor<input name="company" required placeholder="Nombre de persona o proveedor"></label>
+        <label>Monto<input name="amount" type="number" min="0" step="0.01" required></label>
+        <label>Categoria<select name="category">
+          <option>Movilidad</option>
+          <option>Vivienda / base operativa</option>
+          <option>Software</option>
+          <option>Fiscal / contador</option>
+          <option>Marketing</option>
+          <option>Obligacion financiera</option>
+          <option>Otro</option>
+        </select></label>
+        <label>Estado<select name="status">
+          <option value="pending">Pendiente</option>
+          <option value="paid">Pagado</option>
+        </select></label>
+        <label style="grid-column:1/-1">Notas<textarea name="notes" placeholder="Periodicidad, vencimiento o contexto del pago."></textarea></label>
+        <button class="btn primary" type="submit">Registrar egreso</button>
+      </form>
+    </div>
+    ${manualExpenseRows.length ? table(["Fecha", "Concepto", "Beneficiario", "Monto", "Estado", "Accion"], manualExpenseRows) : `<div class="empty">Aun no hay egresos manuales registrados.</div>`}
     ${rows.length ? table(["Fecha", "Vertical", "Cuenta", "Concepto", "Monto", "Product Key", "Estado", "Dashboard", "Accion"], rows) : `<div class="empty">Aun no hay pagos registrados.</div>`}
   `);
+  const manualExpenseForm = document.getElementById("manualExpenseForm");
+  if (manualExpenseForm) manualExpenseForm.addEventListener("submit", submitManualExpense);
 }
 
 function renderAdminUploads() {
