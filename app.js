@@ -1761,13 +1761,7 @@ function renderPublic() {
   const publicNewsSlot = document.getElementById("publicNews");
   if (publicNewsSlot) publicNewsSlot.innerHTML = publicNews.length ? `
     <div class="public-feature-grid">
-      ${publicNews.map(news => publishedCard({
-        item: news,
-        kicker: "Nota ROIS",
-        title: news.title,
-        text: news.summary,
-        action: `<div class="social-actions public-social"><button class="btn" type="button" data-open-login>Me gusta</button><button class="btn" type="button" data-open-login>Comentar</button><button class="btn" type="button" data-open-login>Compartir</button></div>`
-      })).join("")}
+      ${publicNews.map(news => editorialNewsCard(news, { kicker: "Nota ROIS", preview: true })).join("")}
     </div>
   ` : `<div class="empty">Las noticias publicadas aparecer\u00e1n aqu\u00ed.</div>`;
 
@@ -2096,13 +2090,21 @@ function clientAdvertisingOverviewMarkup() {
 }
 
 function clientNewsPreviewCard(news) {
-  return publishedCard({
-    item: news,
+  return editorialNewsCard(news, {
     kicker: "Nota ROIS",
-    title: news.title,
     text: news.summary || "Actualizacion disponible para empresas registradas.",
-    action: newsInteractionBar(news)
+    preview: true
   });
+}
+
+function formatEditorialBody(text = "") {
+  const paragraphs = String(text || "Informacion disponible para miembros aprobados.")
+    .split(/\n\s*\n/)
+    .map(item => item.trim())
+    .filter(Boolean);
+  return paragraphs.length
+    ? paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join("")
+    : `<p>Informacion disponible para miembros aprobados.</p>`;
 }
 
 function clientExperienceOverviewMarkup() {
@@ -2413,12 +2415,9 @@ function renderClientNews() {
   panel("client-news", "Noticias", "Publicaciones privadas para detectar oportunidades", news.length ? `
     <div class="panel-body">
       <div class="opportunity-grid">
-        ${news.map(item => publishedCard({
-          item,
+        ${news.map(item => editorialNewsCard(item, {
           kicker: "Publicaci\u00f3n ROIS",
-          title: item.title,
-          text: item.summary,
-          action: newsInteractionBar(item)
+          text: item.summary
         })).join("")}
       </div>
     </div>
@@ -5208,17 +5207,7 @@ function newsInteractionCount(news, reaction) {
 }
 
 function newsInteractionBar(news) {
-  const reactions = [
-    ["Like", "Me gusta"],
-    ["Inter\u00e9s", "Me interesa"],
-    ["Compartir", "Compartir"],
-    ["Comentario", "Comentar"]
-  ];
-  return `
-    <div class="social-actions">
-      ${reactions.map(([reaction, label]) => button(`${label} ${newsInteractionCount(news, reaction) || ""}`.trim(), () => interactWithNews(news, reaction))).join("")}
-    </div>
-  `;
+  return "";
 }
 
 async function interactWithNews(news, reaction) {
@@ -5326,8 +5315,42 @@ function publishedCard({ item, kicker, title, text, action }) {
       <div class="published-content editorial-content">
         <p class="eyebrow">${escapeHtml(kicker || "ROIS")}</p>
         <h3>${escapeHtml(title || "Actualizacion ROIS")}</h3>
-        <p>${escapeHtml(text || "Informacion disponible para miembros aprobados.")}</p>
+        <div class="editorial-body">
+          ${formatEditorialBody(text)}
+        </div>
         ${action || ""}
+      </div>
+    </article>
+  `;
+}
+
+function editorialPreviewText(text = "") {
+  const paragraphs = String(text || "")
+    .split(/\n\s*\n/)
+    .map(item => item.trim())
+    .filter(Boolean);
+  if (!paragraphs.length) return "Informacion disponible para miembros aprobados.";
+  return paragraphs.slice(0, 2).join("\n\n");
+}
+
+function editorialNewsCard(item, options = {}) {
+  const image = item.image_url || "./assets/rois-logo.png";
+  const kicker = options.kicker || "ROIS";
+  const title = options.title || item.title || "Actualizacion ROIS";
+  const rawText = options.text || item.summary || "Informacion disponible para miembros aprobados.";
+  const bodyText = options.preview ? editorialPreviewText(rawText) : rawText;
+
+  return `
+    <article class="published-card editorial-card editorial-news-card">
+      <div class="published-cover editorial-cover">
+        <img src="${image}" alt="${escapeAttr(title || "ROIS")}">
+      </div>
+      <div class="published-content editorial-content">
+        <p class="eyebrow">${escapeHtml(kicker)}</p>
+        <h3>${escapeHtml(title)}</h3>
+        <div class="editorial-body">
+          ${formatEditorialBody(bodyText)}
+        </div>
       </div>
     </article>
   `;
