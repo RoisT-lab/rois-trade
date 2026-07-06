@@ -11151,6 +11151,110 @@ body[data-active-view="home"] .premium-final-cta .section-head {
   }
 }
 
+/* ROIS editorial width lock */
+.editorial-news-card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.editorial-news-cover,
+.editorial-news-body,
+.editorial-news-actions {
+  width: min(80%, 980px);
+  max-width: min(80%, 980px);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.editorial-news-cover img,
+.editorial-news-cover picture,
+.editorial-news-cover canvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 24px;
+}
+
+.editorial-news-body {
+  margin-top: 18px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.editorial-news-body h2 {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 14px;
+  font-size: clamp(28px, 3vw, 48px);
+  line-height: 1.06;
+  letter-spacing: -0.045em;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.editorial-news-body p {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 12px;
+  font-size: clamp(15px, 1.05vw, 18px);
+  line-height: 1.72;
+  color: var(--muted);
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.editorial-news-body .eyebrow,
+.editorial-news-body .news-kicker,
+.editorial-news-body .meta {
+  width: 100%;
+  max-width: 100%;
+}
+
+.editorial-news-actions {
+  margin-top: 20px;
+}
+
+.editorial-news-actions,
+.editorial-news-body .social-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.client-editorial-feed,
+.editorial-news-stack {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 760px) {
+  .editorial-news-cover,
+  .editorial-news-body,
+  .editorial-news-actions {
+    width: calc(100% - 32px);
+    max-width: calc(100% - 32px);
+  }
+
+  .editorial-news-body h2 {
+    font-size: clamp(26px, 8vw, 38px);
+    line-height: 1.08;
+  }
+
+  .editorial-news-body p {
+    font-size: 15px;
+    line-height: 1.68;
+  }
+}
+
   .athlete-social-tabs button {
     min-height: 48px;
     font-size: 10px;
