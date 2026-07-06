@@ -2096,17 +2096,13 @@ function clientAdvertisingOverviewMarkup() {
 }
 
 function clientNewsPreviewCard(news) {
-  return `
-    <article class="client-news-preview">
-      ${news.image_url ? `<img src="${news.image_url}" alt="${escapeAttr(news.title)}">` : ""}
-      <div>
-        <p class="eyebrow">Nota ROIS</p>
-        <h4>${escapeHtml(news.title)}</h4>
-        <p>${escapeHtml(news.summary || "Actualizacion disponible para empresas registradas.")}</p>
-        ${newsInteractionBar(news)}
-      </div>
-    </article>
-  `;
+  return publishedCard({
+    item: news,
+    kicker: "Nota ROIS",
+    title: news.title,
+    text: news.summary || "Actualizacion disponible para empresas registradas.",
+    action: newsInteractionBar(news)
+  });
 }
 
 function clientExperienceOverviewMarkup() {
@@ -5321,16 +5317,16 @@ async function submitAthleteSponsorForm(event, athlete) {
 }
 
 function publishedCard({ item, kicker, title, text, action }) {
-  const image = item.image_url || "./assets/rois-isotipo-cropped.png";
+  const image = item.image_url || "./assets/rois-logo.png";
   return `
-    <article class="published-card">
-      <div class="published-media">
-        <img src="${image}" alt="${title}">
+    <article class="published-card editorial-card">
+      <div class="published-cover editorial-cover">
+        <img src="${image}" alt="${escapeAttr(title || "ROIS")}">
       </div>
-      <div class="published-content">
-        <p class="eyebrow">${kicker || "ROIS"}</p>
-        <h3>${title}</h3>
-        <p>${text || "Informaci\u00f3n disponible para miembros aprobados."}</p>
+      <div class="published-content editorial-content">
+        <p class="eyebrow">${escapeHtml(kicker || "ROIS")}</p>
+        <h3>${escapeHtml(title || "Actualizacion ROIS")}</h3>
+        <p>${escapeHtml(text || "Informacion disponible para miembros aprobados.")}</p>
         ${action || ""}
       </div>
     </article>
