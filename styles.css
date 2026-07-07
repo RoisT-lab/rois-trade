@@ -12720,3 +12720,159 @@ body[data-active-view="home"] .premium-home-footer-actions {
   gap: 0 !important;
   padding: 24px 0 !important;
 }
+
+/* ROIS client dashboard laptop balance lock */
+#clientView.dashboard.active {
+  width: min(1480px, calc(100vw - 40px)) !important;
+  grid-template-columns: 236px minmax(0, 1fr) !important;
+}
+
+#clientView > .sidebar {
+  width: 236px;
+  min-width: 236px;
+}
+
+#clientView .sidebar {
+  padding: 34px 18px 40px !important;
+}
+
+#clientView .side-nav {
+  gap: 10px;
+}
+
+#clientView .side-nav button {
+  min-height: 40px;
+  padding: 10px 14px;
+  font-size: 11px;
+}
+
+#clientView > .workspace {
+  width: 100%;
+  max-width: 1160px;
+}
+
+#clientView .workspace {
+  padding: 30px clamp(24px, 2.6vw, 38px) 48px !important;
+}
+
+#clientView .client-ad-home {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  gap: 26px !important;
+}
+
+#clientView .client-company-card {
+  width: min(960px, 100%);
+  margin: 0 auto;
+}
+
+#clientView .client-editorial-feed {
+  width: min(900px, 100%) !important;
+  margin: 0 auto !important;
+  padding: 22px 22px 28px !important;
+}
+
+#clientView .client-editorial-feed .section-minihead {
+  width: min(760px, 100%);
+  margin: 0 auto 18px;
+}
+
+#clientView .editorial-news-stack {
+  gap: 24px !important;
+}
+
+#clientView .editorial-news-card {
+  width: min(840px, 100%) !important;
+  margin: 0 auto !important;
+  padding-bottom: 20px !important;
+}
+
+#clientView .editorial-news-cover {
+  width: min(780px, 100%) !important;
+  max-width: min(780px, 100%) !important;
+  margin: 0 auto 18px !important;
+  aspect-ratio: 16 / 9;
+  max-height: 440px;
+}
+
+#clientView .editorial-news-body {
+  width: min(780px, 100%) !important;
+  max-width: min(780px, 100%) !important;
+  margin: 0 auto !important;
+}
+
+#clientView .editorial-news-body h2 {
+  max-width: 14ch !important;
+  font-size: clamp(26px, 2.5vw, 40px) !important;
+  line-height: 1.08 !important;
+  margin: 0 0 12px !important;
+}
+
+#clientView .editorial-news-body .editorial-body,
+#clientView .editorial-news-body > p:not(.eyebrow) {
+  max-width: 64ch !important;
+}
+
+#clientView .editorial-news-body p {
+  font-size: 14px !important;
+  line-height: 1.7 !important;
+}
+
+@media (max-width: 1240px) {
+  #clientView.dashboard.active {
+    width: min(1280px, calc(100vw - 28px)) !important;
+    grid-template-columns: 214px minmax(0, 1fr) !important;
+  }
+
+  #clientView > .sidebar {
+    width: 214px;
+    min-width: 214px;
+  }
+
+  #clientView .client-ad-home,
+  #clientView .client-company-card,
+  #clientView .client-editorial-feed,
+  #clientView .editorial-news-card,
+  #clientView .editorial-news-cover,
+  #clientView .editorial-news-body {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #clientView.dashboard.active {
+    width: 100% !important;
+  }
+
+  #clientView > .sidebar {
+    width: auto;
+    min-width: 0;
+  }
+
+  #clientView .workspace {
+    padding: 0 14px 88px !important;
+  }
+
+  #clientView .client-editorial-feed {
+    padding: 18px 16px 24px !important;
+  }
+
+  #clientView .client-editorial-feed .section-minihead,
+  #clientView .editorial-news-card,
+  #clientView .editorial-news-cover,
+  #clientView .editorial-news-body {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  #clientView .editorial-news-body h2 {
+    max-width: 100% !important;
+    font-size: clamp(26px, 8vw, 34px) !important;
+  }
+
+  #clientView .editorial-news-body .editorial-body,
+  #clientView .editorial-news-body > p:not(.eyebrow) {
+    max-width: 100% !important;
+  }
+}
