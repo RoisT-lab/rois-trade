@@ -1741,7 +1741,7 @@ function eventSuccessFeeSelectMarkup() {
       </select>
     </label>
     <p class="hint" style="grid-column:1/-1">
-      Ademas del fee fijo de publicacion de $25,000 MXN IVA incluido, el evento acepta un success fee ROIS del 5% al 20% sobre sponsors cerrados a traves de la plataforma o gestion comercial de ROIS. El porcentaje depende del nivel de involucramiento seleccionado.
+      ROIS puede participar bajo success fee del 5% al 20% sobre sponsors cerrados a traves de la plataforma o gestion comercial de ROIS. El porcentaje depende del nivel de involucramiento seleccionado.
     </p>
   `;
 }
@@ -2675,12 +2675,12 @@ function renderClientRegister() {
         ${eventSuccessFeeSelectMarkup()}
         <div class="registration-note" style="grid-column:1/-1">
           <p class="eyebrow">Modelo de success fee ROIS</p>
-          <p>Ademas del fee fijo de publicacion de $25,000 MXN IVA incluido, ROIS podra cobrar un success fee del 5% al 20% sobre sponsors cerrados a traves de la plataforma o gestion comercial de ROIS. El porcentaje depende del nivel de involucramiento seleccionado.</p>
+          <p>Publicar un evento en ROIS no tiene costo inicial. Si ROIS participa en la atraccion, presentacion, desarrollo comercial, negociacion o cierre, podra aplicar un success fee del 5% al 20% sobre sponsors, alianzas o ingresos comerciales generados mediante nuestra intervencion.</p>
           <p class="hint">El success fee aplica unicamente sobre sponsors, patrocinios o ingresos comerciales cerrados mediante presentacion, gestion o intervencion comercial de ROIS. Las condiciones finales podran documentarse en contrato o acuerdo comercial especifico.</p>
         </div>
         <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <p class="hint" style="grid-column:1/-1">Publicar un evento en ROIS requiere un fee general de $25,000 MXN IVA incluido por evento. El evento queda sujeto a revision ROIS. El fee cubre publicacion, revision editorial y activacion comercial dentro de la plataforma. No garantiza patrocinio.</p>
-        <button class="btn primary" type="submit">Enviar evento y pagar fee ROIS</button>
+        <p class="hint" style="grid-column:1/-1">Publicar un evento en ROIS no tiene costo inicial. El evento queda sujeto a revision interna. ROIS podra participar bajo success fee sobre patrocinios, sponsors, alianzas o ingresos comerciales generados mediante la plataforma o gestion comercial de ROIS.</p>
+        <button class="btn primary" type="submit">Enviar evento a revision ROIS</button>
       </form>
     </div>
   `);
@@ -2700,9 +2700,7 @@ function renderClientRegister() {
       success_fee_level: successFeeLevel,
       image_url
     });
-    await registerEventPublicationPayment(eventName, state.session?.name || currentCompany()?.name || "Empresa ROIS", successFeeLevel);
-    openStripeCheckout(eventRegistrationFee.productKey, eventRegistrationFee.title);
-    notify("Eventos", "Evento registrado", "Tu evento quedo pendiente de revision. Abrimos el checkout para cubrir el fee fijo de publicacion ROIS por $25,000 MXN IVA incluido. El modelo de success fee seleccionado sera aplicado sobre sponsors cerrados mediante ROIS.");
+    notify("Eventos", "Evento registrado", "Tu evento quedo enviado a revision ROIS. La publicacion no tiene costo inicial. ROIS trabaja bajo success fee sobre sponsors, alianzas o ingresos comerciales generados mediante nuestra intervencion.");
     renderClient();
   });
 }
@@ -2715,9 +2713,9 @@ function renderClientPayments() {
     badge(payment.status),
     payment.status === "paid" ? "Pagado" : button("Pagar con Stripe", () => payClientPayment(payment.id))
   ]);
-  panel("client-payments", "Pagos", "Stripe y compromisos activos", rows.length ? table(["Concepto", "Monto", "Estado", "Acci\u00f3n"], rows) : `
+  panel("client-payments", "Pagos", "Operaciones y compromisos comerciales ROIS", rows.length ? table(["Concepto", "Monto", "Estado", "Acci\u00f3n"], rows) : `
     <div class="panel-body">
-      <div class="empty">No hay pagos registrados todav\u00eda. Las solicitudes de patrocinio generar\u00e1n pagos pendientes para Stripe.</div>
+      <div class="empty">No hay pagos registrados todav\u00eda. Aqui apareceran operaciones comerciales especificas que requieran seguimiento.</div>
     </div>
   `);
 }
@@ -5967,12 +5965,12 @@ function registrationFields(type) {
     ${eventSuccessFeeSelectMarkup()}
     <div class="registration-note" style="grid-column:1/-1">
       <p class="eyebrow">Modelo de success fee ROIS</p>
-      <p>Ademas del fee fijo de publicacion de $25,000 MXN IVA incluido, ROIS podra cobrar un success fee del 5% al 20% sobre sponsors cerrados a traves de la plataforma o gestion comercial de ROIS. El porcentaje depende del nivel de involucramiento seleccionado.</p>
+      <p>Publicar un evento en ROIS no tiene costo inicial. Si ROIS participa en la atraccion, presentacion, desarrollo comercial, negociacion o cierre, podra aplicar un success fee del 5% al 20% sobre sponsors, alianzas o ingresos comerciales generados mediante nuestra intervencion.</p>
       <p class="hint">El success fee aplica unicamente sobre sponsors, patrocinios o ingresos comerciales cerrados mediante presentacion, gestion o intervencion comercial de ROIS. Las condiciones finales podran documentarse en contrato o acuerdo comercial especifico.</p>
     </div>
     <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-    <p class="hint">Publicar un evento en ROIS requiere un fee general de $25,000 MXN IVA incluido por evento. El evento queda sujeto a revision antes de mostrarse a empresas. El fee cubre publicacion, revision editorial y activacion comercial dentro de la plataforma. No garantiza patrocinio.</p>
-    <button class="btn primary full" type="submit">Enviar evento y pagar fee ROIS</button>
+    <p class="hint">Publicar un evento en ROIS no tiene costo inicial. El evento queda sujeto a revision interna. ROIS podra participar bajo success fee sobre patrocinios, sponsors, alianzas o ingresos comerciales generados mediante la plataforma o gestion comercial de ROIS.</p>
+    <button class="btn primary full" type="submit">Enviar evento a revision ROIS</button>
   `;
 }
 
@@ -6166,15 +6164,10 @@ async function submitRegistration(event) {
         state.session = signup.session;
         saveSession(state.session);
         await api.insert("terms_acceptances", { user_email: form.email.value, user_role: "client", version: "company-sponsorship-v1", status: "accepted" });
-        const membershipPayment = await registerMembershipPayment("company", {
-          company: form.name.value,
-          email: form.email.value
-        });
         renderSession();
         renderClient();
         showView("client");
-        if (membershipPayment) openStripeCheckout(membershipPayment.productKey, membershipPayment.title);
-        notify("Cuenta creada", "Bienvenido a ROIS", "Tu dashboard de cliente ya est\u00e1 activo. Completa el pago mensual en Stripe para activar tu membres\u00eda.");
+        notify("Cuenta creada", "Bienvenido a ROIS", "Tu cuenta empresarial ROIS esta activa. Ya puedes explorar el ecosistema, registrar eventos y presentar oportunidades para revision.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }
@@ -6321,26 +6314,9 @@ async function submitRegistration(event) {
       } catch (error) {
         await api.insert("events", eventRecord);
       }
-
-      try {
-        await api.insert("payments", {
-          concept: `${eventRegistrationFee.concept} - ${eventName}`,
-          amount: eventRegistrationFee.amount,
-          company: state.session?.name || "Empresa ROIS",
-          status: "pending",
-          product_key: eventRegistrationFee.productKey
-        });
-      } catch (error) {
-        // No bloquear checkout si el log interno falla.
-      }
-
-      paymentAction = [eventRegistrationFee.productKey, eventRegistrationFee.title];
     }
     closeModals();
-    notify("Evento registrado", "Fee de publicacion ROIS", "Tu evento quedo pendiente de revision. Abrimos el checkout para cubrir el fee fijo de publicacion ROIS por $25,000 MXN IVA incluido. El modelo de success fee seleccionado aplicara sobre sponsors cerrados mediante ROIS.");
-    if (paymentAction) {
-      openStripeCheckout(paymentAction[0], paymentAction[1]);
-    }
+    notify("Evento registrado", "Revision ROIS", "Tu evento quedo enviado a revision ROIS. La publicacion no tiene costo inicial. ROIS trabaja bajo success fee sobre sponsors, alianzas o ingresos comerciales generados mediante nuestra intervencion.");
     renderAdmin();
     renderPublic();
   } catch (error) {
