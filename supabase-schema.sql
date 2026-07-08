@@ -4,7 +4,7 @@
 create table if not exists profiles (
   id uuid primary key,
   email text unique not null,
-  role text not null check (role in ('admin', 'client', 'athlete')),
+  role text not null check (role in ('admin', 'client', 'athlete', 'founder')),
   name text not null,
   status text not null default 'pending',
   must_change_password boolean not null default false,
@@ -12,7 +12,7 @@ create table if not exists profiles (
 );
 
 alter table profiles drop constraint if exists profiles_role_check;
-alter table profiles add constraint profiles_role_check check (role in ('admin', 'client', 'athlete'));
+alter table profiles add constraint profiles_role_check check (role in ('admin', 'client', 'athlete', 'founder'));
 
 create table if not exists companies (
   id uuid primary key default gen_random_uuid(),
@@ -55,6 +55,26 @@ create table if not exists athletes (
   scout_commission_status text not null default 'pending',
   status text not null default 'pending',
   created_at timestamptz not null default now()
+);
+
+create table if not exists founders (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid,
+  email text unique not null,
+  name text not null,
+  venture_name text,
+  industry text,
+  stage text,
+  city text,
+  stats text,
+  monthly numeric default 2500,
+  max_sponsors numeric default 10,
+  scout_code text,
+  scout_active boolean default false,
+  status text default 'approved',
+  visual_status text default 'approved',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
 create table if not exists events (

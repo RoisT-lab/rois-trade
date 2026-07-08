@@ -1,7 +1,7 @@
 const config = window.ROIS_CONFIG || {};
 const roisBuild = "20260630-entrepreneur-speed-v77";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
-const athleteAnnualExemptEmails = ["saidr1521@gmail.com"];
+const athleteAnnualExemptEmails = [];
 const athleteAnnualFeeAmount = 2500;
 const scoutCommissionAmount = 500;
 const demoMode = config.demoMode !== false || !config.supabaseUrl || !config.supabaseAnonKey;
@@ -29,6 +29,7 @@ const seed = {
   ] : [],
   companies: [],
   athletes: [],
+  founders: [],
   events: [],
   requests: [],
   sponsorships: [],
@@ -133,6 +134,7 @@ function withCachedLoadAll(sourceApi) {
 }
 
 function normalizedRole(email, role) {
+  if (role === "founder") return "founder";
   if (role === "athlete") return "athlete";
   if (role !== "admin") return "client";
   if (!demoMode) return "admin";
@@ -140,7 +142,7 @@ function normalizedRole(email, role) {
 }
 
 function dashboardViewForRole(role) {
-  return role === "admin" ? "admin" : role === "athlete" ? "athlete" : "client";
+  return role === "admin" ? "admin" : role === "athlete" || role === "founder" ? "athlete" : "client";
 }
 
 function readSession() {
@@ -208,10 +210,58 @@ function currentCompany() {
 }
 
 function sessionLogoPath() {
-  return currentCompany()?.logo_url || currentAthlete()?.image_url || "./assets/rois-isotipo-cropped.png";
+  return currentCompany()?.logo_url || currentFounder()?.image_url || currentAthlete()?.image_url || "./assets/rois-isotipo-cropped.png";
+}
+
+function currentFounder() {
+  if (!state.session || !state.data?.founders) return null;
+  const email = String(state.session.email || "").toLowerCase();
+  const sessionId = state.session.id;
+  const founder = state.data.founders.find(item => String(item.email || "").toLowerCase() === email)
+    || state.data.founders.find(item => item.profile_id && item.profile_id === sessionId)
+    || null;
+  if (founder) return { ...founder, role: "founder" };
+  if (state.session.role !== "founder") return null;
+  return {
+    id: sessionId || email || "founder-session",
+    profile_id: sessionId,
+    email: state.session.email,
+    name: state.session.name || email.split("@")[0] || "Founder ROIS",
+    venture_name: "",
+    industry: "Founder ROIS",
+    stage: "Por definir",
+    city: "Por definir",
+    stats: "Completa tu perfil para activar tu ficha founder dentro de ROIS.",
+    monthly: 2500,
+    max_sponsors: 10,
+    status: "approved",
+    visual_status: "approved",
+    scout_active: false,
+    role: "founder",
+    is_virtual: true
+  };
+}
+
+function founderAsAthleteProfile(founder) {
+  if (!founder) return null;
+  return {
+    ...founder,
+    role: "founder",
+    sport: founder.industry || founder.sport || "Founder ROIS",
+    category: founder.stage || founder.category || "Por definir",
+    location: founder.city || founder.location || "Por definir",
+    ranking: founder.ranking || "",
+    contact: founder.email,
+    terms_accepted: founder.terms_accepted ?? false,
+    annual_fee_required: false,
+    annual_fee_paid: true
+  };
 }
 
 function currentAthlete() {
+  if (state.session?.role === "founder") {
+    return founderAsAthleteProfile(currentFounder());
+  }
   if (!state.session || !state.data?.athletes) return null;
   const email = String(state.session.email || "").toLowerCase();
   const sessionId = state.session.id;
@@ -290,100 +340,15 @@ function adminAthleteRecords() {
 }
 
 function founderProfileRecordsWithoutAthlete() {
-  const athletes = state.data?.athletes || [];
-  const profiles = state.data?.profiles || [];
-  const athleteEmails = new Set(
-    athletes
-      .map(item => String(item.email || item.contact || "").toLowerCase())
-      .filter(Boolean)
-  );
-  return profiles
-    .filter(profile => {
-      const email = String(profile.email || "").toLowerCase();
-      if (!email || athleteEmails.has(email)) return false;
-      return profileVertical(profile) === "founder";
-    })
-    .map(profile => ({
-      id: `profile-founder-${profile.id || profile.email}`,
-      profile_id: profile.id,
-      email: profile.email,
-      contact: profile.email,
-      name: profile.name || profile.email?.split("@")[0] || "Founder ROIS",
-      sport: profile.industry || profile.vertical || "Founder ROIS",
-      category: profile.stage || "Por definir",
-      location: profile.location || "Por definir",
-      ranking: "",
-      stats: "Cuenta founder registrada en profiles. Falta completar ficha emprendedora en ROIS.",
-      monthly: 2500,
-      max_sponsors: 0,
-      status: profile.status || "approved",
-      visual_status: "profile_only",
-      profile_type: "founder",
-      is_virtual_founder_profile: true,
-      created_at: profile.created_at
-    }));
-}
-
-async function ensureFounderAthleteRecordFromProfile(email) {
-  const normalized = String(email || "").toLowerCase();
-  if (!normalized) return null;
-
-  const existing = (state.data.athletes || []).find(item =>
-    String(item.email || item.contact || "").toLowerCase() === normalized
-  );
-
-  if (existing) return existing;
-
-  const profile = (state.data.profiles || []).find(item =>
-    String(item.email || "").toLowerCase() === normalized
-  );
-
-  if (!profile) return null;
-  if (profileVertical(profile) !== "founder") return null;
-
-  const record = {
-    profile_id: profile.id,
-    email: profile.email,
-    name: profile.name || profile.email.split("@")[0] || "Founder ROIS",
-    sport: "Founder ROIS",
-    category: "Por definir",
-    location: "Queretaro",
-    ranking: "",
-    stats: "Founder ROIS en construccion. Perfil emprendedor preparado para desarrollar propuesta de valor, narrativa comercial, traccion y oportunidades con empresas dentro de ROIS.",
-    annual: 0,
-    annual_fee_required: false,
-    monthly: 2500,
-    max_sponsors: 10,
-    scout_code: makeScoutCode(profile.name || "Founder ROIS", profile.email),
-    scout_active: false,
-    annual_fee_paid: false,
-    scout_validation_status: "pending",
-    scout_commission_status: "pending",
-    registration_terms_accepted: true,
-    terms_accepted: false,
-    status: "approved",
-    visual_status: "approved"
-  };
-
-  try {
-    await api.insert("athletes", record);
-    state.data = await api.loadAll({ lightweight: false, admin: state.session?.role === "admin" });
-    return (state.data.athletes || []).find(item =>
-      String(item.email || item.contact || "").toLowerCase() === normalized
-    ) || null;
-  } catch (error) {
-    return null;
-  }
+  return [];
 }
 
 async function ensureCriticalFounderRecords() {
-  await ensureFounderAthleteRecordFromProfile("saidr1521@outlook.es");
+  return true;
 }
 
 function adminFounderRecords() {
-  const athleteFounders = (state.data?.athletes || []).filter(item => isFounderProfile(item));
-  const profileFounders = founderProfileRecordsWithoutAthlete();
-  return [...athleteFounders, ...profileFounders];
+  return state.data?.founders || [];
 }
 
 function scoutCanInvite(athlete) {
@@ -647,6 +612,7 @@ function demoApi() {
       profiles: data.profiles || [],
       companies: data.companies || [],
       athletes: data.athletes || [],
+      founders: data.founders || [],
       events: data.events || [],
       requests: data.requests || [],
       sponsorships: data.sponsorships || [],
@@ -763,6 +729,39 @@ function demoApi() {
         session: { id, email: payload.email, role: "athlete", name: payload.name, token: "demo", mustChangePassword: false }
       };
     },
+    async signupFounder(payload) {
+      const data = read();
+      const normalizedEmail = String(payload.email || "").trim().toLowerCase();
+      if (data.profiles.some(item => item.email.toLowerCase() === normalizedEmail)) {
+        throw new Error("Ya existe una cuenta con ese correo.");
+      }
+      const id = crypto.randomUUID();
+      const profile = { id, email: normalizedEmail, password: payload.password, role: "founder", name: payload.name, status: "approved", mustChangePassword: false };
+      data.profiles.unshift(profile);
+      data.founders.unshift({
+        id: crypto.randomUUID(),
+        profile_id: id,
+        email: normalizedEmail,
+        name: payload.name,
+        venture_name: payload.ventureName || "",
+        industry: payload.industry || "Founder ROIS",
+        stage: payload.stage || "Por definir",
+        city: payload.city || "Por definir",
+        stats: payload.stats || "",
+        monthly: 2500,
+        max_sponsors: 10,
+        scout_code: makeScoutCode(payload.name, normalizedEmail),
+        scout_active: false,
+        status: "approved",
+        visual_status: "approved"
+      });
+      write(data);
+      state.data = data;
+      return {
+        confirmed: true,
+        session: { id, email: normalizedEmail, role: "founder", name: payload.name, token: "demo", mustChangePassword: false }
+      };
+    },
     async resendSignup(email) {
       return { email };
     },
@@ -839,6 +838,7 @@ function supabaseApi() {
         profiles: `select=*&order=created_at.desc&limit=${mainLimit}`,
         companies: `select=*&order=created_at.desc&limit=${mainLimit}`,
         athletes: `select=*&order=created_at.desc&limit=${mainLimit}`,
+        founders: `select=*&order=created_at.desc&limit=${mainLimit}`,
         events: `select=*&order=created_at.desc&limit=${mediumLimit}`,
         requests: `select=*&order=created_at.desc&limit=${mediumLimit}`,
         sponsorships: `select=*&order=created_at.desc&limit=${mediumLimit}`,
@@ -894,7 +894,6 @@ function supabaseApi() {
     },
     async login(email, password) {
       const normalizedEmail = String(email || "").trim().toLowerCase();
-      const preferredAthlete = athleteAnnualFeeExempt(normalizedEmail);
       const auth = await request("/auth/v1/token?grant_type=password", {
         method: "POST",
         headers: headers(),
@@ -906,6 +905,9 @@ function supabaseApi() {
       let athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
         headers: headers(auth.access_token)
       });
+      let founders = await request(`/rest/v1/founders?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        headers: headers(auth.access_token)
+      });
       let profiles = await request(`/rest/v1/profiles?select=*&id=eq.${auth.user.id}&limit=1`, {
         headers: headers(auth.access_token)
       });
@@ -914,10 +916,26 @@ function supabaseApi() {
           headers: headers(auth.access_token)
         });
       }
-      if (!profiles.length && (companies.length || athletes.length) && !preferredAthlete) {
+      if (!profiles.length && (companies.length || athletes.length || founders.length)) {
         throw new Error("Esta cuenta fue dada de baja o requiere reactivaci\u00f3n por ROIS.");
       }
-      const profile = preferredAthlete ? await this.ensureAthleteAccount(auth, { forceRole: true }) : profiles[0] || (auth.user.user_metadata?.role === "athlete" ? await this.ensureAthleteAccount(auth) : await this.ensureClientAccount(auth));
+      const authRole = String(auth.user.user_metadata?.role || "").toLowerCase();
+      let profile = profiles[0] || null;
+      if (!profile) {
+        if (authRole === "founder" || founders.length) {
+          profile = await this.ensureFounderAccount(auth);
+        } else if (authRole === "athlete") {
+          profile = await this.ensureAthleteAccount(auth);
+        } else {
+          profile = await this.ensureClientAccount(auth);
+        }
+      } else if (profile.role === "founder") {
+        profile = await this.ensureFounderAccount(auth, { name: profile.name });
+      } else if (profile.role === "athlete" && !athletes.length) {
+        profile = await this.ensureAthleteAccount(auth, { forceRole: true });
+      } else if (profile.role === "client" && !companies.length) {
+        profile = await this.ensureClientAccount(auth);
+      }
       if (profile.role === "athlete" && !athletes.length) {
         try {
           await this.ensureAthleteAccount(auth, { forceRole: true });
@@ -928,11 +946,28 @@ function supabaseApi() {
           athletes = [];
         }
       }
+      if (profile.role === "founder" && !founders.length) {
+        try {
+          await this.ensureFounderAccount(auth, { name: profile.name });
+          founders = await request(`/rest/v1/founders?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+            headers: headers(auth.access_token)
+          });
+        } catch (error) {
+          founders = [];
+        }
+      }
       if (["blocked", "deleted", "rejected"].includes(profile.status)) throw new Error("Esta cuenta fue dada de baja por ROIS.");
       if (profile.status !== "approved") throw new Error("Este usuario a\u00fan no est\u00e1 aprobado.");
-      if (!preferredAthlete && companies.some(company => ["blocked", "deleted", "rejected"].includes(company.status))) throw new Error("Esta empresa fue dada de baja por ROIS.");
+      if (companies.some(company => ["blocked", "deleted", "rejected"].includes(company.status))) throw new Error("Esta empresa fue dada de baja por ROIS.");
       if (athletes.some(athlete => ["blocked", "deleted", "rejected"].includes(athlete.status))) throw new Error("Esta cuenta emprendedora fue dada de baja por ROIS.");
-      const role = preferredAthlete ? "athlete" : profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(normalizedEmail, profile.role);
+      if (founders.some(founder => ["blocked", "deleted", "rejected"].includes(founder.status))) throw new Error("Esta cuenta founder fue dada de baja por ROIS.");
+      const role = profile.role === "founder"
+        ? "founder"
+        : profile.role === "athlete"
+          ? "athlete"
+          : companies.length
+            ? "client"
+            : normalizedRole(normalizedEmail, profile.role);
       return { id: profile.id, email: normalizedEmail, role, name: profile.name, token: auth.access_token, mustChangePassword: !!profile.must_change_password };
     },
     async signupCompany({ company, email, contact, interest, password }) {
@@ -965,7 +1000,6 @@ function supabaseApi() {
     async signupAthlete(payload) {
       const normalizedEmail = String(payload.email || "").trim().toLowerCase();
       const birthDate = normalizedBirthDate(payload.birthDate);
-      const isFounder = payload.profileType === "founder" || payload.vertical === "founder";
       const auth = await request("/auth/v1/signup", {
         method: "POST",
         headers: headers(),
@@ -975,8 +1009,6 @@ function supabaseApi() {
           data: {
             name: payload.name,
             role: "athlete",
-            profile_type: isFounder ? "founder" : "athlete",
-            vertical: isFounder ? "founder" : "athlete",
             sport: payload.sport || "Por definir",
             category: payload.category || "",
             location: payload.location || "",
@@ -1138,6 +1170,39 @@ function supabaseApi() {
         session: { id: athleteProfileId, email: normalizedEmail, role: "athlete", name: payload.name, token: accessToken, mustChangePassword: false }
       };
     },
+    async signupFounder(payload) {
+      const normalizedEmail = String(payload.email || "").trim().toLowerCase();
+      const auth = await request("/auth/v1/signup", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password: payload.password,
+          data: {
+            name: payload.name,
+            role: "founder",
+            profile_type: "founder",
+            vertical: "founder",
+            venture_name: payload.ventureName || "",
+            industry: payload.industry || "Founder ROIS",
+            stage: payload.stage || "Por definir",
+            city: payload.city || "Por definir",
+            stats: payload.stats || ""
+          }
+        })
+      });
+      const accessToken = auth.session?.access_token || auth.access_token;
+      const authUser = auth.user || auth;
+      if (!accessToken || !authUser?.id) {
+        return { confirmed: false, email: normalizedEmail };
+      }
+      const profile = await this.ensureFounderAccount({ user: authUser, access_token: accessToken }, payload);
+      state.data = await this.loadAll();
+      return {
+        confirmed: true,
+        session: { id: profile.id, email: normalizedEmail, role: "founder", name: profile.name, token: accessToken, mustChangePassword: false }
+      };
+    },
     async resendSignup(email) {
       await request("/auth/v1/resend", {
         method: "POST",
@@ -1182,6 +1247,7 @@ function supabaseApi() {
       const user = await request("/auth/v1/user", {
         headers: headers(accessToken)
       });
+      const normalizedEmail = String(user.email || "").trim().toLowerCase();
       let profiles = [];
       try {
         profiles = await request(`/rest/v1/profiles?select=*&id=eq.${user.id}&limit=1`, {
@@ -1202,15 +1268,18 @@ function supabaseApi() {
       let profile = profiles[0] || null;
       if (!profile) {
         try {
-          profile = user.user_metadata?.role === "athlete"
-            ? await this.ensureAthleteAccount({ user, access_token: accessToken })
-            : await this.ensureClientAccount({ user, access_token: accessToken });
+          const authRole = String(user.user_metadata?.role || "").toLowerCase();
+          profile = authRole === "founder"
+            ? await this.ensureFounderAccount({ user, access_token: accessToken })
+            : authRole === "athlete"
+              ? await this.ensureAthleteAccount({ user, access_token: accessToken })
+              : await this.ensureClientAccount({ user, access_token: accessToken });
         } catch (error) {
           profile = {
             id: user.id,
-            email: user.email,
-            role: user.user_metadata?.role === "athlete" ? "athlete" : "client",
-            name: user.user_metadata?.name || user.email?.split("@")[0] || "Perfil ROIS",
+            email: normalizedEmail,
+            role: user.user_metadata?.role === "founder" ? "founder" : user.user_metadata?.role === "athlete" ? "athlete" : "client",
+            name: user.user_metadata?.name || normalizedEmail.split("@")[0] || "Perfil ROIS",
             status: "approved",
             must_change_password: true
           };
@@ -1224,8 +1293,8 @@ function supabaseApi() {
       } catch (error) {
         companies = [];
       }
-      const role = profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(user.email, profile.role);
-      return { id: profile.id || user.id, email: user.email, role, name: profile.name || user.user_metadata?.name || user.email?.split("@")[0] || "Perfil ROIS", token: accessToken, mustChangePassword: true };
+      const role = profile.role === "founder" ? "founder" : profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(normalizedEmail, profile.role);
+      return { id: profile.id || user.id, email: normalizedEmail, role, name: profile.name || user.user_metadata?.name || normalizedEmail.split("@")[0] || "Perfil ROIS", token: accessToken, mustChangePassword: true };
     },
     async ensureClientAccount(auth, fallback = {}) {
       const token = auth.access_token || auth.session?.access_token;
@@ -1425,6 +1494,116 @@ function supabaseApi() {
         must_change_password: false
       };
     },
+    async ensureFounderAccount(auth, options = {}) {
+      const token = auth.access_token || auth.session?.access_token;
+      const normalizedEmail = String(auth.user.email || options.email || "").trim().toLowerCase();
+      const meta = auth.user.user_metadata || {};
+      const name = options.name || meta.name || normalizedEmail.split("@")[0] || "Founder ROIS";
+      const ventureName = options.ventureName || meta.venture_name || "";
+      const industry = options.industry || meta.industry || "Founder ROIS";
+      const stage = options.stage || meta.stage || "Por definir";
+      const city = options.city || meta.city || "Por definir";
+      const stats = options.stats || meta.stats || `Founder ROIS. Emprendimiento: ${ventureName || "Por definir"}. Industria: ${industry}. Etapa: ${stage}. Ciudad: ${city}.`;
+      let existingProfiles = await request(`/rest/v1/profiles?select=id,email,role,name,status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        headers: headers(token)
+      });
+      let resolvedProfile = existingProfiles[0] || null;
+      const profileRecord = {
+        id: auth.user.id,
+        email: normalizedEmail,
+        role: "founder",
+        name,
+        status: "approved",
+        must_change_password: false
+      };
+      if (resolvedProfile?.id) {
+        await request(`/rest/v1/profiles?email=eq.${encodeURIComponent(normalizedEmail)}`, {
+          method: "PATCH",
+          headers: { ...headers(token), Prefer: "return=minimal" },
+          body: JSON.stringify({
+            role: "founder",
+            name,
+            status: "approved",
+            must_change_password: false
+          })
+        });
+      } else {
+        try {
+          await request("/rest/v1/profiles?on_conflict=email", {
+            method: "POST",
+            headers: { ...headers(token), Prefer: "resolution=merge-duplicates,return=representation" },
+            body: JSON.stringify(profileRecord)
+          });
+        } catch (profileError) {
+          const profileMessage = typeof profileError?.message === "string" ? profileError.message : JSON.stringify(profileError);
+          if (!profileMessage.includes("23505") && !profileMessage.includes("profiles_email_key")) throw profileError;
+          await request(`/rest/v1/profiles?email=eq.${encodeURIComponent(normalizedEmail)}`, {
+            method: "PATCH",
+            headers: { ...headers(token), Prefer: "return=minimal" },
+            body: JSON.stringify({
+              role: "founder",
+              name,
+              status: "approved",
+              must_change_password: false
+            })
+          });
+        }
+        existingProfiles = await request(`/rest/v1/profiles?select=id,email,role,name,status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          headers: headers(token)
+        });
+        resolvedProfile = existingProfiles[0] || null;
+      }
+      const founderProfileId = resolvedProfile?.id || auth.user.id;
+      const founderRecord = {
+        profile_id: founderProfileId,
+        email: normalizedEmail,
+        name,
+        venture_name: ventureName,
+        industry,
+        stage,
+        city,
+        stats,
+        monthly: 2500,
+        max_sponsors: 10,
+        scout_code: makeScoutCode(name, normalizedEmail),
+        scout_active: false,
+        status: "approved",
+        visual_status: "approved"
+      };
+      try {
+        await request("/rest/v1/founders?on_conflict=email", {
+          method: "POST",
+          headers: { ...headers(token), Prefer: "resolution=merge-duplicates,return=minimal" },
+          body: JSON.stringify(founderRecord)
+        });
+      } catch (founderError) {
+        const existingFounders = await request(`/rest/v1/founders?select=id&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          headers: headers(token)
+        });
+        if (existingFounders.length) {
+          await request(`/rest/v1/founders?id=eq.${existingFounders[0].id}`, {
+            method: "PATCH",
+            headers: { ...headers(token), Prefer: "return=minimal" },
+            body: JSON.stringify(founderRecord)
+          });
+        } else {
+          await request("/rest/v1/founders", {
+            method: "POST",
+            headers: { ...headers(token), Prefer: "return=minimal" },
+            body: JSON.stringify(founderRecord)
+          });
+        }
+      }
+      return {
+        ...(resolvedProfile || profileRecord),
+        id: founderProfileId,
+        email: normalizedEmail,
+        role: "founder",
+        name,
+        status: "approved",
+        must_change_password: false
+      };
+    },
     async insert(table, record) {
       const rows = await request(`/rest/v1/${table}`, {
         method: "POST",
@@ -1506,8 +1685,14 @@ function handleDashboardDelegatedActions(event) {
   }
   const profileButton = event.target.closest("[data-athlete-profile]");
   if (profileButton) {
-    const athlete = state.data?.athletes?.find(item => item.id === profileButton.dataset.athleteProfile);
-    if (athlete) openAthleteProfileView(athlete);
+    const profileId = profileButton.dataset.athleteProfile;
+    const athlete = state.data?.athletes?.find(item => item.id === profileId);
+    if (athlete) {
+      openAthleteProfileView(athlete);
+      return;
+    }
+    const founder = state.data?.founders?.find(item => item.id === profileId || item.profile_id === profileId);
+    if (founder) openAthleteProfileView(founderAsAthleteProfile(founder));
     return;
   }
   const deletePostButton = event.target.closest("[data-athlete-delete-post]");
@@ -2054,7 +2239,7 @@ function renderSession() {
   }
   area.innerHTML = `
     <span class="pill">${state.session.role === "admin" ? "Admin" : state.session.name}</span>
-    <button class="btn subtle" type="button" data-panel-link>${state.session.role === "admin" ? "Panel admin" : state.session.role === "athlete" ? "Panel deportista" : "Panel cliente"}</button>
+    <button class="btn subtle" type="button" data-panel-link>${state.session.role === "admin" ? "Panel admin" : state.session.role === "founder" ? "Panel founder" : state.session.role === "athlete" ? "Panel deportista" : "Panel cliente"}</button>
   `;
   area.querySelector("[data-panel-link]").addEventListener("click", () => showView(dashboardViewForRole(state.session.role)));
 }
@@ -2311,25 +2496,9 @@ function clientAthleteRecords() {
 }
 
 function clientFounderRecords() {
-  const athleteFounders = (state.data.athletes || [])
-    .filter(item => isFounderProfile(item))
+  return (state.data.founders || [])
     .filter(item => !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase()))
     .filter(item => visualIsPublic(item));
-  const athleteEmails = new Set(
-    athleteFounders
-      .map(item => String(item.email || item.contact || "").toLowerCase())
-      .filter(Boolean)
-  );
-  const profileFounders = (typeof founderProfileRecordsWithoutAthlete === "function"
-    ? founderProfileRecordsWithoutAthlete()
-    : []
-  ).filter(item => {
-    const email = String(item.email || item.contact || "").toLowerCase();
-    if (!email || athleteEmails.has(email)) return false;
-    return !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase());
-  });
-
-  return [...athleteFounders, ...profileFounders];
 }
 
 function renderClientOverview() {
@@ -2785,16 +2954,13 @@ function renderClientMarketplace() {
 
 function founderMarketCard(founder) {
   const image = founder.image_url || "./assets/rois-isotipo-cropped.png";
-  const industry = founder.sport || "Industria por definir";
-  const stage = founder.category || "Etapa por definir";
-  const location = founder.location || "Base por confirmar";
+  const industry = founder.industry || founder.sport || "Industria por definir";
+  const stage = founder.stage || founder.category || "Etapa por definir";
+  const location = founder.city || founder.location || "Base por confirmar";
   const summary = founder.stats || "Cuenta founder registrada en ROIS. Falta completar ficha emprendedora.";
   const ticket = Number(founder.monthly || 2500).toLocaleString("es-MX");
-  const proposalButton = athleteProposalLink(founder);
   const traction = founder.ranking || founder.stats || "Cuenta founder registrada en ROIS. Falta completar ficha emprendedora.";
-  const profileAction = founder.is_virtual_founder_profile
-    ? `<span class="pill">Perfil base</span>`
-    : `<button class="btn" type="button" data-athlete-profile="${escapeAttr(founder.id)}">Ver perfil</button>`;
+  const profileAction = `<button class="btn" type="button" data-athlete-profile="${escapeAttr(founder.id)}">Ver perfil</button>`;
 
   return `
     <article class="athlete-card founder-card">
@@ -2816,12 +2982,11 @@ function founderMarketCard(founder) {
         </div>
         <div class="athlete-metrics">
           <div><span>Ticket mensual</span><strong>$${ticket} MXN</strong></div>
-          <div><span>Tipo</span><strong>${founder.is_virtual_founder_profile ? "Founder base" : "Founder ROIS"}</strong></div>
+          <div><span>Tipo</span><strong>Founder ROIS</strong></div>
         </div>
         <div class="athlete-decision">
           <p>Ideal para empresas interesadas en innovacion, visibilidad emprendedora, alianzas estrategicas y construccion de reputacion comercial.</p>
           <div class="athlete-actions">
-            ${proposalButton}
             ${profileAction}
           </div>
         </div>
@@ -3156,22 +3321,15 @@ function renderAthleteNotifications() {
   `);
 }
 
-const profileVerticalOverrides = {
-  "saidr1521@gmail.com": "athlete",
-  "saidr1521@outlook.es": "founder"
-};
-
 function profileVertical(profile) {
-  const email = String(profile?.email || profile?.contact || state.session?.email || "").toLowerCase();
-  if (profileVerticalOverrides[email]) return profileVerticalOverrides[email];
   if (!profile) return "athlete";
-  const directType = String(profile.profile_type || profile.vertical || "").trim().toLowerCase();
+  const directType = String(profile.profile_type || profile.vertical || profile.role || "").trim().toLowerCase();
   if (directType === "founder") return "founder";
   const normalize = value => String(value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
-  const profileText = [profile.sport, profile.category, profile.stats, profile.ranking].map(normalize).join(" ");
+  const profileText = [profile.sport, profile.category, profile.stats, profile.ranking, profile.industry, profile.stage, profile.venture_name].map(normalize).join(" ");
   const founderSignals = ["founder", "founders", "emprendimiento", "emprendedor", "startup", "empresa", "negocio", "industria", "venture", "founder rois"];
   return founderSignals.some(signal => profileText.includes(signal)) ? "founder" : "athlete";
 }
@@ -3936,46 +4094,42 @@ function athleteAdminActions(athlete) {
   return actionGroup(actions);
 }
 
-function founderAdminTraction(athlete) {
-  const ranking = String(athlete.ranking || "").trim();
+function founderAdminTraction(founder) {
+  const ranking = String(founder.ranking || "").trim();
   if (ranking) return ranking;
-  const stats = String(athlete.stats || "").trim();
+  const stats = String(founder.stats || "").trim();
   return stats.length > 96 ? `${stats.slice(0, 96).trim()}...` : (stats || "Por definir");
 }
 
-function founderAdminStatus(athlete) {
-  if (athlete.is_virtual_founder_profile) {
-    return `${badge("perfil base")} ${badge(athlete.status || "approved")}`;
-  }
-  return `${badge(athlete.status || "pending")} ${badge(athlete.visual_status || "pendiente visual")}`;
+function founderAdminStatus(founder) {
+  return `${badge(founder.status || "pending")} ${badge(founder.visual_status || "pendiente visual")}`;
 }
 
 function founderAdminActions(founder) {
-  if (founder.is_virtual_founder_profile) {
-    return badge("perfil base");
-  }
-  return athleteAdminActions(founder);
+  return actionGroup([
+    button("Eliminar", () => deleteContent("founders", founder))
+  ]);
 }
 
 function renderAdminFounders() {
   const founders = [...adminFounderRecords()].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const active = founders.filter(founder => !["blocked", "deleted", "rejected"].includes(founder.status));
-  const linked = active.filter(founder => founder.sponsor_payment_url).length;
-  panel("admin-founders", "Founders", "Gestion administrativa de perfiles founder con compatibilidad tecnica athlete", `
+  const linked = active.filter(founder => founder.monthly).length;
+  panel("admin-founders", "Founders", "Gestion administrativa de perfiles founder desde la tabla founders", `
     <div class="panel-body admin-athlete-summary">
       <div class="scout-metrics">
         <div><span>Founders activos</span><strong>${active.length}</strong></div>
         <div><span>Link mensual</span><strong>${linked}</strong></div>
-        <div><span>Industria definida</span><strong>${active.filter(founder => founder.sport && founder.sport !== "Por definir").length}</strong></div>
-        <div><span>Etapa definida</span><strong>${active.filter(founder => founder.category).length}</strong></div>
+        <div><span>Industria definida</span><strong>${active.filter(founder => founder.industry && founder.industry !== "Por definir").length}</strong></div>
+        <div><span>Etapa definida</span><strong>${active.filter(founder => founder.stage).length}</strong></div>
       </div>
-      <p class="hint">Los founders viven tecnicamente en athletes. Esta vista solo separa administrativamente los perfiles detectados como founder dentro de ROIS.</p>
+      <p class="hint">Los founders ahora viven en su propia tabla y mantienen su flujo comercial separado de athletes.</p>
     </div>
     ${founders.length ? table(["Founder", "Correo", "Industria", "Etapa", "Traccion", "Ticket mensual", "Sponsors", "Estado", "Acciones"], founders.map(founder => [
       `<strong>${escapeHtml(founder.name || "Founder")}</strong>`,
-      escapeHtml(founder.email || founder.contact || "Sin correo"),
-      escapeHtml(founder.sport || "Por definir"),
-      escapeHtml(founder.category || "Por definir"),
+      escapeHtml(founder.email || "Sin correo"),
+      escapeHtml(founder.industry || "Por definir"),
+      escapeHtml(founder.stage || "Por definir"),
       escapeHtml(founderAdminTraction(founder)),
       `$${Number(founder.monthly || 0).toLocaleString("es-MX")} MXN`,
       escapeHtml(String(founder.max_sponsors || 0)),
@@ -6262,24 +6416,17 @@ async function submitRegistrationLegacy(event) {
       const founderCity = form.city.value.trim();
       const ventureName = form.venture_name.value.trim();
       const founderStats = `Founder ROIS. Emprendimiento: ${ventureName}. Industria: ${founderIndustry}. Etapa: ${founderStage}. Ciudad: ${founderCity}.`;
-      const signup = await api.signupAthlete({
+      const signup = await api.signupFounder({
         email: form.email.value,
         password: form.password.value,
         name: form.name.value,
         profileType: "founder",
         vertical: "founder",
-        scoutCode: "",
-        birthDate: null,
-        isMinor: false,
-        guardianName: "",
-        guardianEmail: "",
-        guardianPhone: "",
-        guardianRelationship: "",
-        guardianConsent: false,
+        ventureName,
+        industry: founderIndustry,
+        stage: founderStage,
+        city: founderCity,
         termsAccepted: form.terms.checked,
-        sport: founderIndustry || "Founder ROIS",
-        category: founderStage,
-        location: founderCity,
         stats: founderStats
       });
       closeModals();
@@ -6450,24 +6597,17 @@ async function submitRegistration(event) {
       const founderCity = form.city.value.trim();
       const ventureName = form.venture_name.value.trim();
       const founderStats = `Founder ROIS. Emprendimiento: ${ventureName}. Industria: ${founderIndustry}. Etapa: ${founderStage}. Ciudad: ${founderCity}.`;
-      const signup = await api.signupAthlete({
+      const signup = await api.signupFounder({
         email: form.email.value,
         password: form.password.value,
         name: form.name.value,
         profileType: "founder",
         vertical: "founder",
-        scoutCode: "",
-        birthDate: null,
-        isMinor: false,
-        guardianName: "",
-        guardianEmail: "",
-        guardianPhone: "",
-        guardianRelationship: "",
-        guardianConsent: false,
+        ventureName,
+        industry: founderIndustry,
+        stage: founderStage,
+        city: founderCity,
         termsAccepted: form.terms.checked,
-        sport: founderIndustry || "Founder ROIS",
-        category: founderStage,
-        location: founderCity,
         stats: founderStats
       });
       closeModals();
