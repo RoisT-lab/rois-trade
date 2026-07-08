@@ -962,13 +962,14 @@ function supabaseApi() {
       };
     },
     async signupAthlete(payload) {
+      const normalizedEmail = String(payload.email || "").trim().toLowerCase();
       const birthDate = normalizedBirthDate(payload.birthDate);
       const isFounder = payload.profileType === "founder" || payload.vertical === "founder";
       const auth = await request("/auth/v1/signup", {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({
-          email: payload.email,
+          email: normalizedEmail,
           password: payload.password,
           data: {
             name: payload.name,
@@ -989,7 +990,7 @@ function supabaseApi() {
           method: "POST",
           headers: { ...headers(), Prefer: "return=minimal" },
           body: JSON.stringify({
-            email: payload.email,
+            email: normalizedEmail,
             name: payload.name,
             sport: payload.sport || "Por definir",
             category: payload.category || "",
@@ -1000,7 +1001,7 @@ function supabaseApi() {
             annual_fee_required: false,
             monthly: 5000,
             max_sponsors: 10,
-            scout_code: makeScoutCode(payload.name, payload.email),
+            scout_code: makeScoutCode(payload.name, normalizedEmail),
             scout_active: false,
             invited_by_scout_code: payload.scoutCode,
             scout_terms_accepted: false,
@@ -1021,24 +1022,61 @@ function supabaseApi() {
             visual_status: "approved"
           })
         });
-        return { confirmed: false, email: payload.email };
+        return { confirmed: false, email: normalizedEmail };
       }
-      const existingProfiles = await request(`/rest/v1/profiles?select=id,email,role,name,status&email=eq.${encodeURIComponent(payload.email)}&limit=1`, {
+      let existingProfiles = await request(`/rest/v1/profiles?select=id,email,role,name,status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
         headers: headers(accessToken)
       });
-      const existingProfile = existingProfiles[0] || null;
-      const athleteProfileId = existingProfile?.id || authUser.id;
+      let existingProfile = existingProfiles[0] || null;
       const profileRecord = {
-        id: athleteProfileId,
-        email: payload.email,
+        id: authUser.id,
+        email: normalizedEmail,
         role: "athlete",
         name: payload.name,
         status: "approved",
         must_change_password: false
       };
+      if (existingProfile?.id) {
+        await request(`/rest/v1/profiles?email=eq.${encodeURIComponent(normalizedEmail)}`, {
+          method: "PATCH",
+          headers: { ...headers(accessToken), Prefer: "return=minimal" },
+          body: JSON.stringify({
+            role: "athlete",
+            name: payload.name,
+            status: "approved",
+            must_change_password: false
+          })
+        });
+      } else {
+        try {
+          await request("/rest/v1/profiles?on_conflict=email", {
+            method: "POST",
+            headers: { ...headers(accessToken), Prefer: "resolution=merge-duplicates,return=representation" },
+            body: JSON.stringify(profileRecord)
+          });
+        } catch (profileError) {
+          const profileMessage = typeof profileError?.message === "string" ? profileError.message : JSON.stringify(profileError);
+          if (!profileMessage.includes("23505") && !profileMessage.includes("profiles_email_key")) throw profileError;
+          await request(`/rest/v1/profiles?email=eq.${encodeURIComponent(normalizedEmail)}`, {
+            method: "PATCH",
+            headers: { ...headers(accessToken), Prefer: "return=minimal" },
+            body: JSON.stringify({
+              role: "athlete",
+              name: payload.name,
+              status: "approved",
+              must_change_password: false
+            })
+          });
+        }
+        existingProfiles = await request(`/rest/v1/profiles?select=id,email,role,name,status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          headers: headers(accessToken)
+        });
+        existingProfile = existingProfiles[0] || null;
+      }
+      const athleteProfileId = existingProfile?.id || authUser.id;
       const athleteRecord = {
         profile_id: athleteProfileId,
-        email: payload.email,
+        email: normalizedEmail,
         name: payload.name,
         sport: payload.sport || "Por definir",
         category: payload.category || "",
@@ -1049,7 +1087,7 @@ function supabaseApi() {
         annual_fee_required: false,
         monthly: 5000,
         max_sponsors: 10,
-        scout_code: makeScoutCode(payload.name, payload.email),
+        scout_code: makeScoutCode(payload.name, normalizedEmail),
         scout_active: false,
         invited_by_scout_code: payload.scoutCode,
         scout_terms_accepted: false,
@@ -1069,24 +1107,6 @@ function supabaseApi() {
         status: "approved",
         visual_status: "approved"
       };
-      if (existingProfile?.id) {
-        await request(`/rest/v1/profiles?id=eq.${existingProfile.id}`, {
-          method: "PATCH",
-          headers: { ...headers(accessToken), Prefer: "return=minimal" },
-          body: JSON.stringify({
-            role: "athlete",
-            name: payload.name,
-            status: "approved",
-            must_change_password: false
-          })
-        });
-      } else {
-        await request("/rest/v1/profiles?on_conflict=id", {
-          method: "POST",
-          headers: { ...headers(accessToken), Prefer: "resolution=ignore-duplicates,return=minimal" },
-          body: JSON.stringify(profileRecord)
-        });
-      }
       try {
         await request("/rest/v1/athletes?on_conflict=email", {
           method: "POST",
@@ -1094,7 +1114,7 @@ function supabaseApi() {
           body: JSON.stringify(athleteRecord)
         });
       } catch (athleteError) {
-        const existingAthletes = await request(`/rest/v1/athletes?select=id&email=eq.${encodeURIComponent(payload.email)}&limit=1`, {
+        const existingAthletes = await request(`/rest/v1/athletes?select=id&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(accessToken)
         });
         if (existingAthletes.length) {
@@ -1114,7 +1134,7 @@ function supabaseApi() {
       state.data = await this.loadAll();
       return {
         confirmed: true,
-        session: { id: athleteProfileId, email: payload.email, role: "athlete", name: payload.name, token: accessToken, mustChangePassword: false }
+        session: { id: athleteProfileId, email: normalizedEmail, role: "athlete", name: payload.name, token: accessToken, mustChangePassword: false }
       };
     },
     async resendSignup(email) {
@@ -1896,6 +1916,9 @@ function humanError(error) {
   const message = typeof error?.message === "string" ? error.message : JSON.stringify(error);
   if (message.includes("over_email_send_rate_limit") || message.includes("email rate limit exceeded") || message.includes("429")) {
     return "Supabase limit\u00f3 temporalmente el env\u00edo de correos de verificaci\u00f3n por demasiados intentos. Para el lanzamiento, desactiva la confirmaci\u00f3n por correo en Supabase o espera unos minutos antes de intentar de nuevo.";
+  }
+  if (message.includes("profiles_email_key") || message.includes("23505")) {
+    return "Este correo ya tenia un perfil iniciado en ROIS. Estamos reactivando o actualizando el registro; vuelve a intentar iniciar sesion o usa recuperar contrasena si ya existe una cuenta.";
   }
   if (message.includes("user_already_exists") || message.includes("already registered")) {
     return "Ese correo ya existe en Supabase Auth. Recupera el acceso con ese mismo correo para reactivar tu perfil dentro de ROIS.";
@@ -6341,6 +6364,8 @@ async function submitRegistration(event) {
         email: form.email.value,
         password: form.password.value,
         name: form.name.value,
+        profileType: "founder",
+        vertical: "founder",
         scoutCode: "",
         birthDate: null,
         isMinor: false,
