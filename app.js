@@ -458,6 +458,11 @@ function athleteIsMinor(dateValue) {
   return age !== null && age < 18;
 }
 
+function normalizedBirthDate(value) {
+  const parsed = String(value || "").trim();
+  return parsed || null;
+}
+
 function setupAthleteAgeGate() {
   const form = document.getElementById("registrationForm");
   if (!form || state.registrationType !== "athlete") return;
@@ -715,6 +720,7 @@ function demoApi() {
       if (data.profiles.some(item => item.email.toLowerCase() === payload.email.toLowerCase())) {
         throw new Error("Ya existe una cuenta con ese correo.");
       }
+      const birthDate = normalizedBirthDate(payload.birthDate);
       const id = crypto.randomUUID();
       const profile = { id, email: payload.email, password: payload.password, role: "athlete", name: payload.name, status: "approved", mustChangePassword: false };
       data.profiles.unshift(profile);
@@ -739,7 +745,7 @@ function demoApi() {
         annual_fee_paid: false,
         scout_validation_status: "pending",
         scout_commission_status: "pending",
-        birth_date: payload.birthDate,
+        birth_date: birthDate,
         age_status: payload.isMinor ? "minor" : "adult",
         guardian_name: payload.isMinor ? payload.guardianName : "",
         guardian_email: payload.isMinor ? payload.guardianEmail : "",
@@ -953,6 +959,7 @@ function supabaseApi() {
       };
     },
     async signupAthlete(payload) {
+      const birthDate = normalizedBirthDate(payload.birthDate);
       const auth = await request("/auth/v1/signup", {
         method: "POST",
         headers: headers(),
@@ -990,7 +997,7 @@ function supabaseApi() {
             annual_fee_paid: false,
             scout_validation_status: "pending",
             scout_commission_status: "pending",
-            birth_date: payload.birthDate,
+            birth_date: birthDate,
             age_status: payload.isMinor ? "minor" : "adult",
             guardian_name: payload.isMinor ? payload.guardianName : "",
             guardian_email: payload.isMinor ? payload.guardianEmail : "",
@@ -1042,7 +1049,7 @@ function supabaseApi() {
           annual_fee_paid: false,
           scout_validation_status: "pending",
           scout_commission_status: "pending",
-          birth_date: payload.birthDate,
+          birth_date: birthDate,
           age_status: payload.isMinor ? "minor" : "adult",
           guardian_name: payload.isMinor ? payload.guardianName : "",
           guardian_email: payload.isMinor ? payload.guardianEmail : "",
@@ -6082,7 +6089,7 @@ async function submitRegistrationLegacy(event) {
         password: form.password.value,
         name: form.name.value,
         scoutCode: "",
-        birthDate: "",
+        birthDate: null,
         isMinor: false,
         guardianName: "",
         guardianEmail: "",
@@ -6254,7 +6261,7 @@ async function submitRegistration(event) {
         password: form.password.value,
         name: form.name.value,
         scoutCode: "",
-        birthDate: "",
+        birthDate: null,
         isMinor: false,
         guardianName: "",
         guardianEmail: "",
