@@ -362,9 +362,7 @@ async function ensureFounderAthleteRecordFromProfile(email) {
     registration_terms_accepted: true,
     terms_accepted: false,
     status: "approved",
-    visual_status: "approved",
-    profile_type: "founder",
-    vertical: "founder"
+    visual_status: "approved"
   };
 
   try {
@@ -1069,9 +1067,7 @@ function supabaseApi() {
         registration_terms_accepted: Boolean(payload.termsAccepted),
         terms_accepted: false,
         status: "approved",
-        visual_status: "approved",
-        profile_type: isFounder ? "founder" : "athlete",
-        vertical: isFounder ? "founder" : "athlete"
+        visual_status: "approved"
       };
       if (existingProfile?.id) {
         await request(`/rest/v1/profiles?id=eq.${existingProfile.id}`, {
