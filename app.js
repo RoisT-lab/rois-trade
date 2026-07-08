@@ -893,23 +893,24 @@ function supabaseApi() {
       }
     },
     async login(email, password) {
-      const preferredAthlete = athleteAnnualFeeExempt(email);
+      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const preferredAthlete = athleteAnnualFeeExempt(normalizedEmail);
       const auth = await request("/auth/v1/token?grant_type=password", {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email: normalizedEmail, password })
       });
-      const companies = await request(`/rest/v1/companies?select=*&contact=eq.${encodeURIComponent(email)}&limit=1`, {
+      const companies = await request(`/rest/v1/companies?select=*&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
         headers: headers(auth.access_token)
       });
-      let athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(email)}&limit=1`, {
+      let athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
         headers: headers(auth.access_token)
       });
       let profiles = await request(`/rest/v1/profiles?select=*&id=eq.${auth.user.id}&limit=1`, {
         headers: headers(auth.access_token)
       });
       if (!profiles.length) {
-        profiles = await request(`/rest/v1/profiles?select=*&email=eq.${encodeURIComponent(email)}&limit=1`, {
+        profiles = await request(`/rest/v1/profiles?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(auth.access_token)
         });
       }
@@ -920,7 +921,7 @@ function supabaseApi() {
       if (profile.role === "athlete" && !athletes.length) {
         try {
           await this.ensureAthleteAccount(auth, { forceRole: true });
-          athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(email)}&limit=1`, {
+          athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
             headers: headers(auth.access_token)
           });
         } catch (error) {
@@ -931,8 +932,8 @@ function supabaseApi() {
       if (profile.status !== "approved") throw new Error("Este usuario a\u00fan no est\u00e1 aprobado.");
       if (!preferredAthlete && companies.some(company => ["blocked", "deleted", "rejected"].includes(company.status))) throw new Error("Esta empresa fue dada de baja por ROIS.");
       if (athletes.some(athlete => ["blocked", "deleted", "rejected"].includes(athlete.status))) throw new Error("Esta cuenta emprendedora fue dada de baja por ROIS.");
-      const role = preferredAthlete ? "athlete" : profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(email, profile.role);
-      return { id: profile.id, email, role, name: profile.name, token: auth.access_token, mustChangePassword: !!profile.must_change_password };
+      const role = preferredAthlete ? "athlete" : profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(normalizedEmail, profile.role);
+      return { id: profile.id, email: normalizedEmail, role, name: profile.name, token: auth.access_token, mustChangePassword: !!profile.must_change_password };
     },
     async signupCompany({ company, email, contact, interest, password }) {
       const auth = await request("/auth/v1/signup", {
@@ -1228,32 +1229,68 @@ function supabaseApi() {
     },
     async ensureClientAccount(auth, fallback = {}) {
       const token = auth.access_token || auth.session?.access_token;
-      const email = auth.user.email;
+      const normalizedEmail = String(auth.user.email || "").trim().toLowerCase();
       const meta = auth.user.user_metadata || {};
-      const company = fallback.company || meta.company_name || meta.name || email.split("@")[0];
+      const company = fallback.company || meta.company_name || meta.name || normalizedEmail.split("@")[0];
       const contact = fallback.contact || meta.contact_name || company;
       const interest = fallback.interest || meta.interest || "Relaciones estrat\u00e9gicas";
+      let existingProfiles = await request(`/rest/v1/profiles?select=id,email,role,name,status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        headers: headers(token)
+      });
+      let resolvedProfile = existingProfiles[0] || null;
       const profileRecord = {
         id: auth.user.id,
-        email,
+        email: normalizedEmail,
         role: "client",
         name: company,
         status: "approved",
         must_change_password: false
       };
-      await request("/rest/v1/profiles?on_conflict=id", {
-        method: "POST",
-        headers: { ...headers(token), Prefer: "resolution=ignore-duplicates,return=minimal" },
-        body: JSON.stringify(profileRecord)
-      });
-      const existingCompanies = await request(`/rest/v1/companies?select=id&contact=eq.${encodeURIComponent(email)}&limit=1`, {
+      if (resolvedProfile?.id) {
+        await request(`/rest/v1/profiles?email=eq.${encodeURIComponent(normalizedEmail)}`, {
+          method: "PATCH",
+          headers: { ...headers(token), Prefer: "return=minimal" },
+          body: JSON.stringify({
+            role: "client",
+            name: company,
+            status: "approved",
+            must_change_password: false
+          })
+        });
+      } else {
+        try {
+          await request("/rest/v1/profiles?on_conflict=email", {
+            method: "POST",
+            headers: { ...headers(token), Prefer: "resolution=merge-duplicates,return=representation" },
+            body: JSON.stringify(profileRecord)
+          });
+        } catch (profileError) {
+          const profileMessage = typeof profileError?.message === "string" ? profileError.message : JSON.stringify(profileError);
+          if (!profileMessage.includes("23505") && !profileMessage.includes("profiles_email_key")) throw profileError;
+          await request(`/rest/v1/profiles?email=eq.${encodeURIComponent(normalizedEmail)}`, {
+            method: "PATCH",
+            headers: { ...headers(token), Prefer: "return=minimal" },
+            body: JSON.stringify({
+              role: "client",
+              name: company,
+              status: "approved",
+              must_change_password: false
+            })
+          });
+        }
+        existingProfiles = await request(`/rest/v1/profiles?select=id,email,role,name,status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          headers: headers(token)
+        });
+        resolvedProfile = existingProfiles[0] || null;
+      }
+      const existingCompanies = await request(`/rest/v1/companies?select=id&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
         headers: headers(token)
       });
       if (!existingCompanies.length) {
         await request("/rest/v1/companies", {
           method: "POST",
           headers: { ...headers(token), Prefer: "return=minimal" },
-          body: JSON.stringify({ name: company, contact: email, owner: contact, interest, status: "approved" })
+          body: JSON.stringify({ name: company, contact: normalizedEmail, owner: contact, interest, status: "approved" })
         });
         await request("/rest/v1/crm", {
           method: "POST",
@@ -1261,38 +1298,83 @@ function supabaseApi() {
           body: JSON.stringify({ name: company, volume: 0, status: "Nuevo cliente" })
         });
       }
-      return profileRecord;
+      return {
+        ...(resolvedProfile || profileRecord),
+        id: resolvedProfile?.id || auth.user.id,
+        email: normalizedEmail,
+        role: "client",
+        name: company,
+        status: "approved",
+        must_change_password: false
+      };
     },
     async ensureAthleteAccount(auth, options = {}) {
       const token = auth.access_token || auth.session?.access_token;
-      const email = auth.user.email;
+      const normalizedEmail = String(auth.user.email || "").trim().toLowerCase();
       const meta = auth.user.user_metadata || {};
-      const name = meta.name || email.split("@")[0];
+      const name = meta.name || normalizedEmail.split("@")[0];
+      let existingProfiles = await request(`/rest/v1/profiles?select=id,email,role,name,status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        headers: headers(token)
+      });
+      let resolvedProfile = existingProfiles[0] || null;
       const profileRecord = {
         id: auth.user.id,
-        email,
+        email: normalizedEmail,
         role: "athlete",
         name,
         status: "approved",
         must_change_password: false
       };
-      await request("/rest/v1/profiles?on_conflict=id", {
-        method: "POST",
-        headers: { ...headers(token), Prefer: "resolution=ignore-duplicates,return=minimal" },
-        body: JSON.stringify(profileRecord)
-      });
-      if (options.forceRole) {
+      if (resolvedProfile?.id) {
+        await request(`/rest/v1/profiles?email=eq.${encodeURIComponent(normalizedEmail)}`, {
+          method: "PATCH",
+          headers: { ...headers(token), Prefer: "return=minimal" },
+          body: JSON.stringify({
+            role: "athlete",
+            name,
+            status: "approved",
+            must_change_password: false
+          })
+        });
+      } else {
         try {
-          await request(`/rest/v1/profiles?id=eq.${auth.user.id}`, {
+          await request("/rest/v1/profiles?on_conflict=email", {
+            method: "POST",
+            headers: { ...headers(token), Prefer: "resolution=merge-duplicates,return=representation" },
+            body: JSON.stringify(profileRecord)
+          });
+        } catch (profileError) {
+          const profileMessage = typeof profileError?.message === "string" ? profileError.message : JSON.stringify(profileError);
+          if (!profileMessage.includes("23505") && !profileMessage.includes("profiles_email_key")) throw profileError;
+          await request(`/rest/v1/profiles?email=eq.${encodeURIComponent(normalizedEmail)}`, {
             method: "PATCH",
             headers: { ...headers(token), Prefer: "return=minimal" },
-            body: JSON.stringify({ role: "athlete", status: "approved" })
+            body: JSON.stringify({
+              role: "athlete",
+              name,
+              status: "approved",
+              must_change_password: false
+            })
+          });
+        }
+        existingProfiles = await request(`/rest/v1/profiles?select=id,email,role,name,status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          headers: headers(token)
+        });
+        resolvedProfile = existingProfiles[0] || null;
+      }
+      const athleteProfileId = resolvedProfile?.id || auth.user.id;
+      if (options.forceRole) {
+        try {
+          await request(`/rest/v1/profiles?email=eq.${encodeURIComponent(normalizedEmail)}`, {
+            method: "PATCH",
+            headers: { ...headers(token), Prefer: "return=minimal" },
+            body: JSON.stringify({ role: "athlete", name, status: "approved", must_change_password: false })
           });
         } catch (error) {
           // If RLS blocks the self-update, the manual admin SQL below will own the role correction.
         }
       }
-      const existingAthletes = await request(`/rest/v1/athletes?select=id&email=eq.${encodeURIComponent(email)}&limit=1`, {
+      const existingAthletes = await request(`/rest/v1/athletes?select=id&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
         headers: headers(token)
       });
       if (options.forceRole && existingAthletes.length) {
@@ -1300,7 +1382,7 @@ function supabaseApi() {
           await request(`/rest/v1/athletes?id=eq.${existingAthletes[0].id}`, {
             method: "PATCH",
             headers: { ...headers(token), Prefer: "return=minimal" },
-            body: JSON.stringify({ profile_id: auth.user.id, status: "approved", visual_status: "approved", annual: 0 })
+            body: JSON.stringify({ profile_id: athleteProfileId, status: "approved", visual_status: "approved", annual: 0 })
           });
         } catch (error) {
           // The admin SQL can repair older records if RLS blocks this update.
@@ -1311,8 +1393,8 @@ function supabaseApi() {
           method: "POST",
           headers: { ...headers(token), Prefer: "return=minimal" },
           body: JSON.stringify({
-            profile_id: auth.user.id,
-            email,
+            profile_id: athleteProfileId,
+            email: normalizedEmail,
             name,
             sport: meta.sport || "Por definir",
             category: meta.category || "",
@@ -1322,7 +1404,7 @@ function supabaseApi() {
             annual_fee_required: false,
             monthly: 5000,
             max_sponsors: 10,
-            scout_code: makeScoutCode(name, email),
+            scout_code: makeScoutCode(name, normalizedEmail),
             scout_active: false,
             annual_fee_paid: false,
             scout_validation_status: "pending",
@@ -1333,7 +1415,15 @@ function supabaseApi() {
           })
         });
       }
-      return profileRecord;
+      return {
+        ...(resolvedProfile || profileRecord),
+        id: athleteProfileId,
+        email: normalizedEmail,
+        role: "athlete",
+        name,
+        status: "approved",
+        must_change_password: false
+      };
     },
     async insert(table, record) {
       const rows = await request(`/rest/v1/${table}`, {
@@ -1918,7 +2008,7 @@ function humanError(error) {
     return "Supabase limit\u00f3 temporalmente el env\u00edo de correos de verificaci\u00f3n por demasiados intentos. Para el lanzamiento, desactiva la confirmaci\u00f3n por correo en Supabase o espera unos minutos antes de intentar de nuevo.";
   }
   if (message.includes("profiles_email_key") || message.includes("23505")) {
-    return "Este correo ya tenia un perfil iniciado en ROIS. Estamos reactivando o actualizando el registro; vuelve a intentar iniciar sesion o usa recuperar contrasena si ya existe una cuenta.";
+    return "Este correo ya existe en ROIS. Inicia sesion con tu contrasena actual o usa recuperar contrasena. Si el perfil quedo incompleto, ROIS puede reactivarlo desde administracion.";
   }
   if (message.includes("user_already_exists") || message.includes("already registered")) {
     return "Ese correo ya existe en Supabase Auth. Recupera el acceso con ese mismo correo para reactivar tu perfil dentro de ROIS.";
