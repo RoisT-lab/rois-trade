@@ -960,6 +960,7 @@ function supabaseApi() {
     },
     async signupAthlete(payload) {
       const birthDate = normalizedBirthDate(payload.birthDate);
+      const isFounder = payload.profileType === "founder" || payload.vertical === "founder";
       const auth = await request("/auth/v1/signup", {
         method: "POST",
         headers: headers(),
@@ -968,7 +969,13 @@ function supabaseApi() {
           password: payload.password,
           data: {
             name: payload.name,
-            role: "athlete"
+            role: "athlete",
+            profile_type: isFounder ? "founder" : "athlete",
+            vertical: isFounder ? "founder" : "athlete",
+            sport: payload.sport || "Por definir",
+            category: payload.category || "",
+            location: payload.location || "",
+            stats: payload.stats || ""
           }
         })
       });
@@ -1021,48 +1028,78 @@ function supabaseApi() {
         status: "approved",
         must_change_password: false
       };
-      await request("/rest/v1/profiles?on_conflict=id", {
-        method: "POST",
-        headers: { ...headers(accessToken), Prefer: "resolution=ignore-duplicates,return=minimal" },
-        body: JSON.stringify(profileRecord)
-      });
-      await request("/rest/v1/athletes", {
-        method: "POST",
-        headers: { ...headers(accessToken), Prefer: "return=minimal" },
-        body: JSON.stringify({
-          profile_id: authUser.id,
-          email: payload.email,
-          name: payload.name,
-          sport: payload.sport || "Por definir",
-          category: payload.category || "",
-          location: payload.location || "",
-          ranking: "",
-          stats: payload.stats || "",
-          annual: athleteAnnualFeeAmount,
-          annual_fee_required: false,
-          monthly: 5000,
-          max_sponsors: 10,
-          scout_code: makeScoutCode(payload.name, payload.email),
-          scout_active: false,
-          invited_by_scout_code: payload.scoutCode,
-          scout_terms_accepted: false,
-          annual_fee_paid: false,
-          scout_validation_status: "pending",
-          scout_commission_status: "pending",
-          birth_date: birthDate,
-          age_status: payload.isMinor ? "minor" : "adult",
-          guardian_name: payload.isMinor ? payload.guardianName : "",
-          guardian_email: payload.isMinor ? payload.guardianEmail : "",
-          guardian_phone: payload.isMinor ? payload.guardianPhone : "",
-          guardian_relationship: payload.isMinor ? payload.guardianRelationship : "",
-          guardian_consent: Boolean(payload.guardianConsent),
-          legal_status: payload.isMinor ? "minor_guardian_review" : "adult_self_registered",
-          registration_terms_accepted: Boolean(payload.termsAccepted),
-          terms_accepted: false,
-          status: "approved",
-          visual_status: "approved"
-        })
-      });
+      const athleteRecord = {
+        profile_id: authUser.id,
+        email: payload.email,
+        name: payload.name,
+        sport: payload.sport || "Por definir",
+        category: payload.category || "",
+        location: payload.location || "",
+        ranking: "",
+        stats: payload.stats || "",
+        annual: athleteAnnualFeeAmount,
+        annual_fee_required: false,
+        monthly: 5000,
+        max_sponsors: 10,
+        scout_code: makeScoutCode(payload.name, payload.email),
+        scout_active: false,
+        invited_by_scout_code: payload.scoutCode,
+        scout_terms_accepted: false,
+        annual_fee_paid: false,
+        scout_validation_status: "pending",
+        scout_commission_status: "pending",
+        birth_date: birthDate,
+        age_status: payload.isMinor ? "minor" : "adult",
+        guardian_name: payload.isMinor ? payload.guardianName : "",
+        guardian_email: payload.isMinor ? payload.guardianEmail : "",
+        guardian_phone: payload.isMinor ? payload.guardianPhone : "",
+        guardian_relationship: payload.isMinor ? payload.guardianRelationship : "",
+        guardian_consent: Boolean(payload.guardianConsent),
+        legal_status: payload.isMinor ? "minor_guardian_review" : "adult_self_registered",
+        registration_terms_accepted: Boolean(payload.termsAccepted),
+        terms_accepted: false,
+        status: "approved",
+        visual_status: "approved",
+        profile_type: isFounder ? "founder" : "athlete",
+        vertical: isFounder ? "founder" : "athlete"
+      };
+      try {
+        await request("/rest/v1/profiles?on_conflict=email", {
+          method: "POST",
+          headers: { ...headers(accessToken), Prefer: "resolution=merge-duplicates,return=minimal" },
+          body: JSON.stringify(profileRecord)
+        });
+      } catch (profileError) {
+        await request("/rest/v1/profiles?on_conflict=id", {
+          method: "POST",
+          headers: { ...headers(accessToken), Prefer: "resolution=ignore-duplicates,return=minimal" },
+          body: JSON.stringify(profileRecord)
+        });
+      }
+      try {
+        await request("/rest/v1/athletes?on_conflict=email", {
+          method: "POST",
+          headers: { ...headers(accessToken), Prefer: "resolution=merge-duplicates,return=minimal" },
+          body: JSON.stringify(athleteRecord)
+        });
+      } catch (athleteError) {
+        const existingAthletes = await request(`/rest/v1/athletes?select=id&email=eq.${encodeURIComponent(payload.email)}&limit=1`, {
+          headers: headers(accessToken)
+        });
+        if (existingAthletes.length) {
+          await request(`/rest/v1/athletes?id=eq.${existingAthletes[0].id}`, {
+            method: "PATCH",
+            headers: { ...headers(accessToken), Prefer: "return=minimal" },
+            body: JSON.stringify(athleteRecord)
+          });
+        } else {
+          await request("/rest/v1/athletes", {
+            method: "POST",
+            headers: { ...headers(accessToken), Prefer: "return=minimal" },
+            body: JSON.stringify(athleteRecord)
+          });
+        }
+      }
       state.data = await this.loadAll();
       return {
         confirmed: true,
@@ -1840,10 +1877,18 @@ function humanError(error) {
   if (message.includes("over_email_send_rate_limit") || message.includes("email rate limit exceeded") || message.includes("429")) {
     return "Supabase limit\u00f3 temporalmente el env\u00edo de correos de verificaci\u00f3n por demasiados intentos. Para el lanzamiento, desactiva la confirmaci\u00f3n por correo en Supabase o espera unos minutos antes de intentar de nuevo.";
   }
+  if (message.includes("user_already_exists") || message.includes("already registered")) {
+    return "Ese correo ya existe en Supabase Auth. Recupera el acceso con ese mismo correo para reactivar tu perfil dentro de ROIS.";
+  }
   if (message.includes("row-level security") || message.includes("42501")) {
     return "La base de datos todav\u00eda est\u00e1 bloqueando este registro. Actualiza las pol\u00edticas de Supabase y vuelve a intentarlo.";
   }
   return message || "Ocurri\u00f3 un error inesperado.";
+}
+
+function isUserAlreadyExistsError(error) {
+  const message = typeof error?.message === "string" ? error.message : JSON.stringify(error);
+  return message.includes("user_already_exists") || message.includes("already registered");
 }
 
 function escapeHtml(value = "") {
@@ -6088,6 +6133,8 @@ async function submitRegistrationLegacy(event) {
         email: form.email.value,
         password: form.password.value,
         name: form.name.value,
+        profileType: "founder",
+        vertical: "founder",
         scoutCode: "",
         birthDate: null,
         isMinor: false,
@@ -6142,6 +6189,20 @@ async function submitRegistrationLegacy(event) {
     renderAdmin();
     renderPublic();
   } catch (error) {
+    if (type === "founder" && isUserAlreadyExistsError(error)) {
+      try {
+        await api.recoverPassword(form.email.value);
+      } catch (recoveryError) {
+        // Si el correo ya existe pero recovery falla, dejamos el mensaje principal para seguir el flujo manual.
+      }
+      closeModals();
+      notify(
+        "Registro founder",
+        "Correo ya existente",
+        "Ese correo ya existe en ROIS Auth. Te enviamos un enlace de recuperacion para reactivar la cuenta con ese mismo correo. Despues de cambiar la contrasena, inicia sesion con ese correo y tu perfil founder podra volver a operar normalmente."
+      );
+      return;
+    }
     notify("Registro", "No fue posible registrar", humanError(error));
   }
 }
