@@ -1,75 +1,160 @@
-# ROIS MVP privado
+# ROIS
 
-App web estática lista para publicarse desde GitHub y conectarse a Supabase.
+Aplicacion web estatica conectada a Supabase para empresas, athletes, founders y administracion.
 
-## Publicación desde GitHub
+## Despliegue de esta actualizacion
 
-Sube estos archivos al repositorio conectado a tu dominio:
+Sube estos archivos:
 
-- `index.html`
-- `styles.css`
 - `app.js`
-- `app-config.js`
-- `assets/`
+- `index.html`
+- `supabase-schema.sql`
+- `supabase-profile-persistence-storage.sql`
+- `PROFILE-PERSISTENCE-VALIDATION.md`
+- `README.md`
 
-## Activar Supabase
+No es necesario modificar `app-config.js`, Stripe ni assets.
 
-1. Crea un proyecto en Supabase.
-2. En Supabase, abre SQL Editor y ejecuta `supabase-schema.sql`.
-3. En Authentication, crea el usuario administrador.
-4. Copia el UUID del usuario admin creado en Authentication.
-5. En Table Editor, inserta un registro en `profiles`:
+## Migracion obligatoria
 
-```sql
-insert into profiles (id, email, role, name, status, must_change_password)
-values (
-  'UUID_DEL_USUARIO_AUTH',
-  'correo_admin_autorizado',
-  'admin',
-  'Administrador ROIS',
-  'approved',
-  true
-);
+Antes de probar el guardado de perfiles, ejecuta una sola vez en Supabase SQL Editor:
+
+```text
+supabase-profile-persistence-storage.sql
 ```
 
-6. Edita `app-config.js` con tu URL y anon key pública:
+La migracion:
 
-```js
-window.ROIS_CONFIG = {
-  demoMode: false,
-  supabaseUrl: "https://TU-PROYECTO.supabase.co",
-  supabaseAnonKey: "TU_ANON_KEY",
-  stripePaymentLinks: {
-    eventRegistration: "https://buy.stripe.com/...",
-    athleteAnnualProfile: "https://buy.stripe.com/...",
-    roisPartnerMonthly: "https://buy.stripe.com/...",
-    officialSponsorMonthly: "https://buy.stripe.com/...",
-    roisLegacyMonthly: "https://buy.stripe.com/...",
-    strategicRequest: "https://buy.stripe.com/..."
-  }
-};
+- agrega rutas y metadatos de avatar/propuesta;
+- completa las columnas de medios de founders;
+- crea indices por `profile_id`, `email` y `contact` legacy;
+- activa RLS para founders;
+- actualiza las politicas Athlete/Founder;
+- crea el bucket publico `profile-media`;
+- restringe escrituras de Storage a `role/profile_id`;
+- conserva todos los registros y Base64 existentes;
+- incluye consultas de diagnostico, sin reparaciones silenciosas.
+
+Cuando Supabase muestre la advertencia de RLS, revisa el SQL y ejecutalo con RLS habilitado. No vuelvas a ejecutar todo `supabase-schema.sql` sobre produccion.
+
+## Persistencia de perfiles
+
+Athletes se guardan en `athletes`. Founders se guardan en `founders`.
+
+La resolucion de una ficha real usa este orden:
+
+1. `profile_id = auth.uid()`
+2. `email = correo de sesion`
+3. `contact = correo de sesion` para athletes legacy
+4. creacion segura de la fila real si el rol autenticado lo permite
+
+Los formularios nunca intentan hacer PATCH sobre perfiles virtuales.
+
+## Supabase Storage
+
+Bucket:
+
+```text
+profile-media
 ```
 
-La anon key puede estar en frontend si las políticas RLS están activas. Nunca publiques la service role key.
+Rutas:
 
-## Flujo de clientes
+```text
+athletes/{profile_id}/avatar/{filename}
+athletes/{profile_id}/proposals/{filename}
+athletes/{profile_id}/sponsors/{filename}
+founders/{profile_id}/avatar/{filename}
+founders/{profile_id}/proposals/{filename}
+founders/{profile_id}/sponsors/{filename}
+```
 
-- Las empresas crean cuenta directa con correo y contraseña.
-- El perfil de empresa queda aprobado automáticamente como cliente.
-- Admin aprueba eventos, deportistas, noticias, alianzas y visuales.
-- Los deportistas incluyen ficha técnica, video por URL y patrocinio anual desde $1,000 MXN.
-- Admin puede habilitar o inhabilitar el fee anual de ingreso por deportista.
-- Los reels publicados por deportistas aparecen directamente en el feed empresarial.
-- Patrocinios ROIS: Partner $25,000 MXN mensual, Oficial $50,000 MXN mensual y Legacy $100,000 MXN mensual con exclusividad de giro por compromiso anual.
-- Los pagos se activan por tipo de producto con Stripe Payment Links desde `app-config.js`.
-- Si Supabase tiene confirmación por correo activa, la empresa debe confirmar su email antes de iniciar sesión.
-- Admin puede enviar notificaciones a deportistas desde el panel. Se guardan en el dashboard del deportista y pueden disparar correo si `notificationEmailWebhook` esta configurado en `app-config.js`.
+Limites:
 
-## Pendiente para producción completa
+- avatar: JPG, PNG o WEBP, maximo 5 MB;
+- propuesta: PDF, maximo 15 MB;
+- logo: JPG, PNG o WEBP, maximo 3 MB;
+- maximo 10 logos;
+- imagenes mayores a 1600 px se reducen en el navegador.
 
-- Conectar Supabase Storage para imágenes.
-- Conectar Supabase Storage para videos propios. Por ahora se recomienda URL de YouTube, Vimeo o archivo alojado.
-- Agregar moderación automática de imágenes antes de publicar.
-- Conectar `notificationEmailWebhook` a una Supabase Edge Function o proveedor transaccional para email real de notificaciones a deportistas.
-- Para conciliación automática de Stripe, crear webhook o Edge Function.
-- Agregar TOTP/MFA real para administradores y operaciones sensibles de clientes.
+Las tablas guardan URL, ruta, nombre y MIME. No se generan nuevos Base64 para medios de perfiles.
+
+## Rendimiento
+
+Referencia tecnica basada en el flujo anterior y el nuevo numero de solicitudes:
+
+| Flujo | Antes | Despues esperado |
+| --- | ---: | ---: |
+| Login | 3-5 minutos en casos reportados | dashboard visible en menos de 4 segundos con red normal |
+| Guardar perfil | PATCH + descarga global de tablas | PATCH puntual + actualizacion local |
+| Athlete inicial | carga de todas las tablas | perfil y modulos propios limitados |
+| Founder inicial | carga de todas las tablas | founder y modulos propios limitados |
+| Empresa inicial | carga global | empresa y catalogos publicos resumidos |
+| Medios | Base64 en JSON/cache | archivo en Storage + URL en tabla |
+
+Los tiempos reales deben medirse en produccion despues de ejecutar la migracion.
+
+## Pruebas de aceptacion
+
+Athlete:
+
+- perfil real existente;
+- perfil nuevo sin fila;
+- perfil legacy con `contact`;
+- guardado solo texto;
+- cambio de nombre;
+- avatar valido;
+- avatar roto;
+- avatar mayor a 5 MB;
+- PDF de propuesta;
+- maximo 10 logos.
+
+Founder:
+
+- founder existente;
+- founder nuevo;
+- founder sin fila real;
+- industria, etapa, ciudad y traccion;
+- avatar;
+- PDF;
+- tarjeta visible para empresas.
+
+Empresa:
+
+- mercado de athletes;
+- mercado de founders;
+- apertura de perfiles;
+- fallback de imagen rota.
+
+Login:
+
+- admin;
+- empresa;
+- athlete;
+- founder;
+- conexion lenta.
+
+Admin:
+
+- Estadisticas muestra el diagnostico de integridad;
+- detecta filas faltantes, IDs incorrectos, correos distintos, duplicados, Base64 y datos incompletos;
+- no repara datos automaticamente.
+
+## Capturas requeridas para revision
+
+Despues de desplegar y ejecutar la migracion, captura:
+
+1. Athlete despues de guardar.
+2. Founder despues de guardar.
+3. Tarjeta Athlete actualizada.
+4. Tarjeta Founder actualizada.
+5. Fallback de una imagen rota.
+6. Dashboard abierto despues de login a zoom 100%.
+
+## Seguridad
+
+- La anon key puede existir en frontend cuando RLS esta activo.
+- Nunca publiques `service_role`.
+- Cada Athlete/Founder solo puede modificar su propia fila.
+- Storage valida que el segundo segmento de la ruta coincida con `auth.uid()`.
+- Admin conserva acceso operativo mediante `is_admin()`.

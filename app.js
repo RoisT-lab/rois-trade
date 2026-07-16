@@ -11,6 +11,9 @@ const configuredDemoAdmin = config.demoAdminEmail && config.demoAdminPassword;
 const adminEmail = (config.adminEmail || config.demoAdminEmail || "").toLowerCase();
 const fixedLogoPath = config.logoDataUrl || "./assets/rois-logo.png";
 const dataCacheKey = "rois_runtime_data_cache_v2";
+const profileMediaBucket = "profile-media";
+const operationTimeoutMs = 15000;
+const profileImageFallback = "./assets/rois-logo.png";
 
 const state = {
   session: readSession(),
@@ -22,6 +25,8 @@ const state = {
 let coverCarouselTimers = [];
 const coverCacheKey = "rois_cover_cache_v1";
 let adminDataHydrated = false;
+let dashboardHydrationPromise = null;
+const hydratedRoles = new Set();
 
 const seed = {
   profiles: configuredDemoAdmin ? [
@@ -76,10 +81,22 @@ function writeDataCache(data) {
   }
 }
 
+function cacheSafeRecord(record = {}) {
+  return Object.fromEntries(Object.entries(record).map(([key, value]) => {
+    if (typeof value === "string" && value.startsWith("data:")) return [key, ""];
+    if (key === "sponsor_logos" && typeof value === "string" && value.includes("data:image")) return [key, ""];
+    return [key, value];
+  }));
+}
+
 function cacheSafeData(data) {
   const normalized = normalizeLoadedData(data);
+  const safe = Object.fromEntries(Object.entries(normalized).map(([key, rows]) => [
+    key,
+    Array.isArray(rows) ? rows.map(cacheSafeRecord) : rows
+  ]));
   return {
-    ...normalized,
+    ...safe,
     site_settings: (normalized.site_settings || []).map(item => ({
       id: item.id,
       value: item.value,
@@ -198,7 +215,7 @@ function enforceCompanyClientSession() {
   if (!state.session || !state.data?.companies) return;
   const email = state.session.email?.toLowerCase();
   const isCompany = state.data.companies.some(company => (company.contact || "").toLowerCase() === email);
-  if (isCompany && state.session.role !== "athlete") {
+  if (isCompany && !["athlete", "founder"].includes(state.session.role)) {
     state.session = { ...state.session, role: "client" };
   }
 }
@@ -210,13 +227,13 @@ function currentCompany() {
 }
 
 function sessionLogoPath() {
-  return currentCompany()?.logo_url || currentFounder()?.image_url || currentAthlete()?.image_url || "./assets/rois-isotipo-cropped.png";
+  return currentCompany()?.logo_url || currentFounder()?.image_url || currentAthlete()?.image_url || profileImageFallback;
 }
 
 function currentFounder() {
   if (!state.session || !state.data?.founders) return null;
   const email = String(state.session.email || "").toLowerCase();
-  const sessionId = state.session.id;
+  const sessionId = state.session.authId || state.session.id;
   const founder = state.data.founders.find(item => String(item.email || "").toLowerCase() === email)
     || state.data.founders.find(item => item.profile_id && item.profile_id === sessionId)
     || null;
@@ -242,6 +259,52 @@ function currentFounder() {
   };
 }
 
+function mergeLoadedData(nextData = {}) {
+  const current = normalizeLoadedData(state.data || {});
+  Object.entries(nextData).forEach(([table, rows]) => {
+    if (Array.isArray(rows)) current[table] = rows;
+  });
+  state.data = current;
+  state.dataSignature = runtimeDataSignature(state.data);
+  writeDataCache(state.data);
+  return state.data;
+}
+
+function replaceRecordInState(table, updatedRecord) {
+  if (!table || !updatedRecord) return updatedRecord;
+  state.data = normalizeLoadedData(state.data || {});
+  const rows = Array.isArray(state.data[table]) ? state.data[table] : [];
+  const normalizedEmail = String(updatedRecord.email || updatedRecord.contact || "").trim().toLowerCase();
+  const index = rows.findIndex(item =>
+    (updatedRecord.id && item.id === updatedRecord.id) ||
+    (updatedRecord.profile_id && item.profile_id === updatedRecord.profile_id) ||
+    (normalizedEmail && String(item.email || item.contact || "").trim().toLowerCase() === normalizedEmail)
+  );
+  state.data[table] = index >= 0
+    ? rows.map((item, itemIndex) => itemIndex === index ? { ...item, ...updatedRecord } : item)
+    : [updatedRecord, ...rows];
+  state.dataSignature = runtimeDataSignature(state.data);
+  writeDataCache(state.data);
+  return updatedRecord;
+}
+
+function removeRecordFromState(table, id) {
+  state.data = normalizeLoadedData(state.data || {});
+  state.data[table] = (state.data[table] || []).filter(item => item.id !== id);
+  state.dataSignature = runtimeDataSignature(state.data);
+  writeDataCache(state.data);
+}
+
+function withTimeout(promise, timeoutMs = operationTimeoutMs, message = "La red esta tardando demasiado.") {
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise).finally(() => clearTimeout(timer)),
+    new Promise((_, reject) => {
+      timer = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    })
+  ]);
+}
+
 function founderAsAthleteProfile(founder) {
   if (!founder) return null;
   return {
@@ -264,7 +327,7 @@ function currentAthlete() {
   }
   if (!state.session || !state.data?.athletes) return null;
   const email = String(state.session.email || "").toLowerCase();
-  const sessionId = state.session.id;
+  const sessionId = state.session.authId || state.session.id;
   const profile = (state.data.profiles || []).find(item => item.id === sessionId || String(item.email || "").toLowerCase() === email);
   const athlete = state.data.athletes.find(athlete => (athlete.email || athlete.contact || "").toLowerCase() === email)
     || state.data.athletes.find(athlete => athlete.profile_id && athlete.profile_id === sessionId)
@@ -292,6 +355,183 @@ function currentAthlete() {
     scout_status: "pending",
     is_virtual: true
   };
+}
+
+function getCurrentProfileContext() {
+  const role = state.session?.role;
+  if (!["athlete", "founder"].includes(role)) return null;
+  const table = role === "founder" ? "founders" : "athletes";
+  const record = role === "founder" ? currentFounder() : currentAthlete();
+  return {
+    role,
+    table,
+    sessionId: state.session?.authId || state.session?.id || null,
+    email: String(state.session?.email || "").trim().toLowerCase(),
+    record,
+    isVirtual: Boolean(record?.is_virtual),
+    profileId: state.session?.authId || record?.profile_id || state.session?.id || null
+  };
+}
+
+function baseProfileRecord(context) {
+  const name = state.session?.name || context.email.split("@")[0] || "Perfil ROIS";
+  if (context.role === "founder") {
+    return {
+      profile_id: context.sessionId,
+      email: context.email,
+      name,
+      venture_name: "",
+      industry: "Founder ROIS",
+      stage: "Por definir",
+      city: "Por definir",
+      stats: "",
+      monthly: 2500,
+      max_sponsors: 10,
+      status: "approved",
+      visual_status: "approved"
+    };
+  }
+  return {
+    profile_id: context.sessionId,
+    email: context.email,
+    contact: context.email,
+    name,
+    sport: "Por definir",
+    category: "Por definir",
+    location: "Ciudad por definir",
+    ranking: "",
+    stats: "",
+    monthly: 5000,
+    max_sponsors: 10,
+    status: "approved",
+    visual_status: "approved",
+    terms_accepted: false
+  };
+}
+
+async function resolveRealProfileRecord(context = getCurrentProfileContext()) {
+  if (!context) throw new Error("No encontramos el contexto autenticado del perfil.");
+  const rows = state.data?.[context.table] || [];
+  let record = rows.find(item => item.profile_id && item.profile_id === context.sessionId)
+    || rows.find(item => String(item.email || "").trim().toLowerCase() === context.email)
+    || (context.table === "athletes"
+      ? rows.find(item => String(item.contact || "").trim().toLowerCase() === context.email)
+      : null);
+  if (record?.id && !record.is_virtual) {
+    if (context.sessionId && record.profile_id !== context.sessionId) {
+      try {
+        const corrected = await api.update(context.table, record.id, { profile_id: context.sessionId });
+        if (corrected?.id) {
+          record = corrected;
+          console.info("[ROIS profile] profile_id corregido", {
+            table: context.table,
+            id: corrected.id,
+            profileId: context.sessionId
+          });
+        }
+      } catch (error) {
+        console.warn("[ROIS profile] No fue posible corregir profile_id", humanError(error));
+      }
+    }
+    return record;
+  }
+  if (!context.sessionId || !context.email) throw new Error("No encontramos el registro real del perfil.");
+  const persisted = await withTimeout(
+    api.upsertByEmail(context.table, baseProfileRecord(context)),
+    operationTimeoutMs,
+    "La red esta tardando demasiado al crear el perfil."
+  );
+  if (!persisted?.id) throw new Error("No encontramos el registro real del perfil.");
+  replaceRecordInState(context.table, persisted);
+  console.info("[ROIS profile] Registro real creado", { table: context.table, id: persisted.id, email: context.email });
+  return persisted;
+}
+
+function profilePatchForTable(context, patch) {
+  if (context.table !== "founders") return patch;
+  const founderPatch = { ...patch };
+  if ("sport" in founderPatch) {
+    founderPatch.industry = founderPatch.sport;
+    delete founderPatch.sport;
+  }
+  if ("category" in founderPatch) {
+    founderPatch.stage = founderPatch.category;
+    delete founderPatch.category;
+  }
+  if ("location" in founderPatch) {
+    founderPatch.city = founderPatch.location;
+    delete founderPatch.location;
+  }
+  if ("ranking" in founderPatch) {
+    founderPatch.ranking = founderPatch.ranking;
+  }
+  return founderPatch;
+}
+
+function updateProfileInLocalState(table, updatedRecord) {
+  return replaceRecordInState(table, updatedRecord);
+}
+
+async function saveProfileRecord(patch, context = getCurrentProfileContext()) {
+  const record = await resolveRealProfileRecord(context);
+  const persistedPatch = profilePatchForTable(context, patch);
+  let updated;
+  try {
+    updated = await withTimeout(
+      api.update(context.table, record.id, persistedPatch),
+      operationTimeoutMs,
+      "La red esta tardando demasiado al guardar el perfil."
+    );
+  } catch (error) {
+    const message = String(error?.message || "");
+    if (!/PGRST204|schema cache|image_path|proposal_path|image_mime|proposal_mime|image_name/i.test(message)) throw error;
+    const compatiblePatch = Object.fromEntries(Object.entries(persistedPatch).filter(([key]) =>
+      !["image_path", "image_name", "image_mime", "proposal_path", "proposal_mime"].includes(key)
+    ));
+    console.warn("[ROIS profile] Guardado compatible sin columnas de Storage; ejecuta la migracion SQL.");
+    updated = await withTimeout(
+      api.update(context.table, record.id, compatiblePatch),
+      operationTimeoutMs,
+      "La red esta tardando demasiado al guardar el perfil."
+    );
+  }
+  if (!updated?.id) throw new Error("El perfil no devolvio un registro persistido.");
+  updateProfileInLocalState(context.table, updated);
+  return updated;
+}
+
+function refreshProfileViews(role = state.session?.role, updatedRecord = null) {
+  if (updatedRecord && role === "founder") replaceRecordInState("founders", updatedRecord);
+  if (updatedRecord && role === "athlete") replaceRecordInState("athletes", updatedRecord);
+  renderSession();
+  if (document.querySelector('[data-view="athlete"].active')) {
+    renderAthleteHeader();
+    renderAthleteKpis();
+    renderAthleteProfile();
+  }
+  if (document.querySelector('[data-view="client"].active')) {
+    renderClientMarketplace();
+    renderClientFounders();
+  }
+  if (document.querySelector('[data-view="admin"].active')) {
+    renderAdminAthletes();
+    renderAdminFounders();
+  }
+  const profileModal = document.getElementById("actionModal");
+  if (
+    updatedRecord &&
+    profileModal?.classList.contains("active") &&
+    profileModal.classList.contains("profile-modal") &&
+    profileModal.dataset.profileRecordId === String(updatedRecord.id)
+  ) {
+    openAthleteProfileView(role === "founder" ? founderAsAthleteProfile(updatedRecord) : updatedRecord);
+  }
+  applySessionBranding();
+  optimizeRenderedMedia();
+}
+
+function renderProfileViewsForRole(role = state.session?.role) {
+  refreshProfileViews(role);
 }
 
 function athleteAnnualFeeExempt(email = state.session?.email, athleteRecord = null) {
@@ -454,6 +694,7 @@ async function init() {
   const cachedData = readDataCache();
   const shouldRefreshInBackground = Boolean(cachedData);
   state.data = cachedData || await loadInitialData();
+  if (state.session && !cachedData) hydratedRoles.add(state.session.role);
   state.dataSignature = runtimeDataSignature(state.data);
   if (state.session && sessionIsBlocked()) {
     state.session = null;
@@ -485,61 +726,63 @@ async function init() {
 
 async function loadInitialData() {
   try {
-    return await api.loadAll();
+    if (state.session && api.loadRoleData) {
+      return normalizeLoadedData(await api.loadRoleData(state.session.role, state.session));
+    }
+    if (api.loadPublicData) return normalizeLoadedData(await api.loadPublicData());
+    return await api.loadAll({ lightweight: true });
   } catch (error) {
     return state.data || readDataCache() || normalizeLoadedData({});
   }
 }
 
-async function hydrateDashboardData(forceFull = false) {
-  try {
-    const data = await api.loadAll({
-      lightweight: !forceFull,
-      admin: state.session?.role === "admin"
-    });
-
-    state.data = normalizeLoadedData(data);
-    await ensureCriticalFounderRecords();
-    state.dataSignature = runtimeDataSignature(state.data);
-    writeDataCache(state.data);
-
-    renderPublic();
-    renderSession();
-
-    if (state.session) {
-      const view = dashboardViewForRole(state.session.role);
+async function ensureDashboardHydrated(role = state.session?.role, options = {}) {
+  if (!role || !state.session) return false;
+  const force = options.force === true;
+  if (!force && hydratedRoles.has(role)) return true;
+  if (dashboardHydrationPromise) return dashboardHydrationPromise;
+  dashboardHydrationPromise = (async () => {
+    try {
+      const data = api.loadRoleData
+        ? await api.loadRoleData(role, state.session)
+        : await api.loadAll({ lightweight: role !== "admin", admin: role === "admin" });
+      mergeLoadedData(data);
+      hydratedRoles.add(role);
+      renderSession();
+      const view = dashboardViewForRole(role);
       if (view === "client") renderClient();
       if (view === "athlete") renderAthlete();
       if (view === "admin") renderAdmin();
+      optimizeRenderedMedia();
+      return true;
+    } catch (error) {
+      console.warn("[ROIS hydration]", humanError(error));
+      return false;
+    } finally {
+      dashboardHydrationPromise = null;
     }
+  })();
+  return dashboardHydrationPromise;
+}
 
-    optimizeRenderedMedia();
-    return true;
-  } catch (error) {
-    return false;
-  }
+async function hydrateDashboardData(forceFull = false) {
+  return ensureDashboardHydrated(state.session?.role, { force: forceFull });
 }
 
 async function refreshDataInBackground() {
   try {
+    if (state.session) {
+      await ensureDashboardHydrated(state.session.role, { force: true });
+      return;
+    }
     const nextData = normalizeLoadedData(await api.loadAll({ background: true }));
     const nextSignature = runtimeDataSignature(nextData);
-    if (nextSignature !== state.dataSignature) {
-      state.data = nextData;
-      state.dataSignature = nextSignature;
-      writeDataCache(state.data);
-      renderPublic();
-      renderSession();
-      if (state.session) {
-        const view = dashboardViewForRole(state.session.role);
-        if (view === "client") renderClient();
-        if (view === "athlete") renderAthlete();
-        if (view === "admin") renderAdmin();
-      }
-      optimizeRenderedMedia();
-    }
+    if (nextSignature === state.dataSignature) return;
+    mergeLoadedData(nextData);
+    renderPublic();
+    optimizeRenderedMedia();
   } catch (error) {
-    // Cached data is enough to keep the interface usable while the network recovers.
+    console.warn("[ROIS background refresh]", humanError(error));
   }
 }
 
@@ -547,9 +790,10 @@ function sessionIsBlocked() {
   const email = String(state.session?.email || "").toLowerCase();
   const profile = state.data?.profiles?.find(item => String(item.email || "").toLowerCase() === email || item.id === state.session?.id);
   const company = state.data?.companies?.find(item => String(item.contact || "").toLowerCase() === email);
-  const athlete = state.data?.athletes?.find(item => String(item.email || "").toLowerCase() === email);
-  if (!profile && (company || athlete)) return true;
-  return [profile, company, athlete].some(item => ["blocked", "deleted", "rejected"].includes(item?.status));
+  const athlete = state.data?.athletes?.find(item => String(item.email || item.contact || "").toLowerCase() === email);
+  const founder = state.data?.founders?.find(item => String(item.email || "").toLowerCase() === email);
+  if (!profile && (company || athlete || founder)) return true;
+  return [profile, company, athlete, founder].some(item => ["blocked", "deleted", "rejected"].includes(item?.status));
 }
 
 function applyBranding() {
@@ -568,7 +812,8 @@ function applySessionBranding() {
     button.classList.remove("avatar-fallback");
   });
   document.querySelectorAll(".mobile-avatar img").forEach(image => {
-    image.src = logo;
+    image.dataset.fallback = profileImageFallback;
+    image.src = profileImageUrl(logo);
     image.hidden = false;
   });
 }
@@ -597,6 +842,16 @@ function optimizeRenderedMedia(root = document) {
   root.querySelectorAll("img").forEach(image => {
     if (!image.hasAttribute("loading")) image.loading = "lazy";
     image.decoding = "async";
+  });
+  root.querySelectorAll("[data-profile-image], .athlete-card img, .athlete-profile-photo img, .mobile-avatar img, .sponsor-bubble img").forEach(image => {
+    if (image.dataset.fallbackBound === "true") return;
+    image.dataset.fallbackBound = "true";
+    image.addEventListener("error", () => {
+      const brokenUrl = image.currentSrc || image.src;
+      console.warn("[ROIS media] Imagen no disponible", brokenUrl);
+      image.onerror = null;
+      image.src = image.dataset.fallback || profileImageFallback;
+    });
   });
   root.querySelectorAll("video").forEach(video => {
     if (!video.hasAttribute("preload")) video.preload = "metadata";
@@ -645,6 +900,8 @@ function demoApi() {
   }
   return {
     async loadAll() { return read(); },
+    async loadPublicData() { return read(); },
+    async loadRoleData() { return read(); },
     async validateScoutCode(code) {
       const data = read();
       const normalized = scoutCodeKey(code);
@@ -804,6 +1061,20 @@ function demoApi() {
       state.data = data;
       return data[table].find(item => item.id === id);
     },
+    async upsertByEmail(table, record) {
+      const data = read();
+      const email = String(record.email || record.contact || "").trim().toLowerCase();
+      const existing = data[table].find(item => String(item.email || item.contact || "").trim().toLowerCase() === email);
+      const item = existing
+        ? { ...existing, ...record }
+        : { id: crypto.randomUUID(), ...record };
+      data[table] = existing
+        ? data[table].map(row => row.id === existing.id ? item : row)
+        : [item, ...data[table]];
+      write(data);
+      replaceRecordInState(table, item);
+      return item;
+    },
     async changePassword(session, password) {
       const data = read();
       data.profiles = data.profiles.map(user => user.id === session.id ? { ...user, password, mustChangePassword: false } : user);
@@ -821,13 +1092,43 @@ function supabaseApi() {
     "Content-Type": "application/json"
   });
   async function request(path, options = {}) {
-    const response = await fetch(`${config.supabaseUrl}${path}`, options);
-    if (!response.ok) throw new Error(await response.text());
-    if (response.status === 204) return null;
-    const text = await response.text();
-    return text ? JSON.parse(text) : null;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), options.timeoutMs || operationTimeoutMs);
+    try {
+      const response = await fetch(`${config.supabaseUrl}${path}`, { ...options, signal: options.signal || controller.signal });
+      if (!response.ok) throw new Error(await response.text());
+      if (response.status === 204) return null;
+      const text = await response.text();
+      return text ? JSON.parse(text) : null;
+    } catch (error) {
+      if (error.name === "AbortError") throw new Error("La red esta tardando demasiado.");
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
   return {
+    async loadPublicData() {
+      const fallback = normalizeLoadedData(state.data || readDataCache() || {});
+      const publicQueries = {
+        athletes: "select=id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
+        founders: "select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
+        events: "select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status&status=eq.approved&order=created_at.desc&limit=80",
+        news: "select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=40",
+        partnerships: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&order=created_at.desc&limit=80",
+        site_settings: "select=id,value,created_at&limit=80",
+        uploads: "select=id,type,status,name,size,image_url,visual_status,created_at&order=created_at.desc&limit=80"
+      };
+      const result = {};
+      await Promise.all(Object.entries(publicQueries).map(async ([table, query]) => {
+        try {
+          result[table] = await request(`/rest/v1/${table}?${query}`, { headers: headers() });
+        } catch (error) {
+          result[table] = fallback[table] || [];
+        }
+      }));
+      return result;
+    },
     async loadAll(options = {}) {
       const lightweight = options.lightweight !== false;
       const adminMode = options.admin === true || state.session?.role === "admin";
@@ -835,25 +1136,25 @@ function supabaseApi() {
       const mediumLimit = adminMode ? 500 : 120;
       const smallLimit = adminMode ? 300 : 80;
       const tableQueries = {
-        profiles: `select=*&order=created_at.desc&limit=${mainLimit}`,
-        companies: `select=*&order=created_at.desc&limit=${mainLimit}`,
-        athletes: `select=*&order=created_at.desc&limit=${mainLimit}`,
-        founders: `select=*&order=created_at.desc&limit=${mainLimit}`,
-        events: `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        requests: `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        sponsorships: `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        news: `select=*&order=created_at.desc&limit=${smallLimit}`,
-        partnerships: `select=*&order=created_at.desc&limit=${smallLimit}`,
-        site_settings: lightweight ? `select=id,value,created_at,updated_at&limit=${Math.min(smallLimit, 80)}` : `select=*&limit=${smallLimit}`,
-        crm: `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        payments: `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        uploads: lightweight ? `select=id,type,status,title,name,created_at,updated_at&order=created_at.desc&limit=${Math.min(smallLimit, 80)}` : `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        athlete_posts: `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        athlete_results: `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        athlete_expenses: `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        athlete_deposits: `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        athlete_notifications: `select=*&order=created_at.desc&limit=${mediumLimit}`,
-        terms_acceptances: `select=*&order=created_at.desc&limit=${mediumLimit}`
+        profiles: `select=id,email,role,name,status,must_change_password,created_at&order=created_at.desc&limit=${mainLimit}`,
+        companies: `select=id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc&limit=${mainLimit}`,
+        athletes: `select=id,profile_id,email,contact,name,sport,stats,monthly,annual,category,location,ranking,video_url,image_url,image_path,visual_status,visual_notes,terms_accepted,scout_code,scout_active,scout_terms_accepted,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,max_sponsors,proposal_url,proposal_path,proposal_name,sponsor_payment_url,sponsor_terms,sponsor_logos,birth_date,age_status,guardian_name,guardian_email,guardian_phone,guardian_relationship,guardian_consent,status,created_at&order=created_at.desc&limit=${mainLimit}`,
+        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,scout_code,scout_active,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
+        events: `select=id,name,category,venue,date,image_url,brochure_url,brochure_name,event_scope,sponsor_levels,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        requests: `select=id,type,title,owner,details,priority,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        sponsorships: `select=id,athlete,athlete_email,amount,company,details,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        news: `select=id,title,summary,image_url,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${smallLimit}`,
+        partnerships: `select=id,name,type,tier,description,image_url,url,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${smallLimit}`,
+        site_settings: `select=id,value,created_at&limit=${Math.min(smallLimit, 80)}`,
+        crm: `select=id,name,volume,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        payments: `select=id,concept,amount,company,status,product_key,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        uploads: `select=id,type,status,name,size,image_url,visual_status,visual_notes,created_at&order=created_at.desc&limit=${lightweight ? Math.min(smallLimit, 80) : mediumLimit}`,
+        athlete_posts: `select=id,athlete_id,athlete_email,athlete_name,title,caption,video_url,image_url,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        athlete_results: `select=id,athlete_id,athlete_email,athlete_name,month,event,summary,proof_url,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        athlete_expenses: `select=id,athlete_id,athlete_email,athlete_name,date,category,amount,company,ticket_url,invoice_url,notes,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        athlete_deposits: `select=id,athlete_id,athlete_email,athlete_name,month,amount,company,proof_url,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        athlete_notifications: `select=id,athlete_id,athlete_email,athlete_name,title,message,category,priority,status,email_status,sent_by,read_at,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        terms_acceptances: `select=id,user_email,user_role,version,status,created_at&order=created_at.desc&limit=${mediumLimit}`
       };
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const result = {};
@@ -865,6 +1166,55 @@ function supabaseApi() {
         }
       }));
       return normalizeLoadedData(result);
+    },
+    async loadRoleData(role = state.session?.role, session = state.session) {
+      if (!session?.email) return normalizeLoadedData({});
+      if (role === "admin") return this.loadAll({ lightweight: false, admin: true });
+      const email = String(session.email || "").trim().toLowerCase();
+      const encodedEmail = encodeURIComponent(email);
+      const tokenHeaders = headers(session.token);
+      const authId = session.authId || session.id;
+      const roleRequest = path => request(path, { headers: tokenHeaders }).catch(error => {
+        console.warn("[ROIS role data]", path.split("?")[0], humanError(error));
+        return [];
+      });
+      const profileQuery = `/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`;
+      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
+      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
+      const ownProfile = roleRequest(profileQuery);
+      if (role === "athlete") {
+        const [profiles, athletes, terms, notifications, posts, results] = await Promise.all([
+          ownProfile,
+          roleRequest(`/rest/v1/athletes?select=${athleteColumns}&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail},contact.eq.${encodedEmail})&limit=2`),
+          roleRequest(`/rest/v1/terms_acceptances?select=id,user_email,user_role,version,status,created_at&user_email=eq.${encodedEmail}&order=created_at.desc&limit=20`),
+          roleRequest(`/rest/v1/athlete_notifications?select=id,athlete_email,title,message,category,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=40`),
+          roleRequest(`/rest/v1/athlete_posts?select=id,athlete_email,title,caption,image_url,video_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`),
+          roleRequest(`/rest/v1/athlete_results?select=id,athlete_id,athlete_email,athlete_name,month,event,summary,proof_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`)
+        ]);
+        return { profiles, athletes, terms_acceptances: terms, athlete_notifications: notifications, athlete_posts: posts, athlete_results: results };
+      }
+      if (role === "founder") {
+        const [profiles, founders, terms, posts, results] = await Promise.all([
+          ownProfile,
+          roleRequest(`/rest/v1/founders?select=${founderColumns}&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=2`),
+          roleRequest(`/rest/v1/terms_acceptances?select=id,user_email,user_role,version,status,created_at&user_email=eq.${encodedEmail}&order=created_at.desc&limit=20`),
+          roleRequest(`/rest/v1/athlete_posts?select=id,athlete_email,title,caption,image_url,video_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`),
+          roleRequest(`/rest/v1/athlete_results?select=id,athlete_id,athlete_email,athlete_name,month,event,summary,proof_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`)
+        ]);
+        return { profiles, founders, terms_acceptances: terms, athlete_posts: posts, athlete_results: results };
+      }
+      const publicAthleteColumns = "id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status";
+      const publicFounderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status";
+      const [profiles, companies, athletes, founders, events, news, partnerships] = await Promise.all([
+        ownProfile,
+        roleRequest(`/rest/v1/companies?select=id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodedEmail}&limit=1`),
+        roleRequest(`/rest/v1/athletes?select=${publicAthleteColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120`),
+        roleRequest(`/rest/v1/founders?select=${publicFounderColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120`),
+        roleRequest("/rest/v1/events?select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status&status=eq.approved&order=created_at.desc&limit=80"),
+        roleRequest("/rest/v1/news?select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=40"),
+        roleRequest("/rest/v1/partnerships?select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&order=created_at.desc&limit=80")
+      ]);
+      return { profiles, companies, athletes, founders, events, news, partnerships };
     },
     async validateScoutCode(code) {
       const normalized = normalizeScoutCode(code);
@@ -899,20 +1249,25 @@ function supabaseApi() {
         headers: headers(),
         body: JSON.stringify({ email: normalizedEmail, password })
       });
-      const companies = await request(`/rest/v1/companies?select=*&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
-        headers: headers(auth.access_token)
-      });
-      let athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
-        headers: headers(auth.access_token)
-      });
-      let founders = await request(`/rest/v1/founders?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
-        headers: headers(auth.access_token)
-      });
-      let profiles = await request(`/rest/v1/profiles?select=*&id=eq.${auth.user.id}&limit=1`, {
-        headers: headers(auth.access_token)
-      });
+      const [companies, initialAthletes, initialFounders, profilesById] = await Promise.all([
+        request(`/rest/v1/companies?select=id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          headers: headers(auth.access_token)
+        }),
+        request(`/rest/v1/athletes?select=id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          headers: headers(auth.access_token)
+        }),
+        request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          headers: headers(auth.access_token)
+        }),
+        request(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password&id=eq.${auth.user.id}&limit=1`, {
+          headers: headers(auth.access_token)
+        })
+      ]);
+      let athletes = initialAthletes;
+      let founders = initialFounders;
+      let profiles = profilesById;
       if (!profiles.length) {
-        profiles = await request(`/rest/v1/profiles?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        profiles = await request(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(auth.access_token)
         });
       }
@@ -939,7 +1294,7 @@ function supabaseApi() {
       if (profile.role === "athlete" && !athletes.length) {
         try {
           await this.ensureAthleteAccount(auth, { forceRole: true });
-          athletes = await request(`/rest/v1/athletes?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          athletes = await request(`/rest/v1/athletes?select=id,profile_id,email,contact,name,sport,category,location,ranking,stats,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
             headers: headers(auth.access_token)
           });
         } catch (error) {
@@ -949,7 +1304,7 @@ function supabaseApi() {
       if (profile.role === "founder" && !founders.length) {
         try {
           await this.ensureFounderAccount(auth, { name: profile.name });
-          founders = await request(`/rest/v1/founders?select=*&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          founders = await request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
             headers: headers(auth.access_token)
           });
         } catch (error) {
@@ -968,7 +1323,21 @@ function supabaseApi() {
           : companies.length
             ? "client"
             : normalizedRole(normalizedEmail, profile.role);
-      return { id: profile.id, email: normalizedEmail, role, name: profile.name, token: auth.access_token, mustChangePassword: !!profile.must_change_password };
+      return {
+        id: profile.id,
+        authId: auth.user.id,
+        email: normalizedEmail,
+        role,
+        name: profile.name,
+        token: auth.access_token,
+        mustChangePassword: !!profile.must_change_password,
+        bootstrapData: {
+          profiles: [profile],
+          companies,
+          athletes,
+          founders
+        }
+      };
     },
     async signupCompany({ company, email, contact, interest, password }) {
       const auth = await request("/auth/v1/signup", {
@@ -991,10 +1360,10 @@ function supabaseApi() {
         return { confirmed: false, email };
       }
       const profile = await this.ensureClientAccount({ user: authUser, access_token: accessToken }, { company, contact, interest });
-      state.data = await this.loadAll();
+      mergeLoadedData(await this.loadRoleData("client", { id: profile.id, email, token: accessToken }));
       return {
         confirmed: true,
-        session: { id: profile.id, email, role: "client", name: profile.name, token: accessToken, mustChangePassword: false }
+        session: { id: profile.id, authId: authUser.id, email, role: "client", name: profile.name, token: accessToken, mustChangePassword: false }
       };
     },
     async signupAthlete(payload) {
@@ -1164,10 +1533,10 @@ function supabaseApi() {
           });
         }
       }
-      state.data = await this.loadAll();
+      mergeLoadedData(await this.loadRoleData("athlete", { id: athleteProfileId, email: normalizedEmail, token: accessToken }));
       return {
         confirmed: true,
-        session: { id: athleteProfileId, email: normalizedEmail, role: "athlete", name: payload.name, token: accessToken, mustChangePassword: false }
+        session: { id: athleteProfileId, authId: authUser.id, email: normalizedEmail, role: "athlete", name: payload.name, token: accessToken, mustChangePassword: false }
       };
     },
     async signupFounder(payload) {
@@ -1197,10 +1566,10 @@ function supabaseApi() {
         return { confirmed: false, email: normalizedEmail };
       }
       const profile = await this.ensureFounderAccount({ user: authUser, access_token: accessToken }, payload);
-      state.data = await this.loadAll();
+      mergeLoadedData(await this.loadRoleData("founder", { id: profile.id, email: normalizedEmail, token: accessToken }));
       return {
         confirmed: true,
-        session: { id: profile.id, email: normalizedEmail, role: "founder", name: profile.name, token: accessToken, mustChangePassword: false }
+        session: { id: profile.id, authId: authUser.id, email: normalizedEmail, role: "founder", name: profile.name, token: accessToken, mustChangePassword: false }
       };
     },
     async resendSignup(email) {
@@ -1250,7 +1619,7 @@ function supabaseApi() {
       const normalizedEmail = String(user.email || "").trim().toLowerCase();
       let profiles = [];
       try {
-        profiles = await request(`/rest/v1/profiles?select=*&id=eq.${user.id}&limit=1`, {
+        profiles = await request(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password&id=eq.${user.id}&limit=1`, {
           headers: headers(accessToken)
         });
       } catch (error) {
@@ -1258,7 +1627,7 @@ function supabaseApi() {
       }
       if (!profiles.length) {
         try {
-          profiles = await request(`/rest/v1/profiles?select=*&email=eq.${encodeURIComponent(user.email)}&limit=1`, {
+          profiles = await request(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password&email=eq.${encodeURIComponent(user.email)}&limit=1`, {
             headers: headers(accessToken)
           });
         } catch (error) {
@@ -1294,7 +1663,7 @@ function supabaseApi() {
         companies = [];
       }
       const role = profile.role === "founder" ? "founder" : profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(normalizedEmail, profile.role);
-      return { id: profile.id || user.id, email: normalizedEmail, role, name: profile.name || user.user_metadata?.name || normalizedEmail.split("@")[0] || "Perfil ROIS", token: accessToken, mustChangePassword: true };
+      return { id: profile.id || user.id, authId: user.id, email: normalizedEmail, role, name: profile.name || user.user_metadata?.name || normalizedEmail.split("@")[0] || "Perfil ROIS", token: accessToken, mustChangePassword: true };
     },
     async ensureClientAccount(auth, fallback = {}) {
       const token = auth.access_token || auth.session?.access_token;
@@ -1607,11 +1976,12 @@ function supabaseApi() {
     async insert(table, record) {
       const rows = await request(`/rest/v1/${table}`, {
         method: "POST",
-        headers: { ...headers(), Prefer: "return=minimal" },
+        headers: { ...headers(), Prefer: "return=representation" },
         body: JSON.stringify(record)
       });
-      state.data = await this.loadAll();
-      return Array.isArray(rows) ? rows[0] : rows;
+      const inserted = Array.isArray(rows) ? rows[0] : rows;
+      if (inserted) replaceRecordInState(table, inserted);
+      return inserted;
     },
     async update(table, id, patch) {
       const rows = await request(`/rest/v1/${table}?id=eq.${id}`, {
@@ -1619,15 +1989,16 @@ function supabaseApi() {
         headers: { ...headers(), Prefer: "return=representation" },
         body: JSON.stringify(patch)
       });
-      state.data = await this.loadAll();
-      return rows[0];
+      const updated = rows?.[0];
+      if (updated) replaceRecordInState(table, updated);
+      return updated;
     },
     async remove(table, id) {
       await request(`/rest/v1/${table}?id=eq.${id}`, {
         method: "DELETE",
         headers: { ...headers(), Prefer: "return=minimal" }
       });
-      state.data = await this.loadAll();
+      removeRecordFromState(table, id);
       return true;
     },
     async upsert(table, record) {
@@ -1636,8 +2007,31 @@ function supabaseApi() {
         headers: { ...headers(), Prefer: "resolution=merge-duplicates,return=representation" },
         body: JSON.stringify(record)
       });
-      state.data = await this.loadAll();
-      return rows[0];
+      const updated = rows?.[0];
+      if (updated) replaceRecordInState(table, updated);
+      return updated;
+    },
+    async upsertByEmail(table, record) {
+      const email = String(record.email || record.contact || "").trim().toLowerCase();
+      if (!email) throw new Error("No encontramos el correo autenticado del perfil.");
+      let existing = record.profile_id
+        ? await request(`/rest/v1/${table}?select=id&profile_id=eq.${encodeURIComponent(record.profile_id)}&limit=1`, { headers: headers() })
+        : [];
+      if (!existing.length) {
+        existing = await request(`/rest/v1/${table}?select=id&email=eq.${encodeURIComponent(email)}&limit=1`, { headers: headers() });
+      }
+      if (!existing.length && table === "athletes") {
+        existing = await request(`/rest/v1/athletes?select=id&contact=eq.${encodeURIComponent(email)}&limit=1`, { headers: headers() });
+      }
+      const path = existing.length ? `/rest/v1/${table}?id=eq.${existing[0].id}` : `/rest/v1/${table}`;
+      const rows = await request(path, {
+        method: existing.length ? "PATCH" : "POST",
+        headers: { ...headers(), Prefer: "return=representation" },
+        body: JSON.stringify({ ...record, email })
+      });
+      const updated = rows?.[0];
+      if (updated) replaceRecordInState(table, updated);
+      return updated;
     },
     async changePassword(session, password) {
       await request("/auth/v1/user", {
@@ -1650,7 +2044,8 @@ function supabaseApi() {
         headers: { ...headers(session.token), Prefer: "return=minimal" },
         body: JSON.stringify({ must_change_password: false })
       });
-      state.data = await this.loadAll();
+      const profile = (state.data?.profiles || []).find(item => item.id === session.id);
+      if (profile) replaceRecordInState("profiles", { ...profile, must_change_password: false });
       return { ...session, mustChangePassword: false };
     }
   };
@@ -1732,17 +2127,17 @@ function showView(name) {
   document.querySelectorAll("[data-view]").forEach(view => view.classList.toggle("active", view.dataset.view === name));
   if (name === "client") {
     renderClient();
-    hydrateDashboardData(true);
+    ensureDashboardHydrated("client");
   }
   if (name === "athlete") {
     renderAthlete();
-    hydrateDashboardData(true);
+    ensureDashboardHydrated(state.session?.role === "founder" ? "founder" : "athlete");
   }
   if (name === "admin") {
     renderAdmin();
     if (!adminDataHydrated) {
       adminDataHydrated = true;
-      hydrateDashboardData(true).catch(() => {
+      ensureDashboardHydrated("admin").catch(() => {
         // Keep the current admin view responsive even if the background refresh fails.
       });
     }
@@ -1778,7 +2173,12 @@ async function submitLogin(event) {
   event.preventDefault();
   const form = event.currentTarget;
   try {
-    const session = await api.login(form.email.value, form.password.value);
+    const loginResult = await withTimeout(
+      api.login(form.email.value, form.password.value),
+      operationTimeoutMs,
+      "La red esta tardando demasiado al iniciar sesion."
+    );
+    const { bootstrapData, ...session } = loginResult;
     if (session.mustChangePassword) {
       state.pendingSession = session;
       state.session = null;
@@ -1790,13 +2190,10 @@ async function submitLogin(event) {
       return;
     }
     state.session = session;
+    hydratedRoles.clear();
+    if (bootstrapData) mergeLoadedData(bootstrapData);
     saveSession(state.session);
     closeModals();
-    try {
-      await hydrateDashboardData(true);
-    } catch (error) {
-      // If hydration fails, the dashboard can still open with current cached data.
-    }
     renderSession();
     showView(dashboardViewForRole(state.session.role));
   } catch (error) {
@@ -1804,7 +2201,7 @@ async function submitLogin(event) {
       showVerificationNotice(form.email.value);
       return;
     }
-    notify("Acceso", "No fue posible iniciar sesi\u00f3n", error.message);
+    notify("Acceso", "No fue posible iniciar sesi\u00f3n", humanError(error));
   }
 }
 
@@ -1900,6 +2297,9 @@ async function submitCompanyProfile(event) {
 
 function logout() {
   state.session = null;
+  hydratedRoles.clear();
+  dashboardHydrationPromise = null;
+  adminDataHydrated = false;
   clearSession();
   renderSession();
   showView("home");
@@ -2189,6 +2589,15 @@ async function insertEventRegistrationRecord(payload) {
 
 function humanError(error) {
   const message = typeof error?.message === "string" ? error.message : JSON.stringify(error);
+  if (/aborted|tardando demasiado|timeout/i.test(message)) {
+    return "La red esta tardando demasiado. Revisa tu conexion e intenta nuevamente.";
+  }
+  if (/jwt expired|session.*expired|invalid jwt/i.test(message)) {
+    return "La sesion expiro. Inicia sesion nuevamente.";
+  }
+  if (/payload too large|exceeds.*size|supera (3|5|15) mb/i.test(message)) {
+    return message;
+  }
   if (message.includes("over_email_send_rate_limit") || message.includes("email rate limit exceeded") || message.includes("429")) {
     return "Supabase limit\u00f3 temporalmente el env\u00edo de correos de verificaci\u00f3n por demasiados intentos. Para el lanzamiento, desactiva la confirmaci\u00f3n por correo en Supabase o espera unos minutos antes de intentar de nuevo.";
   }
@@ -2199,7 +2608,7 @@ function humanError(error) {
     return "Ese correo ya existe en Supabase Auth. Recupera el acceso con ese mismo correo para reactivar tu perfil dentro de ROIS.";
   }
   if (message.includes("row-level security") || message.includes("42501")) {
-    return "La base de datos todav\u00eda est\u00e1 bloqueando este registro. Actualiza las pol\u00edticas de Supabase y vuelve a intentarlo.";
+    return "Supabase bloqueo la operacion por RLS. Verifica que el perfil pertenezca a la sesion activa.";
   }
   return message || "Ocurri\u00f3 un error inesperado.";
 }
@@ -2479,7 +2888,7 @@ function premiumAllianceCatalog() {
 
 function clientCompanyLogoMarkup(company) {
   if (company?.logo_url) {
-    return `<img src="${company.logo_url}" alt="${escapeAttr(company.name || "Empresa")}">`;
+    return safeProfileImageMarkup(company.logo_url, company.name || "Empresa");
   }
   return `
     <button class="company-logo-upload-prompt" type="button" data-dashboard-shortcut="client-settings" aria-label="Subir logo de empresa">
@@ -2491,14 +2900,17 @@ function clientCompanyLogoMarkup(company) {
 
 function clientAthleteRecords() {
   return (state.data.athletes || [])
+    .filter(item => item.id && !item.is_virtual)
     .filter(item => !isFounderProfile(item))
-    .filter(item => item.status === "approved" && visualIsPublic(item));
+    .filter(item => String(item.status || "").toLowerCase() === "approved")
+    .filter(item => String(item.visual_status || "").toLowerCase() === "approved");
 }
 
 function clientFounderRecords() {
   return (state.data.founders || [])
+    .filter(item => item.id && !item.is_virtual)
     .filter(item => !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase()))
-    .filter(item => visualIsPublic(item));
+    .filter(item => String(item.visual_status || "").toLowerCase() === "approved");
 }
 
 function renderClientOverview() {
@@ -2953,7 +3365,6 @@ function renderClientMarketplace() {
 }
 
 function founderMarketCard(founder) {
-  const image = founder.image_url || "./assets/rois-isotipo-cropped.png";
   const industry = founder.industry || founder.sport || "Industria por definir";
   const stage = founder.stage || founder.category || "Etapa por definir";
   const location = founder.city || founder.location || "Base por confirmar";
@@ -2965,7 +3376,7 @@ function founderMarketCard(founder) {
   return `
     <article class="athlete-card founder-card">
       <div class="athlete-media">
-        <img src="${image}" alt="${escapeAttr(founder.name || "Founder ROIS")}">
+        ${safeProfileImageMarkup(founder.image_url, founder.name || "Founder ROIS")}
         <span class="pill media-pill">Founder</span>
       </div>
       <div class="athlete-info">
@@ -3083,7 +3494,7 @@ function renderAccountSettings(panelId) {
           </div>
           <form class="form-grid company-profile-form" data-company-profile>
             <div class="company-logo-preview ${company.logo_url ? "" : "image-fallback"}">
-              ${company.logo_url ? `<img src="${company.logo_url}" alt="${company.name || "Empresa"}">` : `<div class="company-logo-empty">Logo</div>`}
+              ${company.logo_url ? safeProfileImageMarkup(company.logo_url, company.name || "Empresa") : `<div class="company-logo-empty">Logo</div>`}
               <span>${company.logo_url ? "Logo actual" : "Logo pendiente"}</span>
             </div>
             <label>Nombre de empresa<input name="name" required value="${escapeAttr(company.name || "")}" placeholder="Nombre legal o comercial"></label>
@@ -3156,11 +3567,11 @@ function renderAthleteKpis() {
 }
 
 function athleteSocialMedia(post, athlete) {
-  const image = post.image_url || athlete?.image_url || "./assets/rois-isotipo-cropped.png";
+  const image = post.image_url || athlete?.image_url || profileImageFallback;
   if (post.video_url?.startsWith("data:video")) {
     return `<video src="${post.video_url}" muted loop playsinline preload="metadata" poster="${escapeAttr(image)}"></video>`;
   }
-  return `<img src="${image}" alt="${escapeAttr(post.title || "Reel deportivo")}">`;
+  return safeProfileImageMarkup(image, post.title || "Publicacion ROIS");
 }
 
 function athleteSocialPostTile(post, athlete, options = {}) {
@@ -3402,7 +3813,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
   const email = athlete.email || state.session?.email || "";
   const results = state.data.athlete_results.filter(item => item.athlete_email === email);
   const profilePhoto = athlete.image_url
-    ? `<img src="${athlete.image_url}" alt="${escapeAttr(athlete.name)}">`
+    ? safeProfileImageMarkup(athlete.image_url, athlete.name || "Perfil ROIS")
     : `<span>${profileInitials(athlete.name)}</span>`;
   const sponsorHighlights = logos.slice(0, 10);
   const hasPosts = posts.length > 0;
@@ -3510,8 +3921,8 @@ function renderAthleteProfile() {
       <form id="athleteProfileForm" class="form-grid">
         <label>Nombre<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
         <label>${copy.primaryFieldLabel}<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="${escapeAttr(founder ? "Industria principal" : "Disciplina principal")}"></label>
-        <label>${copy.secondaryFieldLabel}<input name="category" value="${escapeAttr(athlete.category || "")}"></label>
-        <label>${copy.locationLabel}<input name="location" value="${escapeAttr(athlete.location || "")}"></label>
+        <label>${copy.secondaryFieldLabel}<input name="category" required value="${escapeAttr(athlete.category || "")}"></label>
+        <label>${copy.locationLabel}<input name="location" required value="${escapeAttr(athlete.location || "")}"></label>
         <label>${copy.rankingLabel}<input name="ranking" value="${escapeAttr(athlete.ranking || "")}"></label>
         <label>Ticket mensual objetivo<input name="monthly" type="number" min="0" value="${Number(athlete.monthly || 5000)}"></label>
         <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="${Number(athlete.max_sponsors || 10)}"></label>
@@ -3521,6 +3932,7 @@ function renderAthleteProfile() {
         <label style="grid-column:1/-1">${copy.videoLabel} opcional<input name="video_url" type="url" value="${escapeAttr(athlete.video_url || "")}" placeholder="YouTube, Vimeo, Drive o video publicado"></label>
         <label style="grid-column:1/-1">Logos de sponsors actuales opcional<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
         <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por linea, en el mismo orden de los logos."></textarea></label>
+        <label class="check-option" style="grid-column:1/-1"><input name="terms_accepted" type="checkbox" ${athlete.terms_accepted ? "checked" : ""}><span>Acepto que la informacion y los medios de este perfil sean revisados y mostrados dentro de ROIS.</span></label>
         <div class="profile-status-grid" style="grid-column:1/-1">
           <div>
             <span>${copy.profileStatusLabel}</span>
@@ -3953,7 +4365,6 @@ async function submitManualExpense(event) {
 
   notify("Finanzas", "Egreso registrado", "El nuevo egreso quedo agregado al control financiero.");
   form.reset();
-  state.data = await api.loadAll({ lightweight: false, admin: true });
   renderAdmin();
 }
 
@@ -3974,9 +4385,8 @@ function accountStatusPriority(statuses = []) {
 function accountTypeLabels(account) {
   const labels = [];
   if (account.profile?.role === "admin") labels.push("Admin");
-  const founderProfile = account.athlete && isFounderProfile(account.athlete);
-  const founderBase = !account.athlete && account.profile && profileVertical(account.profile) === "founder";
-  if (founderProfile || founderBase) {
+  const founderBase = !account.founder && account.profile?.role === "founder";
+  if (account.founder || founderBase) {
     labels.push("Founder");
   } else if (account.athlete) {
     labels.push("Deportista");
@@ -3992,14 +4402,15 @@ function accountTypeLabels(account) {
 }
 
 function accountDisplayName(account) {
-  return account.company?.name || account.athlete?.name || account.profile?.name || account.email || "Usuario ROIS";
+  return account.company?.name || account.founder?.name || account.athlete?.name || account.profile?.name || account.email || "Usuario ROIS";
 }
 
 function accountRecordStatus(account) {
   const statuses = [
     account.profile?.status,
     account.company?.status,
-    account.athlete?.status
+    account.athlete?.status,
+    account.founder?.status
   ].filter(Boolean);
   return accountStatusPriority(statuses);
 }
@@ -4010,7 +4421,7 @@ function adminAccountRecords() {
     const normalized = normalizedAccountEmail(email);
     if (!normalized) return null;
     if (!map.has(normalized)) {
-      map.set(normalized, { email: normalized, profile: null, company: null, athlete: null });
+      map.set(normalized, { email: normalized, profile: null, company: null, athlete: null, founder: null });
     }
     return map.get(normalized);
   };
@@ -4028,6 +4439,11 @@ function adminAccountRecords() {
   (state.data.athletes || []).forEach(athlete => {
     const account = ensure(athlete.email || athlete.contact);
     if (account) account.athlete = athlete;
+  });
+
+  (state.data.founders || []).forEach(founder => {
+    const account = ensure(founder.email);
+    if (account) account.founder = founder;
   });
 
   return [...map.values()].sort((a, b) => {
@@ -4247,7 +4663,6 @@ async function submitAthletePaymentLink(event) {
   const link = form.sponsor_payment_url.value.trim();
   await api.update("athletes", athlete.id, { sponsor_payment_url: link });
   notify("Enlaces de pago", link ? "Link activado" : "Link retirado", link ? `El boton de patrocinar de ${athlete.name} ya abrira este link desde el dashboard de empresas.` : `El deportista quedo sin link mensual activo.`);
-  state.data = await api.loadAll();
   renderAdmin();
   renderClient();
 }
@@ -4384,12 +4799,6 @@ function renderAdminPartners() {
 function renderAdminCrm() {
   panel("admin-crm", "CRM", "Pipeline de relaciones", table(["Categor\u00eda", "Volumen", "Estado", "Acci\u00f3n"], state.data.crm.map(item => [
     item.name, item.volume, badge(item.status), button("Avanzar", () => updateCrm(item.id))
-  ])));
-}
-
-function renderAdminPayments() {
-  panel("admin-payments", "Pagos", "Resumen financiero conectado a Stripe", table(["Concepto", "Monto", "Estado", "Acci\u00f3n"], state.data.payments.map(payment => [
-    payment.concept, `$${Number(payment.amount).toLocaleString("es-MX")} MXN`, badge(payment.status), payment.status === "paid" ? "Pagado" : button("Marcar pagado", () => markPaid(payment.id))
   ])));
 }
 
@@ -4583,31 +4992,6 @@ function renderAdminRevenue() {
 }
 
 function renderAdminUploads() {
-  panel("admin-uploads", "Uploads", "Biblioteca y moderaci\u00f3n visual", `
-    <div class="panel-body">
-      <form id="uploadForm" class="form-grid">
-        <label>Archivo visual<input name="file" type="file" accept="image/png,image/jpeg,image/webp" required></label>
-        <label>Tipo<select name="type"><option>Evento</option><option>Deportista</option><option>Contrato</option><option>Documento</option></select></label>
-        <button class="btn primary" type="submit">Registrar upload</button>
-      </form>
-      <p class="hint">Todo visual subido queda bloqueado hasta revisi\u00f3n manual. En producci\u00f3n debe sumarse moderaci\u00f3n autom\u00e1tica.</p>
-    </div>
-    ${state.data.uploads.length ? table(["Visual", "Archivo", "Tipo", "Estado", "Acciones"], state.data.uploads.map(item => [
-      visualThumb(item), item.name, item.type, badge(item.visual_status || item.status), moderationActions("uploads", item)
-    ])) : `<div class="empty">No hay archivos registrados.</div>`}
-  `);
-  document.getElementById("uploadForm").addEventListener("submit", async event => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const file = form.file.files[0];
-    const image_url = await fileToDataUrl(file);
-    await api.insert("uploads", { name: file.name, type: form.type.value, size: file.size, status: "registered", image_url, visual_status: "pending_review" });
-    notify("Uploads", "Archivo registrado", "El visual qued\u00f3 pendiente de revisi\u00f3n.");
-    renderAdmin();
-  });
-}
-
-function renderAdminUploads() {
   const homeCovers = homeVisualSlots();
   const selectedCover = homeCovers.find(cover => cover.id === "home_cover") || homeCovers[0];
   const postRows = state.data.athlete_posts.map(item => [
@@ -4715,7 +5099,6 @@ async function submitHomeCover(event) {
     })
   });
   notify("Portada", "Visual publicado", slot === "home_cover" ? "La portada principal ya aparece en el home y en el dashboard empresarial." : "El visual seleccionado ya aparece en su espacio del home.");
-  state.data = await api.loadAll();
   renderAdmin();
   renderPublic();
   renderClient();
@@ -4725,7 +5108,6 @@ async function clearHomeCover() {
   const slot = document.querySelector("#homeCoverForm [name='slot']")?.value || "home_cover";
   await api.remove("site_settings", slot);
   notify("Portada", "Visual retirado", slot === "home_cover" ? "La portada principal ya no aparece en el home." : "El visual seleccionado ya no aparece en ese recuadro.");
-  state.data = await api.loadAll();
   renderAdmin();
   renderPublic();
   renderClient();
@@ -4860,11 +5242,90 @@ function renderAdminStats() {
   const approvedUsers = state.data.profiles.filter(item => item.status === "approved").length;
   const totalUsers = state.data.profiles.length || 1;
   const sponsorReview = state.data.sponsorships.filter(item => item.status === "review").length;
-  panel("admin-stats", "Estad\u00edsticas", "Indicadores operativos", table(["M\u00e9trica", "Valor", "Lectura"], [
-    ["Conversi\u00f3n de aprobaci\u00f3n", `${Math.round((approvedUsers / totalUsers) * 100)}%`, badge("estable")],
-    ["Demanda de eventos", state.data.requests.length, badge("activa")],
-    ["Patrocinios en revisi\u00f3n", sponsorReview, badge("prioridad")]
-  ]));
+  const diagnostics = profileDiagnostics();
+  panel("admin-stats", "Estad\u00edsticas", "Indicadores operativos", `
+    ${table(["M\u00e9trica", "Valor", "Lectura"], [
+      ["Conversi\u00f3n de aprobaci\u00f3n", `${Math.round((approvedUsers / totalUsers) * 100)}%`, badge("estable")],
+      ["Demanda de eventos", state.data.requests.length, badge("activa")],
+      ["Patrocinios en revisi\u00f3n", sponsorReview, badge("prioridad")],
+      ["Alertas de perfiles", diagnostics.length, badge(diagnostics.length ? "revisar" : "sin alertas")]
+    ])}
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Diagnostico de perfiles</p>
+        <h3>Integridad Athlete y Founder</h3>
+        <p>Detecta desalineaciones sin modificar datos automaticamente.</p>
+      </div>
+      ${diagnostics.length
+        ? table(["Tipo", "Correo", "Problema", "Referencia"], diagnostics.map(item => [
+            badge(item.type),
+            escapeHtml(item.email || "Sin correo"),
+            escapeHtml(item.issue),
+            escapeHtml(item.reference || "Revisar")
+          ]))
+        : `<div class="empty">No se detectaron inconsistencias en los perfiles cargados.</div>`}
+    </div>
+  `);
+}
+
+function profileDiagnostics() {
+  const diagnostics = [];
+  const profiles = state.data?.profiles || [];
+  const athletes = state.data?.athletes || [];
+  const founders = state.data?.founders || [];
+  const normalized = value => String(value || "").trim().toLowerCase();
+  const add = (type, email, issue, reference = "") => diagnostics.push({ type, email, issue, reference });
+  const profileById = new Map(profiles.filter(item => item.id).map(item => [item.id, item]));
+  const seen = new Map();
+
+  profiles.forEach(profile => {
+    const email = normalized(profile.email);
+    if (!email) add("Profile", "", "Profile sin correo", profile.id);
+    const roleRows = profile.role === "founder"
+      ? founders
+      : profile.role === "athlete"
+        ? athletes
+        : [];
+    if (["founder", "athlete"].includes(profile.role) && !roleRows.some(item =>
+      item.profile_id === profile.id ||
+      normalized(item.email || item.contact) === email
+    )) {
+      add(profile.role, email, `Profile sin fila real en ${profile.role === "founder" ? "founders" : "athletes"}`, profile.id);
+    }
+  });
+
+  [...athletes.map(item => ({ ...item, diagnosticType: "Athlete" })), ...founders.map(item => ({ ...item, diagnosticType: "Founder" }))].forEach(record => {
+    const email = normalized(record.email || record.contact);
+    const key = `${record.diagnosticType}:${email}`;
+    seen.set(key, (seen.get(key) || 0) + 1);
+    if (record.is_virtual) add(record.diagnosticType, email, "Perfil virtual en uso", record.id);
+    if (!record.profile_id) add(record.diagnosticType, email, "Falta profile_id", record.id);
+    if (record.profile_id && !profileById.has(record.profile_id)) add(record.diagnosticType, email, "profile_id no corresponde a un profile cargado", record.profile_id);
+    const profile = profileById.get(record.profile_id);
+    if (profile && normalized(profile.email) !== email) add(record.diagnosticType, email, "Correo distinto entre profile y ficha", profile.email);
+    if (!["approved", "pending", "blocked", "deleted", "rejected"].includes(normalized(record.status))) {
+      add(record.diagnosticType, email, "Status invalido", record.status);
+    }
+    if (!["approved", "pending_review", "rejected", "hidden"].includes(normalized(record.visual_status))) {
+      add(record.diagnosticType, email, "visual_status invalido", record.visual_status);
+    }
+    if (record.image_url?.startsWith("data:")) add(record.diagnosticType, email, "Imagen Base64 pendiente de migrar", record.id);
+    if (record.image_url && !record.image_url.startsWith("data:") && !/^https?:\/\//i.test(record.image_url)) {
+      add(record.diagnosticType, email, "URL de imagen no valida", record.image_url);
+    }
+    const required = record.diagnosticType === "Founder"
+      ? [record.name, record.industry, record.stage, record.city, record.stats]
+      : [record.name, record.sport, record.category, record.location, record.stats];
+    if (required.some(value => !String(value || "").trim())) add(record.diagnosticType, email, "Datos obligatorios incompletos", record.id);
+  });
+
+  seen.forEach((count, key) => {
+    if (count > 1) {
+      const [type, email] = key.split(":");
+      add(type, email, `Duplicado: ${count} filas`, "Resolver por email/profile_id");
+    }
+  });
+  return diagnostics;
 }
 
 function panel(id, kicker, title, content) {
@@ -4939,88 +5400,163 @@ async function createRequest(type, title) {
   renderAdmin();
 }
 
+function profileFormField(form, name) {
+  return form.elements.namedItem(name);
+}
+
+function validateProfileForm(form, role) {
+  const labels = role === "founder"
+    ? { sport: "Industria", category: "Etapa", location: "Ciudad", stats: "Resumen emprendedor" }
+    : { sport: "Disciplina", category: "Categoria", location: "Ciudad", stats: "Resumen deportivo" };
+  const required = [
+    ["name", "Nombre"],
+    ["sport", labels.sport],
+    ["category", labels.category],
+    ["location", labels.location],
+    ["stats", labels.stats]
+  ];
+  const missing = required.filter(([name]) => !String(profileFormField(form, name)?.value || "").trim());
+  const terms = profileFormField(form, "terms_accepted");
+  if (terms && !terms.checked) missing.push(["terms_accepted", "Terminos del perfil"]);
+  if (!missing.length) return true;
+  notify("Perfil", "Falta completar", missing.map(([, label]) => `- ${label}`).join("\n"));
+  const first = profileFormField(form, missing[0][0]);
+  first?.focus();
+  first?.scrollIntoView({ behavior: "smooth", block: "center" });
+  return false;
+}
+
+function setSavingState(form, saving) {
+  const button = form.querySelector('button[type="submit"]');
+  if (!button) return;
+  if (!button.dataset.defaultLabel) button.dataset.defaultLabel = button.textContent;
+  button.disabled = saving;
+  button.textContent = saving ? "Guardando..." : button.dataset.defaultLabel;
+  form.setAttribute("aria-busy", saving ? "true" : "false");
+}
+
+async function persistProfileForm(form, options = {}) {
+  const context = getCurrentProfileContext();
+  if (!context) throw new Error("No encontramos el contexto autenticado del perfil.");
+  if (!validateProfileForm(form, context.role)) return null;
+  setSavingState(form, true);
+  const previous = context.record;
+  const mediaErrors = [];
+  try {
+    const realRecord = await resolveRealProfileRecord(context);
+    const resolvedContext = {
+      ...context,
+      record: realRecord,
+      isVirtual: false,
+      profileId: context.sessionId || realRecord.profile_id
+    };
+    const value = name => String(profileFormField(form, name)?.value || "").trim();
+    const patch = {
+      name: value("name"),
+      sport: value("sport"),
+      category: value("category"),
+      location: value("location"),
+      ranking: value("ranking"),
+      stats: value("stats"),
+      monthly: Number(value("monthly") || (context.role === "founder" ? 2500 : 5000)),
+      max_sponsors: Number(value("max_sponsors") || 10),
+      video_url: value("video_url"),
+      terms_accepted: Boolean(profileFormField(form, "terms_accepted")?.checked),
+      visual_status: "approved"
+    };
+    const annualField = profileFormField(form, "annual");
+    if (annualField && context.table === "athletes") patch.annual = Number(annualField.value || 1000);
+
+    const imageFile = profileFormField(form, "image")?.files?.[0];
+    if (imageFile) {
+      try {
+        const image = await uploadProfileAsset(imageFile, "avatar", resolvedContext);
+        patch.image_url = image.url;
+        patch.image_path = image.path;
+        patch.image_name = image.name;
+        patch.image_mime = image.mime;
+      } catch (error) {
+        mediaErrors.push(humanError(error));
+      }
+    }
+
+    const proposalFile = profileFormField(form, "proposal_pdf")?.files?.[0];
+    if (proposalFile) {
+      try {
+        const proposal = await uploadProfileAsset(proposalFile, "proposal", resolvedContext);
+        patch.proposal_url = proposal.url;
+        patch.proposal_path = proposal.path;
+        patch.proposal_name = proposal.name;
+        patch.proposal_mime = proposal.mime;
+      } catch (error) {
+        mediaErrors.push(humanError(error));
+      }
+    }
+
+    const logoFiles = profileFormField(form, "sponsor_logo_files")?.files;
+    if (logoFiles?.length) {
+      try {
+        patch.sponsor_logos = await uploadSponsorLogoPayload(
+          logoFiles,
+          value("sponsor_logo_names"),
+          resolvedContext
+        );
+      } catch (error) {
+        mediaErrors.push(humanError(error));
+      }
+    }
+
+    const updated = await saveProfileRecord(patch, resolvedContext);
+    if (patch.terms_accepted && !previous?.terms_accepted) {
+      try {
+        await api.insert("terms_acceptances", {
+          user_email: state.session.email,
+          user_role: context.role,
+          version: `${context.role}-profile-media-v1`,
+          status: "accepted"
+        });
+      } catch (error) {
+        console.warn("[ROIS profile] No fue posible registrar terminos", humanError(error));
+      }
+    }
+    if (patch.name && patch.name !== state.session?.name) {
+      state.session = { ...state.session, name: patch.name };
+      saveSession(state.session);
+      try {
+        await api.update("profiles", state.session.id, { name: patch.name });
+      } catch (error) {
+        console.warn("[ROIS profile] El perfil se guardo, pero profiles.name no se sincronizo", humanError(error));
+      }
+    }
+    refreshProfileViews(context.role, updated);
+    const title = context.role === "founder" ? "Perfil founder" : options.requirements ? "Expediente deportivo" : "Perfil deportivo";
+    if (mediaErrors.length) {
+      notify(title, "Perfil guardado con observaciones", `El perfil se guardo, pero algunos medios no pudieron cargarse:\n${mediaErrors.map(message => `- ${message}`).join("\n")}`);
+    } else {
+      notify(title, "Perfil actualizado", "Los cambios ya estan visibles en tu dashboard y en las tarjetas ROIS.");
+    }
+    return updated;
+  } finally {
+    setSavingState(form, false);
+  }
+}
+
 async function submitAthleteRequirements(event) {
   event.preventDefault();
-  const form = event.currentTarget;
-  const athlete = currentAthlete();
-  if (!athlete) return;
-  const imageFile = form.image.files[0];
-  const proposalFile = form.proposal_pdf.files[0];
-  const sponsorLogos = await sponsorLogoPayload(form.sponsor_logo_files.files, form.sponsor_logo_names.value);
-  const patch = {
-    name: form.name.value.trim(),
-    sport: form.sport.value.trim(),
-    category: form.category.value.trim(),
-    location: form.location.value.trim(),
-    ranking: form.ranking.value.trim(),
-    stats: form.stats.value.trim(),
-    monthly: Number(form.monthly.value || 5000),
-    annual: Number(form.annual.value || 1000),
-    max_sponsors: Number(form.max_sponsors.value || 10),
-    video_url: form.video_url.value.trim(),
-    terms_accepted: Boolean(form.terms_accepted.checked)
-  };
-  if (imageFile) {
-    patch.image_url = await fileToDataUrl(imageFile);
-    patch.visual_status = "approved";
+  try {
+    await persistProfileForm(event.currentTarget, { requirements: true });
+  } catch (error) {
+    notify("Expediente", "No fue posible guardar", humanError(error));
   }
-  if (proposalFile) {
-    patch.proposal_url = await fileToDataUrl(proposalFile);
-    patch.proposal_name = proposalFile.name;
-  }
-  if (sponsorLogos) patch.sponsor_logos = sponsorLogos;
-  await api.update("athletes", athlete.id, patch);
-  if (!athlete.terms_accepted && patch.terms_accepted) {
-    await api.insert("terms_acceptances", {
-      user_email: state.session.email,
-      user_role: "athlete",
-      version: "athlete-representation-v2-intelliquant",
-      status: "accepted"
-    });
-  }
-  state.session = { ...state.session, name: patch.name };
-  saveSession(state.session);
-  notify("Expediente deportivo", "Requisitos guardados", "Tu foto de perfil quedo activa. ROIS seguira revisando documentos sensibles cuando aplique.");
-  renderAthlete();
-  renderAdmin();
-  renderPublic();
 }
 
 async function submitAthleteProfile(event) {
   event.preventDefault();
-  const form = event.currentTarget;
-  const athlete = currentAthlete();
-  const founder = isFounderProfile(athlete);
-  if (!athlete) return;
-  const imageFile = form.image.files[0];
-  const proposalFile = form.proposal_pdf.files[0];
-  const sponsorLogos = await sponsorLogoPayload(form.sponsor_logo_files.files, form.sponsor_logo_names.value);
-  const patch = {
-    name: form.name.value.trim(),
-    sport: form.sport.value.trim(),
-    category: form.category.value.trim(),
-    location: form.location.value.trim(),
-    ranking: form.ranking.value.trim(),
-    monthly: Number(form.monthly.value || 5000),
-    max_sponsors: Number(form.max_sponsors.value || 10),
-    stats: form.stats.value.trim(),
-    video_url: form.video_url.value.trim()
-  };
-  if (imageFile) {
-    patch.image_url = await fileToDataUrl(imageFile);
-    patch.visual_status = "approved";
+  try {
+    await persistProfileForm(event.currentTarget);
+  } catch (error) {
+    notify("Perfil", "No fue posible guardar", humanError(error));
   }
-  if (proposalFile) {
-    patch.proposal_url = await fileToDataUrl(proposalFile);
-    patch.proposal_name = proposalFile.name;
-  }
-  if (sponsorLogos) patch.sponsor_logos = sponsorLogos;
-  await api.update("athletes", athlete.id, patch);
-  state.session = { ...state.session, name: patch.name };
-  saveSession(state.session);
-  notify(founder ? "Perfil emprendedor" : "Perfil deportivo", "Perfil actualizado", imageFile ? `Tu nueva foto ya esta visible en tu ${founder ? "perfil emprendedor" : "perfil deportivo"}.` : `Tu ${founder ? "perfil emprendedor" : "perfil deportivo"} fue actualizado.`);
-  renderAthlete();
-  renderPublic();
 }
 
 async function submitAthleteResult(event) {
@@ -5159,7 +5695,7 @@ async function approve(tableName, id) {
 async function approveAccount(account) {
   const updates = [];
   if (account.profile) {
-    const role = account.profile.role === "admin" ? "admin" : account.athlete ? "athlete" : "client";
+    const role = account.profile.role === "admin" ? "admin" : account.founder ? "founder" : account.athlete ? "athlete" : "client";
     updates.push(api.update("profiles", account.profile.id, { status: "approved", role }));
   }
   if (account.company) {
@@ -5168,9 +5704,11 @@ async function approveAccount(account) {
   if (account.athlete) {
     updates.push(api.update("athletes", account.athlete.id, { status: "approved", visual_status: account.athlete.visual_status || "approved" }));
   }
+  if (account.founder) {
+    updates.push(api.update("founders", account.founder.id, { status: "approved", visual_status: account.founder.visual_status || "approved" }));
+  }
   await Promise.all(updates);
   notify("Usuarios", "Cuenta aprobada", "La cuenta agrupada quedo aprobada correctamente.");
-  state.data = await api.loadAll({ lightweight: false, admin: true });
   renderAdmin();
   renderPublic();
 }
@@ -5182,9 +5720,9 @@ async function blockAccount(account) {
   if (account.profile) updates.push(api.update("profiles", account.profile.id, { status: "blocked" }));
   if (account.company) updates.push(api.update("companies", account.company.id, { status: "blocked" }));
   if (account.athlete) updates.push(api.update("athletes", account.athlete.id, { status: "blocked" }));
+  if (account.founder) updates.push(api.update("founders", account.founder.id, { status: "blocked" }));
   await Promise.all(updates);
   notify("Usuarios", "Cuenta dada de baja", "La cuenta fue bloqueada en los modulos operativos.");
-  state.data = await api.loadAll({ lightweight: false, admin: true });
   renderAdmin();
 }
 
@@ -5198,7 +5736,7 @@ async function hardDeleteAccount(account) {
     notify("Usuarios", "Accion bloqueada", "No puedes borrar la cuenta de la sesion activa.");
     return;
   }
-  const typed = window.prompt(`Esta accion eliminara definitivamente la cuenta operativa ${email} de profiles, companies y athletes. Escribe BORRAR para confirmar.`);
+  const typed = window.prompt(`Esta accion eliminara definitivamente la cuenta operativa ${email} de profiles, companies, athletes y founders. Escribe BORRAR para confirmar.`);
   if (typed !== "BORRAR") {
     notify("Usuarios", "Borrado cancelado", "No se realizaron cambios.");
     return;
@@ -5207,13 +5745,13 @@ async function hardDeleteAccount(account) {
   if (account.profile?.id) removals.push(api.remove("profiles", account.profile.id));
   if (account.company?.id) removals.push(api.remove("companies", account.company.id));
   if (account.athlete?.id) removals.push(api.remove("athletes", account.athlete.id));
+  if (account.founder?.id) removals.push(api.remove("founders", account.founder.id));
   await Promise.all(removals);
   notify(
     "Usuarios",
     "Cuenta eliminada",
-    "La cuenta fue eliminada de profiles, companies y athletes. Los registros financieros y de trazabilidad se conservaron."
+    "La cuenta fue eliminada de profiles, companies, athletes y founders. Los registros financieros y de trazabilidad se conservaron."
   );
-  state.data = await api.loadAll({ lightweight: false, admin: true });
   renderAdmin();
   renderPublic();
 }
@@ -5322,13 +5860,11 @@ async function submitAdminAthleteNotification(event) {
   await api.insert("athlete_notifications", notification);
   notify("Notificaciones", "Mensaje enviado", emailStatus);
   form.reset();
-  state.data = await api.loadAll();
   renderAdmin();
 }
 
 async function markAthleteNotificationRead(id) {
   await api.update("athlete_notifications", id, { status: "read", read_at: new Date().toISOString() });
-  state.data = await api.loadAll();
   renderAthlete();
 }
 
@@ -5367,10 +5903,11 @@ async function submitAdminDeposit(event) {
 async function submitAdminAthlete(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  const image_url = await fileToDataUrl(form.image.files[0]);
-  const proposalFile = form.proposal_pdf.files[0];
-  const proposal_url = proposalFile ? await fileToDataUrl(proposalFile) : "";
-  const sponsor_logos = await sponsorLogoPayload(form.sponsor_logo_files.files, form.sponsor_logo_names.value);
+  const skippedMedia = Boolean(
+    form.image.files[0] ||
+    form.proposal_pdf.files[0] ||
+    form.sponsor_logo_files.files.length
+  );
   await api.insert("athletes", {
     name: form.name.value,
     sport: form.sport.value,
@@ -5391,15 +5928,21 @@ async function submitAdminAthlete(event) {
     scout_commission_status: "pending",
     sponsor_payment_url: form.sponsor_payment_url.value,
     sponsor_terms: form.sponsor_terms.value,
-    sponsor_logos,
-    proposal_url,
-    proposal_name: proposalFile?.name || "",
+    sponsor_logos: "",
+    proposal_url: "",
+    proposal_name: "",
     video_url: form.video_url.value,
     status: "pending",
-    image_url,
-    visual_status: image_url ? "pending_review" : "approved"
+    image_url: "",
+    visual_status: "approved"
   });
-  notify("Deportistas", "Deportista creado", "El perfil qued\u00f3 pendiente de aprobaci\u00f3n y revisi\u00f3n visual.");
+  notify(
+    "Deportistas",
+    "Deportista creado",
+    skippedMedia
+      ? "El perfil fue creado sin copiar archivos Base64. Vincula la cuenta y permite que el athlete cargue sus medios en Storage."
+      : "El perfil quedo creado y pendiente de completar por el athlete."
+  );
   renderAdmin();
 }
 
@@ -5407,7 +5950,6 @@ async function toggleAthleteAnnualFee(athlete) {
   const next = !athleteAnnualFeeRequired(athlete);
   await api.update("athletes", athlete.id, { annual_fee_required: next, annual: athleteAnnualFeeAmount });
   notify("Anualidad deportista", next ? "Solicitud habilitada" : "Solicitud oculta", next ? `${athlete.name} ya vera el aviso de anualidad con boton de pago en su dashboard.` : `${athlete.name} podra explorar y configurar su dashboard sin aviso de pago anual.`);
-  state.data = await api.loadAll();
   renderAdmin();
   if (state.session?.role === "athlete") renderAthlete();
 }
@@ -5419,7 +5961,6 @@ async function activateScoutNetwork(athlete) {
     scout_terms_accepted: true
   });
   notify("Scouts ROIS", "Codigo activado", "Ya puedes invitar deportistas. Las comisiones solo se liberan por cuentas pagadas, completas y validadas por ROIS.");
-  state.data = await api.loadAll();
   renderAthlete();
   renderAdmin();
 }
@@ -5431,7 +5972,6 @@ async function markAthleteAnnualPaid(athlete) {
     annual: athleteAnnualFeeAmount
   });
   notify("Anualidad", "Pago registrado", "El pago anual quedo marcado para seguimiento interno.");
-  state.data = await api.loadAll();
   renderAdmin();
 }
 
@@ -5441,7 +5981,6 @@ async function validateScoutCommission(athlete) {
     scout_commission_status: "approved"
   });
   notify("Scouts", "Comision validada", "La cuenta queda elegible para comision si tambien cumple pago y perfil completo.");
-  state.data = await api.loadAll();
   renderAdmin();
 }
 
@@ -5607,7 +6146,7 @@ function visualIsPublic(item) {
 
 function visualThumb(item) {
   if (!item.image_url) return `<span class="visual-empty">Sin visual</span>`;
-  return `<img class="visual-thumb" src="${item.image_url}" alt="Visual de ${item.name || item.title || "ROIS"}">`;
+  return safeProfileImageMarkup(item.image_url, `Visual de ${item.name || item.title || "ROIS"}`, profileImageFallback, "visual-thumb");
 }
 
 function eventPositioningBlock(event) {
@@ -5829,10 +6368,10 @@ function reelMedia(post, athlete, options = {}) {
   if (embedUrl) {
     return `<iframe src="${embedUrl}" title="${escapeAttr(post.title || "Reel deportivo")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
   }
-  const image = post.image_url || athlete?.image_url || "./assets/rois-isotipo-cropped.png";
+  const image = post.image_url || athlete?.image_url || profileImageFallback;
   const link = post.video_url ? `<a class="btn primary" href="${post.video_url}" target="_blank" rel="noopener">Abrir reel</a>` : "";
   return `
-    <img src="${image}" alt="${escapeAttr(post.title || "Reel deportivo")}">
+    ${safeProfileImageMarkup(image, post.title || "Reel deportivo")}
     <div class="reel-media-fallback">${link}</div>
   `;
 }
@@ -5920,6 +6459,7 @@ function athleteOwnReelCard(post) {
 function openAthleteProfileView(athlete) {
   const modal = document.getElementById("actionModal");
   const founder = isFounderProfile(athlete);
+  modal.dataset.profileRecordId = String(athlete.id || "");
   modal.classList.add("profile-modal");
   notify(
     founder ? "Perfil emprendedor" : "Perfil deportivo",
@@ -6003,7 +6543,7 @@ function toggleReelSound(button) {
 }
 
 function partnerCard(partner) {
-  const image = partner.image_url || "./assets/rois-isotipo-cropped.png";
+  const image = partner.image_url || profileImageFallback;
   const link = partner.url ? `<a class="btn" href="${partner.url}" target="_blank" rel="noopener">Ver aliado</a>` : `<button class="btn" type="button" data-open-login>Solicitar conexi\u00f3n</button>`;
   return `
     <article class="partner-card">
@@ -6121,7 +6661,7 @@ function athleteSponsorBubbleStrip(logosOrAthlete, options = {}) {
       if (logo) {
         const name = logo.name || `Sponsor ${index + 1}`;
         return `<figure class="sponsor-bubble filled">
-          <span><img src="${escapeAttr(logo.image)}" alt="${escapeAttr(name)}"></span>
+          <span>${safeProfileImageMarkup(logo.image, name)}</span>
           <figcaption>${escapeHtml(name)}</figcaption>
         </figure>`;
       }
@@ -6140,7 +6680,6 @@ function athleteProposalLink(athlete) {
 }
 
 function athleteCard(athlete, action) {
-  const image = athlete.image_url || "./assets/rois-isotipo-cropped.png";
   const annual = athleteInvestment(athlete).toLocaleString("es-MX");
   const monthly = athleteMonthlyTicket(athlete).toLocaleString("es-MX");
   const logos = athleteSponsorLogos(athlete);
@@ -6149,7 +6688,7 @@ function athleteCard(athlete, action) {
   return `
     <article class="athlete-card">
       <div class="athlete-media">
-        <img src="${image}" alt="${athlete.name}">
+        ${safeProfileImageMarkup(athlete.image_url, athlete.name || "Athlete ROIS")}
         <span class="pill media-pill">${athlete.sport}</span>
       </div>
       <div class="athlete-info">
@@ -6189,17 +6728,6 @@ function fileToDataUrl(file) {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
-}
-
-async function sponsorLogoPayload(fileList, namesValue = "") {
-  const files = Array.from(fileList || []).slice(0, 10);
-  if (!files.length) return "";
-  const names = String(namesValue || "").split("\n").map(name => name.trim());
-  const logos = await Promise.all(files.map(async (file, index) => ({
-    name: names[index] || file.name.replace(/\.[^.]+$/, ""),
-    image: await fileToDataUrl(file)
-  })));
-  return JSON.stringify(logos);
 }
 
 function openRegistration(type) {
@@ -6311,6 +6839,121 @@ function registrationFields(type) {
     <p class="hint">Publicar un evento en ROIS no tiene costo inicial. El evento queda sujeto a revision interna. ROIS podra participar bajo success fee sobre patrocinios, sponsors, alianzas o ingresos comerciales generados mediante la plataforma o gestion comercial de ROIS.</p>
     <button class="btn primary full" type="submit">Enviar evento a revision ROIS</button>
   `;
+}
+
+function profileImageUrl(url, fallback = profileImageFallback) {
+  const value = String(url || "").trim();
+  if (!value) return fallback;
+  if (value.startsWith("data:") && !/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(value)) {
+    console.warn("[ROIS media] Base64 de imagen invalido");
+    return fallback;
+  }
+  return value;
+}
+
+function safeProfileImageMarkup(url, name = "Perfil ROIS", fallback = profileImageFallback, className = "") {
+  return `<img${className ? ` class="${escapeAttr(className)}"` : ""} data-profile-image data-fallback="${escapeAttr(fallback)}" src="${escapeAttr(profileImageUrl(url, fallback))}" alt="${escapeAttr(name)}">`;
+}
+
+function sanitizedStorageFilename(name = "archivo") {
+  return String(name || "archivo")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase() || "archivo";
+}
+
+function validateProfileAsset(file, kind) {
+  if (!file) return;
+  const imageTypes = ["image/jpeg", "image/png", "image/webp"];
+  const rules = kind === "proposal"
+    ? { types: ["application/pdf"], max: 15 * 1024 * 1024, message: "El PDF supera 15 MB." }
+    : kind === "sponsor"
+      ? { types: imageTypes, max: 3 * 1024 * 1024, message: "Un logo supera 3 MB." }
+      : { types: imageTypes, max: 5 * 1024 * 1024, message: "La imagen supera 5 MB." };
+  if (!rules.types.includes(file.type)) {
+    throw new Error(kind === "proposal" ? "La propuesta debe ser un archivo PDF." : "Usa una imagen JPG, PNG o WEBP.");
+  }
+  if (file.size > rules.max) throw new Error(rules.message);
+}
+
+async function resizeProfileImage(file, maxDimension = 1600) {
+  if (!file || !file.type.startsWith("image/")) return file;
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error("No fue posible leer la imagen."));
+      element.src = objectUrl;
+    });
+    const largest = Math.max(image.naturalWidth, image.naturalHeight);
+    if (largest <= maxDimension) return file;
+    const scale = maxDimension / largest;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.naturalWidth * scale);
+    canvas.height = Math.round(image.naturalHeight * scale);
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    const outputType = file.type === "image/png" ? "image/png" : "image/webp";
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, outputType, 0.86));
+    if (!blob) return file;
+    const extension = outputType === "image/png" ? "png" : "webp";
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.${extension}`, { type: outputType });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function uploadProfileAsset(file, kind, context = getCurrentProfileContext()) {
+  if (!file) return null;
+  if (!context?.profileId || !context?.table) throw new Error("No encontramos el registro real del perfil.");
+  validateProfileAsset(file, kind);
+  const preparedFile = kind === "proposal" ? file : await resizeProfileImage(file);
+  const folder = kind === "proposal" ? "proposals" : kind === "sponsor" ? "sponsors" : "avatar";
+  const filename = `${crypto.randomUUID()}-${sanitizedStorageFilename(preparedFile.name)}`;
+  const path = `${context.table}/${context.profileId}/${folder}/${filename}`;
+  const response = await withTimeout(fetch(`${config.supabaseUrl}/storage/v1/object/${profileMediaBucket}/${path}`, {
+    method: "POST",
+    headers: {
+      apikey: config.supabaseAnonKey,
+      Authorization: `Bearer ${state.session?.token || config.supabaseAnonKey}`,
+      "Content-Type": preparedFile.type,
+      "x-upsert": "true"
+    },
+    body: preparedFile
+  }), operationTimeoutMs, "La red esta tardando demasiado al subir el archivo.");
+  if (!response.ok) {
+    const detail = await response.text();
+    if (/row-level security|rls|unauthorized/i.test(detail)) throw new Error("Supabase bloqueo la operacion por RLS.");
+    throw new Error(kind === "proposal" ? "No fue posible subir la propuesta." : "No fue posible subir la foto.");
+  }
+  return {
+    url: `${config.supabaseUrl}/storage/v1/object/public/${profileMediaBucket}/${path}`,
+    path,
+    name: file.name,
+    mime: preparedFile.type
+  };
+}
+
+async function uploadSponsorLogoPayload(fileList, namesValue = "", context = getCurrentProfileContext()) {
+  const files = Array.from(fileList || []);
+  if (files.length > 10) throw new Error("Puedes cargar un maximo de 10 logos.");
+  if (!files.length) return "";
+  const names = String(namesValue || "").split("\n").map(name => name.trim());
+  const logos = [];
+  for (let index = 0; index < files.length; index += 1) {
+    const uploaded = await uploadProfileAsset(files[index], "sponsor", context);
+    logos.push({
+      name: names[index] || files[index].name.replace(/\.[^.]+$/, ""),
+      image: uploaded.url,
+      path: uploaded.path,
+      mime: uploaded.mime,
+      original_name: uploaded.name
+    });
+  }
+  return JSON.stringify(logos);
 }
 
 async function submitRegistrationLegacy(event) {

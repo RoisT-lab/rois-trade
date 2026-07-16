@@ -272,6 +272,11 @@ alter table athletes add column if not exists sponsor_logos text;
 alter table athletes add column if not exists max_sponsors numeric default 3;
 alter table athletes add column if not exists proposal_url text;
 alter table athletes add column if not exists proposal_name text;
+alter table athletes add column if not exists image_path text;
+alter table athletes add column if not exists image_name text;
+alter table athletes add column if not exists image_mime text;
+alter table athletes add column if not exists proposal_path text;
+alter table athletes add column if not exists proposal_mime text;
 alter table athletes add column if not exists birth_date date;
 alter table athletes add column if not exists age_status text;
 alter table athletes add column if not exists guardian_name text;
@@ -289,6 +294,18 @@ alter table athletes add column if not exists annual_fee_paid boolean not null d
 alter table athletes add column if not exists annual_payment_status text not null default 'pending';
 alter table athletes add column if not exists scout_validation_status text not null default 'pending';
 alter table athletes add column if not exists scout_commission_status text not null default 'pending';
+alter table founders add column if not exists ranking text;
+alter table founders add column if not exists image_url text;
+alter table founders add column if not exists image_path text;
+alter table founders add column if not exists image_name text;
+alter table founders add column if not exists image_mime text;
+alter table founders add column if not exists proposal_url text;
+alter table founders add column if not exists proposal_path text;
+alter table founders add column if not exists proposal_name text;
+alter table founders add column if not exists proposal_mime text;
+alter table founders add column if not exists video_url text;
+alter table founders add column if not exists sponsor_logos text;
+alter table founders add column if not exists terms_accepted boolean not null default false;
 create unique index if not exists athletes_scout_code_unique on athletes (scout_code) where scout_code is not null and scout_code <> '';
 alter table events add column if not exists brochure_url text;
 alter table events add column if not exists brochure_name text;
@@ -304,6 +321,7 @@ alter table payments add column if not exists product_key text;
 alter table profiles enable row level security;
 alter table companies enable row level security;
 alter table athletes enable row level security;
+alter table founders enable row level security;
 alter table events enable row level security;
 alter table requests enable row level security;
 alter table sponsorships enable row level security;
@@ -461,7 +479,7 @@ to authenticated
 with check (
   id = auth.uid()
   and email = (auth.jwt() ->> 'email')
-  and role in ('client', 'athlete')
+  and role in ('client', 'athlete', 'founder')
   and status = 'approved'
   and must_change_password = false
 );
