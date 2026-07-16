@@ -479,6 +479,9 @@ function profilePatchForTable(context, patch) {
   if ("ranking" in founderPatch) {
     founderPatch.ranking = founderPatch.ranking;
   }
+  if (!String(founderPatch.venture_name || "").trim()) {
+    delete founderPatch.venture_name;
+  }
   return founderPatch;
 }
 
@@ -1137,7 +1140,7 @@ function supabaseApi() {
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const publicQueries = {
         athletes: "select=id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
-        founders: "select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
+        founders: "select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
         events: "select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status&status=eq.approved&order=created_at.desc&limit=80",
         news: "select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=40",
         partnerships: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&order=created_at.desc&limit=80",
@@ -1164,7 +1167,7 @@ function supabaseApi() {
         profiles: `select=id,email,role,name,status,must_change_password,created_at&order=created_at.desc&limit=${mainLimit}`,
         companies: `select=id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc&limit=${mainLimit}`,
         athletes: `select=id,profile_id,email,contact,name,sport,stats,monthly,annual,category,location,ranking,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,image_url,image_path,visual_status,visual_notes,terms_accepted,scout_code,scout_active,scout_terms_accepted,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,max_sponsors,proposal_url,proposal_path,proposal_name,sponsor_payment_url,sponsor_terms,sponsor_logos,birth_date,age_status,guardian_name,guardian_email,guardian_phone,guardian_relationship,guardian_consent,status,created_at&order=created_at.desc&limit=${mainLimit}`,
-        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,scout_code,scout_active,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
+        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,scout_code,scout_active,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
         events: `select=id,name,category,venue,date,image_url,brochure_url,brochure_name,event_scope,sponsor_levels,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         requests: `select=id,type,title,owner,details,priority,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         sponsorships: `select=id,athlete,athlete_email,amount,company,details,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
@@ -1205,7 +1208,7 @@ function supabaseApi() {
       });
       const profileQuery = `/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`;
       const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
-      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
+      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
       const ownProfile = roleRequest(profileQuery);
       if (role === "athlete") {
         const [profiles, ownAthletes, terms, notifications, posts, results] = await Promise.all([
@@ -1242,7 +1245,7 @@ function supabaseApi() {
         return { profiles, founders, terms_acceptances: terms, athlete_posts: posts, athlete_results: results };
       }
       const publicAthleteColumns = "id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status";
-      const publicFounderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status";
+      const publicFounderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status";
       const [profiles, companies, athletes, founders, events, news, partnerships] = await Promise.all([
         ownProfile,
         roleRequest(`/rest/v1/companies?select=id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodedEmail}&limit=1`),
@@ -1294,7 +1297,7 @@ function supabaseApi() {
         request(`/rest/v1/athletes?select=id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(auth.access_token)
         }),
-        request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,sponsor_payment_url,sponsor_terms,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(auth.access_token)
         }),
         request(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password&id=eq.${auth.user.id}&limit=1`, {
@@ -1342,7 +1345,7 @@ function supabaseApi() {
       if (profile.role === "founder" && !founders.length) {
         try {
           await this.ensureFounderAccount(auth, { name: profile.name });
-          founders = await request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          founders = await request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,sponsor_payment_url,sponsor_terms,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
             headers: headers(auth.access_token)
           });
         } catch (error) {
@@ -2112,8 +2115,11 @@ function handleDashboardDelegatedActions(event) {
   }
   const sponsorButton = event.target.closest("[data-athlete-sponsor]");
   if (sponsorButton) {
-    const athlete = state.data?.athletes?.find(item => item.id === sponsorButton.dataset.athleteSponsor);
-    if (athlete) startAthleteSponsorPayment(athlete);
+    const profileId = sponsorButton.dataset.athleteSponsor;
+    const athlete = state.data?.athletes?.find(item => item.id === profileId);
+    const founder = state.data?.founders?.find(item => item.id === profileId);
+    const profile = athlete || (founder ? founderAsAthleteProfile(founder) : null);
+    if (profile) startAthleteSponsorPayment(profile);
     return;
   }
   const profileButton = event.target.closest("[data-athlete-profile]");
@@ -3448,6 +3454,7 @@ function marketProfileCard(profile, options = {}) {
           <p>${decisionCopy}</p>
           <div class="athlete-actions">
             <button class="btn" type="button" data-athlete-profile="${escapeAttr(profile.id)}">Ver perfil</button>
+            ${athleteSponsorCta(profile, founder ? "Patrocinar founder" : "Solicitar patrocinio")}
             ${athleteProposalLink(profile)}
             ${profileSocialLinksMarkup(profile)}
           </div>
@@ -3989,6 +3996,7 @@ function renderAthleteProfile() {
         <summary>Editar informacion profesional</summary>
       <form id="athleteProfileForm" class="form-grid">
         <label>Nombre<input name="name" required value="${escapeAttr(athlete.name || "")}"></label>
+        ${founder ? `<label>Emprendimiento<input name="venture_name" required value="${escapeAttr(athlete.venture_name || "")}" placeholder="Nombre del emprendimiento"></label>` : ""}
         <label>${copy.primaryFieldLabel}<input name="sport" required value="${escapeAttr(athlete.sport === "Por definir" ? "" : athlete.sport || "")}" placeholder="${escapeAttr(founder ? "Industria principal" : "Disciplina principal")}"></label>
         <label>${copy.secondaryFieldLabel}<input name="category" required value="${escapeAttr(athlete.category || "")}"></label>
         <label>${copy.locationLabel}<input name="location" required value="${escapeAttr(athlete.location || "")}"></label>
@@ -4637,12 +4645,12 @@ function founderAdminActions(founder) {
 function renderAdminFounders() {
   const founders = [...adminFounderRecords()].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const active = founders.filter(founder => !["blocked", "deleted", "rejected"].includes(founder.status));
-  const linked = active.filter(founder => founder.monthly).length;
+  const linked = active.filter(founder => founder.sponsor_payment_url).length;
   panel("admin-founders", "Founders", "Gestion administrativa de perfiles founder desde la tabla founders", `
     <div class="panel-body admin-athlete-summary">
       <div class="scout-metrics">
         <div><span>Founders activos</span><strong>${active.length}</strong></div>
-        <div><span>Link mensual</span><strong>${linked}</strong></div>
+        <div><span>Link patrocinio</span><strong>${linked}</strong></div>
         <div><span>Industria definida</span><strong>${active.filter(founder => founder.industry && founder.industry !== "Por definir").length}</strong></div>
         <div><span>Etapa definida</span><strong>${active.filter(founder => founder.stage).length}</strong></div>
       </div>
@@ -4664,12 +4672,14 @@ function renderAdminFounders() {
 
 function athleteStripePaymentInfo(athlete) {
   const monthly = athleteMonthlyTicket(athlete);
-  const name = `Patrocinio mensual ROIS - ${athlete.name || "Deportista"}`;
+  const founder = athlete._profile_table === "founders" || athlete.role === "founder" || isFounderProfile(athlete);
+  const profileLabel = founder ? "founder" : "athlete";
+  const name = `Patrocinio mensual ROIS - ${athlete.name || (founder ? "Founder" : "Athlete")}`;
   const description = [
-    `Patrocinio mensual administrado por ROIS para ${athlete.name || "deportista ROIS"}.`,
-    `Disciplina: ${athlete.sport || "Por definir"}.`,
-    `Categoria: ${athlete.category || "Por definir"}.`,
-    `Base: ${athlete.location || "Por confirmar"}.`,
+    `Patrocinio mensual administrado por ROIS para ${athlete.name || `${profileLabel} ROIS`}.`,
+    `${founder ? "Industria" : "Disciplina"}: ${athlete.industry || athlete.sport || "Por definir"}.`,
+    `${founder ? "Etapa" : "Categoria"}: ${athlete.stage || athlete.category || "Por definir"}.`,
+    `Base: ${athlete.city || athlete.location || "Por confirmar"}.`,
     `Ticket mensual sugerido: $${monthly.toLocaleString("es-MX")} MXN.`,
     `Operacion sujeta a contrato de patrocinio y representacion gestionado por ROIS / ${roisLegalEntity}.`
   ].join(" ");
@@ -4681,7 +4691,7 @@ function athleteStripePaymentInfo(athlete) {
     currency: "MXN",
     category: "General - Servicios suministrados de forma electronica",
     quantity: "1",
-    metadata: `athlete_id=${athlete.id || ""}; athlete_email=${athlete.email || ""}; athlete_name=${athlete.name || ""}; rois_product=athlete_monthly_sponsorship`
+    metadata: `${profileLabel}_id=${athlete.id || ""}; ${profileLabel}_email=${athlete.email || ""}; ${profileLabel}_name=${athlete.name || ""}; rois_product=${profileLabel}_monthly_sponsorship`
   };
 }
 
@@ -4700,25 +4710,28 @@ function athleteStripePaymentText(athlete) {
 }
 
 function renderAdminPaymentLinks() {
-  const athletes = state.data.athletes || [];
-  panel("admin-payment-links", "Enlaces de pago", "Configura links mensuales de patrocinio por deportista", `
+  const profiles = [
+    ...(state.data.athletes || []).map(item => ({ ...item, _profile_table: "athletes", _profile_kind: "Athlete ROIS" })),
+    ...(state.data.founders || []).map(item => ({ ...item, _profile_table: "founders", _profile_kind: "Founder ROIS", role: "founder" }))
+  ].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es"));
+  panel("admin-payment-links", "Enlaces de pago", "Configura links mensuales de patrocinio para athletes y founders", `
     <div class="panel-body">
       <div class="section-minihead">
         <p class="eyebrow">Stripe Payment Links</p>
-        <h3>Cada deportista genera automaticamente los datos del producto mensual.</h3>
+        <h3>Cada athlete y founder genera los datos de su producto mensual.</h3>
         <p class="hint">En Stripe crea un producto recurrente mensual con la informacion sugerida. Despues pega aqui el link de pago; ese mismo link se abrira desde el boton Patrocinar en el dashboard de empresas.</p>
       </div>
-      ${athletes.length ? `<div class="payment-link-grid">${athletes.map(athletePaymentLinkCard).join("")}</div>` : `<div class="empty">Aun no hay deportistas registrados. Cuando crees un deportista, su ficha de pago aparecera aqui automaticamente.</div>`}
+      ${profiles.length ? `<div class="payment-link-grid">${profiles.map(athletePaymentLinkCard).join("")}</div>` : `<div class="empty">Aun no hay athletes o founders registrados.</div>`}
     </div>
   `);
-  document.querySelectorAll("[data-athlete-payment-form]").forEach(form => form.addEventListener("submit", submitAthletePaymentLink));
+  document.querySelectorAll("[data-profile-payment-form]").forEach(form => form.addEventListener("submit", submitAthletePaymentLink));
   document.querySelectorAll("[data-copy-payment-info]").forEach(button => button.addEventListener("click", () => copyAthletePaymentInfo(button.dataset.copyPaymentInfo)));
 }
 
 function athletePaymentLinkCard(athlete) {
   const info = athleteStripePaymentInfo(athlete);
-  const founder = isFounderProfile(athlete);
-  const label = founder ? "Founder ROIS" : "Athlete ROIS";
+  const founder = athlete._profile_table === "founders" || athlete.role === "founder" || isFounderProfile(athlete);
+  const label = athlete._profile_kind || (founder ? "Founder ROIS" : "Athlete ROIS");
   const monthlyLabel = founder ? "Membresia / patrocinio mensual founder" : "Patrocinio mensual athlete";
   return `
     <article class="payment-link-card">
@@ -4739,10 +4752,10 @@ function athletePaymentLinkCard(athlete) {
         <div class="full"><span>Metadata interna</span><code>${escapeHtml(info.metadata)}</code></div>
       </div>
       <div class="payment-link-actions">
-        <button class="btn" type="button" data-copy-payment-info="${escapeAttr(athlete.id)}">Copiar datos Stripe</button>
+        <button class="btn" type="button" data-copy-payment-info="${escapeAttr(`${athlete._profile_table || "athletes"}:${athlete.id}`)}">Copiar datos Stripe</button>
         ${athlete.sponsor_payment_url ? `<a class="btn" href="${athlete.sponsor_payment_url}" target="_blank" rel="noopener">Probar link</a>` : ""}
       </div>
-      <form class="form-grid compact-form" data-athlete-payment-form data-athlete-id="${escapeAttr(athlete.id)}">
+      <form class="form-grid compact-form" data-profile-payment-form data-profile-table="${escapeAttr(athlete._profile_table || "athletes")}" data-profile-id="${escapeAttr(athlete.id)}">
         <label style="grid-column:1/-1">Link de pago mensual Stripe<input name="sponsor_payment_url" type="url" value="${escapeAttr(athlete.sponsor_payment_url || "")}" placeholder="https://buy.stripe.com/..."></label>
         <button class="btn primary" type="submit">${athlete.sponsor_payment_url ? "Actualizar link" : "Activar link"}</button>
       </form>
@@ -4750,10 +4763,14 @@ function athletePaymentLinkCard(athlete) {
   `;
 }
 
-async function copyAthletePaymentInfo(athleteId) {
-  const athlete = state.data.athletes.find(item => item.id === athleteId);
-  if (!athlete) return;
-  const text = athleteStripePaymentText(athlete);
+async function copyAthletePaymentInfo(profileKey) {
+  const [table = "athletes", profileId = profileKey] = String(profileKey || "").split(":");
+  const record = state.data?.[table]?.find(item => item.id === profileId);
+  if (!record) return;
+  const profile = table === "founders"
+    ? { ...record, _profile_table: "founders", role: "founder" }
+    : { ...record, _profile_table: "athletes" };
+  const text = athleteStripePaymentText(profile);
   try {
     await navigator.clipboard.writeText(text);
     notify("Stripe", "Datos copiados", "Pega esta informacion en Stripe para crear el producto y el link mensual.");
@@ -4765,11 +4782,12 @@ async function copyAthletePaymentInfo(athleteId) {
 async function submitAthletePaymentLink(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  const athlete = state.data.athletes.find(item => item.id === form.dataset.athleteId);
-  if (!athlete) return;
+  const table = form.dataset.profileTable === "founders" ? "founders" : "athletes";
+  const profile = state.data?.[table]?.find(item => item.id === form.dataset.profileId);
+  if (!profile) return;
   const link = form.sponsor_payment_url.value.trim();
-  await api.update("athletes", athlete.id, { sponsor_payment_url: link });
-  notify("Enlaces de pago", link ? "Link activado" : "Link retirado", link ? `El boton de patrocinar de ${athlete.name} ya abrira este link desde el dashboard de empresas.` : `El deportista quedo sin link mensual activo.`);
+  await api.update(table, profile.id, { sponsor_payment_url: link });
+  notify("Enlaces de pago", link ? "Link activado" : "Link retirado", link ? `El boton de patrocinar de ${profile.name} ya abrira este link desde el dashboard de empresas.` : `El perfil quedo sin link mensual activo.`);
   renderAdmin();
   renderClient();
 }
@@ -5513,10 +5531,11 @@ function profileFormField(form, name) {
 
 function validateProfileForm(form, role) {
   const labels = role === "founder"
-    ? { sport: "Industria", category: "Etapa", location: "Ciudad", stats: "Resumen emprendedor" }
+    ? { venture_name: "Emprendimiento", sport: "Industria", category: "Etapa", location: "Ciudad", stats: "Resumen emprendedor" }
     : { sport: "Disciplina", category: "Categoria", location: "Ciudad", stats: "Resumen deportivo" };
   const required = [
     ["name", "Nombre"],
+    ...(role === "founder" ? [["venture_name", labels.venture_name]] : []),
     ["sport", labels.sport],
     ["category", labels.category],
     ["location", labels.location],
@@ -5560,6 +5579,7 @@ async function persistProfileForm(form, options = {}) {
     const value = name => String(profileFormField(form, name)?.value || "").trim();
     const patch = {
       name: value("name"),
+      ...(context.role === "founder" ? { venture_name: value("venture_name") } : {}),
       sport: value("sport"),
       category: value("category"),
       location: value("location"),
