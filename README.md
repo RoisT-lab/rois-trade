@@ -79,6 +79,8 @@ Limites:
 
 Las tablas guardan URL, ruta, nombre y MIME. No se generan nuevos Base64 para medios de perfiles.
 
+Los perfiles Athlete y Founder tambien pueden guardar enlaces de Instagram, TikTok, Facebook y LinkedIn. Vuelve a ejecutar la migracion incremental si esta funcionalidad se agrego despues de la primera instalacion; usa `add column if not exists` y no elimina datos.
+
 ## Rendimiento
 
 Referencia tecnica basada en el flujo anterior y el nuevo numero de solicitudes:

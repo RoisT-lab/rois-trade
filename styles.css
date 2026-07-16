@@ -5922,6 +5922,48 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   justify-content: flex-end;
 }
 
+.market-social-links {
+  position: relative;
+}
+
+.market-social-links summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.market-social-links summary::-webkit-details-marker {
+  display: none;
+}
+
+.market-social-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 8;
+  display: grid;
+  min-width: 180px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.market-social-menu a {
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: .08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.market-social-menu a:hover {
+  background: #f1f3f5;
+}
+
 .athlete-showcase.compact .athlete-info {
   padding: 24px;
 }
@@ -5933,6 +5975,22 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
 .athlete-showcase.compact .athlete-decision {
   align-items: stretch;
   flex-direction: column;
+}
+
+@media (max-width: 760px) {
+  .market-social-links {
+    width: 100%;
+  }
+
+  .market-social-links summary {
+    width: 100%;
+  }
+
+  .market-social-menu {
+    position: static;
+    margin-top: 8px;
+    box-shadow: none;
+  }
 }
 
 .registration-grid {

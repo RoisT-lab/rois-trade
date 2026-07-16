@@ -484,9 +484,19 @@ async function saveProfileRecord(patch, context = getCurrentProfileContext()) {
     );
   } catch (error) {
     const message = String(error?.message || "");
-    if (!/PGRST204|schema cache|image_path|proposal_path|image_mime|proposal_mime|image_name/i.test(message)) throw error;
+    if (!/PGRST204|schema cache|image_path|proposal_path|image_mime|proposal_mime|image_name|instagram_url|tiktok_url|facebook_url|linkedin_url/i.test(message)) throw error;
     const compatiblePatch = Object.fromEntries(Object.entries(persistedPatch).filter(([key]) =>
-      !["image_path", "image_name", "image_mime", "proposal_path", "proposal_mime"].includes(key)
+      ![
+        "image_path",
+        "image_name",
+        "image_mime",
+        "proposal_path",
+        "proposal_mime",
+        "instagram_url",
+        "tiktok_url",
+        "facebook_url",
+        "linkedin_url"
+      ].includes(key)
     ));
     console.warn("[ROIS profile] Guardado compatible sin columnas de Storage; ejecuta la migracion SQL.");
     updated = await withTimeout(
@@ -1111,8 +1121,8 @@ function supabaseApi() {
     async loadPublicData() {
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const publicQueries = {
-        athletes: "select=id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
-        founders: "select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
+        athletes: "select=id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
+        founders: "select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
         events: "select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status&status=eq.approved&order=created_at.desc&limit=80",
         news: "select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=40",
         partnerships: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&order=created_at.desc&limit=80",
@@ -1138,8 +1148,8 @@ function supabaseApi() {
       const tableQueries = {
         profiles: `select=id,email,role,name,status,must_change_password,created_at&order=created_at.desc&limit=${mainLimit}`,
         companies: `select=id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc&limit=${mainLimit}`,
-        athletes: `select=id,profile_id,email,contact,name,sport,stats,monthly,annual,category,location,ranking,video_url,image_url,image_path,visual_status,visual_notes,terms_accepted,scout_code,scout_active,scout_terms_accepted,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,max_sponsors,proposal_url,proposal_path,proposal_name,sponsor_payment_url,sponsor_terms,sponsor_logos,birth_date,age_status,guardian_name,guardian_email,guardian_phone,guardian_relationship,guardian_consent,status,created_at&order=created_at.desc&limit=${mainLimit}`,
-        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,scout_code,scout_active,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
+        athletes: `select=id,profile_id,email,contact,name,sport,stats,monthly,annual,category,location,ranking,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,image_url,image_path,visual_status,visual_notes,terms_accepted,scout_code,scout_active,scout_terms_accepted,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,max_sponsors,proposal_url,proposal_path,proposal_name,sponsor_payment_url,sponsor_terms,sponsor_logos,birth_date,age_status,guardian_name,guardian_email,guardian_phone,guardian_relationship,guardian_consent,status,created_at&order=created_at.desc&limit=${mainLimit}`,
+        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,scout_code,scout_active,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
         events: `select=id,name,category,venue,date,image_url,brochure_url,brochure_name,event_scope,sponsor_levels,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         requests: `select=id,type,title,owner,details,priority,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         sponsorships: `select=id,athlete,athlete_email,amount,company,details,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
@@ -1179,8 +1189,8 @@ function supabaseApi() {
         return [];
       });
       const profileQuery = `/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`;
-      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
-      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
+      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
+      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
       const ownProfile = roleRequest(profileQuery);
       if (role === "athlete") {
         const [profiles, athletes, terms, notifications, posts, results] = await Promise.all([
@@ -1203,8 +1213,8 @@ function supabaseApi() {
         ]);
         return { profiles, founders, terms_acceptances: terms, athlete_posts: posts, athlete_results: results };
       }
-      const publicAthleteColumns = "id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status";
-      const publicFounderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status";
+      const publicAthleteColumns = "id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status";
+      const publicFounderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status";
       const [profiles, companies, athletes, founders, events, news, partnerships] = await Promise.all([
         ownProfile,
         roleRequest(`/rest/v1/companies?select=id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodedEmail}&limit=1`),
@@ -3358,52 +3368,63 @@ function renderClientMarketplace() {
   panel("client-marketplace", "Mercado de fichajes", "Athletes listos para evaluacion comercial y patrocinio.", athletes.length ? `
     <div class="panel-body">
       <div class="athlete-showcase compact">
-        ${athletes.map(athlete => athleteCard(athlete, athleteSponsorCta(athlete))).join("")}
+        ${athletes.map(athlete => athleteCard(athlete)).join("")}
       </div>
     </div>
   ` : `<div class="empty">Los athletes aprobados apareceran aqui cuando esten listos para evaluacion empresarial.</div>`);
 }
 
-function founderMarketCard(founder) {
-  const industry = founder.industry || founder.sport || "Industria por definir";
-  const stage = founder.stage || founder.category || "Etapa por definir";
-  const location = founder.city || founder.location || "Base por confirmar";
-  const summary = founder.stats || "Cuenta founder registrada en ROIS. Falta completar ficha emprendedora.";
-  const ticket = Number(founder.monthly || 2500).toLocaleString("es-MX");
-  const traction = founder.ranking || founder.stats || "Cuenta founder registrada en ROIS. Falta completar ficha emprendedora.";
-  const profileAction = `<button class="btn" type="button" data-athlete-profile="${escapeAttr(founder.id)}">Ver perfil</button>`;
-
+function marketProfileCard(profile, options = {}) {
+  const founder = options.founder === true;
+  const primary = founder ? profile.industry || profile.sport : profile.sport;
+  const secondary = founder ? profile.stage || profile.category : profile.category;
+  const location = founder ? profile.city || profile.location : profile.location;
+  const summary = profile.stats || (founder
+    ? "Perfil founder en evaluacion dentro de ROIS."
+    : "Perfil deportivo en evaluacion dentro de ROIS.");
+  const ticket = Number(profile.monthly || (founder ? 2500 : 5000)).toLocaleString("es-MX");
+  const ranking = profile.ranking || "En evaluacion";
+  const typeLabel = founder ? "Founder ROIS" : "Athlete ROIS";
+  const decisionCopy = founder
+    ? "Ideal para empresas interesadas en innovacion, visibilidad emprendedora, alianzas estrategicas y construccion de reputacion comercial."
+    : "Ideal para empresas interesadas en talento deportivo, visibilidad de marca, narrativa competitiva y relaciones de patrocinio.";
   return `
     <article class="athlete-card founder-card">
       <div class="athlete-media">
-        ${safeProfileImageMarkup(founder.image_url, founder.name || "Founder ROIS")}
-        <span class="pill media-pill">Founder</span>
+        ${safeProfileImageMarkup(profile.image_url, profile.name || typeLabel)}
+        <span class="pill media-pill">${founder ? "Founder" : "Athlete"}</span>
       </div>
       <div class="athlete-info">
         <div>
-          <p class="eyebrow">Perfil founder</p>
-          <h3>${escapeHtml(founder.name || "Founder ROIS")}</h3>
+          <p class="eyebrow">${founder ? "Perfil founder" : "Perfil athlete"}</p>
+          <h3>${escapeHtml(profile.name || typeLabel)}</h3>
           <p class="athlete-summary">${escapeHtml(summary)}</p>
         </div>
         <div class="athlete-technical">
-          <div><span>Industria</span><strong>${escapeHtml(industry)}</strong></div>
-          <div><span>Etapa</span><strong>${escapeHtml(stage)}</strong></div>
+          <div><span>${founder ? "Industria" : "Deporte"}</span><strong>${escapeHtml(primary || "Por definir")}</strong></div>
+          <div><span>${founder ? "Etapa" : "Categoria"}</span><strong>${escapeHtml(secondary || "Por definir")}</strong></div>
           <div><span>Base</span><strong>${escapeHtml(location)}</strong></div>
-          <div><span>Traccion</span><strong>${escapeHtml(traction)}</strong></div>
+          <div><span>${founder ? "Traccion" : "Ranking / marca"}</span><strong>${escapeHtml(ranking)}</strong></div>
         </div>
         <div class="athlete-metrics">
           <div><span>Ticket mensual</span><strong>$${ticket} MXN</strong></div>
-          <div><span>Tipo</span><strong>Founder ROIS</strong></div>
+          <div><span>Tipo</span><strong>${typeLabel}</strong></div>
         </div>
         <div class="athlete-decision">
-          <p>Ideal para empresas interesadas en innovacion, visibilidad emprendedora, alianzas estrategicas y construccion de reputacion comercial.</p>
+          <p>${decisionCopy}</p>
           <div class="athlete-actions">
-            ${profileAction}
+            <button class="btn" type="button" data-athlete-profile="${escapeAttr(profile.id)}">Ver perfil</button>
+            ${athleteProposalLink(profile)}
+            ${profileSocialLinksMarkup(profile)}
           </div>
         </div>
       </div>
     </article>
   `;
+}
+
+function founderMarketCard(founder) {
+  return marketProfileCard(founder, { founder: true });
 }
 
 function renderClientFounders() {
@@ -3772,7 +3793,7 @@ function verticalCopy(profile) {
     sponsorshipsSubtitle: "Empresas que respaldan tu vision emprendedora",
     scoutsTitle: "Scouts",
     scoutsSubtitle: "Invita founders, comunidades y oportunidades estrategicas",
-    postsEmptyText: "Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalÃºen tu emprendimiento.",
+    postsEmptyText: "Tus publicaciones aparecer\u00e1n aqu\u00ed. Comparte avances, evidencia, hitos y contenido \u00fatil para que las empresas eval\u00faen tu emprendimiento.",
     profileStatusLabel: "Estado del perfil"
   } : {
     accountEyebrow: "Cuenta deportiva",
@@ -3795,7 +3816,7 @@ function verticalCopy(profile) {
     sponsorshipsSubtitle: "Solicitudes y condiciones propuestas por empresas",
     scoutsTitle: "Scouts",
     scoutsSubtitle: "Invita deportistas y da seguimiento a tus comisiones",
-    postsEmptyText: "Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalÃºen tu perfil.",
+    postsEmptyText: "Tus publicaciones aparecer\u00e1n aqu\u00ed. Comparte avances, evidencia, hitos y contenido \u00fatil para que las empresas eval\u00faen tu perfil.",
     profileStatusLabel: "Estado del perfil"
   };
 }
@@ -3852,6 +3873,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
             ${readOnly ? `
               ${athleteSponsorCta(athlete, "Solicitar fichaje")}
               ${athleteProposalLink(athlete)}
+              ${profileSocialLinksMarkup(athlete)}
             ` : `
             ${button("Editar perfil", () => {
               const details = document.getElementById("athleteEditProfile");
@@ -3881,7 +3903,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
           <div class="athlete-social-grid">
             ${posts.map(post => athleteSocialPostTile(post, athlete, { canDelete: !readOnly })).join("")}
           </div>
-        ` : `<div class="empty athlete-social-empty">Tus publicaciones apareceran aqui. Comparte avances, evidencia, hitos y contenido util para que las empresas evalÃºen tu perfil.</div>`}
+        ` : `<div class="empty athlete-social-empty">${postsEmptyText}</div>`}
       </div>
 
       <div class="athlete-social-tab-content ${showPostsTab ? "" : "active"}" data-athlete-tab-panel="reels">
@@ -3930,6 +3952,10 @@ function renderAthleteProfile() {
         <label style="grid-column:1/-1">${copy.summaryLabel}<textarea name="stats" required placeholder="${escapeAttr(copy.summaryPlaceholder)}">${escapeHtml(athlete.stats || "")}</textarea></label>
         <label style="grid-column:1/-1">${copy.proposalLabel}<input name="proposal_pdf" type="file" accept="application/pdf"></label>
         <label style="grid-column:1/-1">${copy.videoLabel} opcional<input name="video_url" type="url" value="${escapeAttr(athlete.video_url || "")}" placeholder="YouTube, Vimeo, Drive o video publicado"></label>
+        <label>Instagram<input name="instagram_url" type="url" value="${escapeAttr(athlete.instagram_url || "")}" placeholder="https://instagram.com/usuario"></label>
+        <label>TikTok<input name="tiktok_url" type="url" value="${escapeAttr(athlete.tiktok_url || "")}" placeholder="https://tiktok.com/@usuario"></label>
+        <label>Facebook<input name="facebook_url" type="url" value="${escapeAttr(athlete.facebook_url || "")}" placeholder="https://facebook.com/perfil"></label>
+        <label>LinkedIn<input name="linkedin_url" type="url" value="${escapeAttr(athlete.linkedin_url || "")}" placeholder="https://linkedin.com/in/perfil"></label>
         <label style="grid-column:1/-1">Logos de sponsors actuales opcional<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
         <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por linea, en el mismo orden de los logos."></textarea></label>
         <label class="check-option" style="grid-column:1/-1"><input name="terms_accepted" type="checkbox" ${athlete.terms_accepted ? "checked" : ""}><span>Acepto que la informacion y los medios de este perfil sean revisados y mostrados dentro de ROIS.</span></label>
@@ -5461,6 +5487,10 @@ async function persistProfileForm(form, options = {}) {
       monthly: Number(value("monthly") || (context.role === "founder" ? 2500 : 5000)),
       max_sponsors: Number(value("max_sponsors") || 10),
       video_url: value("video_url"),
+      instagram_url: value("instagram_url"),
+      tiktok_url: value("tiktok_url"),
+      facebook_url: value("facebook_url"),
+      linkedin_url: value("linkedin_url"),
       terms_accepted: Boolean(profileFormField(form, "terms_accepted")?.checked),
       visual_status: "approved"
     };
@@ -6676,48 +6706,38 @@ function athleteSponsorBubbleStrip(logosOrAthlete, options = {}) {
 function athleteProposalLink(athlete) {
   if (!athlete.proposal_url) return "";
   const filename = athlete.proposal_name || `${athlete.name || "plan-de-trabajo"}.pdf`;
-  return `<a class="btn" href="${athlete.proposal_url}" target="_blank" rel="noopener" download="${filename}">Ver propuesta para sponsors</a>`;
+  return `<a class="btn" href="${escapeAttr(athlete.proposal_url)}" target="_blank" rel="noopener" download="${escapeAttr(filename)}">Descargar propuesta para sponsors</a>`;
 }
 
-function athleteCard(athlete, action) {
-  const annual = athleteInvestment(athlete).toLocaleString("es-MX");
-  const monthly = athleteMonthlyTicket(athlete).toLocaleString("es-MX");
-  const logos = athleteSponsorLogos(athlete);
-  const maxSponsors = Number(athlete.max_sponsors || 10);
-  const proposalButton = athleteProposalLink(athlete);
+function normalizedSocialUrl(value = "") {
+  const url = String(value || "").trim();
+  return /^https?:\/\//i.test(url) ? url : "";
+}
+
+function profileSocialLinks(profile = {}) {
+  return [
+    ["Instagram", normalizedSocialUrl(profile.instagram_url)],
+    ["TikTok", normalizedSocialUrl(profile.tiktok_url)],
+    ["Facebook", normalizedSocialUrl(profile.facebook_url)],
+    ["LinkedIn", normalizedSocialUrl(profile.linkedin_url)]
+  ].filter(([, url]) => url);
+}
+
+function profileSocialLinksMarkup(profile) {
+  const links = profileSocialLinks(profile);
+  if (!links.length) return "";
   return `
-    <article class="athlete-card">
-      <div class="athlete-media">
-        ${safeProfileImageMarkup(athlete.image_url, athlete.name || "Athlete ROIS")}
-        <span class="pill media-pill">${athlete.sport}</span>
+    <details class="market-social-links">
+      <summary class="btn">Ver redes sociales</summary>
+      <div class="market-social-menu">
+        ${links.map(([label, url]) => `<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`).join("")}
       </div>
-      <div class="athlete-info">
-        <div>
-          <p class="eyebrow">Perfil de patrocinio</p>
-          <h3>${athlete.name}</h3>
-          <p class="athlete-summary">${athlete.stats || "Perfil deportivo en evaluaci\u00f3n."}</p>
-          <div class="athlete-sponsor-brands">
-            <span>Patrocinadores actuales</span>
-            ${athleteSponsorBubbleStrip(logos, { limit: 10, emptyLabel: "Disponible", compact: true })}
-          </div>
-        </div>
-        <div class="athlete-technical">
-          <div><span>Deporte</span><strong>${athlete.sport || "Por definir"}</strong></div>
-          <div><span>Categor\u00eda</span><strong>${athlete.category || "Semilla"}</strong></div>
-          <div><span>Base</span><strong>${athlete.location || "Por confirmar"}</strong></div>
-          <div><span>Ranking / marca</span><strong>${athlete.ranking || "En evaluaci\u00f3n"}</strong></div>
-        </div>
-        <div class="athlete-metrics">
-          <div><span>Ticket mensual</span><strong>$${monthly} MXN</strong></div>
-          <div><span>Cupos de sponsor</span><strong>${logos.length}/${maxSponsors}</strong></div>
-        </div>
-        <div class="athlete-decision">
-          <p>Ideal para marcas que buscan visibilidad temprana, narrativa deportiva y relaci\u00f3n directa con talento en crecimiento. Inversi\u00f3n anual de perfil: $${annual} MXN.</p>
-          <div class="athlete-actions">${proposalButton}${action}</div>
-        </div>
-      </div>
-    </article>
+    </details>
   `;
+}
+
+function athleteCard(athlete) {
+  return marketProfileCard(athlete, { founder: false });
 }
 
 function fileToDataUrl(file) {
