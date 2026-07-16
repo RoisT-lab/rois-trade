@@ -1208,7 +1208,7 @@ function supabaseApi() {
       const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
       const ownProfile = roleRequest(profileQuery);
       if (role === "athlete") {
-        const [profiles, athletes, terms, notifications, posts, results] = await Promise.all([
+        const [profiles, ownAthletes, terms, notifications, posts, results] = await Promise.all([
           ownProfile,
           roleRequest(`/rest/v1/athletes?select=${athleteColumns}&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail},contact.eq.${encodedEmail})&limit=2`),
           roleRequest(`/rest/v1/terms_acceptances?select=id,user_email,user_role,version,status,created_at&user_email=eq.${encodedEmail}&order=created_at.desc&limit=20`),
@@ -1216,6 +1216,19 @@ function supabaseApi() {
           roleRequest(`/rest/v1/athlete_posts?select=id,athlete_email,title,caption,image_url,video_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`),
           roleRequest(`/rest/v1/athlete_results?select=id,athlete_id,athlete_email,athlete_name,month,event,summary,proof_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`)
         ]);
+        const ownAthlete = ownAthletes.find(item =>
+          item.profile_id === authId ||
+          String(item.email || item.contact || "").trim().toLowerCase() === email
+        ) || ownAthletes[0];
+        const scoutCode = scoutCodeForAthlete(ownAthlete);
+        const referralColumns = "id,profile_id,email,contact,name,sport,category,location,stats,image_url,scout_code,scout_active,invited_by_scout_code,registration_terms_accepted,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,status,visual_status,created_at";
+        const referrals = scoutCode
+          ? await roleRequest(`/rest/v1/athletes?select=${referralColumns}&invited_by_scout_code=eq.${encodeURIComponent(scoutCode)}&order=created_at.desc&limit=100`)
+          : [];
+        const athletes = [...ownAthletes];
+        referrals.forEach(referral => {
+          if (!athletes.some(item => item.id === referral.id)) athletes.push(referral);
+        });
         return { profiles, athletes, terms_acceptances: terms, athlete_notifications: notifications, athlete_posts: posts, athlete_results: results };
       }
       if (role === "founder") {
@@ -4065,7 +4078,11 @@ function renderAthleteScouts() {
     return;
   }
   const code = scoutCodeForAthlete(athlete);
-  const referrals = (state.data.athletes || []).filter(item => normalizeScoutCode(item.invited_by_scout_code) === code);
+  const codeKey = scoutCodeKey(code);
+  const referrals = (state.data.athletes || []).filter(item =>
+    item.id !== athlete.id &&
+    scoutCodeKey(item.invited_by_scout_code) === codeKey
+  );
   const weekStart = currentWeekStart();
   const eligibleRows = referrals.filter(item => scoutReferralStatus(item).eligible);
   const weeklyRows = eligibleRows.filter(item => new Date(item.created_at || 0) >= weekStart);
@@ -4530,7 +4547,7 @@ function renderAdminUsers() {
   );
 }
 
-function renderAdminAthletes() {
+function renderAdminAthletesLegacy() {
   const athletes = [...adminAthleteRecords()].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const active = athletes.filter(athlete => !["blocked", "deleted", "rejected"].includes(athlete.status));
   const paid = active.filter(athleteAnnualFeePaid).length;
@@ -4556,6 +4573,36 @@ function renderAdminAthletes() {
       scoutReferralStatus(athlete).eligible ? badge("validada") : badge(athlete.scout_validation_status || "review"),
       athleteAdminActions(athlete)
     ])) : `<div class="empty">Los deportistas registrados con cÃ³digo Scout ROIS aparecerÃ¡n aquÃ­.</div>`}
+  `);
+}
+
+function renderAdminAthletes() {
+  const athletes = [...adminAthleteRecords()].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const active = athletes.filter(athlete => !["blocked", "deleted", "rejected"].includes(athlete.status));
+  const paid = active.filter(athleteAnnualFeePaid).length;
+  const linked = active.filter(athlete => athlete.sponsor_payment_url).length;
+  const scoutInvited = active.filter(athlete => athlete.invited_by_scout_code).length;
+  panel("admin-athletes", "Deportistas", "Gestion por Scouts ROIS", `
+    <div class="panel-body admin-athlete-summary">
+      <div class="scout-metrics">
+        <div><span>Activos</span><strong>${active.length}</strong></div>
+        <div><span>Referidos por scout</span><strong>${scoutInvited}</strong></div>
+        <div><span>Anualidad pagada</span><strong>${paid}</strong></div>
+        <div><span>Link mensual</span><strong>${linked}</strong></div>
+      </div>
+      <p class="hint">Codigo propio identifica al Scout que puede invitar. Referido por identifica el codigo utilizado para registrar al deportista.</p>
+    </div>
+    ${athletes.length ? table(["Deportista", "Correo", "Codigo propio", "Referido por", "Anualidad", "Perfil", "Pago mensual", "Comision", "Acciones"], athletes.map(athlete => [
+      `<strong>${escapeHtml(athlete.name || "Deportista")}</strong><br><span class="hint inline">${escapeHtml(athlete.sport || "Perfil por completar")}</span>`,
+      escapeHtml(athlete.email || athlete.contact || "Sin correo"),
+      badge(scoutCodeForAthlete(athlete)),
+      athlete.invited_by_scout_code ? badge(normalizeScoutCode(athlete.invited_by_scout_code)) : badge("registro directo"),
+      athleteAnnualFeePaid(athlete) ? badge("pagada") : athleteAnnualFeeRequired(athlete) ? badge("solicitada") : badge("no solicitada"),
+      athleteProfileCompleteForScout(athlete) ? badge("completo") : badge("pendiente"),
+      athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"),
+      scoutReferralStatus(athlete).eligible ? badge("validada") : badge(athlete.scout_validation_status || "review"),
+      athleteAdminActions(athlete)
+    ])) : `<div class="empty">Los deportistas registrados con codigo Scout ROIS apareceran aqui.</div>`}
   `);
 }
 
