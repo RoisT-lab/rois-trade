@@ -220,6 +220,20 @@ function enforceCompanyClientSession() {
   }
 }
 
+function enforceMemberSessionRole() {
+  if (!state.session || !state.data?.profiles) return;
+  const email = String(state.session.email || "").trim().toLowerCase();
+  const profile = state.data.profiles.find(item =>
+    item.id === state.session.authId ||
+    item.id === state.session.id ||
+    String(item.email || "").trim().toLowerCase() === email
+  );
+  if (!["athlete", "founder"].includes(profile?.role)) return;
+  if (state.session.role !== profile.role) {
+    state.session = { ...state.session, role: profile.role };
+  }
+}
+
 function currentCompany() {
   if (!state.session || !state.data?.companies) return null;
   const email = state.session.email?.toLowerCase();
@@ -716,6 +730,7 @@ async function init() {
     state.session = null;
     clearSession();
   }
+  enforceMemberSessionRole();
   enforceCompanyClientSession();
   if (state.session) saveSession(state.session);
   document.body.dataset.activeView = state.session ? dashboardViewForRole(state.session.role) : "home";
@@ -2911,14 +2926,20 @@ function clientCompanyLogoMarkup(company) {
 function clientAthleteRecords() {
   return (state.data.athletes || [])
     .filter(item => item.id && !item.is_virtual)
-    .filter(item => !isFounderProfile(item))
     .filter(item => String(item.status || "").toLowerCase() === "approved")
     .filter(item => String(item.visual_status || "").toLowerCase() === "approved");
 }
 
 function clientFounderRecords() {
+  const athleteEmails = new Set(
+    (state.data.athletes || [])
+      .filter(item => item.id && !item.is_virtual)
+      .map(item => String(item.email || item.contact || "").trim().toLowerCase())
+      .filter(Boolean)
+  );
   return (state.data.founders || [])
     .filter(item => item.id && !item.is_virtual)
+    .filter(item => !athleteEmails.has(String(item.email || "").trim().toLowerCase()))
     .filter(item => !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase()))
     .filter(item => String(item.visual_status || "").toLowerCase() === "approved");
 }
@@ -3755,6 +3776,19 @@ function renderAthleteNotifications() {
 
 function profileVertical(profile) {
   if (!profile) return "athlete";
+  const email = String(profile.email || profile.contact || "").trim().toLowerCase();
+  const athleteRecord = (state.data?.athletes || []).some(item =>
+    (profile.id && item.id === profile.id) ||
+    (profile.profile_id && item.profile_id === profile.profile_id) ||
+    (email && String(item.email || item.contact || "").trim().toLowerCase() === email)
+  );
+  if (athleteRecord && profile.role !== "founder") return "athlete";
+  const founderRecord = (state.data?.founders || []).some(item =>
+    (profile.id && item.id === profile.id) ||
+    (profile.profile_id && item.profile_id === profile.profile_id) ||
+    (email && String(item.email || "").trim().toLowerCase() === email)
+  );
+  if (founderRecord && !athleteRecord) return "founder";
   const directType = String(profile.profile_type || profile.vertical || profile.role || "").trim().toLowerCase();
   if (directType === "founder") return "founder";
   const normalize = value => String(value || "")
