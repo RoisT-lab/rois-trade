@@ -15,6 +15,7 @@ const dashboardFreshnessMs = 15000;
 const profileMediaBucket = "profile-media";
 const operationTimeoutMs = 15000;
 const profileImageFallback = "./assets/rois-logo.png";
+const runtimeCacheRowsPerTable = 120;
 
 const state = {
   session: readSession(),
@@ -30,6 +31,10 @@ let dashboardHydrationPromise = null;
 let dashboardHydrationRole = null;
 const hydratedRoles = new Set();
 const lastHydratedAtByRole = new Map();
+const dashboardPanelLoads = new Map();
+const dashboardPanelPromises = new Map();
+const dashboardPanelPageSizes = { client: 24, admin: 75 };
+const dashboardPanelFreshnessMs = 30000;
 
 const seed = {
   profiles: configuredDemoAdmin ? [
@@ -107,7 +112,7 @@ function cacheSafeData(data) {
   const normalized = normalizeLoadedData(data);
   const safe = Object.fromEntries(Object.entries(normalized).map(([key, rows]) => [
     key,
-    Array.isArray(rows) ? rows.map(cacheSafeRecord) : rows
+    Array.isArray(rows) ? rows.slice(0, runtimeCacheRowsPerTable).map(cacheSafeRecord) : rows
   ]));
   return {
     ...safe,
@@ -290,12 +295,201 @@ function currentFounder() {
 function mergeLoadedData(nextData = {}) {
   const current = normalizeLoadedData(state.data || {});
   Object.entries(nextData).forEach(([table, rows]) => {
-    if (Array.isArray(rows)) current[table] = rows;
+    current[table] = rows;
   });
   state.data = current;
   state.dataSignature = runtimeDataSignature(state.data);
   writeDataCache(state.data);
   return state.data;
+}
+
+function mergePageRecords(table, records = []) {
+  if (!table || !Array.isArray(records) || !records.length) return;
+  state.data = normalizeLoadedData(state.data || {});
+  const current = Array.isArray(state.data[table]) ? state.data[table] : [];
+  const byKey = new Map();
+  const keyFor = (record, index) => {
+    const email = String(record?.email || record?.contact || "").trim().toLowerCase();
+    return record?.id || (record?.profile_id ? `profile:${record.profile_id}` : "") || (email ? `email:${email}` : `row:${index}`);
+  };
+  current.forEach((record, index) => byKey.set(keyFor(record, index), record));
+  records.forEach((record, index) => {
+    const key = keyFor(record, current.length + index);
+    byKey.set(key, byKey.has(key) ? { ...byKey.get(key), ...record } : record);
+  });
+  state.data[table] = [...byKey.values()];
+}
+
+function resetDashboardPanelState() {
+  dashboardPanelLoads.clear();
+  dashboardPanelPromises.clear();
+}
+
+function markBootstrapPanelLoaded(role, data = {}) {
+  if (role !== "admin") return;
+  const targetId = "admin-users";
+  const pageSize = dashboardPanelPageSizes.admin;
+  const tables = dashboardPanelQueries(targetId).map(item => item.table);
+  dashboardPanelLoads.set(targetId, {
+    loaded: true,
+    loading: false,
+    offset: pageSize,
+    hasMore: tables.some(table => (data[table] || []).length === pageSize),
+    lastLoadedAt: Date.now()
+  });
+}
+
+function activeDashboardPanelId(view = dashboardViewForRole(state.session?.role)) {
+  return document.querySelector(`[data-dashboard="${view}"] [data-dashboard-panel].active`)?.dataset.dashboardPanel || null;
+}
+
+function dashboardPanelQueries(targetId) {
+  const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,created_at";
+  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,created_at";
+  const companyName = currentCompany()?.name || state.session?.name || "";
+  const encodedCompany = encodeURIComponent(companyName);
+  const client = {
+    "client-events": [
+      { table: "events", query: "select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" }
+    ],
+    "client-feed": [
+      { table: "athlete_posts", query: "select=id,athlete_id,athlete_email,athlete_name,title,caption,image_url,video_url,status,created_at&status=eq.approved&order=created_at.desc" }
+    ],
+    "client-sponsors": [
+      { table: "partnerships", query: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" }
+    ],
+    "client-marketplace": [
+      { table: "athletes", query: `select=${athleteColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc` }
+    ],
+    "client-founders": [
+      { table: "founders", query: `select=${founderColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc` }
+    ],
+    "client-payments": companyName ? [
+      { table: "payments", query: `select=id,concept,amount,company,status,product_key,created_at&company=eq.${encodedCompany}&order=created_at.desc` },
+      { table: "requests", query: `select=id,type,title,owner,details,priority,status,created_at&owner=eq.${encodedCompany}&order=created_at.desc` }
+    ] : []
+  };
+  const admin = {
+    "admin-users": [
+      { table: "profiles", query: "select=id,email,role,name,status,must_change_password,created_at&order=created_at.desc" },
+      { table: "companies", query: "select=id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc" },
+      { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` },
+      { table: "founders", query: `select=${founderColumns}&order=created_at.desc` }
+    ],
+    "admin-athletes": [{ table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` }],
+    "admin-founders": [{ table: "founders", query: `select=${founderColumns}&order=created_at.desc` }],
+    "admin-payment-links": [
+      { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` },
+      { table: "founders", query: `select=${founderColumns}&order=created_at.desc` }
+    ],
+    "admin-athlete-notifications": [
+      { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` },
+      { table: "founders", query: `select=${founderColumns}&order=created_at.desc` },
+      { table: "athlete_notifications", query: "select=id,athlete_id,athlete_email,athlete_name,title,message,category,priority,status,email_status,sent_by,read_at,created_at&order=created_at.desc" }
+    ],
+    "admin-events": [{ table: "events", query: "select=id,name,category,venue,date,image_url,brochure_url,brochure_name,event_scope,sponsor_levels,visual_status,visual_notes,status,created_at&order=created_at.desc" }],
+    "admin-news": [{ table: "news", query: "select=id,title,summary,image_url,visual_status,visual_notes,status,created_at&order=created_at.desc" }],
+    "admin-partners": [{ table: "partnerships", query: "select=id,name,type,tier,description,image_url,url,visual_status,visual_notes,status,created_at&order=created_at.desc" }],
+    "admin-crm": [{ table: "crm", query: "select=id,name,volume,status,created_at&order=created_at.desc" }],
+    "admin-revenue": [
+      { table: "payments", query: "select=id,concept,amount,company,status,product_key,created_at&order=created_at.desc" },
+      { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` }
+    ],
+    "admin-payments": [
+      { table: "payments", query: "select=id,concept,amount,company,status,product_key,created_at&order=created_at.desc" },
+      { table: "athlete_deposits", query: "select=id,athlete_id,athlete_email,athlete_name,month,amount,company,proof_url,status,created_at&order=created_at.desc" },
+      { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` },
+      { table: "founders", query: `select=${founderColumns}&order=created_at.desc` }
+    ],
+    "admin-uploads": [{ table: "uploads", query: "select=id,type,status,name,size,image_url,visual_status,visual_notes,created_at&order=created_at.desc" }],
+    "admin-launch": [
+      { table: "profiles", query: "select=id,email,role,name,status,created_at&order=created_at.desc" },
+      { table: "companies", query: "select=id,name,contact,status,created_at&order=created_at.desc" },
+      { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` },
+      { table: "founders", query: `select=${founderColumns}&order=created_at.desc` }
+    ],
+    "admin-stats": [
+      { table: "profiles", query: "select=id,email,role,name,status,created_at&order=created_at.desc" },
+      { table: "companies", query: "select=id,name,contact,status,created_at&order=created_at.desc" },
+      { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` },
+      { table: "founders", query: `select=${founderColumns}&order=created_at.desc` },
+      { table: "sponsorships", query: "select=id,athlete,athlete_email,amount,company,details,status,created_at&order=created_at.desc" },
+      { table: "requests", query: "select=id,type,title,owner,details,priority,status,created_at&order=created_at.desc" }
+    ]
+  };
+  return client[targetId] || admin[targetId] || [];
+}
+
+function dashboardPanelPageSize(targetId) {
+  return targetId.startsWith("admin-") ? dashboardPanelPageSizes.admin : dashboardPanelPageSizes.client;
+}
+
+async function ensureDashboardPanelData(targetId, options = {}) {
+  const queries = dashboardPanelQueries(targetId);
+  if (!queries.length || !api.loadTablePage) return false;
+  const existing = dashboardPanelLoads.get(targetId) || {
+    loaded: false,
+    loading: false,
+    offset: 0,
+    hasMore: true,
+    lastLoadedAt: 0
+  };
+  const loadMore = options.loadMore === true;
+  const refresh = options.refresh === true || (existing.loaded && Date.now() - existing.lastLoadedAt > (options.maxAgeMs || dashboardPanelFreshnessMs));
+  if (existing.loading) return dashboardPanelPromises.get(targetId) || false;
+  if (existing.loaded && !loadMore && !refresh) return true;
+  if (loadMore && !existing.hasMore) return true;
+  const pageSize = dashboardPanelPageSize(targetId);
+  const offset = loadMore ? existing.offset : 0;
+  const status = { ...existing, loading: true };
+  dashboardPanelLoads.set(targetId, status);
+  decoratePanelPagination(targetId);
+  const promise = (async () => {
+    const pages = await Promise.all(queries.map(async spec => {
+      try {
+        const rows = await api.loadTablePage(spec.table, spec.query, { offset, limit: pageSize });
+        return { table: spec.table, rows: Array.isArray(rows) ? rows : [] };
+      } catch (error) {
+        console.warn("[ROIS panel data]", targetId, spec.table, humanError(error));
+        return { table: spec.table, rows: [] };
+      }
+    }));
+    pages.forEach(({ table, rows }) => mergePageRecords(table, rows));
+    const hasMore = pages.some(({ rows }) => rows.length === pageSize);
+    dashboardPanelLoads.set(targetId, {
+      loaded: true,
+      loading: false,
+      offset: offset + pageSize,
+      hasMore,
+      lastLoadedAt: Date.now()
+    });
+    state.dataSignature = runtimeDataSignature(state.data);
+    writeDataCache(state.data);
+    if (targetId.startsWith("client-")) renderClientKpis();
+    if (targetId.startsWith("admin-")) renderAdminKpis();
+    if (document.querySelector(`[data-dashboard-panel="${targetId}"]`)?.classList.contains("active")) {
+      renderDashboardPanelById(targetId);
+      optimizeRenderedMedia(document.querySelector(`[data-dashboard-panel="${targetId}"]`));
+    }
+    return true;
+  })().finally(() => dashboardPanelPromises.delete(targetId));
+  dashboardPanelPromises.set(targetId, promise);
+  return promise;
+}
+
+function decoratePanelPagination(targetId) {
+  const status = dashboardPanelLoads.get(targetId);
+  const host = document.querySelector(`[data-dashboard-panel="${targetId}"] .panel`);
+  if (!host || !status) return;
+  host.querySelector("[data-panel-pagination]")?.remove();
+  if (!status.loading && (!status.loaded || !status.hasMore)) return;
+  const controls = document.createElement("div");
+  controls.className = "panel-body";
+  controls.dataset.panelPagination = targetId;
+  controls.innerHTML = status.loading
+    ? `<button class="btn" type="button" disabled>Cargando registros...</button>`
+    : `<button class="btn" type="button" data-load-more-panel="${escapeAttr(targetId)}">Cargar mas registros</button>`;
+  host.appendChild(controls);
 }
 
 function replaceRecordInState(table, updatedRecord) {
@@ -734,13 +928,7 @@ async function init() {
   renderPublicShell();
   const needsPublicRuntimeData = Boolean(document.querySelector("#publicHomeCover, #publicNews, [data-home-visual]"));
   const cachedData = state.session || needsPublicRuntimeData ? readDataCache() : null;
-  state.data = state.session
-    ? (cachedData || await loadInitialData())
-    : (cachedData || normalizeLoadedData({}));
-  if (state.session && !cachedData) {
-    hydratedRoles.add(state.session.role);
-    lastHydratedAtByRole.set(state.session.role, Date.now());
-  }
+  state.data = cachedData || normalizeLoadedData({});
   state.dataSignature = runtimeDataSignature(state.data);
   if (state.session && !cachedData && sessionIsBlocked()) {
     state.session = null;
@@ -772,18 +960,6 @@ async function init() {
   if (cachedData || needsPublicRuntimeData) refreshDataInBackground();
 }
 
-async function loadInitialData() {
-  try {
-    if (state.session && api.loadRoleData) {
-      return normalizeLoadedData(await api.loadRoleData(state.session.role, state.session));
-    }
-    if (api.loadPublicData) return normalizeLoadedData(await api.loadPublicData());
-    return await api.loadAll({ lightweight: true });
-  } catch (error) {
-    return state.data || readDataCache() || normalizeLoadedData({});
-  }
-}
-
 async function ensureDashboardHydrated(role = state.session?.role, options = {}) {
   if (!role || !state.session) return false;
   const force = options.force === true;
@@ -802,6 +978,7 @@ async function ensureDashboardHydrated(role = state.session?.role, options = {})
         ? await api.loadRoleData(role, state.session)
         : await api.loadAll({ lightweight: role !== "admin", admin: role === "admin" });
       mergeLoadedData(data);
+      markBootstrapPanelLoaded(role, data);
       if (sessionIsBlocked()) {
         notify("Acceso", "Cuenta no disponible", "La cuenta fue bloqueada o dada de baja por ROIS.");
         logout();
@@ -852,7 +1029,15 @@ async function refreshDataInBackground() {
 
 function refreshActiveDashboardIfStale() {
   if (!state.session || document.visibilityState === "hidden") return;
-  ensureDashboardHydrated(state.session.role, { maxAgeMs: dashboardFreshnessMs });
+  if (state.session.role === "admin") {
+    const adminPanelId = activeDashboardPanelId("admin");
+    if (adminPanelId) ensureDashboardPanelData(adminPanelId, { maxAgeMs: dashboardPanelFreshnessMs });
+    return;
+  }
+  ensureDashboardHydrated(state.session.role, { maxAgeMs: dashboardFreshnessMs }).then(() => {
+    const panelId = activeDashboardPanelId();
+    if (panelId) ensureDashboardPanelData(panelId, { maxAgeMs: dashboardPanelFreshnessMs });
+  });
 }
 
 function bindDashboardFreshnessEvents() {
@@ -978,6 +1163,12 @@ function demoApi() {
     async loadAll() { return read(); },
     async loadPublicData() { return read(); },
     async loadRoleData() { return read(); },
+    async loadTablePage(table, query, options = {}) {
+      const rows = read()[table] || [];
+      const offset = Math.max(0, Number(options.offset || 0));
+      const limit = Math.max(1, Number(options.limit || 50));
+      return rows.slice(offset, offset + limit);
+    },
     async validateScoutCode(code) {
       const data = read();
       const normalized = scoutCodeKey(code);
@@ -1184,16 +1375,24 @@ function supabaseApi() {
     }
   }
   return {
+    async loadTablePage(table, query = "", options = {}) {
+      const offset = Math.max(0, Number(options.offset || 0));
+      const limit = Math.max(1, Math.min(250, Number(options.limit || 50)));
+      const separator = query ? "&" : "";
+      return request(`/rest/v1/${table}?${query}${separator}offset=${offset}&limit=${limit}`, {
+        headers: headers(options.token)
+      });
+    },
     async loadPublicData() {
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const publicQueries = {
-        athletes: "select=id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
-        founders: "select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120",
-        events: "select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status&status=eq.approved&order=created_at.desc&limit=80",
-        news: "select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=40",
-        partnerships: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&order=created_at.desc&limit=80",
-        site_settings: "select=id,value,created_at&limit=80",
-        uploads: "select=id,type,status,name,size,image_url,visual_status,created_at&order=created_at.desc&limit=80"
+        athletes: "select=id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=24",
+        founders: "select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=24",
+        events: "select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status&status=eq.approved&order=created_at.desc&limit=24",
+        news: "select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=12",
+        partnerships: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&order=created_at.desc&limit=24",
+        site_settings: "select=id,value,created_at&limit=40",
+        uploads: "select=id,type,status,name,size,image_url,visual_status,created_at&order=created_at.desc&limit=20"
       };
       const result = {};
       await Promise.all(Object.entries(publicQueries).map(async ([table, query]) => {
@@ -1245,7 +1444,6 @@ function supabaseApi() {
     },
     async loadRoleData(role = state.session?.role, session = state.session) {
       if (!session?.email) return normalizeLoadedData({});
-      if (role === "admin") return this.loadAll({ lightweight: false, admin: true });
       const email = String(session.email || "").trim().toLowerCase();
       const encodedEmail = encodeURIComponent(email);
       const tokenHeaders = headers(session.token);
@@ -1254,6 +1452,13 @@ function supabaseApi() {
         console.warn("[ROIS role data]", path.split("?")[0], humanError(error));
         return [];
       });
+      if (role === "admin") {
+        const result = {};
+        await Promise.all(dashboardPanelQueries("admin-users").map(async spec => {
+          result[spec.table] = await roleRequest(`/rest/v1/${spec.table}?${spec.query}&limit=${dashboardPanelPageSizes.admin}`);
+        }));
+        return normalizeLoadedData(result);
+      }
       const profileQuery = `/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`;
       const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
       const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
@@ -1293,25 +1498,12 @@ function supabaseApi() {
         ]);
         return { profiles, founders, terms_acceptances: terms, athlete_notifications: notifications, athlete_posts: posts, athlete_results: results };
       }
-      const publicAthleteColumns = "id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status";
-      const publicFounderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status";
-      const [profiles, companies, athletes, founders, events, news, partnerships] = await Promise.all([
+      const [profiles, companies, news] = await Promise.all([
         ownProfile,
         roleRequest(`/rest/v1/companies?select=id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodedEmail}&limit=1`),
-        roleRequest(`/rest/v1/athletes?select=${publicAthleteColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120`),
-        roleRequest(`/rest/v1/founders?select=${publicFounderColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=120`),
-        roleRequest("/rest/v1/events?select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status&status=eq.approved&order=created_at.desc&limit=80"),
-        roleRequest("/rest/v1/news?select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=40"),
-        roleRequest("/rest/v1/partnerships?select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&order=created_at.desc&limit=80")
+        roleRequest("/rest/v1/news?select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=12")
       ]);
-      const companyName = companies[0]?.name || session.name || "";
-      const encodedCompanyName = encodeURIComponent(companyName);
-      const [posts, payments, requests] = await Promise.all([
-        roleRequest("/rest/v1/athlete_posts?select=id,athlete_id,athlete_email,athlete_name,title,caption,image_url,video_url,status,created_at&status=eq.approved&order=created_at.desc&limit=80"),
-        companyName ? roleRequest(`/rest/v1/payments?select=id,concept,amount,company,status,product_key,created_at&company=eq.${encodedCompanyName}&order=created_at.desc&limit=120`) : [],
-        companyName ? roleRequest(`/rest/v1/requests?select=id,type,title,owner,details,priority,status,created_at&owner=eq.${encodedCompanyName}&order=created_at.desc&limit=120`) : []
-      ]);
-      return { profiles, companies, athletes, founders, events, news, partnerships, athlete_posts: posts, payments, requests };
+      return { profiles, companies, news };
     },
     async validateScoutCode(code) {
       const normalized = normalizeScoutCode(code);
@@ -2164,6 +2356,11 @@ function bindGlobalEvents() {
 }
 
 function handleDashboardDelegatedActions(event) {
+  const loadMoreButton = event.target.closest("[data-load-more-panel]");
+  if (loadMoreButton) {
+    ensureDashboardPanelData(loadMoreButton.dataset.loadMorePanel, { loadMore: true });
+    return;
+  }
   const logoutButton = event.target.closest("[data-logout]");
   if (logoutButton) {
     logout();
@@ -2248,9 +2445,9 @@ function showDashboardPanel(targetId) {
   if (!targetPanel) return;
   const workspace = targetPanel.closest("[data-dashboard]");
   const nav = document.querySelector(`[data-dashboard-nav="${workspace.dataset.dashboard}"]`);
-  if (workspace.dataset.dashboard === "admin") renderAdminPanel(targetId);
   workspace.querySelectorAll("[data-dashboard-panel]").forEach(panel => panel.classList.toggle("active", panel === targetPanel));
   nav.querySelectorAll("[data-dashboard-target]").forEach(button => button.classList.toggle("active", button.dataset.dashboardTarget === targetId));
+  renderDashboardPanelById(targetId);
   optimizeRenderedMedia(targetPanel);
   closeMobileDashboardMenus();
   const role = workspace.dataset.dashboard === "athlete"
@@ -2260,7 +2457,18 @@ function showDashboardPanel(targetId) {
       : workspace.dataset.dashboard === "admin"
         ? "admin"
         : null;
-  if (role) ensureDashboardHydrated(role, { maxAgeMs: dashboardFreshnessMs });
+  const shouldHydrateRole = role && !(role === "admin" && hydratedRoles.has("admin"));
+  const hydration = shouldHydrateRole
+    ? ensureDashboardHydrated(role, { maxAgeMs: dashboardFreshnessMs })
+    : Promise.resolve(true);
+  hydration.then(() => ensureDashboardPanelData(targetId, { maxAgeMs: dashboardPanelFreshnessMs }));
+}
+
+function renderDashboardPanelById(targetId) {
+  if (targetId.startsWith("client-")) renderClientPanel(targetId);
+  if (targetId.startsWith("athlete-")) renderAthletePanel(targetId);
+  if (targetId.startsWith("admin-")) renderAdminPanel(targetId);
+  decoratePanelPagination(targetId);
 }
 
 function openMobileDashboardMenu(type) {
@@ -2297,6 +2505,7 @@ async function submitLogin(event) {
     state.session = session;
     hydratedRoles.clear();
     lastHydratedAtByRole.clear();
+    resetDashboardPanelState();
     state.data = normalizeLoadedData(bootstrapData || {});
     state.dataSignature = runtimeDataSignature(state.data);
     writeDataCache(state.data, state.session);
@@ -2410,6 +2619,7 @@ function logout() {
   lastHydratedAtByRole.clear();
   dashboardHydrationPromise = null;
   dashboardHydrationRole = null;
+  resetDashboardPanelState();
   adminDataHydrated = false;
   sessionStorage.removeItem(activeCacheKey);
   clearSession();
@@ -2943,15 +3153,24 @@ function clearCoverCarousels() {
 function renderClient() {
   renderClientHeader();
   renderClientKpis();
-  renderClientOverview();
-  renderClientEvents();
-  renderClientFeed();
-  renderClientSponsors();
-  renderClientMarketplace();
-  renderClientFounders();
-  renderClientRegister();
-  renderClientPayments();
-  renderAccountSettings("client-settings");
+  const activePanel = activeDashboardPanelId("client") || "client-overview";
+  renderClientPanel(activePanel);
+}
+
+function renderClientPanel(targetId) {
+  const map = {
+    "client-overview": renderClientOverview,
+    "client-events": renderClientEvents,
+    "client-feed": renderClientFeed,
+    "client-sponsors": renderClientSponsors,
+    "client-marketplace": renderClientMarketplace,
+    "client-founders": renderClientFounders,
+    "client-register": renderClientRegister,
+    "client-payments": renderClientPayments,
+    "client-settings": () => renderAccountSettings("client-settings")
+  };
+  if (map[targetId]) map[targetId]();
+  decoratePanelPagination(targetId);
 }
 
 function premiumAllianceCatalog() {
@@ -3381,15 +3600,20 @@ function renderClientHeader() {
 }
 
 function renderClientKpis() {
-  const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item)).length;
-  const athletes = clientAthleteRecords().length;
-  const founders = clientFounderRecords().length;
-  const news = state.data.news.filter(item => item.status === "published" && visualIsPublic(item)).length;
+  const countFor = (targetId, records) => {
+    const status = dashboardPanelLoads.get(targetId);
+    if (!status?.loaded) return "Al abrir";
+    return status.hasMore ? `${records.length}+` : records.length;
+  };
+  const events = countFor("client-events", state.data.events.filter(item => item.status === "approved" && visualIsPublic(item)));
+  const athletes = countFor("client-marketplace", clientAthleteRecords());
+  const founders = countFor("client-founders", clientFounderRecords());
+  const pendingPayments = countFor("client-payments", state.data.payments.filter(item => item.status !== "paid"));
   document.getElementById("clientKpis").innerHTML = [
     ["Eventos", events],
     ["Athletes", athletes],
     ["Founders", founders],
-    ["Pagos", state.data.payments.filter(item => item.status !== "paid").length]
+    ["Pagos", pendingPayments]
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
 
@@ -3673,11 +3897,19 @@ function renderAccountSettings(panelId) {
 function renderAthlete() {
   renderAthleteHeader();
   renderAthleteKpis();
-  renderAthleteNotifications();
-  renderAthleteProfile();
-  renderAthleteScouts();
-  renderAthleteResults();
-  renderAccountSettings("athlete-settings");
+  const activePanel = activeDashboardPanelId("athlete") || "athlete-profile";
+  renderAthletePanel(activePanel);
+}
+
+function renderAthletePanel(targetId) {
+  const map = {
+    "athlete-profile": renderAthleteProfile,
+    "athlete-notifications": renderAthleteNotifications,
+    "athlete-scouts": renderAthleteScouts,
+    "athlete-results": renderAthleteResults,
+    "athlete-settings": () => renderAccountSettings("athlete-settings")
+  };
+  if (map[targetId]) map[targetId]();
 }
 
 function renderAthleteHeader() {
@@ -4270,6 +4502,7 @@ function renderAdminPanel(targetId) {
     "admin-settings": () => renderAccountSettings("admin-settings")
   };
   if (map[targetId]) map[targetId]();
+  decoratePanelPagination(targetId);
 }
 
 const fiscalConfig = {
@@ -4310,6 +4543,9 @@ const fixedExpenseConfig = [
 ];
 
 function renderAdminKpis() {
+  const usersStatus = dashboardPanelLoads.get("admin-users");
+  const revenueStatus = dashboardPanelLoads.get("admin-revenue");
+  const crmStatus = dashboardPanelLoads.get("admin-crm");
   const pendingUsers = state.data.profiles.filter(item => item.status === "pending").length + state.data.companies.filter(item => item.status === "pending").length;
   const paymentRecords = incomePayments(state.data.payments || []);
   const paid = paymentRecords.filter(item => item.status === "paid").reduce((sum, item) => sum + Number(item.amount), 0);
@@ -4318,15 +4554,21 @@ function renderAdminKpis() {
   const athletes = adminAthleteRecords().length;
   const founders = adminFounderRecords().length;
   const companies = state.data.companies.length;
+  const listValue = (status, value, label) => !status?.loaded
+    ? `Abrir ${label}`
+    : status.hasMore ? `${value}+` : value;
+  const moneyValue = (status, value) => !status?.loaded || status.hasMore
+    ? "Abrir Ingresos"
+    : value;
   document.getElementById("adminKpis").innerHTML = [
-    ["Pendientes", pendingUsers],
-    ["Empresas", companies],
-    ["Deportistas", athletes],
-    ["Founders", founders],
-    ["Pagos", `$${paid.toLocaleString("es-MX")}`],
-    ["Pendiente", `$${pendingRevenue.toLocaleString("es-MX")}`],
-    ["Neto estimado", money(taxSummary.estimatedNetIncome)],
-    ["CRM", state.data.crm.length]
+    ["Pendientes", listValue(usersStatus, pendingUsers, "Usuarios")],
+    ["Empresas", listValue(usersStatus, companies, "Usuarios")],
+    ["Deportistas", listValue(usersStatus, athletes, "Usuarios")],
+    ["Founders", listValue(usersStatus, founders, "Usuarios")],
+    ["Pagos", moneyValue(revenueStatus, `$${paid.toLocaleString("es-MX")}`)],
+    ["Pendiente", moneyValue(revenueStatus, `$${pendingRevenue.toLocaleString("es-MX")}`)],
+    ["Neto estimado", moneyValue(revenueStatus, money(taxSummary.estimatedNetIncome))],
+    ["CRM", listValue(crmStatus, state.data.crm.length, "CRM")]
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
 
@@ -5026,6 +5268,10 @@ function renderAdminPayments() {
 
 
 function renderAdminRevenue() {
+  const revenueLoad = dashboardPanelLoads.get("admin-revenue");
+  const partialNotice = revenueLoad?.hasMore
+    ? `<p class="hint">Resumen parcial de los registros cargados. Usa "Cargar mas registros" para completar el historico antes de cerrar cifras.</p>`
+    : "";
   const payments = [...(state.data.payments || [])]
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const income = incomePayments(payments);
@@ -5107,6 +5353,7 @@ function renderAdminRevenue() {
 
   panel("admin-revenue", "Ingresos", "Trazabilidad financiera por vertical de ROIS", `
     <div class="panel-body">
+      ${partialNotice}
       <div class="scout-metrics">
         <div><span>Pagado</span><strong>$${totalPaid.toLocaleString("es-MX")}</strong></div>
         <div><span>Pendiente</span><strong>$${totalPending.toLocaleString("es-MX")}</strong></div>
