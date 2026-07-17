@@ -732,9 +732,11 @@ function setupAthleteAgeGate() {
 async function init() {
   state.session = normalizeSession(state.session);
   renderPublicShell();
-  const cachedData = readDataCache();
-  const shouldRefreshInBackground = Boolean(cachedData);
-  state.data = cachedData || await loadInitialData();
+  const needsPublicRuntimeData = Boolean(document.querySelector("#publicHomeCover, #publicNews, [data-home-visual]"));
+  const cachedData = state.session || needsPublicRuntimeData ? readDataCache() : null;
+  state.data = state.session
+    ? (cachedData || await loadInitialData())
+    : (cachedData || normalizeLoadedData({}));
   if (state.session && !cachedData) {
     hydratedRoles.add(state.session.role);
     lastHydratedAtByRole.set(state.session.role, Date.now());
@@ -767,7 +769,7 @@ async function init() {
     return;
   }
   if (state.session) showView(dashboardViewForRole(state.session.role));
-  if (shouldRefreshInBackground) refreshDataInBackground();
+  if (cachedData || needsPublicRuntimeData) refreshDataInBackground();
 }
 
 async function loadInitialData() {
@@ -835,7 +837,9 @@ async function refreshDataInBackground() {
       await ensureDashboardHydrated(state.session.role, { force: true });
       return;
     }
-    const nextData = normalizeLoadedData(await api.loadAll({ background: true }));
+    const nextData = normalizeLoadedData(api.loadPublicData
+      ? await api.loadPublicData()
+      : await api.loadAll({ lightweight: true, background: true }));
     const nextSignature = runtimeDataSignature(nextData);
     if (nextSignature === state.dataSignature) return;
     mergeLoadedData(nextData);
