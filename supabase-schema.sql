@@ -312,6 +312,8 @@ alter table founders add column if not exists instagram_url text;
 alter table founders add column if not exists tiktok_url text;
 alter table founders add column if not exists facebook_url text;
 alter table founders add column if not exists linkedin_url text;
+alter table founders add column if not exists sponsor_payment_url text;
+alter table founders add column if not exists sponsor_terms text;
 alter table founders add column if not exists sponsor_logos text;
 alter table founders add column if not exists terms_accepted boolean not null default false;
 create unique index if not exists athletes_scout_code_unique on athletes (scout_code) where scout_code is not null and scout_code <> '';
@@ -566,6 +568,30 @@ for insert
 to authenticated
 with check (status = 'Nuevo cliente');
 create policy "payments admin all" on payments for all using (is_admin()) with check (is_admin());
+create policy "payments company read own" on payments
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from companies
+    where lower(companies.contact) = lower(auth.jwt() ->> 'email')
+      and lower(companies.name) = lower(payments.company)
+  )
+  or is_admin()
+);
+create policy "payments company insert own" on payments
+for insert
+to authenticated
+with check (
+  status in ('pending', 'payment_started', 'review')
+  and exists (
+    select 1
+    from companies
+    where lower(companies.contact) = lower(auth.jwt() ->> 'email')
+      and lower(companies.name) = lower(payments.company)
+  )
+);
 create policy "uploads admin all" on uploads for all using (is_admin()) with check (is_admin());
 create policy "athlete posts read approved" on athlete_posts for select using (status = 'approved' or athlete_email = (auth.jwt() ->> 'email') or is_admin());
 create policy "athlete posts self read" on athlete_posts for select to authenticated using (athlete_email = (auth.jwt() ->> 'email'));

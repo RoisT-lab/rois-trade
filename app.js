@@ -11,6 +11,7 @@ const configuredDemoAdmin = config.demoAdminEmail && config.demoAdminPassword;
 const adminEmail = (config.adminEmail || config.demoAdminEmail || "").toLowerCase();
 const fixedLogoPath = config.logoDataUrl || "./assets/rois-logo.png";
 const dataCacheKey = "rois_runtime_data_cache_v2";
+const dashboardFreshnessMs = 15000;
 const profileMediaBucket = "profile-media";
 const operationTimeoutMs = 15000;
 const profileImageFallback = "./assets/rois-logo.png";
@@ -26,7 +27,9 @@ let coverCarouselTimers = [];
 const coverCacheKey = "rois_cover_cache_v1";
 let adminDataHydrated = false;
 let dashboardHydrationPromise = null;
+let dashboardHydrationRole = null;
 const hydratedRoles = new Set();
+const lastHydratedAtByRole = new Map();
 
 const seed = {
   profiles: configuredDemoAdmin ? [
@@ -64,18 +67,29 @@ function normalizeLoadedData(data = {}) {
   }, { ...base, ...data });
 }
 
-function readDataCache() {
+function dataCacheStorageKey(session = state.session) {
+  const role = String(session?.role || "public").toLowerCase();
+  const email = String(session?.email || "anonymous").trim().toLowerCase();
+  return `${dataCacheKey}:${role}:${email}`;
+}
+
+function readDataCache(session = state.session) {
   try {
-    const cached = sessionStorage.getItem(dataCacheKey);
-    return cached ? normalizeLoadedData(JSON.parse(cached)) : null;
+    const cached = sessionStorage.getItem(dataCacheStorageKey(session));
+    if (!cached) return null;
+    const parsed = JSON.parse(cached);
+    return normalizeLoadedData(parsed?.data || parsed);
   } catch (error) {
     return null;
   }
 }
 
-function writeDataCache(data) {
+function writeDataCache(data, session = state.session) {
   try {
-    sessionStorage.setItem(dataCacheKey, JSON.stringify(cacheSafeData(data)));
+    sessionStorage.setItem(dataCacheStorageKey(session), JSON.stringify({
+      savedAt: Date.now(),
+      data: cacheSafeData(data)
+    }));
   } catch (error) {
     // Large media payloads can exceed browser storage. The app should keep working without cache.
   }
@@ -721,9 +735,12 @@ async function init() {
   const cachedData = readDataCache();
   const shouldRefreshInBackground = Boolean(cachedData);
   state.data = cachedData || await loadInitialData();
-  if (state.session && !cachedData) hydratedRoles.add(state.session.role);
+  if (state.session && !cachedData) {
+    hydratedRoles.add(state.session.role);
+    lastHydratedAtByRole.set(state.session.role, Date.now());
+  }
   state.dataSignature = runtimeDataSignature(state.data);
-  if (state.session && sessionIsBlocked()) {
+  if (state.session && !cachedData && sessionIsBlocked()) {
     state.session = null;
     clearSession();
   }
@@ -740,6 +757,7 @@ async function init() {
   applyBranding();
   handleMissingImages();
   bindGlobalEvents();
+  bindDashboardFreshnessEvents();
   renderPublic();
   renderSession();
   optimizeRenderedMedia();
@@ -767,15 +785,28 @@ async function loadInitialData() {
 async function ensureDashboardHydrated(role = state.session?.role, options = {}) {
   if (!role || !state.session) return false;
   const force = options.force === true;
-  if (!force && hydratedRoles.has(role)) return true;
-  if (dashboardHydrationPromise) return dashboardHydrationPromise;
+  const maxAgeMs = Number(options.maxAgeMs ?? dashboardFreshnessMs);
+  const lastHydratedAt = lastHydratedAtByRole.get(role) || 0;
+  if (!force && hydratedRoles.has(role) && Date.now() - lastHydratedAt < maxAgeMs) return true;
+  if (dashboardHydrationPromise && dashboardHydrationRole === role) return dashboardHydrationPromise;
+  if (dashboardHydrationPromise) {
+    await dashboardHydrationPromise;
+    return ensureDashboardHydrated(role, options);
+  }
+  dashboardHydrationRole = role;
   dashboardHydrationPromise = (async () => {
     try {
       const data = api.loadRoleData
         ? await api.loadRoleData(role, state.session)
         : await api.loadAll({ lightweight: role !== "admin", admin: role === "admin" });
       mergeLoadedData(data);
+      if (sessionIsBlocked()) {
+        notify("Acceso", "Cuenta no disponible", "La cuenta fue bloqueada o dada de baja por ROIS.");
+        logout();
+        return false;
+      }
       hydratedRoles.add(role);
+      lastHydratedAtByRole.set(role, Date.now());
       renderSession();
       const view = dashboardViewForRole(role);
       if (view === "client") renderClient();
@@ -788,6 +819,7 @@ async function ensureDashboardHydrated(role = state.session?.role, options = {})
       return false;
     } finally {
       dashboardHydrationPromise = null;
+      dashboardHydrationRole = null;
     }
   })();
   return dashboardHydrationPromise;
@@ -812,6 +844,18 @@ async function refreshDataInBackground() {
   } catch (error) {
     console.warn("[ROIS background refresh]", humanError(error));
   }
+}
+
+function refreshActiveDashboardIfStale() {
+  if (!state.session || document.visibilityState === "hidden") return;
+  ensureDashboardHydrated(state.session.role, { maxAgeMs: dashboardFreshnessMs });
+}
+
+function bindDashboardFreshnessEvents() {
+  window.addEventListener("focus", refreshActiveDashboardIfStale);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshActiveDashboardIfStale();
+  });
 }
 
 function sessionIsBlocked() {
@@ -1207,7 +1251,7 @@ function supabaseApi() {
         return [];
       });
       const profileQuery = `/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`;
-      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
+      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
       const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
       const ownProfile = roleRequest(profileQuery);
       if (role === "athlete") {
@@ -1235,16 +1279,17 @@ function supabaseApi() {
         return { profiles, athletes, terms_acceptances: terms, athlete_notifications: notifications, athlete_posts: posts, athlete_results: results };
       }
       if (role === "founder") {
-        const [profiles, founders, terms, posts, results] = await Promise.all([
+        const [profiles, founders, terms, notifications, posts, results] = await Promise.all([
           ownProfile,
           roleRequest(`/rest/v1/founders?select=${founderColumns}&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=2`),
           roleRequest(`/rest/v1/terms_acceptances?select=id,user_email,user_role,version,status,created_at&user_email=eq.${encodedEmail}&order=created_at.desc&limit=20`),
+          roleRequest(`/rest/v1/athlete_notifications?select=id,athlete_email,title,message,category,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=40`),
           roleRequest(`/rest/v1/athlete_posts?select=id,athlete_email,title,caption,image_url,video_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`),
           roleRequest(`/rest/v1/athlete_results?select=id,athlete_id,athlete_email,athlete_name,month,event,summary,proof_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`)
         ]);
-        return { profiles, founders, terms_acceptances: terms, athlete_posts: posts, athlete_results: results };
+        return { profiles, founders, terms_acceptances: terms, athlete_notifications: notifications, athlete_posts: posts, athlete_results: results };
       }
-      const publicAthleteColumns = "id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status";
+      const publicAthleteColumns = "id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status";
       const publicFounderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status";
       const [profiles, companies, athletes, founders, events, news, partnerships] = await Promise.all([
         ownProfile,
@@ -1255,7 +1300,14 @@ function supabaseApi() {
         roleRequest("/rest/v1/news?select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=40"),
         roleRequest("/rest/v1/partnerships?select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&order=created_at.desc&limit=80")
       ]);
-      return { profiles, companies, athletes, founders, events, news, partnerships };
+      const companyName = companies[0]?.name || session.name || "";
+      const encodedCompanyName = encodeURIComponent(companyName);
+      const [posts, payments, requests] = await Promise.all([
+        roleRequest("/rest/v1/athlete_posts?select=id,athlete_id,athlete_email,athlete_name,title,caption,image_url,video_url,status,created_at&status=eq.approved&order=created_at.desc&limit=80"),
+        companyName ? roleRequest(`/rest/v1/payments?select=id,concept,amount,company,status,product_key,created_at&company=eq.${encodedCompanyName}&order=created_at.desc&limit=120`) : [],
+        companyName ? roleRequest(`/rest/v1/requests?select=id,type,title,owner,details,priority,status,created_at&owner=eq.${encodedCompanyName}&order=created_at.desc&limit=120`) : []
+      ]);
+      return { profiles, companies, athletes, founders, events, news, partnerships, athlete_posts: posts, payments, requests };
     },
     async validateScoutCode(code) {
       const normalized = normalizeScoutCode(code);
@@ -1325,7 +1377,7 @@ function supabaseApi() {
         } else {
           profile = await this.ensureClientAccount(auth);
         }
-      } else if (profile.role === "founder") {
+      } else if (profile.role === "founder" && !founders.length) {
         profile = await this.ensureFounderAccount(auth, { name: profile.name });
       } else if (profile.role === "athlete" && !athletes.length) {
         profile = await this.ensureAthleteAccount(auth, { forceRole: true });
@@ -2171,20 +2223,17 @@ function showView(name) {
   document.querySelectorAll("[data-view]").forEach(view => view.classList.toggle("active", view.dataset.view === name));
   if (name === "client") {
     renderClient();
-    ensureDashboardHydrated("client");
+    ensureDashboardHydrated("client", { maxAgeMs: dashboardFreshnessMs });
   }
   if (name === "athlete") {
     renderAthlete();
-    ensureDashboardHydrated(state.session?.role === "founder" ? "founder" : "athlete");
+    ensureDashboardHydrated(state.session?.role === "founder" ? "founder" : "athlete", { maxAgeMs: dashboardFreshnessMs });
   }
   if (name === "admin") {
     renderAdmin();
-    if (!adminDataHydrated) {
-      adminDataHydrated = true;
-      ensureDashboardHydrated("admin").catch(() => {
-        // Keep the current admin view responsive even if the background refresh fails.
-      });
-    }
+    ensureDashboardHydrated("admin", { maxAgeMs: dashboardFreshnessMs }).then(success => {
+      adminDataHydrated = success;
+    });
   }
   optimizeRenderedMedia();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2200,6 +2249,14 @@ function showDashboardPanel(targetId) {
   nav.querySelectorAll("[data-dashboard-target]").forEach(button => button.classList.toggle("active", button.dataset.dashboardTarget === targetId));
   optimizeRenderedMedia(targetPanel);
   closeMobileDashboardMenus();
+  const role = workspace.dataset.dashboard === "athlete"
+    ? (state.session?.role === "founder" ? "founder" : "athlete")
+    : workspace.dataset.dashboard === "client"
+      ? "client"
+      : workspace.dataset.dashboard === "admin"
+        ? "admin"
+        : null;
+  if (role) ensureDashboardHydrated(role, { maxAgeMs: dashboardFreshnessMs });
 }
 
 function openMobileDashboardMenu(type) {
@@ -2235,7 +2292,10 @@ async function submitLogin(event) {
     }
     state.session = session;
     hydratedRoles.clear();
-    if (bootstrapData) mergeLoadedData(bootstrapData);
+    lastHydratedAtByRole.clear();
+    state.data = normalizeLoadedData(bootstrapData || {});
+    state.dataSignature = runtimeDataSignature(state.data);
+    writeDataCache(state.data, state.session);
     saveSession(state.session);
     closeModals();
     renderSession();
@@ -2340,10 +2400,14 @@ async function submitCompanyProfile(event) {
 }
 
 function logout() {
+  const activeCacheKey = dataCacheStorageKey(state.session);
   state.session = null;
   hydratedRoles.clear();
+  lastHydratedAtByRole.clear();
   dashboardHydrationPromise = null;
+  dashboardHydrationRole = null;
   adminDataHydrated = false;
+  sessionStorage.removeItem(activeCacheKey);
   clearSession();
   renderSession();
   showView("home");
