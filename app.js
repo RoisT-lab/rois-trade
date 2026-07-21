@@ -2929,14 +2929,15 @@ function notify(kicker, title, text, actions = "") {
 function openRegistrationChoice(context = "profile") {
   const copy = context === "athlete-profile"
     ? "Para ver perfiles completos y solicitar patrocinios necesitas una cuenta empresarial. Si eres deportista, crea tu perfil para entrar al ecosistema ROIS."
-    : "Selecciona el tipo de cuenta que quieres crear dentro del ecosistema ROIS.";
+    : "Elige el perfil que mejor representa tu actividad. Te llevaremos directamente al registro correspondiente.";
   notify(
-    "Acceso ROIS",
-    "Crea tu cuenta para continuar",
+    "Registro ROIS",
+    "Selecciona tu tipo de cuenta",
     copy,
     `<div class="modal-actions">
-      <button class="btn primary" type="button" data-registration="company">Crear cuenta empresarial</button>
-      <button class="btn" type="button" data-registration="athlete">Registro deportista</button>
+      <button class="btn primary" type="button" data-registration="company">Empresa</button>
+      <button class="btn" type="button" data-registration="athlete">Athlete</button>
+      <button class="btn" type="button" data-registration="founder">Creador</button>
     </div>`
   );
   document.querySelectorAll("#actionModal [data-registration]").forEach(button => {
@@ -3185,10 +3186,9 @@ function renderSession() {
   const area = document.getElementById("sessionArea");
   if (!state.session) {
     area.innerHTML = `
-      <button class="btn primary nav-create-account" type="button" data-registration="company">Crear cuenta</button>
+      <button class="btn primary nav-create-account" type="button" data-registration-choice="profile">Crear cuenta</button>
       <button class="btn subtle" type="button" data-open-login>Acceso</button>
     `;
-    area.querySelector("[data-registration]").addEventListener("click", () => openRegistration("company"));
     area.querySelector("[data-open-login]").addEventListener("click", openLogin);
     return;
   }
