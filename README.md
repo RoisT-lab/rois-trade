@@ -1,6 +1,12 @@
 # ROIS
 
-Aplicacion web estatica conectada a Supabase para empresas, athletes, founders y administracion.
+Aplicacion web estatica conectada a Supabase para empresas, athletes, creadores y administracion. La compatibilidad tecnica de creadores conserva el role `founder` y la tabla `founders`.
+
+## Creator Marketplace
+
+Ejecuta `supabase-creators-marketplace-evolution.sql` despues de las migraciones base de perfiles. Es aditiva y conserva todos los founders existentes, que se clasifican inicialmente como `creator_type = founder`.
+
+La vertical visible **Creadores** admite artistas, influencers, musicos, actores, modelos, streamers, comunicadores y founders. Registra categoria de contenido, plataforma principal, audiencia, engagement, mercado de audiencia, afinidad con marcas, colaboraciones, entregables y disponibilidad comercial. Empresas y Admin reciben estas metricas sin mezclar los registros con `athletes`.
 
 ## Despliegue de esta actualizacion
 
@@ -10,6 +16,7 @@ Sube estos archivos:
 - `index.html`
 - `supabase-schema.sql`
 - `supabase-profile-persistence-storage.sql`
+- `supabase-creators-marketplace-evolution.sql`
 - `supabase-company-marketplace-pro-business.sql`
 - `PROFILE-PERSISTENCE-VALIDATION.md`
 - `README.md`
