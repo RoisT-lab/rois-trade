@@ -10,10 +10,51 @@ Sube estos archivos:
 - `index.html`
 - `supabase-schema.sql`
 - `supabase-profile-persistence-storage.sql`
+- `supabase-company-marketplace-pro-business.sql`
 - `PROFILE-PERSISTENCE-VALIDATION.md`
 - `README.md`
 
 No es necesario modificar `app-config.js`, Stripe ni assets.
+
+## Mercado Corporativo PRO / Business
+
+La ampliacion empresarial es aditiva y no reutiliza `partnerships` como inventario masivo. Antes de habilitarla, ejecuta una vez:
+
+```text
+supabase-company-marketplace-pro-business.sql
+```
+
+La migracion crea:
+
+- `company_subscriptions`: fuente de verdad de Free, PRO y Business;
+- `company_listings`: productos, servicios, activos y oportunidades;
+- `company_listing_media`: metadatos de archivos almacenados fuera de Postgres;
+- `marketplace_leads`: solicitudes entre empresa compradora y oferente;
+- bucket publico `company-media` con escrituras restringidas a la empresa propietaria;
+- indices para feeds, empresa, categoria, fechas, leads y vigencias;
+- RLS para propiedad, lectura aprobada y moderacion administrativa;
+- vinculacion `profile_id` en empresas y propiedad `company_id` en eventos.
+
+Planes iniciales configurados en frontend y aplicados por suscripcion:
+
+| Plan | Precio de referencia | Publicaciones | Eventos / mes | Usuarios |
+| --- | ---: | ---: | ---: | ---: |
+| Explorador | $0 | 0 | 0 | 1 |
+| PRO | $2,500 MXN + IVA / mes | 25 | 2 | 1 |
+| Business | $7,500 MXN + IVA / mes | 100 | 10 | 5 |
+
+Hasta conectar Payment Links y un webhook especifico, la solicitud de plan crea una solicitud operativa y Admin confirma la activacion. No se concede acceso PRO por una accion visual ni por un pago `pending`.
+
+Centro VIP conserva los productos curados de `partnerships`. El Mercado Corporativo usa exclusivamente `company_listings`, por lo que puede crecer y paginarse sin mezclar contenido administrativo legacy.
+
+Rutas de Storage corporativo:
+
+```text
+companies/{company_id}/listings/{listing_id}/{filename}
+companies/{company_id}/events/{event_id}/{filename}
+```
+
+Para produccion recurrente, el siguiente paso de pagos es una Supabase Edge Function que reciba webhooks Stripe y actualice `company_subscriptions`. Nunca se debe activar un plan confiando solo en el navegador.
 
 ## Migracion obligatoria
 

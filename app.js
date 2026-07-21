@@ -13,6 +13,7 @@ const fixedLogoPath = config.logoDataUrl || "./assets/rois-logo.png";
 const dataCacheKey = "rois_runtime_data_cache_v2";
 const dashboardFreshnessMs = 15000;
 const profileMediaBucket = "profile-media";
+const companyMediaBucket = "company-media";
 const operationTimeoutMs = 15000;
 const profileImageFallback = "./assets/rois-logo.png";
 const runtimeCacheRowsPerTable = 120;
@@ -36,6 +37,36 @@ const dashboardPanelPromises = new Map();
 const dashboardPanelPageSizes = { client: 24, admin: 75 };
 const dashboardPanelFreshnessMs = 30000;
 
+const companyPlanCatalog = {
+  free: {
+    key: "free",
+    name: "Explorador",
+    price: 0,
+    listingLimit: 0,
+    eventLimitMonthly: 0,
+    seatsLimit: 1,
+    features: []
+  },
+  pro: {
+    key: "pro",
+    name: "PRO",
+    price: 2500,
+    listingLimit: 25,
+    eventLimitMonthly: 2,
+    seatsLimit: 1,
+    features: ["publish_listings", "publish_events"]
+  },
+  business: {
+    key: "business",
+    name: "Business",
+    price: 7500,
+    listingLimit: 100,
+    eventLimitMonthly: 10,
+    seatsLimit: 5,
+    features: ["publish_listings", "publish_events", "featured_listings", "team_seats"]
+  }
+};
+
 const seed = {
   profiles: configuredDemoAdmin ? [
     { id: "u-admin", email: config.demoAdminEmail, password: config.demoAdminPassword, role: "admin", name: "Administrador ROIS", status: "approved", mustChangePassword: true }
@@ -57,7 +88,11 @@ const seed = {
   athlete_expenses: [],
   athlete_deposits: [],
   athlete_notifications: [],
-  terms_acceptances: []
+  terms_acceptances: [],
+  company_subscriptions: [],
+  company_listings: [],
+  company_listing_media: [],
+  marketplace_leads: []
 };
 
 const api = withCachedLoadAll(demoMode ? demoApi() : supabaseApi());
@@ -259,6 +294,69 @@ function currentCompany() {
   return state.data.companies.find(company => (company.contact || "").toLowerCase() === email) || null;
 }
 
+function currentCompanySubscription(company = currentCompany()) {
+  if (!company) return null;
+  return (state.data?.company_subscriptions || []).find(subscription => subscription.company_id === company.id) || null;
+}
+
+function companySubscriptionIsActive(subscription) {
+  if (!subscription || !["active", "trialing"].includes(String(subscription.status || "").toLowerCase())) return false;
+  if (!subscription.current_period_end) return true;
+  return new Date(subscription.current_period_end).getTime() > Date.now();
+}
+
+function currentCompanyPlan(company = currentCompany()) {
+  const subscription = currentCompanySubscription(company);
+  const key = companySubscriptionIsActive(subscription) ? String(subscription.plan || "free").toLowerCase() : "free";
+  return companyPlanCatalog[key] || companyPlanCatalog.free;
+}
+
+function companyCan(feature, company = currentCompany()) {
+  return currentCompanyPlan(company).features.includes(feature);
+}
+
+function companyPlanLabel(company = currentCompany()) {
+  const plan = currentCompanyPlan(company);
+  const subscription = currentCompanySubscription(company);
+  return companySubscriptionIsActive(subscription) ? plan.name : companyPlanCatalog.free.name;
+}
+
+function companyPlanCard(planKey, options = {}) {
+  const plan = companyPlanCatalog[planKey] || companyPlanCatalog.free;
+  const active = currentCompanyPlan().key === plan.key;
+  const features = plan.key === "pro"
+    ? ["25 publicaciones activas", "2 eventos mensuales", "Leads comerciales", "Revisión editorial ROIS"]
+    : ["100 publicaciones activas", "10 eventos mensuales", "Hasta 5 usuarios", "Inventario destacado y analítica"];
+  return `
+    <article class="company-plan-card${active ? " active" : ""}">
+      <div>
+        <p class="eyebrow">Plan ${escapeHtml(plan.name)}</p>
+        <h3>$${plan.price.toLocaleString("es-MX")} <small>MXN + IVA / mes</small></h3>
+        <p>${plan.key === "business" ? "Para portafolios amplios y operación comercial continua." : "Para publicar inventario y activar oportunidades empresariales."}</p>
+      </div>
+      <ul>${features.map(feature => `<li>${escapeHtml(feature)}</li>`).join("")}</ul>
+      ${active
+        ? `<span class="pill">Plan activo</span>`
+        : `<button class="btn${options.primary ? " primary" : ""}" type="button" data-company-plan-request="${plan.key}">Solicitar activación</button>`}
+    </article>
+  `;
+}
+
+function companyPlanGateMarkup(featureLabel) {
+  return `
+    <div class="company-plan-gate">
+      <p class="eyebrow">Funcionalidad PRO</p>
+      <h3>${escapeHtml(featureLabel)}</h3>
+      <p>Activa PRO o Business para publicar inventario corporativo y eventos sujetos a revisión ROIS.</p>
+      <div class="company-plan-grid">
+        ${companyPlanCard("pro", { primary: true })}
+        ${companyPlanCard("business")}
+      </div>
+      <p class="hint">La activación se confirma por administración o mediante la futura verificación de suscripción Stripe. Una solicitud no concede acceso automáticamente.</p>
+    </div>
+  `;
+}
+
 function sessionLogoPath() {
   return currentCompany()?.logo_url || currentFounder()?.image_url || currentAthlete()?.image_url || profileImageFallback;
 }
@@ -347,7 +445,9 @@ function dashboardPanelQueries(targetId) {
   const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,created_at";
   const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,created_at";
   const companyName = currentCompany()?.name || state.session?.name || "";
+  const companyId = currentCompany()?.id || "";
   const encodedCompany = encodeURIComponent(companyName);
+  const encodedCompanyId = encodeURIComponent(companyId);
   const client = {
     "client-events": [
       { table: "events", query: "select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" }
@@ -356,7 +456,9 @@ function dashboardPanelQueries(targetId) {
       { table: "athlete_posts", query: "select=id,athlete_id,athlete_email,athlete_name,title,caption,image_url,video_url,status,created_at&status=eq.approved&order=created_at.desc" }
     ],
     "client-sponsors": [
-      { table: "partnerships", query: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" }
+      { table: "partnerships", query: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" },
+      { table: "company_listings", query: "select=id,company_id,profile_id,company_name,listing_type,category,subcategory,title,summary,description,price,currency,price_label,location,inventory_count,availability,contact_email,website_url,primary_image_url,plan_required,featured,featured_until,status,visual_status,expires_at,created_at,updated_at&order=featured.desc,created_at.desc" },
+      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at" }
     ],
     "client-marketplace": [
       { table: "athletes", query: `select=${athleteColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc` }
@@ -367,7 +469,11 @@ function dashboardPanelQueries(targetId) {
     "client-payments": companyName ? [
       { table: "payments", query: `select=id,concept,amount,company,status,product_key,created_at&company=eq.${encodedCompany}&order=created_at.desc` },
       { table: "requests", query: `select=id,type,title,owner,details,priority,status,created_at&owner=eq.${encodedCompany}&order=created_at.desc` }
-    ] : []
+    ] : [],
+    "client-register": [
+      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at" },
+      ...(companyId ? [{ table: "events", query: `select=id,company_id,profile_id,name,status,created_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` }] : [])
+    ]
   };
   const admin = {
     "admin-users": [
@@ -387,9 +493,19 @@ function dashboardPanelQueries(targetId) {
       { table: "founders", query: `select=${founderColumns}&order=created_at.desc` },
       { table: "athlete_notifications", query: "select=id,athlete_id,athlete_email,athlete_name,title,message,category,priority,status,email_status,sent_by,read_at,created_at&order=created_at.desc" }
     ],
-    "admin-events": [{ table: "events", query: "select=id,name,category,venue,date,image_url,brochure_url,brochure_name,event_scope,sponsor_levels,visual_status,visual_notes,status,created_at&order=created_at.desc" }],
+    "admin-events": [
+      { table: "events", query: "select=id,company_id,profile_id,name,category,venue,date,image_url,image_path,brochure_url,brochure_name,event_scope,sponsor_levels,success_fee_level,success_fee_rate,visual_status,visual_notes,status,created_at,updated_at&order=created_at.desc" },
+      { table: "companies", query: "select=id,profile_id,name,contact,status,created_at&order=created_at.desc" }
+    ],
     "admin-news": [{ table: "news", query: "select=id,title,summary,image_url,visual_status,visual_notes,status,created_at&order=created_at.desc" }],
     "admin-partners": [{ table: "partnerships", query: "select=id,name,type,tier,description,image_url,url,visual_status,visual_notes,status,created_at&order=created_at.desc" }],
+    "admin-corporate-market": [
+      { table: "company_listings", query: "select=id,company_id,profile_id,company_name,listing_type,category,subcategory,title,summary,description,price,currency,price_label,location,inventory_count,availability,contact_email,website_url,primary_image_url,plan_required,featured,featured_until,status,visual_status,visual_notes,expires_at,created_at,updated_at&order=created_at.desc" },
+      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,stripe_customer_id,stripe_subscription_id,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at&order=created_at.desc" },
+      { table: "companies", query: "select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc" },
+      { table: "marketplace_leads", query: "select=id,listing_id,seller_company_id,buyer_company_id,requester_email,requester_name,requester_company,message,status,created_at,updated_at&order=created_at.desc" },
+      { table: "requests", query: "select=id,type,title,owner,details,priority,status,created_at&type=eq.Plan%20empresarial&order=created_at.desc" }
+    ],
     "admin-crm": [{ table: "crm", query: "select=id,name,volume,status,created_at&order=created_at.desc" }],
     "admin-revenue": [
       { table: "payments", query: "select=id,concept,amount,company,status,product_key,created_at&order=created_at.desc" },
@@ -1195,7 +1311,9 @@ function demoApi() {
       const id = crypto.randomUUID();
       const profile = { id, email, password, role: "client", name: company, status: "approved", mustChangePassword: false };
       data.profiles.unshift(profile);
-      data.companies.unshift({ id: crypto.randomUUID(), name: company, contact: email, owner: contact, interest, status: "approved" });
+      const companyId = crypto.randomUUID();
+      data.companies.unshift({ id: companyId, profile_id: id, name: company, contact: email, owner: contact, interest, status: "approved" });
+      data.company_subscriptions.unshift({ id: crypto.randomUUID(), company_id: companyId, profile_id: id, company_name: company, plan: "free", status: "inactive", listing_limit: 0, event_limit_monthly: 0, seats_limit: 1 });
       write(data);
       state.data = data;
       return {
@@ -1412,10 +1530,10 @@ function supabaseApi() {
       const smallLimit = adminMode ? 300 : 80;
       const tableQueries = {
         profiles: `select=id,email,role,name,status,must_change_password,created_at&order=created_at.desc&limit=${mainLimit}`,
-        companies: `select=id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc&limit=${mainLimit}`,
+        companies: `select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc&limit=${mainLimit}`,
         athletes: `select=id,profile_id,email,contact,name,sport,stats,monthly,annual,category,location,ranking,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,image_url,image_path,visual_status,visual_notes,terms_accepted,scout_code,scout_active,scout_terms_accepted,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,max_sponsors,proposal_url,proposal_path,proposal_name,sponsor_payment_url,sponsor_terms,sponsor_logos,birth_date,age_status,guardian_name,guardian_email,guardian_phone,guardian_relationship,guardian_consent,status,created_at&order=created_at.desc&limit=${mainLimit}`,
         founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,monthly,max_sponsors,scout_code,scout_active,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
-        events: `select=id,name,category,venue,date,image_url,brochure_url,brochure_name,event_scope,sponsor_levels,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        events: `select=id,company_id,profile_id,name,category,venue,date,image_url,image_path,brochure_url,brochure_name,event_scope,sponsor_levels,success_fee_level,success_fee_rate,visual_status,visual_notes,status,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
         requests: `select=id,type,title,owner,details,priority,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         sponsorships: `select=id,athlete,athlete_email,amount,company,details,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         news: `select=id,title,summary,image_url,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${smallLimit}`,
@@ -1429,7 +1547,11 @@ function supabaseApi() {
         athlete_expenses: `select=id,athlete_id,athlete_email,athlete_name,date,category,amount,company,ticket_url,invoice_url,notes,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         athlete_deposits: `select=id,athlete_id,athlete_email,athlete_name,month,amount,company,proof_url,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         athlete_notifications: `select=id,athlete_id,athlete_email,athlete_name,title,message,category,priority,status,email_status,sent_by,read_at,created_at&order=created_at.desc&limit=${mediumLimit}`,
-        terms_acceptances: `select=id,user_email,user_role,version,status,created_at&order=created_at.desc&limit=${mediumLimit}`
+        terms_acceptances: `select=id,user_email,user_role,version,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        company_subscriptions: `select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
+        company_listings: `select=id,company_id,profile_id,company_name,listing_type,category,subcategory,title,summary,description,price,currency,price_label,location,inventory_count,availability,contact_email,website_url,primary_image_url,plan_required,featured,featured_until,status,visual_status,visual_notes,expires_at,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
+        company_listing_media: `select=id,listing_id,company_id,storage_path,public_url,original_name,mime_type,sort_order,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        marketplace_leads: `select=id,listing_id,seller_company_id,buyer_company_id,requester_profile_id,requester_email,requester_name,requester_company,message,status,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`
       };
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const result = {};
@@ -1498,12 +1620,13 @@ function supabaseApi() {
         ]);
         return { profiles, founders, terms_acceptances: terms, athlete_notifications: notifications, athlete_posts: posts, athlete_results: results };
       }
-      const [profiles, companies, news] = await Promise.all([
+      const [profiles, companies, news, subscriptions] = await Promise.all([
         ownProfile,
-        roleRequest(`/rest/v1/companies?select=id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodedEmail}&limit=1`),
-        roleRequest("/rest/v1/news?select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=12")
+        roleRequest(`/rest/v1/companies?select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodedEmail}&limit=1`),
+        roleRequest("/rest/v1/news?select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=12"),
+        roleRequest(`/rest/v1/company_subscriptions?select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at&profile_id=eq.${encodeURIComponent(authId)}&limit=1`)
       ]);
-      return { profiles, companies, news };
+      return { profiles, companies, news, company_subscriptions: subscriptions };
     },
     async validateScoutCode(code) {
       const normalized = normalizeScoutCode(code);
@@ -1539,7 +1662,7 @@ function supabaseApi() {
         body: JSON.stringify({ email: normalizedEmail, password })
       });
       const [companies, initialAthletes, initialFounders, profilesById] = await Promise.all([
-        request(`/rest/v1/companies?select=id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        request(`/rest/v1/companies?select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(auth.access_token)
         }),
         request(`/rest/v1/athletes?select=id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
@@ -2010,19 +2133,25 @@ function supabaseApi() {
         });
         resolvedProfile = existingProfiles[0] || null;
       }
-      const existingCompanies = await request(`/rest/v1/companies?select=id&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+      const existingCompanies = await request(`/rest/v1/companies?select=id,profile_id&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
         headers: headers(token)
       });
       if (!existingCompanies.length) {
         await request("/rest/v1/companies", {
           method: "POST",
           headers: { ...headers(token), Prefer: "return=minimal" },
-          body: JSON.stringify({ name: company, contact: normalizedEmail, owner: contact, interest, status: "approved" })
+          body: JSON.stringify({ profile_id: resolvedProfile?.id || auth.user.id, name: company, contact: normalizedEmail, owner: contact, interest, status: "approved" })
         });
         await request("/rest/v1/crm", {
           method: "POST",
           headers: { ...headers(token), Prefer: "return=minimal" },
           body: JSON.stringify({ name: company, volume: 0, status: "Nuevo cliente" })
+        });
+      } else if (!existingCompanies[0].profile_id) {
+        await request(`/rest/v1/companies?id=eq.${existingCompanies[0].id}`, {
+          method: "PATCH",
+          headers: { ...headers(token), Prefer: "return=minimal" },
+          body: JSON.stringify({ profile_id: resolvedProfile?.id || auth.user.id })
         });
       }
       return {
@@ -2412,6 +2541,21 @@ function handleDashboardDelegatedActions(event) {
     requestPremiumAllianceProduct(premiumRequestButton.dataset.premiumRequest);
     return;
   }
+  const planRequestButton = event.target.closest("[data-company-plan-request]");
+  if (planRequestButton) {
+    requestCompanyPlan(planRequestButton.dataset.companyPlanRequest);
+    return;
+  }
+  const listingInterestButton = event.target.closest("[data-company-listing-interest]");
+  if (listingInterestButton) {
+    requestCompanyListing(listingInterestButton.dataset.companyListingInterest);
+    return;
+  }
+  const archiveListingButton = event.target.closest("[data-company-listing-archive]");
+  if (archiveListingButton) {
+    archiveCompanyListing(archiveListingButton.dataset.companyListingArchive);
+    return;
+  }
   const requestScoutButton = event.target.closest("[data-request-scout-code]");
   if (requestScoutButton) {
     requestScoutCode();
@@ -2732,16 +2876,6 @@ function openExternalUrl(url, title) {
 }
 
 function registrationPaymentConfig(type, payload = {}) {
-  if (type === "company") {
-    return {
-      productKey: "companyMonthlyMembership",
-      title: "Membresia mensual Empresa ROIS",
-      concept: "Membresia mensual Empresa ROIS",
-      amount: 5000,
-      payer: payload.company || payload.name || payload.email || "Empresa ROIS"
-    };
-  }
-
   if (type === "founder") {
     return {
       productKey: "founderMonthlyMembership",
@@ -2764,15 +2898,6 @@ function registrationPaymentConfig(type, payload = {}) {
 
   return null;
 }
-
-const eventRegistrationFee = {
-  productKey: "eventRegistration",
-  title: "Publicacion de Evento ROIS",
-  concept: "Fee de publicacion de evento ROIS",
-  amount: 25000,
-  taxMode: "iva_included",
-  description: "Fee general por publicacion, revision y activacion comercial de evento dentro de ROIS."
-};
 
 function eventSuccessFeeOptions() {
   return [
@@ -2846,39 +2971,13 @@ async function registerMembershipPayment(type, payload = {}) {
   return payment;
 }
 
-async function registerEventPublicationPayment(eventName, payer = "", successFeeLevel = "listing_5") {
-  const successFeeLabel = eventSuccessFeeLabel(successFeeLevel);
-  try {
-    try {
-      await api.insert("payments", {
-        concept: `${eventRegistrationFee.concept} - ${eventName}`,
-        amount: eventRegistrationFee.amount,
-        company: payer || "Empresa ROIS",
-        status: "pending",
-        product_key: eventRegistrationFee.productKey,
-        details: `Success fee seleccionado: ${successFeeLabel}`
-      });
-    } catch (error) {
-      await api.insert("payments", {
-        concept: `${eventRegistrationFee.concept} - ${eventName}`,
-        amount: eventRegistrationFee.amount,
-        company: payer || "Empresa ROIS",
-        status: "pending",
-        product_key: eventRegistrationFee.productKey
-      });
-    }
-  } catch (error) {
-    // No bloquear el registro si el log de pago falla.
-  }
-
-  return eventRegistrationFee;
-}
-
 async function insertEventRegistrationRecord(payload) {
   const successFeeLevel = payload.success_fee_level || "listing_5";
   const successFeeRate = eventSuccessFeeRate(successFeeLevel);
   const successFeeCopy = `Success fee ROIS: ${eventSuccessFeeLabel(successFeeLevel)}. Rate: ${successFeeRate}% sobre sponsors cerrados mediante ROIS.`;
   const baseRecord = {
+    ...(payload.company_id ? { company_id: payload.company_id } : {}),
+    ...(payload.profile_id ? { profile_id: payload.profile_id } : {}),
     name: payload.name,
     category: payload.category,
     venue: payload.venue,
@@ -2889,7 +2988,7 @@ async function insertEventRegistrationRecord(payload) {
   };
 
   try {
-    await api.insert("events", {
+    return await api.insert("events", {
       ...baseRecord,
       event_scope: payload.event_scope || "",
       sponsor_levels: payload.sponsor_levels || "",
@@ -2898,13 +2997,13 @@ async function insertEventRegistrationRecord(payload) {
     });
   } catch (error) {
     try {
-      await api.insert("events", {
+      return await api.insert("events", {
         ...baseRecord,
         event_scope: [payload.event_scope || "", successFeeCopy].filter(Boolean).join("\n\n"),
         sponsor_levels: [payload.sponsor_levels || "", `Modelo success fee ROIS: ${eventSuccessFeeLabel(successFeeLevel)}`, `Rate: ${successFeeRate}%`].filter(Boolean).join("\n")
       });
     } catch (fallbackError) {
-      await api.insert("events", baseRecord);
+      return api.insert("events", baseRecord);
     }
   }
 }
@@ -3267,7 +3366,7 @@ function clientAdvertisingOverviewMarkup() {
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const companyName = company?.name || state.session?.name || "Empresa ROIS";
   const interest = company?.interest || "Oportunidades premium";
-  const description = company?.description || "Cuenta empresarial habilitada para revisar Centro VIP, athletes, founders, eventos privados y productos administrados por ROIS.";
+  const description = company?.description || "Cuenta empresarial habilitada para explorar el Mercado Corporativo, athletes, founders, eventos privados y oportunidades administradas por ROIS.";
 
   return `
     <div class="client-ad-home">
@@ -3279,7 +3378,7 @@ function clientAdvertisingOverviewMarkup() {
           <p><strong>${escapeHtml(interest)}</strong></p>
           <p>${escapeHtml(description)}</p>
           <div class="company-profile-actions">
-            <button class="btn primary" type="button" data-dashboard-shortcut="client-sponsors">Explorar Centro VIP</button>
+          <button class="btn primary" type="button" data-dashboard-shortcut="client-sponsors">Explorar mercado corporativo</button>
             <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver mercado de fichajes</button>
             <button class="btn" type="button" data-dashboard-shortcut="client-founders">Ver founders</button>
             <button class="btn" type="button" data-dashboard-shortcut="client-settings">Editar perfil</button>
@@ -3642,17 +3741,300 @@ function renderClientNews() {
   ` : `<div class="empty">Las noticias publicadas por admin aparecer\u00e1n aqu\u00ed.</div>`);
 }
 
+function companyListingTypeLabel(value) {
+  return ({ product: "Producto", service: "Servicio", asset: "Activo", opportunity: "Oportunidad" })[value] || "Oferta corporativa";
+}
+
+function companyListingAvailabilityLabel(value) {
+  return ({ available: "Disponible", limited: "Disponibilidad limitada", on_request: "Bajo solicitud", sold_out: "Agotado" })[value] || "Disponible";
+}
+
+function companyListingPrice(listing) {
+  if (listing.price_label) return listing.price_label;
+  if (listing.price !== null && listing.price !== undefined && listing.price !== "") {
+    return `$${Number(listing.price).toLocaleString("es-MX")} ${listing.currency || "MXN"}`;
+  }
+  return "Cotización privada";
+}
+
+function corporateMarketplaceListings() {
+  const company = currentCompany();
+  return (state.data?.company_listings || [])
+    .filter(item => item.company_id === company?.id
+      ? !["archived", "rejected"].includes(item.status)
+      : item.status === "approved" && item.visual_status === "approved")
+    .filter(item => !item.expires_at || new Date(item.expires_at).getTime() > Date.now())
+    .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
+function companyListingCard(listing) {
+  const own = listing.company_id === currentCompany()?.id;
+  const image = listing.primary_image_url || "./assets/rois-isotipo-cropped.png";
+  return `
+    <article class="corporate-listing-card">
+      <div class="corporate-listing-media">
+        <img src="${escapeAttr(image)}" alt="${escapeAttr(listing.title || "Oferta corporativa ROIS")}" onerror="this.onerror=null;this.src='./assets/rois-isotipo-cropped.png';">
+        <div class="corporate-listing-badges">
+          <span class="pill">${escapeHtml(companyListingTypeLabel(listing.listing_type))}</span>
+          ${listing.featured ? `<span class="pill premium">Destacado</span>` : ""}
+          ${own ? `<span class="pill">${escapeHtml(listing.status || "pending")}</span>` : ""}
+        </div>
+      </div>
+      <div class="corporate-listing-copy">
+        <p class="eyebrow">${escapeHtml(listing.company_name || "Empresa ROIS")} · ${escapeHtml(listing.category || "Corporativo")}</p>
+        <h3>${escapeHtml(listing.title || "Oferta corporativa")}</h3>
+        <p>${escapeHtml(listing.summary || listing.description || "Información disponible para empresas ROIS.")}</p>
+        <div class="corporate-listing-meta">
+          <div><span>Condición comercial</span><strong>${escapeHtml(companyListingPrice(listing))}</strong></div>
+          <div><span>Disponibilidad</span><strong>${escapeHtml(companyListingAvailabilityLabel(listing.availability))}</strong></div>
+          <div><span>Ubicación</span><strong>${escapeHtml(listing.location || "Por confirmar")}</strong></div>
+        </div>
+        <div class="action-row">
+          ${own
+            ? `<button class="btn" type="button" data-company-listing-archive="${escapeAttr(listing.id)}">Archivar</button>`
+            : `<button class="btn primary" type="button" data-company-listing-interest="${escapeAttr(listing.id)}">Solicitar información</button>`}
+          ${listing.website_url ? `<a class="btn" href="${escapeAttr(listing.website_url)}" target="_blank" rel="noopener">Ver sitio</a>` : ""}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function companyListingFormMarkup() {
+  return `
+    <section class="corporate-publisher">
+      <div class="section-minihead">
+        <p class="eyebrow">Publicación empresarial</p>
+        <h3>Incorpora un activo al Mercado Corporativo.</h3>
+        <p>Productos, servicios, activos y oportunidades se publican después de revisión comercial y visual ROIS.</p>
+      </div>
+      <form id="companyListingForm" class="form-grid">
+        <label>Tipo<select name="listing_type" required><option value="product">Producto</option><option value="service">Servicio</option><option value="asset">Activo</option><option value="opportunity">Oportunidad</option></select></label>
+        <label>Categoría<input name="category" required placeholder="Tecnología, movilidad, hospitalidad..."></label>
+        <label style="grid-column:1/-1">Título<input name="title" required maxlength="120" placeholder="Nombre comercial de la oferta"></label>
+        <label style="grid-column:1/-1">Resumen<input name="summary" required maxlength="240" placeholder="Propuesta de valor en una frase clara"></label>
+        <label style="grid-column:1/-1">Descripción<textarea name="description" required placeholder="Alcance, beneficios, condiciones, audiencia y diferenciadores."></textarea></label>
+        <label>Precio numérico opcional<input name="price" type="number" min="0" step="0.01" placeholder="0"></label>
+        <label>Etiqueta de precio<input name="price_label" placeholder="Desde $25,000 MXN o Bajo cotización"></label>
+        <label>Ubicación<input name="location" placeholder="Nacional, Querétaro, remoto..."></label>
+        <label>Disponibilidad<select name="availability"><option value="available">Disponible</option><option value="limited">Limitada</option><option value="on_request">Bajo solicitud</option></select></label>
+        <label>Inventario opcional<input name="inventory_count" type="number" min="0" step="1"></label>
+        <label>Sitio o brochure<input name="website_url" type="url" placeholder="https://"></label>
+        <label style="grid-column:1/-1">Imagen principal<input name="image" type="file" accept="image/png,image/jpeg,image/webp" required></label>
+        <button class="btn primary" type="submit">Enviar a revisión ROIS</button>
+      </form>
+    </section>
+  `;
+}
+
+async function uploadCompanyListingImage(file, companyId, listingId) {
+  validateProfileAsset(file, "avatar");
+  const prepared = await resizeProfileImage(file);
+  const filename = `${crypto.randomUUID()}-${sanitizedStorageFilename(prepared.name)}`;
+  const path = `companies/${companyId}/listings/${listingId}/${filename}`;
+  const response = await withTimeout(fetch(`${config.supabaseUrl}/storage/v1/object/${companyMediaBucket}/${path}`, {
+    method: "POST",
+    headers: {
+      apikey: config.supabaseAnonKey,
+      Authorization: `Bearer ${state.session?.token || config.supabaseAnonKey}`,
+      "Content-Type": prepared.type,
+      "x-upsert": "false"
+    },
+    body: prepared
+  }), operationTimeoutMs, "La red está tardando demasiado al subir el archivo.");
+  if (!response.ok) {
+    const detail = await response.text();
+    if (/row-level security|rls|unauthorized/i.test(detail)) throw new Error("Supabase bloqueó la imagen por permisos RLS.");
+    throw new Error("No fue posible subir la imagen corporativa.");
+  }
+  return {
+    path,
+    url: `${config.supabaseUrl}/storage/v1/object/public/${companyMediaBucket}/${path}`,
+    name: file.name,
+    mime: prepared.type
+  };
+}
+
+async function uploadCompanyEventImage(file, companyId, eventId) {
+  if (!file) return null;
+  validateProfileAsset(file, "avatar");
+  const prepared = await resizeProfileImage(file);
+  const filename = `${crypto.randomUUID()}-${sanitizedStorageFilename(prepared.name)}`;
+  const path = `companies/${companyId}/events/${eventId}/${filename}`;
+  const response = await withTimeout(fetch(`${config.supabaseUrl}/storage/v1/object/${companyMediaBucket}/${path}`, {
+    method: "POST",
+    headers: {
+      apikey: config.supabaseAnonKey,
+      Authorization: `Bearer ${state.session?.token || config.supabaseAnonKey}`,
+      "Content-Type": prepared.type,
+      "x-upsert": "false"
+    },
+    body: prepared
+  }), operationTimeoutMs, "La red está tardando demasiado al subir el archivo.");
+  if (!response.ok) throw new Error("No fue posible subir la imagen del evento.");
+  return {
+    path,
+    url: `${config.supabaseUrl}/storage/v1/object/public/${companyMediaBucket}/${path}`
+  };
+}
+
+async function submitCompanyListing(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const submit = form.querySelector('[type="submit"]');
+  const company = currentCompany();
+  if (!company || !companyCan("publish_listings")) {
+    notify("Mercado Corporativo", "Plan requerido", "Activa PRO o Business para publicar inventario empresarial.");
+    return;
+  }
+  const activeCount = (state.data.company_listings || []).filter(item => item.company_id === company.id && ["draft", "pending", "approved"].includes(item.status)).length;
+  const limit = Number(currentCompanySubscription(company)?.listing_limit || currentCompanyPlan(company).listingLimit || 0);
+  if (limit && activeCount >= limit) {
+    notify("Mercado Corporativo", "Límite alcanzado", `Tu plan permite ${limit} publicaciones activas.`);
+    return;
+  }
+  submit.disabled = true;
+  submit.textContent = "Publicando…";
+  let listing = null;
+  try {
+    listing = await api.insert("company_listings", {
+      company_id: company.id,
+      profile_id: state.session.authId || state.session.id,
+      company_name: company.name,
+      listing_type: form.listing_type.value,
+      category: form.category.value.trim(),
+      title: form.title.value.trim(),
+      summary: form.summary.value.trim(),
+      description: form.description.value.trim(),
+      price: form.price.value ? Number(form.price.value) : null,
+      currency: "MXN",
+      price_label: form.price_label.value.trim(),
+      location: form.location.value.trim(),
+      inventory_count: form.inventory_count.value ? Number(form.inventory_count.value) : null,
+      availability: form.availability.value,
+      contact_email: company.contact || state.session.email,
+      website_url: form.website_url.value.trim(),
+      plan_required: currentCompanyPlan(company).key === "business" ? "business" : "pro",
+      featured: false,
+      status: "pending",
+      visual_status: "pending_review"
+    });
+    const uploaded = await uploadCompanyListingImage(form.image.files[0], company.id, listing.id);
+    const updated = await api.update("company_listings", listing.id, {
+      primary_image_url: uploaded.url,
+      primary_image_path: uploaded.path
+    });
+    await api.insert("company_listing_media", {
+      listing_id: listing.id,
+      company_id: company.id,
+      storage_path: uploaded.path,
+      public_url: uploaded.url,
+      original_name: uploaded.name,
+      mime_type: uploaded.mime,
+      sort_order: 0
+    });
+    listing = updated || { ...listing, primary_image_url: uploaded.url, primary_image_path: uploaded.path };
+    replaceRecordInState("company_listings", listing);
+    notify("Mercado Corporativo", "Publicación recibida", "El activo quedó pendiente de revisión comercial y visual ROIS.");
+    renderClientSponsors();
+  } catch (error) {
+    const suffix = listing ? " El registro se conservó, pero revisa la carga de su imagen." : "";
+    notify("Mercado Corporativo", "No fue posible publicar", `${humanError(error)}${suffix}`);
+  } finally {
+    submit.disabled = false;
+    submit.textContent = "Enviar a revisión ROIS";
+  }
+}
+
+async function requestCompanyPlan(planKey) {
+  const company = currentCompany();
+  const plan = companyPlanCatalog[planKey];
+  if (!company || !plan || plan.key === "free") return;
+  try {
+    const duplicate = (state.data.requests || []).some(item => item.type === "Plan empresarial" && item.owner === company.name && item.status === "review" && String(item.details || "").includes(`Plan: ${plan.key}`));
+    if (!duplicate) {
+      await api.insert("requests", {
+        type: "Plan empresarial",
+        title: `Activación ${plan.name}`,
+        owner: company.name,
+        details: `Plan: ${plan.key} | Precio sugerido: $${plan.price.toLocaleString("es-MX")} MXN + IVA / mes | Empresa: ${company.name} | Correo: ${company.contact || state.session.email}`,
+        priority: plan.key === "business" ? "Alta" : "Normal",
+        status: "review"
+      });
+    }
+    notify("Planes ROIS", "Solicitud recibida", `Administración validará la activación del plan ${plan.name}.`);
+  } catch (error) {
+    notify("Planes ROIS", "No fue posible solicitar", humanError(error));
+  }
+}
+
+async function requestCompanyListing(listingId) {
+  const listing = (state.data.company_listings || []).find(item => item.id === listingId);
+  const buyer = currentCompany();
+  if (!listing || !buyer || listing.company_id === buyer.id) return;
+  try {
+    await api.insert("marketplace_leads", {
+      listing_id: listing.id,
+      seller_company_id: listing.company_id,
+      buyer_company_id: buyer.id,
+      requester_profile_id: state.session.authId || state.session.id,
+      requester_email: state.session.email,
+      requester_name: buyer.owner || state.session.name,
+      requester_company: buyer.name,
+      message: `Interés en ${listing.title}`,
+      status: "new"
+    });
+    notify("Mercado Corporativo", "Interés registrado", "ROIS y la empresa oferente recibirán la solicitud para dar seguimiento.");
+  } catch (error) {
+    notify("Mercado Corporativo", "No fue posible registrar", humanError(error));
+  }
+}
+
+async function archiveCompanyListing(listingId) {
+  const listing = (state.data.company_listings || []).find(item => item.id === listingId);
+  if (!listing || listing.company_id !== currentCompany()?.id) return;
+  if (!window.confirm(`¿Archivar "${listing.title}"?`)) return;
+  try {
+    await api.update("company_listings", listing.id, { status: "archived", featured: false });
+    renderClientSponsors();
+  } catch (error) {
+    notify("Mercado Corporativo", "No fue posible archivar", humanError(error));
+  }
+}
+
 function renderClientSponsors() {
   const products = vipProducts();
-  panel("client-sponsors", "Centro VIP", "Productos privados publicados por administracion", `
-    <div class="panel-body">
-      ${products.length ? `
-        <div class="vip-product-grid">
-          ${products.map(vipProductCard).join("")}
-        </div>
-      ` : `<div class="empty">Los productos del Centro VIP apareceran aqui cuando administracion los publique.</div>`}
+  const listings = corporateMarketplaceListings();
+  const canPublish = companyCan("publish_listings");
+  const plan = currentCompanyPlan();
+  panel("client-sponsors", "Mercado Corporativo", "Productos, servicios, activos y oportunidades entre empresas ROIS", `
+    <div class="panel-body corporate-market-intro">
+      <div class="section-minihead">
+        <p class="eyebrow">Plan ${escapeHtml(companyPlanLabel())}</p>
+        <h3>Inventario empresarial con contexto comercial.</h3>
+        <p>Explora ofertas aprobadas por ROIS o incorpora inventario propio con trazabilidad de solicitudes.</p>
+      </div>
+      <div class="corporate-plan-summary">
+        <span>${plan.listingLimit || 0} publicaciones</span>
+        <span>${plan.eventLimitMonthly || 0} eventos / mes</span>
+        <span>${plan.seatsLimit || 1} usuario${plan.seatsLimit > 1 ? "s" : ""}</span>
+      </div>
     </div>
+    <div class="panel-body">
+      ${listings.length
+        ? `<div class="corporate-listing-grid">${listings.map(companyListingCard).join("")}</div>`
+        : `<div class="empty">El inventario corporativo aprobado aparecerá aquí.</div>`}
+    </div>
+    <div class="panel-body">
+      ${canPublish ? companyListingFormMarkup() : companyPlanGateMarkup("Publica inventario y eventos en ROIS")}
+    </div>
+    ${products.length ? `
+      <div class="panel-body curated-vip-inventory">
+        <div class="section-minihead"><p class="eyebrow">Selección ROIS</p><h3>Inventario curado por administración.</h3></div>
+        <div class="vip-product-grid">${products.map(vipProductCard).join("")}</div>
+      </div>` : ""}
   `);
+  document.getElementById("companyListingForm")?.addEventListener("submit", submitCompanyListing);
 }
 
 function isVipProduct(item) {
@@ -3778,6 +4160,25 @@ function renderClientFounders() {
 }
 
 function renderClientRegister() {
+  if (!companyCan("publish_events")) {
+    panel("client-register", "Registrar Evento", "Funcionalidad disponible para empresas PRO y Business", `
+      <div class="panel-body">${companyPlanGateMarkup("Publica eventos empresariales sujetos a revisión ROIS")}</div>
+    `);
+    return;
+  }
+  const company = currentCompany();
+  const subscription = currentCompanySubscription(company);
+  const monthlyLimit = Number(subscription?.event_limit_monthly || currentCompanyPlan(company).eventLimitMonthly || 0);
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const usedThisMonth = (state.data.events || []).filter(item => item.company_id === company?.id && new Date(item.created_at || 0) >= monthStart && item.status !== "rejected").length;
+  if (monthlyLimit && usedThisMonth >= monthlyLimit) {
+    panel("client-register", "Registrar Evento", "Límite mensual alcanzado", `
+      <div class="panel-body"><div class="empty">Tu plan permite ${monthlyLimit} eventos por mes. Puedes actualizar a Business o esperar al siguiente periodo.</div></div>
+    `);
+    return;
+  }
   panel("client-register", "Registrar Evento", "Env\u00edo a revisi\u00f3n", `
     <div class="panel-body">
       <form id="eventForm" class="form-grid">
@@ -3790,11 +4191,11 @@ function renderClientRegister() {
         ${eventSuccessFeeSelectMarkup()}
         <div class="registration-note" style="grid-column:1/-1">
           <p class="eyebrow">Modelo de success fee ROIS</p>
-          <p>Publicar un evento en ROIS no tiene costo inicial. Si ROIS participa en la atraccion, presentacion, desarrollo comercial, negociacion o cierre, podra aplicar un success fee del 5% al 20% sobre sponsors, alianzas o ingresos comerciales generados mediante nuestra intervencion.</p>
+          <p>La publicacion de eventos esta incluida en los limites de tu plan empresarial, sin fee individual adicional. Si ROIS participa en la atraccion, presentacion, desarrollo comercial, negociacion o cierre, podra aplicar un success fee del 5% al 20%.</p>
           <p class="hint">El success fee aplica unicamente sobre sponsors, patrocinios o ingresos comerciales cerrados mediante presentacion, gestion o intervencion comercial de ROIS. Las condiciones finales podran documentarse en contrato o acuerdo comercial especifico.</p>
         </div>
         <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <p class="hint" style="grid-column:1/-1">Publicar un evento en ROIS no tiene costo inicial. El evento queda sujeto a revision interna. ROIS podra participar bajo success fee sobre patrocinios, sponsors, alianzas o ingresos comerciales generados mediante la plataforma o gestion comercial de ROIS.</p>
+        <p class="hint" style="grid-column:1/-1">El evento queda sujeto a revision interna y consume una publicacion mensual del plan activo. ROIS podra participar bajo success fee sobre patrocinios, sponsors, alianzas o ingresos comerciales generados mediante nuestra gestion.</p>
         <button class="btn primary" type="submit">Enviar evento a revision ROIS</button>
       </form>
     </div>
@@ -3803,9 +4204,10 @@ function renderClientRegister() {
     event.preventDefault();
     const form = event.currentTarget;
     const eventName = form.name.value.trim();
-    const image_url = await fileToDataUrl(form.image.files?.[0]);
     const successFeeLevel = form.success_fee_level?.value || "listing_5";
-    await insertEventRegistrationRecord({
+    const eventRecord = await insertEventRegistrationRecord({
+      company_id: company.id,
+      profile_id: state.session.authId || state.session.id,
       name: eventName,
       venue: form.venue.value,
       category: form.category.value,
@@ -3813,9 +4215,14 @@ function renderClientRegister() {
       event_scope: form.event_scope?.value || "",
       sponsor_levels: form.sponsor_levels?.value || "",
       success_fee_level: successFeeLevel,
-      image_url
+      image_url: ""
     });
-    notify("Eventos", "Evento registrado", "Tu evento quedo enviado a revision ROIS. La publicacion no tiene costo inicial. ROIS trabaja bajo success fee sobre sponsors, alianzas o ingresos comerciales generados mediante nuestra intervencion.");
+    const imageFile = form.image.files?.[0];
+    if (imageFile && eventRecord?.id) {
+      const uploaded = await uploadCompanyEventImage(imageFile, company.id, eventRecord.id);
+      await api.update("events", eventRecord.id, { image_url: uploaded.url, image_path: uploaded.path, visual_status: "pending_review" });
+    }
+    notify("Eventos", "Evento registrado", "Tu evento quedo enviado a revision ROIS dentro del limite de tu plan. El success fee seleccionado aplicara sobre resultados comerciales generados mediante nuestra intervencion.");
     renderClient();
   });
 }
@@ -4493,6 +4900,7 @@ function renderAdminPanel(targetId) {
     "admin-events": renderAdminEvents,
     "admin-news": renderAdminNews,
     "admin-partners": renderAdminPartners,
+    "admin-corporate-market": renderAdminCorporateMarket,
     "admin-crm": renderAdminCrm,
     "admin-revenue": renderAdminRevenue,
     "admin-payments": renderAdminPayments,
@@ -5151,8 +5559,16 @@ function renderAdminEvents() {
       </form>
       <p class="hint">El evento y su imagen pasan por revisi\u00f3n antes de publicarse.</p>
     </div>
-    ${table(["Visual", "Evento", "Sede", "Brochure", "Estado", "Visual", "Acciones"], state.data.events.map(event => [
-      visualThumb(event), event.name, event.venue, event.brochure_url ? badge("PDF") : badge("pendiente"), badge(event.status), badge(event.visual_status || "sin visual"), moderationActions("events", event)
+    ${table(["Visual", "Evento", "Empresa", "Sede", "Success fee", "Brochure", "Estado", "Visual", "Acciones"], state.data.events.map(event => [
+      visualThumb(event),
+      event.name,
+      companyForId(event.company_id)?.name || (event.company_id ? "Empresa registrada" : "ROIS / legacy"),
+      event.venue,
+      event.success_fee_rate ? `${Number(event.success_fee_rate)}%` : badge("por definir"),
+      event.brochure_url ? badge("PDF") : badge("pendiente"),
+      badge(event.status),
+      badge(event.visual_status || "sin visual"),
+      moderationActions("events", event)
     ]))}
   `);
   document.getElementById("adminEventForm").addEventListener("submit", submitAdminEvent);
@@ -5229,6 +5645,175 @@ function renderAdminPartners() {
   `);
   document.getElementById("vipProductForm").addEventListener("submit", submitAdminVipProduct);
   document.getElementById("partnerForm").addEventListener("submit", submitAdminPartner);
+}
+
+function companyForId(companyId) {
+  return (state.data.companies || []).find(company => company.id === companyId) || null;
+}
+
+function subscriptionForCompanyId(companyId) {
+  return (state.data.company_subscriptions || []).find(subscription => subscription.company_id === companyId) || null;
+}
+
+function adminSubscriptionActions(company, subscription) {
+  if (!company) return "Sin empresa";
+  return actionGroup([
+    button("PRO", () => setCompanyPlan(company, subscription, "pro")),
+    button("Business", () => setCompanyPlan(company, subscription, "business")),
+    button("Free", () => setCompanyPlan(company, subscription, "free"))
+  ]);
+}
+
+async function setCompanyPlan(company, subscription, planKey) {
+  const plan = companyPlanCatalog[planKey] || companyPlanCatalog.free;
+  const active = plan.key !== "free";
+  const periodEnd = new Date();
+  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  const record = {
+    company_id: company.id,
+    profile_id: company.profile_id || null,
+    company_name: company.name || "Empresa ROIS",
+    plan: plan.key,
+    status: active ? "active" : "inactive",
+    current_period_start: active ? new Date().toISOString() : null,
+    current_period_end: active ? periodEnd.toISOString() : null,
+    listing_limit: plan.listingLimit,
+    event_limit_monthly: plan.eventLimitMonthly,
+    seats_limit: plan.seatsLimit
+  };
+  try {
+    if (subscription?.id) {
+      await api.update("company_subscriptions", subscription.id, record);
+    } else {
+      await api.insert("company_subscriptions", record);
+    }
+    notify("Planes empresariales", `Plan ${plan.name}`, `${company.name} quedó ${active ? "activo por un periodo mensual" : "en modalidad gratuita"}.`);
+    renderAdminCorporateMarket();
+    return true;
+  } catch (error) {
+    notify("Planes empresariales", "No fue posible actualizar", humanError(error));
+    return false;
+  }
+}
+
+async function approveCompanyPlanRequest(request) {
+  const planKey = String(request.details || "").match(/Plan:\s*(pro|business)/i)?.[1]?.toLowerCase();
+  const company = (state.data.companies || []).find(item => item.name === request.owner);
+  if (!planKey || !company) {
+    notify("Planes empresariales", "Solicitud incompleta", "No fue posible identificar empresa y plan en la solicitud.");
+    return;
+  }
+  const updated = await setCompanyPlan(company, subscriptionForCompanyId(company.id), planKey);
+  if (updated) {
+    await api.update("requests", request.id, { status: "approved" });
+    renderAdminCorporateMarket();
+  }
+}
+
+function adminCompanyListingActions(listing) {
+  const sellerSubscription = subscriptionForCompanyId(listing.company_id);
+  const sellerBusiness = companySubscriptionIsActive(sellerSubscription) && sellerSubscription.plan === "business";
+  const actions = [];
+  if (listing.status !== "approved" || listing.visual_status !== "approved") {
+    actions.push(button("Aprobar", async () => {
+      await api.update("company_listings", listing.id, { status: "approved", visual_status: "approved", visual_notes: "" });
+      renderAdminCorporateMarket();
+    }));
+  }
+  if (sellerBusiness && !listing.featured) {
+    actions.push(button("Destacar", async () => {
+      const featuredUntil = new Date();
+      featuredUntil.setDate(featuredUntil.getDate() + 30);
+      await api.update("company_listings", listing.id, { featured: true, featured_until: featuredUntil.toISOString() });
+      renderAdminCorporateMarket();
+    }));
+  }
+  if (listing.featured) {
+    actions.push(button("Quitar destaque", async () => {
+      await api.update("company_listings", listing.id, { featured: false, featured_until: null });
+      renderAdminCorporateMarket();
+    }));
+  }
+  if (!['rejected', 'archived'].includes(listing.status)) {
+    actions.push(button("Rechazar", async () => {
+      await api.update("company_listings", listing.id, { status: "rejected", visual_status: "rejected", featured: false });
+      renderAdminCorporateMarket();
+    }));
+  }
+  return actionGroup(actions);
+}
+
+function renderAdminCorporateMarket() {
+  const companies = state.data.companies || [];
+  const subscriptions = state.data.company_subscriptions || [];
+  const listings = state.data.company_listings || [];
+  const leads = state.data.marketplace_leads || [];
+  const planRequests = (state.data.requests || []).filter(item => item.type === "Plan empresarial");
+  const activePro = subscriptions.filter(item => companySubscriptionIsActive(item) && item.plan === "pro").length;
+  const activeBusiness = subscriptions.filter(item => companySubscriptionIsActive(item) && item.plan === "business").length;
+  const planRows = companies.map(company => {
+    const subscription = subscriptionForCompanyId(company.id);
+    const plan = companySubscriptionIsActive(subscription) ? companyPlanCatalog[subscription.plan] || companyPlanCatalog.free : companyPlanCatalog.free;
+    return [
+      escapeHtml(company.name),
+      escapeHtml(company.contact || "Sin correo"),
+      badge(plan.name),
+      badge(subscription?.status || "inactive"),
+      subscription?.current_period_end ? readableDate(subscription.current_period_end) : "Sin periodo",
+      `${subscription?.listing_limit ?? plan.listingLimit} / ${subscription?.event_limit_monthly ?? plan.eventLimitMonthly}`,
+      adminSubscriptionActions(company, subscription)
+    ];
+  });
+  const listingRows = listings.map(listing => [
+    listing.primary_image_url ? `<img class="table-thumb" src="${escapeAttr(listing.primary_image_url)}" alt="" onerror="this.style.display='none'">` : "Sin imagen",
+    escapeHtml(listing.company_name || companyForId(listing.company_id)?.name || "Empresa"),
+    badge(companyListingTypeLabel(listing.listing_type)),
+    escapeHtml(listing.title),
+    escapeHtml(companyListingPrice(listing)),
+    badge(listing.status),
+    badge(listing.visual_status),
+    listing.featured ? badge("Destacado") : "Estándar",
+    adminCompanyListingActions(listing)
+  ]);
+  const leadRows = leads.map(lead => {
+    const listing = listings.find(item => item.id === lead.listing_id);
+    return [
+      readableDate(lead.created_at),
+      escapeHtml(listing?.title || "Publicación"),
+      escapeHtml(lead.requester_company || lead.requester_email),
+      escapeHtml(companyForId(lead.seller_company_id)?.name || listing?.company_name || "Empresa oferente"),
+      badge(lead.status),
+      actionGroup([
+        button("Contactado", () => api.update("marketplace_leads", lead.id, { status: "contacted" }).then(renderAdminCorporateMarket)),
+        button("Cerrar", () => api.update("marketplace_leads", lead.id, { status: "closed" }).then(renderAdminCorporateMarket))
+      ])
+    ];
+  });
+  const planRequestRows = planRequests.map(request => [
+    readableDate(request.created_at),
+    escapeHtml(request.owner || "Empresa"),
+    escapeHtml(request.title || "Activación"),
+    badge(request.status),
+    request.status === "approved" ? "Atendida" : button("Activar plan", () => approveCompanyPlanRequest(request))
+  ]);
+  panel("admin-corporate-market", "Mercado Corporativo", "Planes, inventario, moderación y leads empresariales", `
+    <div class="panel-body">
+      <div class="scout-metrics">
+        <div><span>PRO activos</span><strong>${activePro}</strong></div>
+        <div><span>Business activos</span><strong>${activeBusiness}</strong></div>
+        <div><span>Publicaciones</span><strong>${listings.length}</strong></div>
+        <div><span>Leads</span><strong>${leads.length}</strong></div>
+      </div>
+    </div>
+    <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Solicitudes</p><h3>Altas PRO y Business pendientes.</h3></div></div>
+    ${planRequestRows.length ? table(["Fecha", "Empresa", "Plan", "Estado", "Acción"], planRequestRows) : `<div class="empty">No hay solicitudes de plan pendientes.</div>`}
+    <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Suscripciones</p><h3>Permisos empresariales verificables.</h3></div></div>
+    ${planRows.length ? table(["Empresa", "Correo", "Plan", "Estado", "Vigencia", "Listings / Eventos", "Acciones"], planRows) : `<div class="empty">No hay empresas registradas.</div>`}
+    <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Moderación</p><h3>Inventario enviado por empresas.</h3></div></div>
+    ${listingRows.length ? table(["Visual", "Empresa", "Tipo", "Publicación", "Precio", "Estado", "Visual", "Nivel", "Acciones"], listingRows) : `<div class="empty">Aún no hay publicaciones corporativas.</div>`}
+    <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Leads</p><h3>Interés comercial generado.</h3></div></div>
+    ${leadRows.length ? table(["Fecha", "Oferta", "Solicitante", "Oferente", "Estado", "Acciones"], leadRows) : `<div class="empty">Aún no hay leads registrados.</div>`}
+  `);
 }
 
 function renderAdminCrm() {
@@ -7268,11 +7853,11 @@ function registrationFields(type) {
     ${eventSuccessFeeSelectMarkup()}
     <div class="registration-note" style="grid-column:1/-1">
       <p class="eyebrow">Modelo de success fee ROIS</p>
-      <p>Publicar un evento en ROIS no tiene costo inicial. Si ROIS participa en la atraccion, presentacion, desarrollo comercial, negociacion o cierre, podra aplicar un success fee del 5% al 20% sobre sponsors, alianzas o ingresos comerciales generados mediante nuestra intervencion.</p>
+        <p>La publicacion de eventos requiere una cuenta empresarial PRO o Business. Si ROIS participa en la atraccion, presentacion, desarrollo comercial, negociacion o cierre, podra aplicar un success fee del 5% al 20%.</p>
       <p class="hint">El success fee aplica unicamente sobre sponsors, patrocinios o ingresos comerciales cerrados mediante presentacion, gestion o intervencion comercial de ROIS. Las condiciones finales podran documentarse en contrato o acuerdo comercial especifico.</p>
     </div>
     <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-    <p class="hint">Publicar un evento en ROIS no tiene costo inicial. El evento queda sujeto a revision interna. ROIS podra participar bajo success fee sobre patrocinios, sponsors, alianzas o ingresos comerciales generados mediante la plataforma o gestion comercial de ROIS.</p>
+    <p class="hint">Inicia sesion con una empresa PRO o Business para enviar el evento a revision. No existe un fee individual adicional; aplican los limites del plan y el success fee seleccionado.</p>
     <button class="btn primary full" type="submit">Enviar evento a revision ROIS</button>
   `;
 }
@@ -7524,29 +8109,16 @@ async function submitRegistrationLegacy(event) {
       renderPublic();
       return;
     } else {
-      const eventName = form.name.value.trim();
-      const image_url = await fileToDataUrl(form.image.files?.[0]);
-      const successFeeLevel = form.success_fee_level?.value || "listing_5";
-      await insertEventRegistrationRecord({
-        name: eventName,
-        category: form.category.value,
-        venue: form.venue.value,
-        date: form.date.value,
-        event_scope: form.event_scope?.value || "",
-        sponsor_levels: form.sponsor_levels?.value || "",
-        success_fee_level: successFeeLevel,
-        image_url
-      });
-      await registerEventPublicationPayment(eventName, state.session?.name || form.name.value || "Empresa ROIS", successFeeLevel);
-      paymentAction = [eventRegistrationFee.productKey, eventRegistrationFee.title];
+      closeModals();
+      notify("Eventos", "Cuenta empresarial requerida", "Inicia sesión con una empresa y activa PRO o Business para enviar eventos a revisión ROIS.");
+      if (state.session?.role === "client") {
+        showView("client");
+        showDashboardPanel("client-register");
+      } else {
+        openLogin();
+      }
+      return;
     }
-    closeModals();
-    notify("Registro", "Evento registrado", "Tu evento quedo pendiente de revision. Abrimos el checkout para cubrir el fee fijo de publicacion ROIS por $25,000 MXN IVA incluido. El modelo de success fee seleccionado sera aplicado sobre sponsors cerrados mediante ROIS.");
-    if (paymentAction) {
-      openStripeCheckout(paymentAction[0], paymentAction[1]);
-    }
-    renderAdmin();
-    renderPublic();
   } catch (error) {
     if (type === "founder" && isUserAlreadyExistsError(error)) {
       try {
@@ -7594,7 +8166,7 @@ async function submitRegistration(event) {
         renderSession();
         renderClient();
         showView("client");
-        notify("Cuenta creada", "Bienvenido a ROIS", "Tu cuenta empresarial ROIS esta activa. Ya puedes explorar el ecosistema, registrar eventos y presentar oportunidades para revision.");
+        notify("Cuenta creada", "Bienvenido a ROIS", "Tu cuenta empresarial ya puede explorar el ecosistema. Activa PRO o Business para publicar inventario corporativo y enviar eventos a revision.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }
@@ -7710,37 +8282,16 @@ async function submitRegistration(event) {
       renderPublic();
       return;
     } else {
-      const eventName = form.name.value.trim();
-      const image_url = await fileToDataUrl(form.image.files[0]);
-      const successFeeLevel = form.success_fee_level?.value || "listing_5";
-      const successFeeRate = eventSuccessFeeRate(successFeeLevel);
-      const successFeeCopy = `Success fee ROIS: ${eventSuccessFeeLabel(successFeeLevel)}. Rate: ${successFeeRate}% sobre sponsors cerrados mediante ROIS.`;
-      const eventRecord = {
-        name: eventName,
-        category: form.category.value,
-        venue: form.venue.value,
-        date: form.date.value,
-        event_scope: `${form.event_scope?.value || ""}\n\n${successFeeCopy}`.trim(),
-        sponsor_levels: form.sponsor_levels?.value || "",
-        status: "pending",
-        image_url,
-        visual_status: image_url ? "pending_review" : "approved"
-      };
-
-      try {
-        await api.insert("events", {
-          ...eventRecord,
-          success_fee_level: successFeeLevel,
-          success_fee_rate: successFeeRate
-        });
-      } catch (error) {
-        await api.insert("events", eventRecord);
+      closeModals();
+      notify("Eventos", "Cuenta empresarial requerida", "Inicia sesión con una empresa y activa PRO o Business para enviar eventos a revisión ROIS.");
+      if (state.session?.role === "client") {
+        showView("client");
+        showDashboardPanel("client-register");
+      } else {
+        openLogin();
       }
+      return;
     }
-    closeModals();
-    notify("Evento registrado", "Revision ROIS", "Tu evento quedo enviado a revision ROIS. La publicacion no tiene costo inicial. ROIS trabaja bajo success fee sobre sponsors, alianzas o ingresos comerciales generados mediante nuestra intervencion.");
-    renderAdmin();
-    renderPublic();
   } catch (error) {
     notify("Registro", "No fue posible registrar", humanError(error));
   }

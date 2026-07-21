@@ -13156,3 +13156,246 @@ body[data-active-view="home"] .public-feature-grid .editorial-news-body .social-
     font-size: clamp(24px, 8vw, 32px);
   }
 }
+/* ROIS CORPORATE MARKETPLACE — PRO / BUSINESS */
+.corporate-market-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.corporate-plan-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.corporate-plan-summary span {
+  padding: 9px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.company-plan-gate {
+  padding: clamp(24px, 4vw, 44px);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(35, 80, 130, .12), transparent 34%),
+    linear-gradient(145deg, #fff, #f5f7f9);
+}
+
+.company-plan-gate > h3 {
+  max-width: 760px;
+  margin: 8px 0 12px;
+  font-size: clamp(26px, 3vw, 42px);
+  letter-spacing: -.04em;
+}
+
+.company-plan-gate > p {
+  max-width: 780px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.company-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 28px 0 20px;
+}
+
+.company-plan-card {
+  display: grid;
+  align-content: space-between;
+  gap: 22px;
+  min-width: 0;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .88);
+}
+
+.company-plan-card.active {
+  border-color: #111820;
+  box-shadow: 0 18px 50px rgba(24, 32, 40, .12);
+}
+
+.company-plan-card h3 {
+  margin: 7px 0 10px;
+  font-size: clamp(25px, 2.5vw, 38px);
+  letter-spacing: -.04em;
+}
+
+.company-plan-card h3 small {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .04em;
+}
+
+.company-plan-card p,
+.company-plan-card li {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.company-plan-card ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.corporate-listing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 20px;
+}
+
+.corporate-listing-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: #fff;
+  box-shadow: 0 18px 50px rgba(35, 43, 51, .07);
+}
+
+.corporate-listing-media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #080a0c;
+}
+
+.corporate-listing-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.corporate-listing-badges {
+  position: absolute;
+  inset: 14px 14px auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.corporate-listing-badges .pill {
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(10px);
+}
+
+.corporate-listing-badges .pill.premium {
+  color: #fff;
+  background: #111820;
+}
+
+.corporate-listing-copy {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.corporate-listing-copy h3 {
+  margin: -4px 0 0;
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1.08;
+  letter-spacing: -.035em;
+  overflow-wrap: anywhere;
+}
+
+.corporate-listing-copy > p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.corporate-listing-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.corporate-listing-meta > div {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 15px 12px;
+  border-right: 1px solid var(--line);
+}
+
+.corporate-listing-meta > div:last-child {
+  border-right: 0;
+}
+
+.corporate-listing-meta span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.corporate-listing-meta strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.corporate-publisher {
+  padding: clamp(24px, 4vw, 42px);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(242, 245, 247, .88));
+}
+
+.corporate-publisher .section-minihead {
+  margin-bottom: 24px;
+}
+
+.curated-vip-inventory {
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 760px) {
+  .corporate-market-intro {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .corporate-plan-summary {
+    justify-content: flex-start;
+  }
+
+  .company-plan-grid,
+  .corporate-listing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .company-plan-card,
+  .corporate-listing-copy {
+    padding: 20px;
+  }
+
+  .corporate-listing-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .corporate-listing-meta > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .corporate-listing-meta > div:last-child {
+    border-bottom: 0;
+  }
+}
