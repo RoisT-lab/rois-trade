@@ -83,6 +83,9 @@ create table if not exists founders (
   max_sponsors numeric default 10,
   scout_code text,
   scout_active boolean default false,
+  invited_by_scout_code text,
+  scout_validation_status text default 'pending',
+  scout_commission_status text default 'pending',
   status text default 'approved',
   visual_status text default 'approved',
   created_at timestamptz default now(),
@@ -311,6 +314,9 @@ alter table athletes add column if not exists annual_payment_status text not nul
 alter table athletes add column if not exists scout_validation_status text not null default 'pending';
 alter table athletes add column if not exists scout_commission_status text not null default 'pending';
 alter table founders add column if not exists ranking text;
+alter table founders add column if not exists invited_by_scout_code text;
+alter table founders add column if not exists scout_validation_status text default 'pending';
+alter table founders add column if not exists scout_commission_status text default 'pending';
 alter table founders add column if not exists image_url text;
 alter table founders add column if not exists image_path text;
 alter table founders add column if not exists image_name text;

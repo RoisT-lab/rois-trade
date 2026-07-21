@@ -208,3 +208,11 @@ Despues de desplegar y ejecutar la migracion, captura:
 - Cada Athlete/Founder solo puede modificar su propia fila.
 - Storage valida que el segundo segmento de la ruta coincida con `auth.uid()`.
 - Admin conserva acceso operativo mediante `is_admin()`.
+
+## Registro Scout para Creadores
+
+- El alta de Creadores exige un codigo Scout ROIS, igual que el alta Athlete.
+- El codigo de invitacion se conserva en `founders.invited_by_scout_code`.
+- Los Scouts ven en un mismo panel los Athletes y Creadores registrados con su codigo.
+- Admin puede revisar el codigo de origen y validar la comision sin mezclar las tablas `athletes` y `founders`.
+- Ejecuta `supabase-creators-marketplace-evolution.sql` para agregar las columnas e indice Scout de Creadores y actualizar la validacion compartida de codigos.

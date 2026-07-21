@@ -17,6 +17,9 @@ create table if not exists public.founders (
   max_sponsors numeric default 10,
   scout_code text,
   scout_active boolean default false,
+  invited_by_scout_code text,
+  scout_validation_status text default 'pending',
+  scout_commission_status text default 'pending',
   status text default 'approved',
   visual_status text default 'approved',
   created_at timestamptz default now(),
@@ -64,6 +67,9 @@ alter table public.founders add column if not exists sponsor_payment_url text;
 alter table public.founders add column if not exists sponsor_terms text;
 alter table public.founders add column if not exists sponsor_logos text;
 alter table public.founders add column if not exists terms_accepted boolean not null default false;
+alter table public.founders add column if not exists invited_by_scout_code text;
+alter table public.founders add column if not exists scout_validation_status text default 'pending';
+alter table public.founders add column if not exists scout_commission_status text default 'pending';
 alter table public.founders add column if not exists updated_at timestamptz default now();
 
 create index if not exists athletes_profile_id_idx on public.athletes (profile_id);

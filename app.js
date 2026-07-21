@@ -482,7 +482,7 @@ function activeDashboardPanelId(view = dashboardViewForRole(state.session?.role)
 
 function dashboardPanelQueries(targetId) {
   const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,created_at";
-  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,created_at";
+  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at";
   const companyName = currentCompany()?.name || state.session?.name || "";
   const companyId = currentCompany()?.id || "";
   const encodedCompany = encodeURIComponent(companyName);
@@ -980,7 +980,10 @@ function scoutCodeForAthlete(athlete = currentAthlete()) {
 }
 
 function activeScoutAthletes() {
-  return (state.data?.athletes || []).filter(athlete => athlete.scout_active && scoutCodeForAthlete(athlete));
+  return [
+    ...(state.data?.athletes || []),
+    ...(state.data?.founders || []).map(founder => ({ ...founder, role: "founder", _profile_table: "founders" }))
+  ].filter(profile => profile.scout_active && scoutCodeForAthlete(profile));
 }
 
 function adminAthleteRecords() {
@@ -1008,7 +1011,11 @@ function scoutCanInvite(athlete) {
 function findScoutCandidateByCode(code) {
   const normalized = scoutCodeKey(code);
   if (!normalized) return null;
-  return (state.data?.athletes || []).find(athlete => scoutCodeKey(scoutCodeForAthlete(athlete)) === normalized) || null;
+  const candidates = [
+    ...(state.data?.athletes || []),
+    ...(state.data?.founders || []).map(founder => ({ ...founder, role: "founder", _profile_table: "founders" }))
+  ];
+  return candidates.find(profile => scoutCodeKey(scoutCodeForAthlete(profile)) === normalized) || null;
 }
 
 function findScoutByCode(code) {
@@ -1037,11 +1044,23 @@ function athleteAnnualFeePaid(athlete) {
   return Boolean(athlete?.annual_fee_paid || athlete?.annual_payment_status === "paid");
 }
 
-function scoutReferralStatus(athlete) {
-  const paid = athleteAnnualFeePaid(athlete);
-  const profile = athleteProfileCompleteForScout(athlete);
-  const validated = athlete?.scout_validation_status === "validated" || athlete?.scout_commission_status === "approved";
-  const eligible = Boolean(athlete?.invited_by_scout_code && paid && profile && validated && !["blocked", "deleted", "rejected"].includes(athlete.status));
+function creatorProfileCompleteForScout(creator) {
+  if (!creator) return false;
+  return Boolean(
+    creator.image_url &&
+    creator.industry &&
+    creator.city &&
+    creator.creator_type &&
+    creator.stats
+  );
+}
+
+function scoutReferralStatus(record) {
+  const creator = record?._profile_table === "founders" || record?.role === "founder" || Boolean(record?.creator_type);
+  const paid = creator ? record?.scout_commission_status === "approved" : athleteAnnualFeePaid(record);
+  const profile = creator ? creatorProfileCompleteForScout(record) : athleteProfileCompleteForScout(record);
+  const validated = record?.scout_validation_status === "validated" || record?.scout_commission_status === "approved";
+  const eligible = Boolean(record?.invited_by_scout_code && paid && profile && validated && !["blocked", "deleted", "rejected"].includes(record.status));
   return { paid, profile, validated, eligible };
 }
 
@@ -1460,6 +1479,9 @@ function demoApi() {
         max_sponsors: 10,
         scout_code: makeScoutCode(payload.name, normalizedEmail),
         scout_active: false,
+        invited_by_scout_code: normalizeScoutCode(payload.scoutCode),
+        scout_validation_status: "pending",
+        scout_commission_status: "pending",
         status: "approved",
         visual_status: "approved"
       });
@@ -1598,7 +1620,7 @@ function supabaseApi() {
         profiles: `select=id,email,role,name,status,must_change_password,created_at&order=created_at.desc&limit=${mainLimit}`,
         companies: `select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc&limit=${mainLimit}`,
         athletes: `select=id,profile_id,email,contact,name,sport,stats,monthly,annual,category,location,ranking,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,image_url,image_path,visual_status,visual_notes,terms_accepted,scout_code,scout_active,scout_terms_accepted,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,max_sponsors,proposal_url,proposal_path,proposal_name,sponsor_payment_url,sponsor_terms,sponsor_logos,birth_date,age_status,guardian_name,guardian_email,guardian_phone,guardian_relationship,guardian_consent,status,created_at&order=created_at.desc&limit=${mainLimit}`,
-        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,scout_code,scout_active,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
+        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
         events: `select=id,company_id,profile_id,name,category,venue,date,image_url,image_path,brochure_url,brochure_name,event_scope,sponsor_levels,success_fee_level,success_fee_rate,visual_status,visual_notes,status,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
         requests: `select=id,type,title,owner,details,priority,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         sponsorships: `select=id,athlete,athlete_email,amount,company,details,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
@@ -1649,7 +1671,7 @@ function supabaseApi() {
       }
       const profileQuery = `/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`;
       const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
-      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
+      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at";
       const ownProfile = roleRequest(profileQuery);
       if (role === "athlete") {
         const [profiles, ownAthletes, terms, notifications, posts, results] = await Promise.all([
@@ -1666,14 +1688,17 @@ function supabaseApi() {
         ) || ownAthletes[0];
         const scoutCode = scoutCodeForAthlete(ownAthlete);
         const referralColumns = "id,profile_id,email,contact,name,sport,category,location,stats,image_url,scout_code,scout_active,invited_by_scout_code,registration_terms_accepted,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,status,visual_status,created_at";
-        const referrals = scoutCode
-          ? await roleRequest(`/rest/v1/athletes?select=${referralColumns}&invited_by_scout_code=eq.${encodeURIComponent(scoutCode)}&order=created_at.desc&limit=100`)
-          : [];
+        const [referrals, creatorReferrals] = scoutCode
+          ? await Promise.all([
+              roleRequest(`/rest/v1/athletes?select=${referralColumns}&invited_by_scout_code=eq.${encodeURIComponent(scoutCode)}&order=created_at.desc&limit=100`),
+              roleRequest(`/rest/v1/founders?select=${founderColumns}&invited_by_scout_code=eq.${encodeURIComponent(scoutCode)}&order=created_at.desc&limit=100`)
+            ])
+          : [[], []];
         const athletes = [...ownAthletes];
         referrals.forEach(referral => {
           if (!athletes.some(item => item.id === referral.id)) athletes.push(referral);
         });
-        return { profiles, athletes, terms_acceptances: terms, athlete_notifications: notifications, athlete_posts: posts, athlete_results: results };
+        return { profiles, athletes, founders: creatorReferrals, terms_acceptances: terms, athlete_notifications: notifications, athlete_posts: posts, athlete_results: results };
       }
       if (role === "founder") {
         const [profiles, founders, terms, notifications, posts, results] = await Promise.all([
@@ -1684,7 +1709,21 @@ function supabaseApi() {
           roleRequest(`/rest/v1/athlete_posts?select=id,athlete_email,title,caption,image_url,video_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`),
           roleRequest(`/rest/v1/athlete_results?select=id,athlete_id,athlete_email,athlete_name,month,event,summary,proof_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`)
         ]);
-        return { profiles, founders, terms_acceptances: terms, athlete_notifications: notifications, athlete_posts: posts, athlete_results: results };
+        const ownFounder = founders.find(item =>
+          item.profile_id === authId || String(item.email || "").trim().toLowerCase() === email
+        ) || founders[0];
+        const scoutCode = scoutCodeForAthlete(ownFounder);
+        const referralColumns = "id,profile_id,email,contact,name,sport,category,location,stats,image_url,scout_code,scout_active,invited_by_scout_code,registration_terms_accepted,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,status,visual_status,created_at";
+        const [athleteReferrals, creatorReferrals] = scoutCode
+          ? await Promise.all([
+              roleRequest(`/rest/v1/athletes?select=${referralColumns}&invited_by_scout_code=eq.${encodeURIComponent(scoutCode)}&order=created_at.desc&limit=100`),
+              roleRequest(`/rest/v1/founders?select=${founderColumns}&invited_by_scout_code=eq.${encodeURIComponent(scoutCode)}&order=created_at.desc&limit=100`)
+            ])
+          : [[], []];
+        creatorReferrals.forEach(referral => {
+          if (!founders.some(item => item.id === referral.id)) founders.push(referral);
+        });
+        return { profiles, founders, athletes: athleteReferrals, terms_acceptances: terms, athlete_notifications: notifications, athlete_posts: posts, athlete_results: results };
       }
       const [profiles, companies, news, subscriptions] = await Promise.all([
         ownProfile,
@@ -2036,7 +2075,8 @@ function supabaseApi() {
             industry: payload.industry || "Contenido y entretenimiento",
             stage: payload.stage || "En desarrollo",
             city: payload.city || "Por definir",
-            stats: payload.stats || ""
+            stats: payload.stats || "",
+            invited_by_scout_code: normalizeScoutCode(payload.scoutCode)
           }
         })
       });
@@ -2361,6 +2401,7 @@ function supabaseApi() {
       const stage = options.stage || meta.stage || "En desarrollo";
       const city = options.city || meta.city || "Por definir";
       const stats = options.stats || meta.stats || `${creatorTypeLabel(creatorType)} ROIS. Proyecto: ${ventureName || "Por definir"}. Categoria: ${industry}. Etapa: ${stage}. Ciudad: ${city}.`;
+      const registrationScoutCode = normalizeScoutCode(options.scoutCode || "");
       let existingProfiles = await request(`/rest/v1/profiles?select=id,email,role,name,status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
         headers: headers(token)
       });
@@ -2433,6 +2474,11 @@ function supabaseApi() {
         max_sponsors: 10,
         scout_code: makeScoutCode(name, normalizedEmail),
         scout_active: false,
+        ...(registrationScoutCode ? {
+          invited_by_scout_code: registrationScoutCode,
+          scout_validation_status: "pending",
+          scout_commission_status: "pending"
+        } : {}),
         status: "approved",
         visual_status: "approved"
       };
@@ -4886,17 +4932,21 @@ function renderAthleteScouts() {
   const athlete = currentAthlete();
   const copy = verticalCopy(athlete);
   const founder = isFounderProfile(athlete);
-  const referredLabel = founder ? "Creador" : "Deportista";
-  const referredPlural = founder ? "creadores" : "deportistas";
-  const talentLabel = founder ? "talento emprendedor" : "talento deportivo";
+  const referredLabel = "Perfil";
+  const referredPlural = "athletes y creadores";
+  const talentLabel = "talento deportivo y creativo";
   if (!athlete) {
     panel("athlete-scouts", copy.scoutsTitle, "Red de invitacion ROIS", `<div class="empty">${copy.profileEmptyText}</div>`);
     return;
   }
   const code = scoutCodeForAthlete(athlete);
   const codeKey = scoutCodeKey(code);
-  const referrals = (state.data.athletes || []).filter(item =>
-    item.id !== athlete.id &&
+  const sessionEmail = String(state.session?.email || "").trim().toLowerCase();
+  const referrals = [
+    ...(state.data.athletes || []).map(item => ({ ...item, _profile_table: "athletes" })),
+    ...(state.data.founders || []).map(item => ({ ...item, _profile_table: "founders", role: "founder" }))
+  ].filter(item =>
+    String(item.email || item.contact || "").trim().toLowerCase() !== sessionEmail &&
     scoutCodeKey(item.invited_by_scout_code) === codeKey
   );
   const weekStart = currentWeekStart();
@@ -4906,6 +4956,7 @@ function renderAthleteScouts() {
     const status = scoutReferralStatus(item);
     return [
       escapeHtml(item.name || referredLabel),
+      badge(item._profile_table === "founders" ? "creador" : "athlete"),
       badge(item.created_at ? "registrado" : "registro"),
       status.paid ? badge("pagado") : badge("sin pago"),
       status.profile ? badge("perfil completo") : badge("perfil pendiente"),
@@ -4938,7 +4989,7 @@ function renderAthleteScouts() {
         ${scoutRulesList(athlete)}
       </div>
     </div>
-    ${rows.length ? table([referredLabel, "Registro", "Pago", "Perfil", "Validacion", "Comision"], rows) : `<div class="empty">Aun no hay ${referredPlural} registrados con tu codigo.</div>`}
+    ${rows.length ? table([referredLabel, "Tipo", "Registro", "Pago", "Perfil", "Validacion", "Comision"], rows) : `<div class="empty">Aun no hay ${referredPlural} registrados con tu codigo.</div>`}
   `);
 }
 
@@ -5456,9 +5507,12 @@ function founderAdminStatus(founder) {
 }
 
 function founderAdminActions(founder) {
-  return actionGroup([
-    button("Eliminar", () => deleteContent("founders", founder))
-  ]);
+  const actions = [];
+  if (founder.invited_by_scout_code && founder.scout_commission_status !== "approved") {
+    actions.push(button("Validar Scout", () => validateScoutCommission(founder, "founders")));
+  }
+  actions.push(button("Eliminar", () => deleteContent("founders", founder)));
+  return actionGroup(actions);
 }
 
 function renderAdminFounders() {
@@ -5476,10 +5530,11 @@ function renderAdminFounders() {
       </div>
       <p class="hint">La tabla tecnica founders se conserva para compatibilidad. Creator type identifica artistas, influencers, musicos y founders legacy.</p>
     </div>
-    ${founders.length ? table(["Creador", "Tipo", "Correo", "Categoria", "Plataforma", "Audiencia", "Engagement", "Media kit", "Estado", "Acciones"], founders.map(founder => [
+    ${founders.length ? table(["Creador", "Tipo", "Correo", "Referido por", "Categoria", "Plataforma", "Audiencia", "Engagement", "Media kit", "Estado", "Acciones"], founders.map(founder => [
       `<strong>${escapeHtml(founder.public_name || founder.name || "Creador")}</strong>`,
       badge(creatorTypeLabel(founder.creator_type)),
       escapeHtml(founder.email || "Sin correo"),
+      founder.invited_by_scout_code ? badge(normalizeScoutCode(founder.invited_by_scout_code)) : badge("registro directo"),
       escapeHtml(founder.industry || "Por definir"),
       escapeHtml(founder.primary_platform || "Por definir"),
       escapeHtml(creatorAudienceLabel(founder)),
@@ -7123,8 +7178,8 @@ async function markAthleteAnnualPaid(athlete) {
   renderAdmin();
 }
 
-async function validateScoutCommission(athlete) {
-  await api.update("athletes", athlete.id, {
+async function validateScoutCommission(record, tableName = "athletes") {
+  await api.update(tableName, record.id, {
     scout_validation_status: "validated",
     scout_commission_status: "approved"
   });
@@ -7943,6 +7998,12 @@ function registrationFields(type) {
     return `
       <label>Nombre legal<input name="name" required placeholder="Nombre completo"></label>
       <label>Correo<input name="email" type="email" required placeholder="correo@creador.com"></label>
+      <label style="grid-column:1/-1">Codigo de Scout ROIS<input name="scout_code" required placeholder="ROIS-ABC123"></label>
+      <div class="registration-note scout-registration-note" style="grid-column:1/-1">
+        <p class="eyebrow">Acceso por invitacion</p>
+        <p>Todo Creador necesita el codigo del Scout ROIS que lo invito. El codigo quedara vinculado al registro para seguimiento y comisiones.</p>
+        <button class="btn" type="button" data-request-scout-code>No tienes codigo de Scout? Solicita uno.</button>
+      </div>
       <label>Tipo de creador<select name="creator_type" required>${creatorTypeOptionsMarkup("influencer")}</select></label>
       <label>Nombre publico o artistico<input name="public_name" required placeholder="Nombre visible para marcas"></label>
       <label style="grid-column:1/-1">Proyecto, canal o marca personal<input name="venture_name" required placeholder="Nombre del proyecto creativo"></label>
@@ -8200,6 +8261,18 @@ async function submitRegistrationLegacy(event) {
         notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrasena para crear tu cuenta de creador.");
         return;
       }
+      const scoutCode = normalizeScoutCode(form.scout_code.value);
+      if (!scoutCode) {
+        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta de Creador necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
+        form.scout_code.focus();
+        return;
+      }
+      const scoutValidation = await api.validateScoutCode(scoutCode);
+      if (!scoutValidation.valid) {
+        notify("Codigo Scout", "Codigo no valido", `El codigo ${scoutCode} no esta activo para registrar Creadores. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
+        form.scout_code.focus();
+        return;
+      }
       const founderIndustry = form.industry.value.trim() || "Contenido y entretenimiento";
       const founderStage = form.stage.value.trim();
       const founderCity = form.city.value.trim();
@@ -8213,6 +8286,7 @@ async function submitRegistrationLegacy(event) {
         name: form.name.value,
         profileType: "founder",
         vertical: "founder",
+        scoutCode,
         ventureName,
         creatorType,
         publicName,
@@ -8378,6 +8452,18 @@ async function submitRegistration(event) {
         notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrasena para crear tu cuenta de creador.");
         return;
       }
+      const scoutCode = normalizeScoutCode(form.scout_code.value);
+      if (!scoutCode) {
+        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta de Creador necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
+        form.scout_code.focus();
+        return;
+      }
+      const scoutValidation = await api.validateScoutCode(scoutCode);
+      if (!scoutValidation.valid) {
+        notify("Codigo Scout", "Codigo no valido", `El codigo ${scoutCode} no esta activo para registrar Creadores. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
+        form.scout_code.focus();
+        return;
+      }
       const founderIndustry = form.industry.value.trim() || "Contenido y entretenimiento";
       const founderStage = form.stage.value.trim();
       const founderCity = form.city.value.trim();
@@ -8391,6 +8477,7 @@ async function submitRegistration(event) {
         name: form.name.value,
         profileType: "founder",
         vertical: "founder",
+        scoutCode,
         ventureName,
         creatorType,
         publicName,
