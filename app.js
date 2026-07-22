@@ -4519,6 +4519,7 @@ function renderAccountSettings(panelId) {
 function renderAthlete() {
   renderAthleteHeader();
   renderAthleteKpis();
+  renderAthleteNotificationCount();
   const activePanel = activeDashboardPanelId("athlete") || "athlete-profile";
   renderAthletePanel(activePanel);
 }
@@ -4743,6 +4744,25 @@ function profileVertical(profile) {
   return founderSignals.some(signal => profileText.includes(signal)) ? "founder" : "athlete";
 }
 
+function renderAthleteNotificationCount() {
+  const unread = athleteNotificationsFor().filter(item => item.status !== "read").length;
+  document.querySelectorAll('[data-dashboard-target="athlete-notifications"]').forEach(button => {
+    let counter = button.querySelector("[data-unread-notifications]");
+    if (!counter && unread) {
+      counter = document.createElement("span");
+      counter.dataset.unreadNotifications = "";
+      counter.className = "nav-unread-count";
+      button.appendChild(counter);
+    }
+    if (counter) {
+      counter.textContent = unread > 99 ? "99+" : String(unread);
+      counter.hidden = unread === 0;
+    }
+    button.classList.toggle("has-unread", unread > 0);
+    button.setAttribute("aria-label", unread ? `Notificaciones, ${unread} sin leer` : "Notificaciones");
+  });
+}
+
 function isFounderProfile(profile) {
   return profileVertical(profile) === "founder";
 }
@@ -4847,6 +4867,7 @@ function sponsorDeckFormPayload(form, profile, role, media = []) {
       brandFit: value("brand_fit"),
       deliverables: value("deliverables"),
       benefits: value("benefits"),
+      advantages: value("advantages"),
       contact: "Gestion comercial exclusiva mediante ROIS"
     },
     media
@@ -4862,7 +4883,8 @@ function sponsorDeckQualityScore(payload, profile = {}) {
     [answers.proof, 15],
     [answers.brandFit, 10],
     [answers.deliverables, 10],
-    [answers.benefits, 15],
+    [answers.benefits, 8],
+    [answers.advantages, 7],
     [profile.image_url, 4],
     [profileSocialLinks(profile).length, 3],
     [profile.video_url || payload.media?.length, 3]
@@ -4874,6 +4896,7 @@ function localSponsorDeckDraft(payload) {
   const { role, profile, answers } = payload;
   const creator = role === "founder";
   const benefits = sponsorDeckList(answers.benefits || answers.deliverables);
+  const advantages = sponsorDeckList(answers.advantages);
   return {
     version: 1,
     generatedBy: "rois-guided-engine",
@@ -4885,7 +4908,8 @@ function localSponsorDeckDraft(payload) {
     proofPoints: sponsorDeckList(answers.proof),
     brandFit: sponsorDeckList(answers.brandFit),
     deliverables: sponsorDeckList(answers.deliverables),
-    benefits,
+    benefits: benefits.slice(0, 10),
+    advantages: advantages.slice(0, 10),
     monthlyTicket: Number(profile.monthlyTicket || 5000),
     maxSponsors: Math.min(10, Number(profile.maxSponsors || 10)),
     media: Array.isArray(payload.media) ? payload.media.slice(0, 2) : [],
@@ -4900,6 +4924,7 @@ function normalizeSponsorDeck(deck, fallback) {
     ? source.packages.flatMap(item => sponsorDeckList(item?.includes))
     : [];
   const normalizedBenefits = sponsorDeckList(source.benefits);
+  const normalizedAdvantages = sponsorDeckList(source.advantages);
   return {
     ...fallback,
     ...source,
@@ -4907,6 +4932,7 @@ function normalizeSponsorDeck(deck, fallback) {
     brandFit: sponsorDeckList(source.brandFit || fallback.brandFit),
     deliverables: sponsorDeckList(source.deliverables || fallback.deliverables),
     benefits: (normalizedBenefits.length ? normalizedBenefits : legacyBenefits.length ? legacyBenefits : sponsorDeckList(fallback.benefits)).slice(0, 10),
+    advantages: (normalizedAdvantages.length ? normalizedAdvantages : sponsorDeckList(fallback.advantages)).slice(0, 10),
     monthlyTicket: Number(fallback.monthlyTicket || 5000),
     maxSponsors: Math.min(10, Number(fallback.maxSponsors || 10)),
     media: Array.isArray(fallback.media) ? fallback.media.slice(0, 2) : [],
@@ -4932,10 +4958,10 @@ async function requestSponsorDeckAI(payload) {
   return result.deck;
 }
 
-function sponsorDeckBenefitMarkup(value = "", index = 0) {
+function sponsorDeckBenefitMarkup(value = "", index = 0, label = "Beneficio") {
   return `
     <article class="sponsor-deck-benefit">
-      <p class="eyebrow">Beneficio ${String(index + 1).padStart(2, "0")}</p>
+      <p class="eyebrow">${escapeHtml(label)} ${String(index + 1).padStart(2, "0")}</p>
       <p>${escapeHtml(value)}</p>
     </article>
   `;
@@ -4967,6 +4993,7 @@ function sponsorDeckMarkup(profile, options = {}) {
   const monthlyTicket = Number(deck.monthlyTicket || profile.monthly || 5000);
   const maxSponsors = Math.min(10, Number(deck.maxSponsors || profile.max_sponsors || 10));
   const benefits = sponsorDeckList(deck.benefits || deck.deliverables).slice(0, 10);
+  const advantages = sponsorDeckList(deck.advantages).slice(0, 10);
   return `
     <article class="sponsor-deck-preview ${options.compact ? "compact" : ""}">
       <header class="sponsor-deck-cover">
@@ -5000,11 +5027,15 @@ function sponsorDeckMarkup(profile, options = {}) {
         <p>El ticket mensual es el mismo para cada patrocinador. La metodologia comercial ROIS organiza los activos que este perfil puede aportar y nuestro equipo valida alcance, derechos, calendario y condiciones.</p>
         <div class="sponsor-deck-offer-summary"><div><span>Ticket mensual</span><strong>$${monthlyTicket.toLocaleString("es-MX")} MXN</strong></div><div><span>Capacidad maxima</span><strong>${maxSponsors} sponsors</strong></div></div>
       </section>
-      <div class="sponsor-deck-benefits">${benefits.map(sponsorDeckBenefitMarkup).join("") || `<div class="empty">Los beneficios para patrocinadores estan en preparacion.</div>`}</div>
-      <section class="sponsor-deck-managed-panel">
-        <div><p class="eyebrow">Gestion exclusiva ROIS</p><h3>ROIS coordina cada relacion de patrocinio.</h3><p>Validamos afinidad, presentamos la oportunidad y gestionamos negociacion, seguimiento y cierre sin exponer datos de contacto directo.</p></div>
-        ${state.session?.role === "client" ? `<button class="btn primary" type="button" data-athlete-sponsor="${escapeAttr(profile.id)}">Solicitar evaluacion a ROIS</button>` : ""}
+      <section class="sponsor-deck-list-section">
+        <div class="sponsor-deck-list-heading"><p class="eyebrow">Beneficios para patrocinadores</p><h3>Resultados y activos que recibe cada marca.</h3></div>
+        <div class="sponsor-deck-benefits">${benefits.map((value, index) => sponsorDeckBenefitMarkup(value, index, "Beneficio")).join("") || `<div class="empty">Los beneficios para patrocinadores estan en preparacion.</div>`}</div>
       </section>
+      <section class="sponsor-deck-list-section sponsor-deck-advantages-section">
+        <div class="sponsor-deck-list-heading"><p class="eyebrow">Ventajas competitivas</p><h3>Razones para elegir este perfil frente a otras opciones.</h3></div>
+        <div class="sponsor-deck-benefits">${advantages.map((value, index) => sponsorDeckBenefitMarkup(value, index, "Ventaja")).join("") || `<div class="empty">Las ventajas competitivas estan en preparacion.</div>`}</div>
+      </section>
+      ${state.session?.role === "client" ? `<div class="sponsor-deck-request-action"><button class="btn primary" type="button" data-athlete-sponsor="${escapeAttr(profile.id)}">Solicitar evaluacion a ROIS</button></div>` : ""}
     </article>
   `;
 }
@@ -5102,7 +5133,8 @@ function renderAthleteSponsorDeck() {
         <label style="grid-column:1/-1">Evidencia y resultados<textarea name="proof" required placeholder="Un resultado por linea: ranking, alcance, engagement, conversion, aparicion o logro.">${escapeHtml(sponsorDeckList(deck?.proofPoints || defaultProof).join("\n"))}</textarea></label>
         <label style="grid-column:1/-1">Marcas y categorias compatibles<textarea name="brand_fit" required placeholder="Deporte; bienestar; tecnologia; moda; movilidad; hospitalidad...">${escapeHtml(sponsorDeckList(deck?.brandFit || profile.brand_categories).join("\n"))}</textarea></label>
         <label style="grid-column:1/-1">Entregables disponibles<textarea name="deliverables" required placeholder="Un entregable por linea: publicaciones, reels, presencia, contenido, licencias, clinicas...">${escapeHtml(sponsorDeckList(deck?.deliverables || profile.deliverables).join("\n"))}</textarea></label>
-        <label style="grid-column:1/-1">Beneficios y ventajas para patrocinadores<textarea name="benefits" required placeholder="Un beneficio por linea: visibilidad, integracion de marca, contenido, hospitalidad, acceso a comunidad, presencia en eventos...">${escapeHtml(sponsorDeckList(deck?.benefits || deck?.deliverables || profile.deliverables).join("\n"))}</textarea></label>
+        <label style="grid-column:1/-1">Beneficios para patrocinadores<span class="field-note">Hasta 10 beneficios, uno por linea.</span><textarea name="benefits" rows="10" required placeholder="Visibilidad de marca\nContenido exclusivo\nPresencia en eventos\nAcceso a comunidad...">${escapeHtml(sponsorDeckList(deck?.benefits || deck?.deliverables || profile.deliverables).slice(0, 10).join("\n"))}</textarea></label>
+        <label style="grid-column:1/-1">Ventajas competitivas<span class="field-note">Hasta 10 ventajas, una por linea.</span><textarea name="advantages" rows="10" required placeholder="Audiencia especializada\nCredibilidad en la disciplina\nCalendario activo\nAfinidad con mercados premium...">${escapeHtml(sponsorDeckList(deck?.advantages).slice(0, 10).join("\n"))}</textarea></label>
         <div class="sponsor-deck-fixed-offer" style="grid-column:1/-1"><div><span>Ticket mensual por patrocinador</span><strong>$${Number(profile.monthly || 5000).toLocaleString("es-MX")} MXN</strong></div><div><span>Espacios disponibles</span><strong>Hasta ${Math.min(10, Number(profile.max_sponsors || 10))}</strong></div></div>
         <div class="sponsor-deck-media-editor" style="grid-column:1/-1">
           <div class="section-minihead"><p class="eyebrow">Activos visuales</p><h3>Agrega dos imagenes de valor para patrocinadores.</h3><p>Calendario de competiciones, perfil de eventos, audiencia presencial, espacios de marca o evidencia de resultados.</p></div>
@@ -5149,6 +5181,16 @@ async function submitSponsorDeck(event) {
   if (invalid) {
     invalid.focus();
     notify("Sponsor Deck", "Falta informacion", "Completa todos los campos requeridos antes de generar el deck.");
+    return;
+  }
+  const limitedLists = [
+    { name: "benefits", label: "beneficios", maximum: 10 },
+    { name: "advantages", label: "ventajas", maximum: 10 }
+  ];
+  const exceeded = limitedLists.find(item => sponsorDeckList(form.elements.namedItem(item.name)?.value).length > item.maximum);
+  if (exceeded) {
+    form.elements.namedItem(exceeded.name)?.focus();
+    notify("Sponsor Deck", "Limite excedido", `Puedes registrar hasta ${exceeded.maximum} ${exceeded.label}, uno por linea.`);
     return;
   }
   setSavingState(form, true);

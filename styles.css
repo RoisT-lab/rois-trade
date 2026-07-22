@@ -6071,26 +6071,65 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   line-height: 1.65;
 }
 
-.sponsor-deck-managed-panel {
+.sponsor-deck-list-section {
+  border-top: 1px solid var(--line);
+  background: #f4f6f8;
+}
+
+.sponsor-deck-list-heading {
+  padding: clamp(28px, 4vw, 42px) clamp(24px, 4vw, 42px) 20px;
+}
+
+.sponsor-deck-list-heading h3 {
+  max-width: 760px;
+  margin: 8px 0 0;
+  font-size: clamp(22px, 2.7vw, 34px);
+  line-height: 1.08;
+}
+
+.sponsor-deck-request-action {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 28px;
-  padding: clamp(28px, 4vw, 44px);
+  justify-content: flex-end;
+  padding: 28px clamp(24px, 4vw, 42px);
   border-top: 1px solid var(--line);
   background: #fff;
 }
 
-.sponsor-deck-managed-panel h3 {
-  margin: 8px 0;
-  font-size: clamp(21px, 2.4vw, 30px);
+.field-note {
+  display: block;
+  margin: 6px 0 9px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .03em;
+  text-transform: none;
 }
 
-.sponsor-deck-managed-panel p:last-child {
-  max-width: 720px;
-  margin: 5px 0 0;
-  color: var(--muted);
-  line-height: 1.65;
+body[data-active-view="athlete"] [data-dashboard-nav="athlete"] [data-dashboard-target="athlete-notifications"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nav-unread-count {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.nav-unread-count[hidden] {
+  display: none !important;
 }
 
 .sponsor-deck-media-editor {
@@ -6135,10 +6174,6 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
     border-bottom: 0;
   }
 
-  .sponsor-deck-managed-panel {
-    align-items: stretch;
-    flex-direction: column;
-  }
 }
 
 /* ROIS Admin global command center */
