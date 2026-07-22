@@ -597,7 +597,6 @@ async function ensureDashboardPanelData(targetId, options = {}) {
       hasMore: false,
       lastLoadedAt: Date.now()
     });
-    renderAdminKpis();
     if (document.querySelector('[data-dashboard-panel="admin-control"]')?.classList.contains("active")) renderAdminControl();
     return true;
   }
@@ -646,7 +645,6 @@ async function ensureDashboardPanelData(targetId, options = {}) {
     state.dataSignature = runtimeDataSignature(state.data);
     writeDataCache(state.data);
     if (targetId.startsWith("client-")) renderClientKpis();
-    if (targetId.startsWith("admin-")) renderAdminKpis();
     if (document.querySelector(`[data-dashboard-panel="${targetId}"]`)?.classList.contains("active")) {
       renderDashboardPanelById(targetId);
       optimizeRenderedMedia(document.querySelector(`[data-dashboard-panel="${targetId}"]`));
@@ -5586,7 +5584,7 @@ function adminControlSignal(label, value, target, targetPanel, inverse = false) 
   `;
 }
 
-function renderAdminControl() {
+function renderAdminControlLegacy() {
   const snapshot = adminGrowthSnapshot || adminGrowthSnapshotFromState();
   const totalTalent = Number(snapshot.totalAthletes || 0) + Number(snapshot.totalCreators || 0);
   const publicTalent = Number(snapshot.publicAthletes || 0) + Number(snapshot.publicCreators || 0);
@@ -5668,14 +5666,140 @@ function renderAdminControl() {
   `);
 }
 
+function adminCommandMetric(label, value, note = "") {
+  return `<div class="admin-command-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong><small>${escapeHtml(note)}</small></div>`;
+}
+
+function adminPriorityRow(label, value, targetPanel, context) {
+  return `
+    <div class="admin-priority-row">
+      <span class="admin-priority-mark" aria-hidden="true"></span>
+      <div><strong>${escapeHtml(label)}</strong><small>${escapeHtml(context)}</small></div>
+      <b>${Number(value || 0)}</b>
+      ${button("Resolver", () => showDashboardPanel(targetPanel))}
+    </div>
+  `;
+}
+
+function adminFlowRow(index, label, value, note, targetPanel) {
+  return `
+    <div class="admin-flow-row">
+      <span>${String(index).padStart(2, "0")}</span>
+      <div><strong>${escapeHtml(label)}</strong><small>${escapeHtml(note)}</small></div>
+      <b>${escapeHtml(String(value))}</b>
+      ${button("Ver", () => showDashboardPanel(targetPanel))}
+    </div>
+  `;
+}
+
+function renderAdminControl() {
+  const snapshot = adminGrowthSnapshot || adminGrowthSnapshotFromState();
+  const totalTalent = Number(snapshot.totalAthletes || 0) + Number(snapshot.totalCreators || 0);
+  const publicTalent = Number(snapshot.publicAthletes || 0) + Number(snapshot.publicCreators || 0);
+  const demand = Number(snapshot.activeSponsorships || 0) + Number(snapshot.marketplaceLeads || 0);
+  const deckCoverage = growthRate(snapshot.deckReady, publicTalent);
+  const referralShare = growthRate(snapshot.referrals, totalTalent);
+  const leadCloseRate = growthRate(snapshot.closedLeads, snapshot.marketplaceLeads);
+  const scoutK = Number(snapshot.activeScouts || 0) > 0
+    ? (Number(snapshot.referrals || 0) / Number(snapshot.activeScouts)).toFixed(1)
+    : "0.0";
+  const sourceNote = snapshot.exact
+    ? "Sincronizado con la base global"
+    : "Vista parcial hasta instalar el SQL de control";
+  const priorities = [
+    ["Sponsors en revision", snapshot.sponsorReviews, "admin-payments", "Demanda comercial esperando decision"],
+    ["Eventos pendientes", snapshot.pendingEvents, "admin-events", "Publicaciones que requieren validacion"],
+    ["Talento por revisar", snapshot.pendingVisualTalent, "admin-athletes", "Perfiles fuera del mercado"],
+    ["Inventario pendiente", snapshot.pendingListings, "admin-corporate-market", "Oferta empresarial sin publicar"],
+    ["Cuentas pendientes", snapshot.pendingProfiles, "admin-users", "Accesos sin resolver"],
+    ["Solicitudes de plan", snapshot.planRequests, "admin-corporate-market", "Conversion PRO o Business"],
+    ["Alertas de datos", snapshot.profileAlerts, "admin-stats", "Integridad de perfiles y relaciones"]
+  ].filter(([, value]) => Number(value || 0) > 0).sort((a, b) => Number(b[1]) - Number(a[1]));
+  const openDecisionCount = priorities.reduce((sum, item) => sum + Number(item[1] || 0), 0);
+
+  panel("admin-control", "", "", `
+    <div class="admin-command">
+      <header class="admin-command-head">
+        <div>
+          <p class="eyebrow">Executive command</p>
+          <h2>${openDecisionCount ? `${openDecisionCount} decisiones abiertas` : "Operacion al dia"}</h2>
+          <p>Una lectura ordenada de crecimiento, activacion, propagacion y demanda. ${escapeHtml(sourceNote)}.</p>
+        </div>
+        <div class="admin-command-actions">
+          ${button("Actualizar", async () => {
+            adminGrowthSnapshot = null;
+            await loadAdminGrowthSnapshot({ force: true });
+            renderAdminControl();
+          })}
+          ${button("Salud del sistema", () => showDashboardPanel("admin-stats"))}
+        </div>
+      </header>
+
+      <div class="admin-command-strip">
+        ${adminCommandMetric("Altas 7d", snapshot.registrations7d || 0, `${snapshot.registrations24h || 0} en 24 h`)}
+        ${adminCommandMetric("Talento publico", publicTalent, `${snapshot.publicAthletes || 0} athletes / ${snapshot.publicCreators || 0} creadores`)}
+        ${adminCommandMetric("Deck coverage", `${deckCoverage}%`, `${snapshot.deckReady || 0} listos`)}
+        ${adminCommandMetric("K Scout", scoutK, `${snapshot.referrals || 0} referidos`)}
+        ${adminCommandMetric("Demanda", demand, `${leadCloseRate}% cierre leads`)}
+        ${adminCommandMetric("Pipeline", money(snapshot.sponsorshipPipelineValue), `${snapshot.activeSponsorships || 0} oportunidades`)}
+      </div>
+
+      <div class="admin-command-layout">
+        <main>
+          <section class="admin-command-section">
+            <div class="admin-command-section-head"><div><p class="eyebrow">Prioridad ahora</p><h3>Decisiones pendientes</h3></div><span>${priorities.length} frentes</span></div>
+            <div class="admin-priority-list">
+              ${priorities.length
+                ? priorities.map(item => adminPriorityRow(item[0], item[1], item[2], item[3])).join("")
+                : `<div class="admin-command-empty"><strong>Sin bloqueos operativos.</strong><span>El sistema no registra decisiones pendientes.</span></div>`}
+            </div>
+          </section>
+
+          <section class="admin-command-section">
+            <div class="admin-command-section-head"><div><p class="eyebrow">Embudo</p><h3>Flujo del negocio</h3></div><span>30 dias</span></div>
+            <div class="admin-flow-list">
+              ${adminFlowRow(1, "Adquisicion", snapshot.registrations30d || 0, `${snapshot.talent7d || 0} talentos y ${snapshot.companies7d || 0} empresas en 7 dias`, "admin-users")}
+              ${adminFlowRow(2, "Activacion", `${deckCoverage}%`, `${snapshot.deckReady || 0} perfiles con activo comercial`, "admin-athletes")}
+              ${adminFlowRow(3, "Propagacion", `${referralShare}%`, `${snapshot.activeScouts || 0} Scouts activos / K ${scoutK}`, "admin-athletes")}
+              ${adminFlowRow(4, "Demanda", demand, `${snapshot.marketplaceLeads || 0} leads / ${snapshot.activeSponsorships || 0} patrocinios`, "admin-corporate-market")}
+            </div>
+          </section>
+        </main>
+
+        <aside>
+          <section class="admin-command-section admin-command-ledger">
+            <div class="admin-command-section-head"><div><p class="eyebrow">Comercial</p><h3>Posicion actual</h3></div></div>
+            <dl>
+              <div><dt>Pipeline sponsor</dt><dd>${money(snapshot.sponsorshipPipelineValue)}</dd></div>
+              <div><dt>Ingreso pagado</dt><dd>${money(snapshot.paidRevenue)}</dd></div>
+              <div><dt>Ingreso pendiente</dt><dd>${money(snapshot.pendingRevenue)}</dd></div>
+              <div><dt>Inventario publicado</dt><dd>${snapshot.listingsLive || 0}</dd></div>
+              <div><dt>PRO / Business</dt><dd>${Number(snapshot.activePro || 0) + Number(snapshot.activeBusiness || 0)}</dd></div>
+            </dl>
+            ${button("Abrir ingresos", () => showDashboardPanel("admin-revenue"))}
+          </section>
+
+          <section class="admin-command-section admin-command-ledger">
+            <div class="admin-command-section-head"><div><p class="eyebrow">Capacidad</p><h3>Red disponible</h3></div></div>
+            <dl>
+              <div><dt>Empresas</dt><dd>${snapshot.totalCompanies || 0}</dd></div>
+              <div><dt>Deportistas</dt><dd>${snapshot.totalAthletes || 0}</dd></div>
+              <div><dt>Creadores</dt><dd>${snapshot.totalCreators || 0}</dd></div>
+              <div><dt>Referidos validados</dt><dd>${snapshot.validatedReferrals || 0}</dd></div>
+            </dl>
+          </section>
+        </aside>
+      </div>
+    </div>
+  `);
+}
+
 function renderAdmin() {
-  renderAdminKpis();
   const activePanel = document.querySelector('[data-dashboard="admin"] [data-dashboard-panel].active')?.dataset.dashboardPanel || "admin-control";
   renderAdminPanel(activePanel);
   if (activePanel === "admin-control" && !adminGrowthSnapshot && !adminGrowthSnapshotPromise) {
     loadAdminGrowthSnapshot().then(() => {
       if (activeDashboardPanelId("admin") === "admin-control") {
-        renderAdminKpis();
         renderAdminControl();
       }
     });
@@ -5698,7 +5822,6 @@ function renderAdminPanel(targetId) {
     "admin-revenue": renderAdminRevenue,
     "admin-payments": renderAdminPayments,
     "admin-uploads": renderAdminUploads,
-    "admin-launch": renderAdminLaunch,
     "admin-stats": renderAdminStats,
     "admin-settings": () => renderAccountSettings("admin-settings")
   };
@@ -5744,6 +5867,8 @@ const fixedExpenseConfig = [
 ];
 
 function renderAdminKpis() {
+  const host = document.getElementById("adminKpis");
+  if (!host) return;
   const snapshot = adminGrowthSnapshot;
   const usersStatus = dashboardPanelLoads.get("admin-users");
   const revenueStatus = dashboardPanelLoads.get("admin-revenue");
@@ -5762,7 +5887,7 @@ function renderAdminKpis() {
   const moneyValue = (status, value) => !status?.loaded || status.hasMore
     ? "Abrir Ingresos"
     : value;
-  document.getElementById("adminKpis").innerHTML = [
+  host.innerHTML = [
     ["Pendientes", snapshot ? pendingUsers : listValue(usersStatus, pendingUsers, "Usuarios")],
     ["Empresas", snapshot ? companies : listValue(usersStatus, companies, "Usuarios")],
     ["Deportistas", snapshot ? athletes : listValue(usersStatus, athletes, "Usuarios")],

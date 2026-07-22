@@ -7,7 +7,7 @@
   <meta name="rois-build" content="20260630-stable-data-v75" />
   <meta name="description" content="ROIS conecta empresas con talento deportivo competitivo, patrocinios institucionales y oportunidades privadas de crecimiento." />
   <link rel="preload" as="image" href="./assets/home/rois-hero-private-access.png" fetchpriority="high" />
-  <link rel="stylesheet" href="./styles.css?v=20260721-admin-growth-control" />
+  <link rel="stylesheet" href="./styles.css?v=20260721-admin-command-system" />
 </head>
 <body data-active-view="home">
   <div id="app" class="app-shell">
@@ -280,21 +280,25 @@
         <aside class="sidebar">
           <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menú">&times;</button>
           <nav class="side-nav" data-dashboard-nav="admin">
+            <span class="side-nav-label">Direccion</span>
             <button class="active" type="button" data-dashboard-target="admin-control">Control</button>
+            <span class="side-nav-label">Red</span>
             <button type="button" data-dashboard-target="admin-users">Usuarios</button>
             <button type="button" data-dashboard-target="admin-athletes">Deportistas</button>
             <button type="button" data-dashboard-target="admin-founders">Creadores</button>
-            <button type="button" data-dashboard-target="admin-payment-links">Enlaces de pago</button>
             <button type="button" data-dashboard-target="admin-athlete-notifications">Notificaciones</button>
-            <button type="button" data-dashboard-target="admin-events">Eventos</button>
-            <button type="button" data-dashboard-target="admin-news">Noticias</button>
-            <button type="button" data-dashboard-target="admin-partners">Centro VIP</button>
+            <span class="side-nav-label">Comercial</span>
             <button type="button" data-dashboard-target="admin-corporate-market">Mercado Corporativo</button>
+            <button type="button" data-dashboard-target="admin-events">Eventos</button>
             <button type="button" data-dashboard-target="admin-crm">CRM</button>
             <button type="button" data-dashboard-target="admin-revenue">Ingresos</button>
             <button type="button" data-dashboard-target="admin-payments">Pagos</button>
+            <button type="button" data-dashboard-target="admin-payment-links">Enlaces de pago</button>
+            <span class="side-nav-label">Contenido</span>
+            <button type="button" data-dashboard-target="admin-news">Noticias</button>
+            <button type="button" data-dashboard-target="admin-partners">Centro VIP</button>
             <button type="button" data-dashboard-target="admin-uploads">Uploads</button>
-            <button type="button" data-dashboard-target="admin-launch">Lanzamiento</button>
+            <span class="side-nav-label">Sistema</span>
             <button type="button" data-dashboard-target="admin-stats">Estadísticas</button>
             <button type="button" data-dashboard-target="admin-settings">Configuración</button>
           </nav>
@@ -303,11 +307,10 @@
           <div class="workspace-head">
             <div>
               <p class="eyebrow">Operación interna</p>
-              <h1>Panel administrador</h1>
+              <h1>Administracion</h1>
             </div>
             <button class="btn" type="button" data-logout>Cerrar sesión</button>
           </div>
-          <div class="kpis" id="adminKpis"></div>
           <section class="dash-section active" data-dashboard-panel="admin-control"></section>
           <section class="dash-section" data-dashboard-panel="admin-users"></section>
           <section class="dash-section" data-dashboard-panel="admin-athletes"></section>
@@ -322,7 +325,6 @@
           <section class="dash-section" data-dashboard-panel="admin-revenue"></section>
           <section class="dash-section" data-dashboard-panel="admin-payments"></section>
           <section class="dash-section" data-dashboard-panel="admin-uploads"></section>
-          <section class="dash-section" data-dashboard-panel="admin-launch"></section>
           <section class="dash-section" data-dashboard-panel="admin-stats"></section>
           <section class="dash-section" data-dashboard-panel="admin-settings"></section>
         </div>
@@ -392,7 +394,7 @@
   </div>
 
   <script src="./app-config.js?v=20260706-success-fee-only-model" charset="UTF-8"></script>
-  <script src="./app.js?v=20260721-admin-growth-control" charset="UTF-8"></script>
+  <script src="./app.js?v=20260721-admin-command-system" charset="UTF-8"></script>
 </body>
 </html>
 
