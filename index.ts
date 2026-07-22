@@ -13,7 +13,7 @@ const deckSchema = {
     "proofPoints",
     "brandFit",
     "deliverables",
-    "packages",
+    "benefits",
     "cta",
   ],
   properties: {
@@ -25,20 +25,11 @@ const deckSchema = {
     proofPoints: { type: "array", items: { type: "string" }, maxItems: 8 },
     brandFit: { type: "array", items: { type: "string" }, maxItems: 8 },
     deliverables: { type: "array", items: { type: "string" }, maxItems: 10 },
-    packages: {
+    benefits: {
       type: "array",
-      minItems: 3,
-      maxItems: 3,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["name", "price", "includes"],
-        properties: {
-          name: { type: "string" },
-          price: { type: "number" },
-          includes: { type: "array", items: { type: "string" }, maxItems: 8 },
-        },
-      },
+      minItems: 4,
+      maxItems: 10,
+      items: { type: "string" },
     },
     cta: { type: "string" },
   },
@@ -66,7 +57,7 @@ export default {
       const payload = await request.json();
       const role = payload?.role === "founder" ? "creador" : "athlete";
       const model = Deno.env.get("OPENAI_MODEL") || "gpt-5.6-sol";
-      const prompt = `Eres el estratega comercial de ROIS. Convierte los datos proporcionados en un Sponsor Deck en espanol para un ${role}. Debe ser ejecutivo, verificable, sobrio y util para que una empresa decida si solicita una conversacion. No inventes seguidores, resultados, marcas, conversiones ni logros. Conserva exactamente los precios indicados. Diferencia claramente hechos de objetivos. Devuelve solo el objeto solicitado.\n\nDATOS:\n${JSON.stringify(payload)}`;
+      const prompt = `Eres el estratega comercial de ROIS. Convierte los datos proporcionados en un Sponsor Deck en espanol para un ${role}. Debe ser ejecutivo, verificable, sobrio y util para que una empresa decida si solicita una evaluacion de patrocinio dentro de ROIS. El objetivo es preparar una propuesta de valor capaz de ocupar hasta 10 espacios de patrocinio mensual con el mismo ticket indicado en los datos. No crees niveles, paquetes ni precios alternativos. Genera entre 4 y 10 beneficios concretos para patrocinadores a partir de los activos, entregables, audiencia, calendario, eventos y evidencia realmente proporcionados. No inventes seguidores, resultados, marcas, conversiones, logros ni beneficios no respaldados. No incluyas correos, telefonos, redes sociales, mensajes directos ni instrucciones de contacto externo. ROIS gestiona exclusivamente la presentacion, negociacion, seguimiento y cierre. El campo cta debe indicar exactamente: Solicita una evaluacion de patrocinio mediante ROIS. Nuestro equipo valida el alcance, coordina la presentacion y gestiona la relacion comercial. Diferencia claramente hechos de objetivos. Devuelve solo el objeto solicitado.\n\nDATOS:\n${JSON.stringify(payload)}`;
 
       const openAIResponse = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",

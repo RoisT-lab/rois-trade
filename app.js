@@ -2626,11 +2626,6 @@ function handleDashboardDelegatedActions(event) {
     openSponsorDeckById(sponsorDeckProfileButton.dataset.sponsorDeckProfile);
     return;
   }
-  const sponsorDeckPrintButton = event.target.closest("[data-sponsor-deck-print]");
-  if (sponsorDeckPrintButton) {
-    printSponsorDeckById(sponsorDeckPrintButton.dataset.sponsorDeckPrint);
-    return;
-  }
   const sponsorButton = event.target.closest("[data-athlete-sponsor]");
   if (sponsorButton) {
     const profileId = sponsorButton.dataset.athleteSponsor;
@@ -4744,7 +4739,7 @@ function sponsorDeckList(value = "") {
     .filter(Boolean);
 }
 
-function sponsorDeckFormPayload(form, profile, role) {
+function sponsorDeckFormPayload(form, profile, role, media = []) {
   const value = name => String(form.elements.namedItem(name)?.value || "").trim();
   return {
     role,
@@ -4759,7 +4754,9 @@ function sponsorDeckFormPayload(form, profile, role) {
       engagementRate: Number(profile.engagement_rate || 0),
       contentCategories: profile.content_categories || "",
       primaryPlatform: profile.primary_platform || "",
-      pastCollaborations: profile.past_collaborations || ""
+      pastCollaborations: profile.past_collaborations || "",
+      monthlyTicket: Number(profile.monthly || 5000),
+      maxSponsors: Math.min(10, Number(profile.max_sponsors || 10))
     },
     answers: {
       objective: value("objective"),
@@ -4768,11 +4765,10 @@ function sponsorDeckFormPayload(form, profile, role) {
       proof: value("proof"),
       brandFit: value("brand_fit"),
       deliverables: value("deliverables"),
-      packageEntry: Number(value("package_entry") || 0),
-      packageGrowth: Number(value("package_growth") || 0),
-      packageFlagship: Number(value("package_flagship") || 0),
+      benefits: value("benefits"),
       contact: "Gestion comercial exclusiva mediante ROIS"
-    }
+    },
+    media
   };
 }
 
@@ -4784,11 +4780,11 @@ function sponsorDeckQualityScore(payload, profile = {}) {
     [answers.audience, 15],
     [answers.proof, 15],
     [answers.brandFit, 10],
-    [answers.deliverables, 15],
-    [answers.packageEntry && answers.packageGrowth && answers.packageFlagship, 10],
+    [answers.deliverables, 10],
+    [answers.benefits, 15],
     [profile.image_url, 4],
     [profileSocialLinks(profile).length, 3],
-    [profile.video_url || sponsorDeckIsReady(profile), 3]
+    [profile.video_url || payload.media?.length, 3]
   ];
   return checks.reduce((score, [value, points]) => score + (value ? points : 0), 0);
 }
@@ -4796,23 +4792,7 @@ function sponsorDeckQualityScore(payload, profile = {}) {
 function localSponsorDeckDraft(payload) {
   const { role, profile, answers } = payload;
   const creator = role === "founder";
-  const packages = [
-    {
-      name: "Activacion puntual",
-      price: answers.packageEntry,
-      includes: sponsorDeckList(answers.deliverables).slice(0, 2)
-    },
-    {
-      name: "Campana de marca",
-      price: answers.packageGrowth,
-      includes: sponsorDeckList(answers.deliverables).slice(0, 4)
-    },
-    {
-      name: "Patrocinio integral",
-      price: answers.packageFlagship,
-      includes: sponsorDeckList(answers.deliverables)
-    }
-  ];
+  const benefits = sponsorDeckList(answers.benefits || answers.deliverables);
   return {
     version: 1,
     generatedBy: "rois-guided-engine",
@@ -4824,7 +4804,10 @@ function localSponsorDeckDraft(payload) {
     proofPoints: sponsorDeckList(answers.proof),
     brandFit: sponsorDeckList(answers.brandFit),
     deliverables: sponsorDeckList(answers.deliverables),
-    packages,
+    benefits,
+    monthlyTicket: Number(profile.monthlyTicket || 5000),
+    maxSponsors: Math.min(10, Number(profile.maxSponsors || 10)),
+    media: Array.isArray(payload.media) ? payload.media.slice(0, 2) : [],
     cta: "Solicita una evaluacion de patrocinio mediante ROIS. Nuestro equipo valida el alcance, coordina la presentacion y gestiona la relacion comercial.",
     generatedAt: new Date().toISOString()
   };
@@ -4832,13 +4815,20 @@ function localSponsorDeckDraft(payload) {
 
 function normalizeSponsorDeck(deck, fallback) {
   const source = deck && typeof deck === "object" ? deck : {};
+  const legacyBenefits = Array.isArray(source.packages)
+    ? source.packages.flatMap(item => sponsorDeckList(item?.includes))
+    : [];
+  const normalizedBenefits = sponsorDeckList(source.benefits);
   return {
     ...fallback,
     ...source,
     proofPoints: sponsorDeckList(source.proofPoints || fallback.proofPoints),
     brandFit: sponsorDeckList(source.brandFit || fallback.brandFit),
     deliverables: sponsorDeckList(source.deliverables || fallback.deliverables),
-    packages: Array.isArray(source.packages) && source.packages.length ? source.packages.slice(0, 3) : fallback.packages,
+    benefits: (normalizedBenefits.length ? normalizedBenefits : legacyBenefits.length ? legacyBenefits : sponsorDeckList(fallback.benefits)).slice(0, 10),
+    monthlyTicket: Number(fallback.monthlyTicket || 5000),
+    maxSponsors: Math.min(10, Number(fallback.maxSponsors || 10)),
+    media: Array.isArray(fallback.media) ? fallback.media.slice(0, 2) : [],
     cta: "Solicita una evaluacion de patrocinio mediante ROIS. Nuestro equipo valida el alcance, coordina la presentacion y gestiona la relacion comercial.",
     generatedAt: new Date().toISOString()
   };
@@ -4861,41 +4851,31 @@ async function requestSponsorDeckAI(payload) {
   return result.deck;
 }
 
-const sponsorDeckPackageCatalog = [
-  {
-    level: "Nivel 1",
-    name: "Activacion puntual",
-    description: "Colaboracion de alcance definido para validar afinidad entre la marca y el perfil.",
-    limit: 2
-  },
-  {
-    level: "Nivel 2",
-    name: "Campana de marca",
-    description: "Programa de varias acciones para construir presencia, contenido y resultados medibles.",
-    limit: 4
-  },
-  {
-    level: "Nivel 3",
-    name: "Patrocinio integral",
-    description: "Alianza de mayor alcance con presencia sostenida y activos comerciales coordinados por ROIS.",
-    limit: 10
-  }
-];
-
-function sponsorDeckPackageMarkup(item = {}, index = 0, deliverables = []) {
-  const catalog = sponsorDeckPackageCatalog[index] || sponsorDeckPackageCatalog[0];
-  const available = sponsorDeckList(item.includes).length ? sponsorDeckList(item.includes) : sponsorDeckList(deliverables);
-  const included = available.slice(0, catalog.limit);
+function sponsorDeckBenefitMarkup(value = "", index = 0) {
   return `
-    <article class="sponsor-deck-package">
-      <p class="eyebrow">${catalog.level}</p>
-      <h4>${catalog.name}</h4>
-      <p class="sponsor-deck-package-description">${catalog.description}</p>
-      <div class="sponsor-deck-investment"><span>Inversion sugerida</span><strong>${Number(item.price || 0) > 0 ? `$${Number(item.price).toLocaleString("es-MX")} MXN` : "A definir con ROIS"}</strong></div>
-      <p class="sponsor-deck-includes-label">Alcance de referencia</p>
-      <ul>${included.map(value => `<li>${escapeHtml(value)}</li>`).join("") || "<li>ROIS definira los activos y entregables con ambas partes.</li>"}</ul>
+    <article class="sponsor-deck-benefit">
+      <p class="eyebrow">Beneficio ${String(index + 1).padStart(2, "0")}</p>
+      <p>${escapeHtml(value)}</p>
     </article>
   `;
+}
+
+function sponsorDeckMedia(profile, deck = sponsorDeckData(profile) || {}) {
+  return (Array.isArray(deck.media) ? deck.media : [])
+    .filter(item => item && normalizedSocialUrl(item.url))
+    .slice(0, 2);
+}
+
+function sponsorDeckMediaMarkup(profile, deck) {
+  const media = sponsorDeckMedia(profile, deck);
+  if (!media.length) return "";
+  return `<section class="sponsor-deck-media">
+    <div class="sponsor-deck-media-heading"><p class="eyebrow">Evidencia visual</p><h3>Calendario, competiciones, eventos y activos de patrocinio.</h3></div>
+    <div class="sponsor-deck-media-grid">${media.map((item, index) => `<figure>
+      ${safeProfileImageMarkup(item.url, item.caption || `Evidencia ${index + 1}`)}
+      <figcaption>${escapeHtml(item.caption || `Activo comercial ${index + 1}`)}</figcaption>
+    </figure>`).join("")}</div>
+  </section>`;
 }
 
 function sponsorDeckMarkup(profile, options = {}) {
@@ -4903,6 +4883,9 @@ function sponsorDeckMarkup(profile, options = {}) {
   if (!deck) return `<div class="empty">Este perfil aun no ha generado su Sponsor Deck ROIS.</div>`;
   const founder = isFounderProfile(profile);
   const score = Number(profile.sponsor_deck_score || 0);
+  const monthlyTicket = Number(deck.monthlyTicket || profile.monthly || 5000);
+  const maxSponsors = Math.min(10, Number(deck.maxSponsors || profile.max_sponsors || 10));
+  const benefits = sponsorDeckList(deck.benefits || deck.deliverables).slice(0, 10);
   return `
     <article class="sponsor-deck-preview ${options.compact ? "compact" : ""}">
       <header class="sponsor-deck-cover">
@@ -4915,7 +4898,7 @@ function sponsorDeckMarkup(profile, options = {}) {
           <p class="eyebrow">Sponsor Deck ROIS · ${founder ? "Creador" : "Athlete"}</p>
           <h2>${escapeHtml(deck.headline || profile.name || "Talento ROIS")}</h2>
           <p>${escapeHtml(deck.positioning || profile.stats || "Propuesta comercial en desarrollo.")}</p>
-          <div class="row-meta"><span class="pill">${score}% completo</span><span class="pill">Hasta ${Number(profile.max_sponsors || 10)} sponsors</span></div>
+          <div class="row-meta"><span class="pill">${score}% completo</span><span class="pill">Hasta ${maxSponsors} sponsors</span></div>
         </div>
       </header>
       <div class="sponsor-deck-section sponsor-deck-story">
@@ -4929,16 +4912,18 @@ function sponsorDeckMarkup(profile, options = {}) {
         <section><p class="eyebrow">Afinidad de marca</p><ul>${sponsorDeckList(deck.brandFit).map(value => `<li>${escapeHtml(value)}</li>`).join("") || "<li>Categorias por definir.</li>"}</ul></section>
         <section><p class="eyebrow">Entregables</p><ul>${sponsorDeckList(deck.deliverables).map(value => `<li>${escapeHtml(value)}</li>`).join("") || "<li>Entregables por definir.</li>"}</ul></section>
       </div>
+      ${sponsorDeckMediaMarkup(profile, deck)}
       <section class="sponsor-deck-commercial-model">
-        <p class="eyebrow">Modelo de colaboracion</p>
-        <h3>Tres niveles para evaluar una alianza con claridad.</h3>
-        <p>Las cifras son referencias comerciales. ROIS valida objetivos, entregables, derechos, calendario y condiciones antes de presentar una propuesta formal.</p>
+        <p class="eyebrow">Propuesta de patrocinio mensual</p>
+        <h3>Beneficios y ventajas para construir una relacion de valor.</h3>
+        <p>El ticket mensual es el mismo para cada patrocinador. La IA ROIS organiza los activos que este perfil puede aportar y nuestro equipo valida alcance, derechos, calendario y condiciones.</p>
+        <div class="sponsor-deck-offer-summary"><div><span>Ticket mensual</span><strong>$${monthlyTicket.toLocaleString("es-MX")} MXN</strong></div><div><span>Capacidad maxima</span><strong>${maxSponsors} sponsors</strong></div></div>
       </section>
-      <div class="sponsor-deck-packages">${(deck.packages || []).slice(0, 3).map((item, index) => sponsorDeckPackageMarkup(item, index, deck.deliverables)).join("")}</div>
-      <footer class="sponsor-deck-cta">
-        <div><p class="eyebrow">Gestion exclusiva ROIS</p><h3>La relacion comercial se coordina dentro de ROIS.</h3><p>Solicita una evaluacion de patrocinio. Nuestro equipo valida el ajuste, presenta la oportunidad y gestiona negociacion, seguimiento y cierre.</p></div>
-        ${options.hideActions ? "" : `<div class="sponsor-deck-cta-actions">${state.session?.role === "client" ? `<button class="btn primary" type="button" data-athlete-sponsor="${escapeAttr(profile.id)}">Solicitar evaluacion a ROIS</button>` : ""}<button class="btn" type="button" data-sponsor-deck-print="${escapeAttr(profile.id)}">Descargar / imprimir</button></div>`}
-      </footer>
+      <div class="sponsor-deck-benefits">${benefits.map(sponsorDeckBenefitMarkup).join("") || `<div class="empty">Los beneficios para patrocinadores estan en preparacion.</div>`}</div>
+      <section class="sponsor-deck-managed-panel">
+        <div><p class="eyebrow">Gestion exclusiva ROIS</p><h3>ROIS coordina cada relacion de patrocinio.</h3><p>Validamos afinidad, presentamos la oportunidad y gestionamos negociacion, seguimiento y cierre sin exponer datos de contacto directo.</p></div>
+        ${state.session?.role === "client" ? `<button class="btn primary" type="button" data-athlete-sponsor="${escapeAttr(profile.id)}">Solicitar evaluacion a ROIS</button>` : ""}
+      </section>
     </article>
   `;
 }
@@ -4985,34 +4970,12 @@ async function openSponsorDeckById(profileId) {
   openSponsorDeckView(profile);
 }
 
-async function printSponsorDeckById(profileId) {
-  const profile = await loadSponsorDeckProfile(profileId);
-  if (!profile || !sponsorDeckData(profile)) {
-    notify("Sponsor Deck ROIS", "Deck no disponible", "No fue posible preparar la descarga. Intenta nuevamente.");
-    return;
-  }
-  printSponsorDeck(profile);
-}
-
 function openSponsorDeckView(profile) {
   if (!profile) return;
   notify("Sponsor Deck ROIS", profile.name || "Perfil comercial", "", sponsorDeckMarkup(profile));
   const modal = document.getElementById("actionModal");
   modal.dataset.profileRecordId = String(profile.id || "");
   modal.classList.add("profile-modal", "sponsor-deck-modal");
-}
-
-function printSponsorDeck(profile) {
-  const deck = sponsorDeckData(profile);
-  if (!deck) return;
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    notify("Sponsor Deck", "Ventana bloqueada", "Permite ventanas emergentes para descargar o imprimir el deck.");
-    return;
-  }
-  printWindow.opener = null;
-  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(profile.name || "Sponsor Deck ROIS")}</title><link rel="stylesheet" href="./styles.css?v=20260721-sponsor-deck-managed-v2"><style>body{padding:32px;background:#fff}.sponsor-deck-preview{max-width:980px;margin:auto}@media print{button{display:none!important}}</style></head><body>${sponsorDeckMarkup(profile, { hideActions: true })}<script>window.onload=()=>window.print()<\/script></body></html>`);
-  printWindow.document.close();
 }
 
 function sponsorDeckButton(profile, label = "Ver Sponsor Deck") {
@@ -5029,6 +4992,7 @@ function renderAthleteSponsorDeck() {
   }
   const founder = isFounderProfile(profile);
   const deck = sponsorDeckData(profile);
+  const deckMedia = sponsorDeckMedia(profile, deck || {});
   const defaultProof = founder ? profile.past_collaborations || profile.ranking : profile.ranking;
   const defaultAudience = founder
     ? [profile.audience_size ? `${Number(profile.audience_size).toLocaleString("es-MX")} personas` : "", profile.engagement_rate ? `${profile.engagement_rate}% engagement` : "", profile.audience_location || ""].filter(Boolean).join(" · ")
@@ -5037,13 +5001,13 @@ function renderAthleteSponsorDeck() {
     <div class="panel-body sponsor-deck-builder">
       <div class="section-minihead">
         <p class="eyebrow">Asistente comercial ROIS</p>
-        <h3>Construye un deck que una empresa pueda evaluar en minutos.</h3>
-        <p>La IA organiza tu narrativa, evidencia, audiencia, entregables y tres niveles de colaboracion. Revisa siempre el resultado antes de compartirlo.</p>
+        <h3>Construye una propuesta capaz de ocupar tus 10 espacios de patrocinio.</h3>
+        <p>La IA ROIS organiza tu narrativa, evidencia, audiencia, beneficios y activos visuales para que cada patrocinador entienda el valor de una relacion mensual.</p>
       </div>
       <div class="sponsor-deck-progress">
         <div><span>Completitud actual</span><strong>${Number(profile.sponsor_deck_score || 0)}%</strong></div>
         <div><span>Estado</span><strong>${deck ? "Listo para revisar" : "Borrador pendiente"}</strong></div>
-        <div><span>Capacidad</span><strong>${Number(profile.max_sponsors || 10)} sponsors / mes</strong></div>
+        <div><span>Capacidad</span><strong>${Math.min(10, Number(profile.max_sponsors || 10))} sponsors / mes</strong></div>
       </div>
       ${deck ? sponsorDeckMarkup(profile) : ""}
       <form id="sponsorDeckForm" class="form-grid sponsor-deck-form">
@@ -5053,17 +5017,41 @@ function renderAthleteSponsorDeck() {
         <label style="grid-column:1/-1">Evidencia y resultados<textarea name="proof" required placeholder="Un resultado por linea: ranking, alcance, engagement, conversion, aparicion o logro.">${escapeHtml(sponsorDeckList(deck?.proofPoints || defaultProof).join("\n"))}</textarea></label>
         <label style="grid-column:1/-1">Marcas y categorias compatibles<textarea name="brand_fit" required placeholder="Deporte; bienestar; tecnologia; moda; movilidad; hospitalidad...">${escapeHtml(sponsorDeckList(deck?.brandFit || profile.brand_categories).join("\n"))}</textarea></label>
         <label style="grid-column:1/-1">Entregables disponibles<textarea name="deliverables" required placeholder="Un entregable por linea: publicaciones, reels, presencia, contenido, licencias, clinicas...">${escapeHtml(sponsorDeckList(deck?.deliverables || profile.deliverables).join("\n"))}</textarea></label>
-        <p class="hint" style="grid-column:1/-1">Define una inversion de referencia para cada nivel. ROIS revisara alcance, derechos y condiciones antes de presentar cualquier propuesta.</p>
-        <label>Nivel 1 - Activacion puntual MXN<input name="package_entry" type="number" min="0" step="500" required value="${Number(deck?.packages?.[0]?.price || profile.monthly || 5000)}"></label>
-        <label>Nivel 2 - Campana de marca MXN<input name="package_growth" type="number" min="0" step="500" required value="${Number(deck?.packages?.[1]?.price || (Number(profile.monthly || 5000) * 2))}"></label>
-        <label>Nivel 3 - Patrocinio integral MXN<input name="package_flagship" type="number" min="0" step="500" required value="${Number(deck?.packages?.[2]?.price || (Number(profile.monthly || 5000) * 4))}"></label>
+        <label style="grid-column:1/-1">Beneficios y ventajas para patrocinadores<textarea name="benefits" required placeholder="Un beneficio por linea: visibilidad, integracion de marca, contenido, hospitalidad, acceso a comunidad, presencia en eventos...">${escapeHtml(sponsorDeckList(deck?.benefits || deck?.deliverables || profile.deliverables).join("\n"))}</textarea></label>
+        <div class="sponsor-deck-fixed-offer" style="grid-column:1/-1"><div><span>Ticket mensual por patrocinador</span><strong>$${Number(profile.monthly || 5000).toLocaleString("es-MX")} MXN</strong></div><div><span>Espacios disponibles</span><strong>Hasta ${Math.min(10, Number(profile.max_sponsors || 10))}</strong></div></div>
+        <div class="sponsor-deck-media-editor" style="grid-column:1/-1">
+          <div class="section-minihead"><p class="eyebrow">Activos visuales</p><h3>Agrega dos imagenes de valor para patrocinadores.</h3><p>Calendario de competiciones, perfil de eventos, audiencia presencial, espacios de marca o evidencia de resultados.</p></div>
+          <div class="sponsor-deck-media-inputs">
+            <label>Imagen 1<input name="deck_image_1" type="file" accept="image/png,image/jpeg,image/webp"><span>${deckMedia[0] ? "Imagen actual conservada si no seleccionas otra." : "JPG, PNG o WEBP. Maximo 5 MB."}</span></label>
+            <label>Descripcion imagen 1<input name="deck_caption_1" value="${escapeAttr(deckMedia[0]?.caption || "")}" placeholder="Ej. Calendario competitivo 2026"></label>
+            <label>Imagen 2<input name="deck_image_2" type="file" accept="image/png,image/jpeg,image/webp"><span>${deckMedia[1] ? "Imagen actual conservada si no seleccionas otra." : "JPG, PNG o WEBP. Maximo 5 MB."}</span></label>
+            <label>Descripcion imagen 2<input name="deck_caption_2" value="${escapeAttr(deckMedia[1]?.caption || "")}" placeholder="Ej. Evento con presencia para marcas"></label>
+          </div>
+          ${deckMedia.length ? `<div class="sponsor-deck-media-grid current">${deckMedia.map((item, index) => `<figure>${safeProfileImageMarkup(item.url, item.caption || `Imagen ${index + 1}`)}<figcaption>${escapeHtml(item.caption || `Imagen ${index + 1}`)}</figcaption></figure>`).join("")}</div>` : ""}
+        </div>
         <div class="sponsor-deck-managed-contact"><span>Contacto comercial</span><strong>Gestionado exclusivamente por ROIS</strong><p>Las empresas no reciben correos, telefonos ni datos de contacto directo del perfil.</p></div>
-        <p class="hint" style="grid-column:1/-1">El motor intenta usar la funcion segura de IA en Supabase. Si no esta desplegada, genera inmediatamente una version estructurada con el asistente local ROIS; ninguna clave privada se expone en el navegador.</p>
-        <button class="btn primary" type="submit">${deck ? "Mejorar y regenerar deck" : "Generar Sponsor Deck"}</button>
+        <button class="btn primary" type="submit">${deck ? "Mejorar propuesta con IA" : "Generar propuesta con IA"}</button>
       </form>
     </div>
   `);
   document.getElementById("sponsorDeckForm")?.addEventListener("submit", submitSponsorDeck);
+}
+
+async function sponsorDeckMediaFromForm(form, context, currentDeck = {}) {
+  const existing = sponsorDeckMedia({}, currentDeck);
+  const media = [];
+  for (let index = 0; index < 2; index += 1) {
+    const slot = index + 1;
+    const file = form.elements.namedItem(`deck_image_${slot}`)?.files?.[0];
+    const caption = String(form.elements.namedItem(`deck_caption_${slot}`)?.value || "").trim();
+    if (file) {
+      const uploaded = await uploadProfileAsset(file, "deck", context);
+      media.push({ url: uploaded.url, path: uploaded.path, name: uploaded.name, mime: uploaded.mime, caption: caption || `Activo de patrocinio ${slot}` });
+    } else if (existing[index]?.url) {
+      media.push({ ...existing[index], caption: caption || existing[index].caption || `Activo de patrocinio ${slot}` });
+    }
+  }
+  return media;
 }
 
 async function submitSponsorDeck(event) {
@@ -5079,7 +5067,15 @@ async function submitSponsorDeck(event) {
     return;
   }
   setSavingState(form, true);
-  const payload = sponsorDeckFormPayload(form, profile, context.role);
+  let media;
+  try {
+    media = await sponsorDeckMediaFromForm(form, context, sponsorDeckData(profile) || {});
+  } catch (error) {
+    setSavingState(form, false);
+    notify("Sponsor Deck", "No fue posible cargar las imagenes", humanError(error));
+    return;
+  }
+  const payload = sponsorDeckFormPayload(form, profile, context.role, media);
   const fallback = localSponsorDeckDraft(payload);
   let generated = fallback;
   let remoteAI = false;
@@ -5088,7 +5084,7 @@ async function submitSponsorDeck(event) {
     generated.generatedBy = "openai-secure-function";
     remoteAI = true;
   } catch (error) {
-    console.info("[ROIS sponsor deck] IA remota no disponible; se uso el generador local", humanError(error));
+    console.warn("[ROIS sponsor deck] La generacion con IA no respondio", humanError(error));
   }
   try {
     const score = sponsorDeckQualityScore(payload, profile);
@@ -5100,9 +5096,9 @@ async function submitSponsorDeck(event) {
     }, context);
     refreshProfileViews(context.role, updated);
     renderAthleteSponsorDeck();
-    notify("Sponsor Deck", "Deck generado", remoteAI
-      ? "La IA estructuro y guardo tu propuesta. Revisala antes de compartirla con empresas."
-      : "El asistente ROIS genero y guardo tu propuesta. La IA remota podra mejorarla cuando despliegues la funcion segura.");
+    notify("Sponsor Deck", remoteAI ? "Propuesta generada con IA" : "Borrador comercial guardado", remoteAI
+      ? "La IA ROIS estructuro beneficios, evidencia y propuesta de valor. Revisala antes de presentarla a empresas."
+      : "La mejora con IA no respondio en este intento. Conservamos un borrador estructurado para que no pierdas tu informacion; intenta generarlo nuevamente.");
   } catch (error) {
     const message = /sponsor_deck|schema cache|PGRST204/i.test(String(error?.message || ""))
       ? "Falta ejecutar supabase-sponsor-deck-ai-mvp.sql antes de guardar el deck."
@@ -5261,7 +5257,7 @@ function renderAthleteProfile() {
         <label>${copy.locationLabel}<input name="location" required value="${escapeAttr(athlete.location || "")}"></label>
         <label>${copy.rankingLabel}<input name="ranking" value="${escapeAttr(athlete.ranking || "")}"></label>
         <label>Ticket mensual objetivo<input name="monthly" type="number" min="0" value="${Number(athlete.monthly || 5000)}"></label>
-        <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" value="${Number(athlete.max_sponsors || 10)}"></label>
+        <label>M\u00e1ximo de patrocinadores<input name="max_sponsors" type="number" min="1" max="10" value="${Math.min(10, Number(athlete.max_sponsors || 10))}"></label>
         <label>Foto de perfil<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <label style="grid-column:1/-1">${copy.summaryLabel}<textarea name="stats" required placeholder="${escapeAttr(copy.summaryPlaceholder)}">${escapeHtml(athlete.stats || "")}</textarea></label>
         <label style="grid-column:1/-1">${copy.videoLabel} opcional<input name="video_url" type="url" value="${escapeAttr(athlete.video_url || "")}" placeholder="YouTube, Vimeo, Drive o video publicado"></label>
@@ -7064,7 +7060,7 @@ async function persistProfileForm(form, options = {}) {
       ranking: value("ranking"),
       stats: value("stats"),
       monthly: Number(value("monthly") || (context.role === "founder" ? 2500 : 5000)),
-      max_sponsors: Number(value("max_sponsors") || 10),
+      max_sponsors: Math.min(10, Number(value("max_sponsors") || 10)),
       video_url: value("video_url"),
       instagram_url: value("instagram_url"),
       tiktok_url: value("tiktok_url"),
@@ -7513,7 +7509,7 @@ async function submitAdminAthlete(event) {
     annual: Number(form.annual.value || athleteAnnualFeeAmount),
     annual_fee_required: form.annual_fee_required.value === "true",
     monthly: Number(form.monthly.value || 5000),
-    max_sponsors: Number(form.max_sponsors.value || 10),
+    max_sponsors: Math.min(10, Number(form.max_sponsors.value || 10)),
     scout_code: makeScoutCode(form.name.value, ""),
     scout_active: false,
     invited_by_scout_code: "",
@@ -8500,7 +8496,7 @@ async function uploadProfileAsset(file, kind, context = getCurrentProfileContext
   if (!context?.profileId || !context?.table) throw new Error("No encontramos el registro real del perfil.");
   validateProfileAsset(file, kind);
   const preparedFile = await resizeProfileImage(file);
-  const folder = kind === "sponsor" ? "sponsors" : "avatar";
+  const folder = kind === "sponsor" ? "sponsors" : kind === "deck" ? "sponsor-deck" : "avatar";
   const filename = `${crypto.randomUUID()}-${sanitizedStorageFilename(preparedFile.name)}`;
   const path = `${context.table}/${context.profileId}/${folder}/${filename}`;
   const response = await withTimeout(fetch(`${config.supabaseUrl}/storage/v1/object/${profileMediaBucket}/${path}`, {
