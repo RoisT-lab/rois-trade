@@ -2,6 +2,12 @@
 
 Aplicacion web estatica conectada a Supabase para empresas, athletes, creadores y administracion. La compatibilidad tecnica de creadores conserva el role `founder` y la tabla `founders`.
 
+## Control ejecutivo Admin
+
+Admin abre en `Control`, una radiografia del negocio organizada por adquisicion, activacion, propagacion Scout, demanda comercial, monetizacion y alertas operativas. Las vistas detalladas existentes siguen disponibles y el control enlaza directamente a cada cola de trabajo.
+
+Ejecuta una vez `supabase-admin-growth-control.sql` en Supabase SQL Editor. La migracion agrega indices y la funcion de solo lectura `admin_growth_snapshot()`, protegida para cuentas con role `admin`. La funcion calcula metricas globales en PostgreSQL y devuelve un solo objeto, evitando descargar miles de filas para construir indicadores. Si aun no se ha ejecutado, la interfaz usa temporalmente los registros paginados cargados en el navegador y lo identifica como vista parcial.
+
 ## Sponsor Deck ROIS y ROIS IA
 
 Athletes y creadores cuentan con un constructor de Sponsor Deck dentro de su dashboard. El deck guarda narrativa, audiencia, evidencia, afinidad con marcas, entregables, beneficios y puntuacion de completitud en su registro real. Las empresas pueden abrirlo desde Mercado de fichajes, Creadores o el perfil completo.

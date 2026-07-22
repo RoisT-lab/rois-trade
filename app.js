@@ -38,6 +38,9 @@ const dashboardPanelLoads = new Map();
 const dashboardPanelPromises = new Map();
 const dashboardPanelPageSizes = { client: 24, admin: 75 };
 const dashboardPanelFreshnessMs = 30000;
+let adminGrowthSnapshot = null;
+let adminGrowthSnapshotPromise = null;
+let adminGrowthSnapshotLoadedAt = 0;
 
 const companyPlanCatalog = {
   free: {
@@ -462,6 +465,9 @@ function mergePageRecords(table, records = []) {
 function resetDashboardPanelState() {
   dashboardPanelLoads.clear();
   dashboardPanelPromises.clear();
+  adminGrowthSnapshot = null;
+  adminGrowthSnapshotPromise = null;
+  adminGrowthSnapshotLoadedAt = 0;
 }
 
 function markBootstrapPanelLoaded(role, data = {}) {
@@ -582,6 +588,19 @@ function dashboardPanelPageSize(targetId) {
 }
 
 async function ensureDashboardPanelData(targetId, options = {}) {
+  if (targetId === "admin-control") {
+    await loadAdminGrowthSnapshot({ force: options.refresh === true });
+    dashboardPanelLoads.set(targetId, {
+      loaded: true,
+      loading: false,
+      offset: 0,
+      hasMore: false,
+      lastLoadedAt: Date.now()
+    });
+    renderAdminKpis();
+    if (document.querySelector('[data-dashboard-panel="admin-control"]')?.classList.contains("active")) renderAdminControl();
+    return true;
+  }
   const queries = dashboardPanelQueries(targetId);
   if (!queries.length || !api.loadTablePage) return false;
   const existing = dashboardPanelLoads.get(targetId) || {
@@ -602,6 +621,9 @@ async function ensureDashboardPanelData(targetId, options = {}) {
   dashboardPanelLoads.set(targetId, status);
   decoratePanelPagination(targetId);
   const promise = (async () => {
+    const snapshotPromise = targetId === "admin-control"
+      ? loadAdminGrowthSnapshot({ force: refresh })
+      : Promise.resolve(null);
     const pages = await Promise.all(queries.map(async spec => {
       try {
         const rows = await api.loadTablePage(spec.table, spec.query, { offset, limit: pageSize });
@@ -611,6 +633,7 @@ async function ensureDashboardPanelData(targetId, options = {}) {
         return { table: spec.table, rows: [] };
       }
     }));
+    await snapshotPromise;
     pages.forEach(({ table, rows }) => mergePageRecords(table, rows));
     const hasMore = pages.some(({ rows }) => rows.length === pageSize);
     dashboardPanelLoads.set(targetId, {
@@ -1363,6 +1386,9 @@ function demoApi() {
       const limit = Math.max(1, Number(options.limit || 50));
       return rows.slice(offset, offset + limit);
     },
+    async loadAdminGrowthSnapshot() {
+      return adminGrowthSnapshotFromState();
+    },
     async validateScoutCode(code) {
       const data = read();
       const normalized = scoutCodeKey(code);
@@ -1589,6 +1615,13 @@ function supabaseApi() {
       const separator = query ? "&" : "";
       return request(`/rest/v1/${table}?${query}${separator}offset=${offset}&limit=${limit}`, {
         headers: headers(options.token)
+      });
+    },
+    async loadAdminGrowthSnapshot() {
+      return request("/rest/v1/rpc/admin_growth_snapshot", {
+        method: "POST",
+        headers: headers(),
+        body: "{}"
       });
     },
     async loadPublicData() {
@@ -5443,14 +5476,215 @@ function renderAthleteReels() {
   document.getElementById("athletePostForm").addEventListener("submit", submitAthletePost);
 }
 
+function recordWithinDays(record, days) {
+  const createdAt = new Date(record?.created_at || 0).getTime();
+  return createdAt > 0 && createdAt >= Date.now() - (days * 86400000);
+}
+
+function growthRate(numerator, denominator) {
+  return denominator > 0 ? Math.round((Number(numerator || 0) / denominator) * 100) : 0;
+}
+
+function adminGrowthSnapshotFromState() {
+  const data = normalizeLoadedData(state.data || {});
+  const talent = [...data.athletes, ...data.founders];
+  const profiles = data.profiles || [];
+  const companies = data.companies || [];
+  const publicAthletes = data.athletes.filter(item => item.status === "approved" && item.visual_status === "approved");
+  const publicCreators = data.founders.filter(item => item.status === "approved" && item.visual_status === "approved");
+  const publicTalent = [...publicAthletes, ...publicCreators];
+  const deckReady = publicTalent.filter(profile => sponsorDeckIsReady(profile));
+  const referrals = talent.filter(item => String(item.invited_by_scout_code || "").trim());
+  const validatedReferrals = referrals.filter(item =>
+    ["validated", "approved", "paid"].includes(String(item.scout_validation_status || item.scout_commission_status || "").toLowerCase())
+  );
+  const activeSubscriptions = data.company_subscriptions.filter(item =>
+    ["active", "trialing"].includes(String(item.status || "").toLowerCase())
+  );
+  const income = incomePayments(data.payments || []);
+  const activeSponsorships = data.sponsorships.filter(item =>
+    !["rejected", "deleted", "cancelled"].includes(String(item.status || "").toLowerCase())
+  );
+  const pendingVisualTalent = talent.filter(item =>
+    item.status === "pending" || item.visual_status === "pending_review"
+  ).length;
+  return {
+    generatedAt: new Date().toISOString(),
+    exact: false,
+    totalProfiles: profiles.length,
+    totalCompanies: companies.length,
+    totalAthletes: data.athletes.length,
+    totalCreators: data.founders.length,
+    registrations24h: profiles.filter(item => recordWithinDays(item, 1)).length,
+    registrations7d: profiles.filter(item => recordWithinDays(item, 7)).length,
+    registrations30d: profiles.filter(item => recordWithinDays(item, 30)).length,
+    talent7d: talent.filter(item => recordWithinDays(item, 7)).length,
+    companies7d: companies.filter(item => recordWithinDays(item, 7)).length,
+    publicAthletes: publicAthletes.length,
+    publicCreators: publicCreators.length,
+    deckReady: deckReady.length,
+    activeScouts: talent.filter(item => item.scout_active === true).length,
+    referrals: referrals.length,
+    validatedReferrals: validatedReferrals.length,
+    activeSponsorships: activeSponsorships.length,
+    sponsorshipPipelineValue: activeSponsorships.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    listingsLive: data.company_listings.filter(item => item.status === "approved" && item.visual_status === "approved").length,
+    marketplaceLeads: data.marketplace_leads.length,
+    closedLeads: data.marketplace_leads.filter(item => item.status === "closed").length,
+    pendingEvents: data.events.filter(item => item.status === "pending" || item.visual_status === "pending_review").length,
+    activePro: activeSubscriptions.filter(item => item.plan === "pro").length,
+    activeBusiness: activeSubscriptions.filter(item => item.plan === "business").length,
+    paidRevenue: income.filter(item => item.status === "paid").reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    pendingRevenue: income.filter(item => item.status !== "paid").reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    pendingProfiles: profiles.filter(item => item.status === "pending").length + companies.filter(item => item.status === "pending").length,
+    pendingVisualTalent,
+    pendingListings: data.company_listings.filter(item => item.status === "pending" || item.visual_status === "pending_review").length,
+    sponsorReviews: data.sponsorships.filter(item => item.status === "review").length,
+    planRequests: data.requests.filter(item => item.type === "Plan empresarial" && item.status !== "closed").length,
+    profileAlerts: profileDiagnostics().length
+  };
+}
+
+async function loadAdminGrowthSnapshot(options = {}) {
+  if (!options.force && adminGrowthSnapshot && Date.now() - adminGrowthSnapshotLoadedAt < dashboardPanelFreshnessMs) return adminGrowthSnapshot;
+  if (adminGrowthSnapshotPromise) return adminGrowthSnapshotPromise;
+  adminGrowthSnapshotPromise = (async () => {
+    try {
+      const snapshot = api.loadAdminGrowthSnapshot
+        ? await api.loadAdminGrowthSnapshot()
+        : null;
+      adminGrowthSnapshot = snapshot && typeof snapshot === "object"
+        ? { ...snapshot, exact: snapshot.exact !== false }
+        : adminGrowthSnapshotFromState();
+    } catch (error) {
+      console.warn("[ROIS admin control] Usa el fallback local hasta ejecutar supabase-admin-growth-control.sql", humanError(error));
+      adminGrowthSnapshot = adminGrowthSnapshotFromState();
+    } finally {
+      adminGrowthSnapshotLoadedAt = Date.now();
+      adminGrowthSnapshotPromise = null;
+    }
+    return adminGrowthSnapshot;
+  })();
+  return adminGrowthSnapshotPromise;
+}
+
+function adminControlMetric(label, value, note = "") {
+  return `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong>${note ? `<small>${escapeHtml(note)}</small>` : ""}</div>`;
+}
+
+function adminControlSignal(label, value, target, targetPanel, inverse = false) {
+  const numeric = Number(value || 0);
+  const healthy = inverse ? numeric <= target : numeric >= target;
+  const warning = inverse ? numeric <= target * 2 : numeric >= target * 0.5;
+  const status = healthy ? "estable" : warning ? "atencion" : "critico";
+  return `
+    <article class="admin-control-signal ${status}">
+      <div><p class="eyebrow">${escapeHtml(status)}</p><h4>${escapeHtml(label)}</h4></div>
+      <strong>${escapeHtml(String(value))}</strong>
+      ${button("Abrir", () => showDashboardPanel(targetPanel))}
+    </article>
+  `;
+}
+
+function renderAdminControl() {
+  const snapshot = adminGrowthSnapshot || adminGrowthSnapshotFromState();
+  const totalTalent = Number(snapshot.totalAthletes || 0) + Number(snapshot.totalCreators || 0);
+  const publicTalent = Number(snapshot.publicAthletes || 0) + Number(snapshot.publicCreators || 0);
+  const demand = Number(snapshot.activeSponsorships || 0) + Number(snapshot.marketplaceLeads || 0);
+  const deckCoverage = growthRate(snapshot.deckReady, publicTalent);
+  const referralShare = growthRate(snapshot.referrals, totalTalent);
+  const leadCloseRate = growthRate(snapshot.closedLeads, snapshot.marketplaceLeads);
+  const ecosystem = Number(snapshot.totalCompanies || 0) + totalTalent;
+  const northStar = Math.min(Number(snapshot.deckReady || 0), Math.max(demand, 0));
+  const sourceNote = snapshot.exact ? "Metrica global del servidor" : "Vista parcial; instala el SQL de control para precision global";
+
+  panel("admin-control", "Control ROIS", "Radiografia ejecutiva y crecimiento", `
+    <div class="panel-body admin-control-hero">
+      <div>
+        <p class="eyebrow">North Star</p>
+        <h2>${northStar} perfiles comercialmente conectables</h2>
+        <p>Perfiles publicos con Sponsor Deck listo frente a demanda activa de empresas. ${escapeHtml(sourceNote)}.</p>
+      </div>
+      <div class="admin-control-hero-actions">
+        ${button("Actualizar control", async () => {
+          adminGrowthSnapshot = null;
+          await loadAdminGrowthSnapshot({ force: true });
+          renderAdminKpis();
+          renderAdminControl();
+        })}
+        ${button("Revisar alertas", () => showDashboardPanel("admin-stats"))}
+      </div>
+    </div>
+
+    <div class="panel-body">
+      <div class="section-minihead"><p class="eyebrow">Pulso del negocio</p><h3>Lo que esta creciendo y lo que ya monetiza.</h3></div>
+      <div class="scout-metrics admin-control-metrics">
+        ${adminControlMetric("Registros 7 dias", snapshot.registrations7d, `${snapshot.registrations24h || 0} en 24 horas`)}
+        ${adminControlMetric("Ecosistema", ecosystem, `${snapshot.totalCompanies || 0} empresas · ${totalTalent} talentos`)}
+        ${adminControlMetric("Perfiles publicos", publicTalent, `${snapshot.publicAthletes || 0} athletes · ${snapshot.publicCreators || 0} creadores`)}
+        ${adminControlMetric("Decks listos", snapshot.deckReady, `${deckCoverage}% de cobertura`)}
+        ${adminControlMetric("Referidos", snapshot.referrals, `${referralShare}% del talento`)}
+        ${adminControlMetric("Demanda activa", demand, `${leadCloseRate}% de leads cerrados`)}
+        ${adminControlMetric("Pipeline sponsor", money(snapshot.sponsorshipPipelineValue), `${snapshot.activeSponsorships || 0} oportunidades`)}
+        ${adminControlMetric("Ingreso pagado", money(snapshot.paidRevenue), `${money(snapshot.pendingRevenue)} pendiente`)}
+      </div>
+    </div>
+
+    <div class="panel-body admin-control-funnels">
+      <article class="admin-control-funnel">
+        <p class="eyebrow">1 · Adquisicion</p><h3>${snapshot.registrations30d || 0} registros en 30 dias</h3>
+        <dl><div><dt>Ultimas 24 h</dt><dd>${snapshot.registrations24h || 0}</dd></div><div><dt>Ultimos 7 dias</dt><dd>${snapshot.registrations7d || 0}</dd></div><div><dt>Talento nuevo 7d</dt><dd>${snapshot.talent7d || 0}</dd></div><div><dt>Empresas nuevas 7d</dt><dd>${snapshot.companies7d || 0}</dd></div></dl>
+        ${button("Gestionar usuarios", () => showDashboardPanel("admin-users"))}
+      </article>
+      <article class="admin-control-funnel">
+        <p class="eyebrow">2 · Activacion</p><h3>${deckCoverage}% con activo comercial</h3>
+        <dl><div><dt>Athletes publicos</dt><dd>${snapshot.publicAthletes || 0}</dd></div><div><dt>Creadores publicos</dt><dd>${snapshot.publicCreators || 0}</dd></div><div><dt>Sponsor Deck listo</dt><dd>${snapshot.deckReady || 0}</dd></div><div><dt>Revision pendiente</dt><dd>${snapshot.pendingVisualTalent || 0}</dd></div></dl>
+        ${button("Revisar talento", () => showDashboardPanel("admin-athletes"))}
+      </article>
+      <article class="admin-control-funnel">
+        <p class="eyebrow">3 · Propagacion</p><h3>${snapshot.referrals || 0} altas por red Scout</h3>
+        <dl><div><dt>Scouts activos</dt><dd>${snapshot.activeScouts || 0}</dd></div><div><dt>Referidos</dt><dd>${snapshot.referrals || 0}</dd></div><div><dt>Validados</dt><dd>${snapshot.validatedReferrals || 0}</dd></div><div><dt>Participacion</dt><dd>${referralShare}%</dd></div></dl>
+        ${button("Ver red Scout", () => showDashboardPanel("admin-athletes"))}
+      </article>
+      <article class="admin-control-funnel">
+        <p class="eyebrow">4 · Comercial</p><h3>${demand} señales de demanda</h3>
+        <dl><div><dt>Patrocinios</dt><dd>${snapshot.activeSponsorships || 0}</dd></div><div><dt>Inventario live</dt><dd>${snapshot.listingsLive || 0}</dd></div><div><dt>Leads corporativos</dt><dd>${snapshot.marketplaceLeads || 0}</dd></div><div><dt>PRO / Business</dt><dd>${Number(snapshot.activePro || 0) + Number(snapshot.activeBusiness || 0)}</dd></div></dl>
+        ${button("Abrir mercado", () => showDashboardPanel("admin-corporate-market"))}
+      </article>
+    </div>
+
+    <div class="panel-body">
+      <div class="section-minihead"><p class="eyebrow">Cola ejecutiva</p><h3>Acciones que frenan crecimiento o ingreso.</h3><p>Prioriza de izquierda a derecha: acceso, publicacion, demanda y salud de datos.</p></div>
+      <div class="admin-control-signals">
+        ${adminControlSignal("Cuentas pendientes", snapshot.pendingProfiles || 0, 0, "admin-users", true)}
+        ${adminControlSignal("Talento por revisar", snapshot.pendingVisualTalent || 0, 0, "admin-athletes", true)}
+        ${adminControlSignal("Eventos pendientes", snapshot.pendingEvents || 0, 0, "admin-events", true)}
+        ${adminControlSignal("Inventario pendiente", snapshot.pendingListings || 0, 0, "admin-corporate-market", true)}
+        ${adminControlSignal("Sponsors en revision", snapshot.sponsorReviews || 0, 0, "admin-payments", true)}
+        ${adminControlSignal("Solicitudes de plan", snapshot.planRequests || 0, 0, "admin-corporate-market", true)}
+        ${adminControlSignal("Alertas de datos", snapshot.profileAlerts || 0, 0, "admin-stats", true)}
+      </div>
+    </div>
+  `);
+}
+
 function renderAdmin() {
   renderAdminKpis();
-  const activePanel = document.querySelector('[data-dashboard="admin"] [data-dashboard-panel].active')?.dataset.dashboardPanel || "admin-users";
+  const activePanel = document.querySelector('[data-dashboard="admin"] [data-dashboard-panel].active')?.dataset.dashboardPanel || "admin-control";
   renderAdminPanel(activePanel);
+  if (activePanel === "admin-control" && !adminGrowthSnapshot && !adminGrowthSnapshotPromise) {
+    loadAdminGrowthSnapshot().then(() => {
+      if (activeDashboardPanelId("admin") === "admin-control") {
+        renderAdminKpis();
+        renderAdminControl();
+      }
+    });
+  }
 }
 
 function renderAdminPanel(targetId) {
   const map = {
+    "admin-control": renderAdminControl,
     "admin-users": renderAdminUsers,
     "admin-athletes": renderAdminAthletes,
     "admin-founders": renderAdminFounders,
@@ -5510,17 +5744,18 @@ const fixedExpenseConfig = [
 ];
 
 function renderAdminKpis() {
+  const snapshot = adminGrowthSnapshot;
   const usersStatus = dashboardPanelLoads.get("admin-users");
   const revenueStatus = dashboardPanelLoads.get("admin-revenue");
   const crmStatus = dashboardPanelLoads.get("admin-crm");
-  const pendingUsers = state.data.profiles.filter(item => item.status === "pending").length + state.data.companies.filter(item => item.status === "pending").length;
+  const pendingUsers = snapshot?.pendingProfiles ?? (state.data.profiles.filter(item => item.status === "pending").length + state.data.companies.filter(item => item.status === "pending").length);
   const paymentRecords = incomePayments(state.data.payments || []);
   const paid = paymentRecords.filter(item => item.status === "paid").reduce((sum, item) => sum + Number(item.amount), 0);
   const pendingRevenue = paymentRecords.filter(item => item.status !== "paid").reduce((sum, item) => sum + Number(item.amount), 0);
   const taxSummary = revenueTaxSummary(paymentRecords);
-  const athletes = adminAthleteRecords().length;
-  const founders = adminFounderRecords().length;
-  const companies = state.data.companies.length;
+  const athletes = snapshot?.totalAthletes ?? adminAthleteRecords().length;
+  const founders = snapshot?.totalCreators ?? adminFounderRecords().length;
+  const companies = snapshot?.totalCompanies ?? state.data.companies.length;
   const listValue = (status, value, label) => !status?.loaded
     ? `Abrir ${label}`
     : status.hasMore ? `${value}+` : value;
@@ -5528,13 +5763,13 @@ function renderAdminKpis() {
     ? "Abrir Ingresos"
     : value;
   document.getElementById("adminKpis").innerHTML = [
-    ["Pendientes", listValue(usersStatus, pendingUsers, "Usuarios")],
-    ["Empresas", listValue(usersStatus, companies, "Usuarios")],
-    ["Deportistas", listValue(usersStatus, athletes, "Usuarios")],
-    ["Creadores", listValue(usersStatus, founders, "Usuarios")],
-    ["Pagos", moneyValue(revenueStatus, `$${paid.toLocaleString("es-MX")}`)],
-    ["Pendiente", moneyValue(revenueStatus, `$${pendingRevenue.toLocaleString("es-MX")}`)],
-    ["Neto estimado", moneyValue(revenueStatus, money(taxSummary.estimatedNetIncome))],
+    ["Pendientes", snapshot ? pendingUsers : listValue(usersStatus, pendingUsers, "Usuarios")],
+    ["Empresas", snapshot ? companies : listValue(usersStatus, companies, "Usuarios")],
+    ["Deportistas", snapshot ? athletes : listValue(usersStatus, athletes, "Usuarios")],
+    ["Creadores", snapshot ? founders : listValue(usersStatus, founders, "Usuarios")],
+    ["Pagos", snapshot ? money(snapshot.paidRevenue) : moneyValue(revenueStatus, `$${paid.toLocaleString("es-MX")}`)],
+    ["Pendiente", snapshot ? money(snapshot.pendingRevenue) : moneyValue(revenueStatus, `$${pendingRevenue.toLocaleString("es-MX")}`)],
+    [snapshot ? "Pipeline" : "Neto estimado", snapshot ? money(snapshot.sponsorshipPipelineValue) : moneyValue(revenueStatus, money(taxSummary.estimatedNetIncome))],
     ["CRM", listValue(crmStatus, state.data.crm.length, "CRM")]
   ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
