@@ -17,6 +17,7 @@ const companyMediaBucket = "company-media";
 const operationTimeoutMs = 15000;
 const profileImageFallback = "./assets/rois-logo.png";
 const runtimeCacheRowsPerTable = 120;
+const sponsorDeckFunctionName = "generate-sponsor-deck";
 
 const state = {
   session: readSession(),
@@ -481,8 +482,8 @@ function activeDashboardPanelId(view = dashboardViewForRole(state.session?.role)
 }
 
 function dashboardPanelQueries(targetId) {
-  const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,created_at";
-  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at";
+  const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,created_at";
+  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,proposal_url,proposal_name,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at";
   const companyName = currentCompany()?.name || state.session?.name || "";
   const companyId = currentCompany()?.id || "";
   const encodedCompany = encodeURIComponent(companyName);
@@ -1592,8 +1593,8 @@ function supabaseApi() {
     async loadPublicData() {
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const publicQueries = {
-        athletes: "select=id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=24",
-        founders: "select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,proposal_url,proposal_name,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=24",
+        athletes: "select=id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,proposal_name,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=24",
+        founders: "select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,proposal_url,proposal_name,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=24",
         events: "select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status&status=eq.approved&order=created_at.desc&limit=24",
         news: "select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=12",
         partnerships: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&order=created_at.desc&limit=24",
@@ -1619,8 +1620,8 @@ function supabaseApi() {
       const tableQueries = {
         profiles: `select=id,email,role,name,status,must_change_password,created_at&order=created_at.desc&limit=${mainLimit}`,
         companies: `select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc&limit=${mainLimit}`,
-        athletes: `select=id,profile_id,email,contact,name,sport,stats,monthly,annual,category,location,ranking,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,image_url,image_path,visual_status,visual_notes,terms_accepted,scout_code,scout_active,scout_terms_accepted,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,max_sponsors,proposal_url,proposal_path,proposal_name,sponsor_payment_url,sponsor_terms,sponsor_logos,birth_date,age_status,guardian_name,guardian_email,guardian_phone,guardian_relationship,guardian_consent,status,created_at&order=created_at.desc&limit=${mainLimit}`,
-        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
+        athletes: `select=id,profile_id,email,contact,name,sport,stats,monthly,annual,category,location,ranking,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,image_url,image_path,visual_status,visual_notes,terms_accepted,scout_code,scout_active,scout_terms_accepted,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,max_sponsors,proposal_url,proposal_path,proposal_name,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,sponsor_payment_url,sponsor_terms,sponsor_logos,birth_date,age_status,guardian_name,guardian_email,guardian_phone,guardian_relationship,guardian_consent,status,created_at&order=created_at.desc&limit=${mainLimit}`,
+        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,image_url,image_path,proposal_url,proposal_path,proposal_name,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
         events: `select=id,company_id,profile_id,name,category,venue,date,image_url,image_path,brochure_url,brochure_name,event_scope,sponsor_levels,success_fee_level,success_fee_rate,visual_status,visual_notes,status,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
         requests: `select=id,type,title,owner,details,priority,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         sponsorships: `select=id,athlete,athlete_email,amount,company,details,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
@@ -1670,8 +1671,8 @@ function supabaseApi() {
         return normalizeLoadedData(result);
       }
       const profileQuery = `/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`;
-      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
-      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at";
+      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
+      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,image_path,proposal_url,proposal_path,proposal_name,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at";
       const ownProfile = roleRequest(profileQuery);
       if (role === "athlete") {
         const [profiles, ownAthletes, terms, notifications, posts, results] = await Promise.all([
@@ -1770,10 +1771,10 @@ function supabaseApi() {
         request(`/rest/v1/companies?select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(auth.access_token)
         }),
-        request(`/rest/v1/athletes?select=id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        request(`/rest/v1/athletes?select=id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(auth.access_token)
         }),
-        request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,brand_categories,availability,monthly,max_sponsors,image_url,proposal_url,sponsor_payment_url,sponsor_terms,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,brand_categories,availability,monthly,max_sponsors,image_url,proposal_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,sponsor_payment_url,sponsor_terms,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(auth.access_token)
         }),
         request(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password&id=eq.${auth.user.id}&limit=1`, {
@@ -1821,7 +1822,7 @@ function supabaseApi() {
       if (profile.role === "founder" && !founders.length) {
         try {
           await this.ensureFounderAccount(auth, { name: profile.name });
-          founders = await request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,brand_categories,availability,monthly,max_sponsors,image_url,proposal_url,sponsor_payment_url,sponsor_terms,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          founders = await request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,brand_categories,availability,monthly,max_sponsors,image_url,proposal_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,sponsor_payment_url,sponsor_terms,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
             headers: headers(auth.access_token)
           });
         } catch (error) {
@@ -2620,6 +2621,16 @@ function handleDashboardDelegatedActions(event) {
     logout();
     return;
   }
+  const sponsorDeckProfileButton = event.target.closest("[data-sponsor-deck-profile]");
+  if (sponsorDeckProfileButton) {
+    openSponsorDeckById(sponsorDeckProfileButton.dataset.sponsorDeckProfile);
+    return;
+  }
+  const sponsorDeckPrintButton = event.target.closest("[data-sponsor-deck-print]");
+  if (sponsorDeckPrintButton) {
+    printSponsorDeckById(sponsorDeckPrintButton.dataset.sponsorDeckPrint);
+    return;
+  }
   const sponsorButton = event.target.closest("[data-athlete-sponsor]");
   if (sponsorButton) {
     const profileId = sponsorButton.dataset.athleteSponsor;
@@ -2904,6 +2915,7 @@ function closeModals() {
   document.querySelectorAll(".modal").forEach(modal => {
     modal.classList.remove("active");
     modal.classList.remove("profile-modal");
+    modal.classList.remove("sponsor-deck-modal");
   });
 }
 
@@ -2913,6 +2925,7 @@ function closeModalFromButton(event) {
   if (modal?.id === "actionModal" && registrationModal?.classList.contains("active")) {
     modal.classList.remove("active");
     modal.classList.remove("profile-modal");
+    modal.classList.remove("sponsor-deck-modal");
     return;
   }
   closeModals();
@@ -4254,6 +4267,7 @@ function marketProfileCard(profile, options = {}) {
           <p>${decisionCopy}</p>
           <div class="athlete-actions">
             <button class="btn" type="button" data-athlete-profile="${escapeAttr(profile.id)}">Ver perfil</button>
+            ${sponsorDeckButton(profile)}
             ${athleteSponsorCta(profile, founder ? "Solicitar colaboracion" : "Solicitar patrocinio")}
             ${athleteProposalLink(profile)}
             ${profileSocialLinksMarkup(profile)}
@@ -4440,6 +4454,7 @@ function renderAthletePanel(targetId) {
     "athlete-notifications": renderAthleteNotifications,
     "athlete-scouts": renderAthleteScouts,
     "athlete-results": renderAthleteResults,
+    "athlete-sponsor-deck": renderAthleteSponsorDeck,
     "athlete-settings": () => renderAccountSettings("athlete-settings")
   };
   if (map[targetId]) map[targetId]();
@@ -4708,6 +4723,361 @@ function verticalCopy(profile) {
   };
 }
 
+function sponsorDeckData(profile = {}) {
+  if (!profile?.sponsor_deck) return null;
+  if (typeof profile.sponsor_deck === "object") return profile.sponsor_deck;
+  try {
+    const parsed = JSON.parse(profile.sponsor_deck);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (error) {
+    console.warn("[ROIS sponsor deck] JSON invalido", { profileId: profile.id, error: error.message });
+    return null;
+  }
+}
+
+function sponsorDeckIsReady(profile = {}) {
+  return profile.sponsor_deck_status === "ready" || Boolean(sponsorDeckData(profile));
+}
+
+function sponsorDeckList(value = "") {
+  if (Array.isArray(value)) return value.map(item => String(item || "").trim()).filter(Boolean);
+  return String(value || "")
+    .split(/\r?\n|;/)
+    .map(item => item.replace(/^[-*]\s*/, "").trim())
+    .filter(Boolean);
+}
+
+function sponsorDeckFormPayload(form, profile, role) {
+  const value = name => String(form.elements.namedItem(name)?.value || "").trim();
+  return {
+    role,
+    profile: {
+      name: profile.public_name || profile.name || "Perfil ROIS",
+      primary: profile.sport || profile.industry || "Talento ROIS",
+      category: profile.category || profile.stage || "En desarrollo",
+      location: profile.location || profile.city || "Mexico",
+      ranking: profile.ranking || "",
+      stats: profile.stats || "",
+      audienceSize: Number(profile.audience_size || 0),
+      engagementRate: Number(profile.engagement_rate || 0),
+      contentCategories: profile.content_categories || "",
+      primaryPlatform: profile.primary_platform || "",
+      pastCollaborations: profile.past_collaborations || ""
+    },
+    answers: {
+      objective: value("objective"),
+      differentiator: value("differentiator"),
+      audience: value("audience"),
+      proof: value("proof"),
+      brandFit: value("brand_fit"),
+      deliverables: value("deliverables"),
+      packageEntry: Number(value("package_entry") || 0),
+      packageGrowth: Number(value("package_growth") || 0),
+      packageFlagship: Number(value("package_flagship") || 0),
+      contact: value("contact") || state.session?.email || "Contacto mediante ROIS"
+    }
+  };
+}
+
+function sponsorDeckQualityScore(payload, profile = {}) {
+  const answers = payload.answers || {};
+  const checks = [
+    [answers.objective, 10],
+    [answers.differentiator, 15],
+    [answers.audience, 15],
+    [answers.proof, 15],
+    [answers.brandFit, 10],
+    [answers.deliverables, 15],
+    [answers.packageEntry && answers.packageGrowth && answers.packageFlagship, 10],
+    [profile.image_url, 4],
+    [profileSocialLinks(profile).length, 3],
+    [profile.proposal_url || profile.video_url, 3]
+  ];
+  return checks.reduce((score, [value, points]) => score + (value ? points : 0), 0);
+}
+
+function localSponsorDeckDraft(payload) {
+  const { role, profile, answers } = payload;
+  const creator = role === "founder";
+  const packages = [
+    {
+      name: "Activacion inicial",
+      price: answers.packageEntry,
+      includes: sponsorDeckList(answers.deliverables).slice(0, 2)
+    },
+    {
+      name: "Crecimiento de marca",
+      price: answers.packageGrowth,
+      includes: sponsorDeckList(answers.deliverables).slice(0, 4)
+    },
+    {
+      name: "Alianza principal",
+      price: answers.packageFlagship,
+      includes: sponsorDeckList(answers.deliverables)
+    }
+  ];
+  return {
+    version: 1,
+    generatedBy: "rois-guided-engine",
+    headline: `${profile.name}: ${creator ? "audiencia y contenido" : "talento deportivo"} con valor para marcas`,
+    positioning: answers.differentiator,
+    story: profile.stats || answers.objective,
+    commercialObjective: answers.objective,
+    audience: answers.audience,
+    proofPoints: sponsorDeckList(answers.proof),
+    brandFit: sponsorDeckList(answers.brandFit),
+    deliverables: sponsorDeckList(answers.deliverables),
+    packages,
+    cta: `Solicita una conversacion comercial con ${profile.name} mediante ROIS. Contacto: ${answers.contact}`,
+    generatedAt: new Date().toISOString()
+  };
+}
+
+function normalizeSponsorDeck(deck, fallback) {
+  const source = deck && typeof deck === "object" ? deck : {};
+  return {
+    ...fallback,
+    ...source,
+    proofPoints: sponsorDeckList(source.proofPoints || fallback.proofPoints),
+    brandFit: sponsorDeckList(source.brandFit || fallback.brandFit),
+    deliverables: sponsorDeckList(source.deliverables || fallback.deliverables),
+    packages: Array.isArray(source.packages) && source.packages.length ? source.packages.slice(0, 3) : fallback.packages,
+    generatedAt: new Date().toISOString()
+  };
+}
+
+async function requestSponsorDeckAI(payload) {
+  if (demoMode || !config.supabaseUrl || !state.session?.token) throw new Error("IA remota no configurada");
+  const response = await withTimeout(fetch(`${config.supabaseUrl}/functions/v1/${sponsorDeckFunctionName}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: config.supabaseAnonKey,
+      Authorization: `Bearer ${state.session.token}`
+    },
+    body: JSON.stringify(payload)
+  }), operationTimeoutMs, "La IA esta tardando demasiado. Generaremos una version local.");
+  if (!response.ok) throw new Error(await response.text() || "La IA no respondio.");
+  const result = await response.json();
+  if (!result?.deck) throw new Error("La IA no devolvio un sponsor deck valido.");
+  return result.deck;
+}
+
+function sponsorDeckPackageMarkup(item = {}) {
+  return `
+    <article class="sponsor-deck-package">
+      <p class="eyebrow">${escapeHtml(item.name || "Paquete comercial")}</p>
+      <strong>${Number(item.price || 0) > 0 ? `$${Number(item.price).toLocaleString("es-MX")} MXN` : "A cotizar"}</strong>
+      <ul>${sponsorDeckList(item.includes).map(value => `<li>${escapeHtml(value)}</li>`).join("") || "<li>Alcance por definir con ROIS.</li>"}</ul>
+    </article>
+  `;
+}
+
+function sponsorDeckMarkup(profile, options = {}) {
+  const deck = sponsorDeckData(profile);
+  if (!deck) return `<div class="empty">Este perfil aun no ha generado su Sponsor Deck ROIS.</div>`;
+  const founder = isFounderProfile(profile);
+  const score = Number(profile.sponsor_deck_score || 0);
+  return `
+    <article class="sponsor-deck-preview ${options.compact ? "compact" : ""}">
+      <header class="sponsor-deck-cover">
+        <div class="sponsor-deck-portrait">${safeProfileImageMarkup(profile.image_url, profile.name || "Perfil ROIS")}</div>
+        <div>
+          <p class="eyebrow">Sponsor Deck ROIS · ${founder ? "Creador" : "Athlete"}</p>
+          <h2>${escapeHtml(deck.headline || profile.name || "Talento ROIS")}</h2>
+          <p>${escapeHtml(deck.positioning || profile.stats || "Propuesta comercial en desarrollo.")}</p>
+          <div class="row-meta"><span class="pill">${score}% completo</span><span class="pill">Hasta ${Number(profile.max_sponsors || 10)} sponsors</span></div>
+        </div>
+      </header>
+      <div class="sponsor-deck-section sponsor-deck-story">
+        <p class="eyebrow">Narrativa y objetivo</p>
+        <h3>${escapeHtml(deck.commercialObjective || "Construir una alianza medible con marcas.")}</h3>
+        <p>${escapeHtml(deck.story || profile.stats || "Historia profesional por documentar.")}</p>
+      </div>
+      <div class="sponsor-deck-columns">
+        <section><p class="eyebrow">Audiencia</p><p>${escapeHtml(deck.audience || "Audiencia por documentar.")}</p></section>
+        <section><p class="eyebrow">Evidencia</p><ul>${sponsorDeckList(deck.proofPoints).map(value => `<li>${escapeHtml(value)}</li>`).join("") || "<li>Resultados por documentar.</li>"}</ul></section>
+        <section><p class="eyebrow">Afinidad de marca</p><ul>${sponsorDeckList(deck.brandFit).map(value => `<li>${escapeHtml(value)}</li>`).join("") || "<li>Categorias por definir.</li>"}</ul></section>
+        <section><p class="eyebrow">Entregables</p><ul>${sponsorDeckList(deck.deliverables).map(value => `<li>${escapeHtml(value)}</li>`).join("") || "<li>Entregables por definir.</li>"}</ul></section>
+      </div>
+      <div class="sponsor-deck-packages">${(deck.packages || []).map(sponsorDeckPackageMarkup).join("")}</div>
+      <footer class="sponsor-deck-cta">
+        <div><p class="eyebrow">Siguiente paso</p><p>${escapeHtml(deck.cta || "Solicita una conversacion comercial mediante ROIS.")}</p></div>
+        ${options.hideActions ? "" : `<button class="btn" type="button" data-sponsor-deck-print="${escapeAttr(profile.id)}">Descargar / imprimir</button>`}
+      </footer>
+    </article>
+  `;
+}
+
+function sponsorDeckProfileById(profileId) {
+  const athlete = (state.data.athletes || []).find(item => item.id === profileId || item.profile_id === profileId);
+  if (athlete) return athlete;
+  const founder = (state.data.founders || []).find(item => item.id === profileId || item.profile_id === profileId);
+  return founder ? founderAsAthleteProfile(founder) : null;
+}
+
+async function loadSponsorDeckProfile(profileId) {
+  let profile = sponsorDeckProfileById(profileId);
+  if (!profile || sponsorDeckData(profile) || !sponsorDeckIsReady(profile) || !api.loadTablePage) return profile;
+
+  const founder = (state.data.founders || []).find(item => item.id === profileId || item.profile_id === profileId);
+  const table = founder ? "founders" : "athletes";
+  const columns = table === "founders"
+    ? "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,proposal_url,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status"
+    : "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,proposal_url,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status";
+
+  try {
+    const rows = await api.loadTablePage(table, `select=${columns}&id=eq.${encodeURIComponent(profileId)}`, {
+      limit: 1,
+      token: state.session?.token
+    });
+    const updated = rows?.[0];
+    if (!updated) return profile;
+    replaceRecordInState(table, updated);
+    profile = table === "founders" ? founderAsAthleteProfile(updated) : updated;
+    return profile;
+  } catch (error) {
+    console.warn("[ROIS sponsor deck] No fue posible cargar el deck", { profileId, error: error.message });
+    return profile;
+  }
+}
+
+async function openSponsorDeckById(profileId) {
+  const profile = await loadSponsorDeckProfile(profileId);
+  if (!profile || !sponsorDeckData(profile)) {
+    notify("Sponsor Deck ROIS", "Deck no disponible", "No fue posible cargar esta propuesta comercial. Intenta nuevamente.");
+    return;
+  }
+  openSponsorDeckView(profile);
+}
+
+async function printSponsorDeckById(profileId) {
+  const profile = await loadSponsorDeckProfile(profileId);
+  if (!profile || !sponsorDeckData(profile)) {
+    notify("Sponsor Deck ROIS", "Deck no disponible", "No fue posible preparar la descarga. Intenta nuevamente.");
+    return;
+  }
+  printSponsorDeck(profile);
+}
+
+function openSponsorDeckView(profile) {
+  if (!profile) return;
+  notify("Sponsor Deck ROIS", profile.name || "Perfil comercial", "", sponsorDeckMarkup(profile));
+  const modal = document.getElementById("actionModal");
+  modal.dataset.profileRecordId = String(profile.id || "");
+  modal.classList.add("profile-modal", "sponsor-deck-modal");
+}
+
+function printSponsorDeck(profile) {
+  const deck = sponsorDeckData(profile);
+  if (!deck) return;
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    notify("Sponsor Deck", "Ventana bloqueada", "Permite ventanas emergentes para descargar o imprimir el deck.");
+    return;
+  }
+  printWindow.opener = null;
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(profile.name || "Sponsor Deck ROIS")}</title><link rel="stylesheet" href="./styles.css?v=20260721-sponsor-deck-ai-mvp-v1"><style>body{padding:32px;background:#fff}.sponsor-deck-preview{max-width:980px;margin:auto}@media print{button{display:none!important}}</style></head><body>${sponsorDeckMarkup(profile, { hideActions: true })}<script>window.onload=()=>window.print()<\/script></body></html>`);
+  printWindow.document.close();
+}
+
+function sponsorDeckButton(profile, label = "Ver Sponsor Deck") {
+  return sponsorDeckIsReady(profile)
+    ? `<button class="btn" type="button" data-sponsor-deck-profile="${escapeAttr(profile.id)}">${label}</button>`
+    : "";
+}
+
+function renderAthleteSponsorDeck() {
+  const profile = currentAthlete();
+  if (!profile) {
+    panel("athlete-sponsor-deck", "Sponsor Deck IA", "Propuesta comercial estructurada", `<div class="empty">Completa primero tu perfil ROIS.</div>`);
+    return;
+  }
+  const founder = isFounderProfile(profile);
+  const deck = sponsorDeckData(profile);
+  const defaultProof = founder ? profile.past_collaborations || profile.ranking : profile.ranking;
+  const defaultAudience = founder
+    ? [profile.audience_size ? `${Number(profile.audience_size).toLocaleString("es-MX")} personas` : "", profile.engagement_rate ? `${profile.engagement_rate}% engagement` : "", profile.audience_location || ""].filter(Boolean).join(" · ")
+    : `Audiencia interesada en ${profile.sport || "deporte"}, rendimiento, estilo de vida y comunidad en ${profile.location || "Mexico"}.`;
+  panel("athlete-sponsor-deck", "Sponsor Deck IA", founder ? "Convierte audiencia y contenido en una propuesta clara para marcas" : "Convierte trayectoria y resultados en una propuesta clara para sponsors", `
+    <div class="panel-body sponsor-deck-builder">
+      <div class="section-minihead">
+        <p class="eyebrow">Asistente comercial ROIS</p>
+        <h3>Construye un deck que una empresa pueda evaluar en minutos.</h3>
+        <p>La IA organiza tu narrativa, evidencia, audiencia, entregables y tres niveles de colaboracion. Revisa siempre el resultado antes de compartirlo.</p>
+      </div>
+      <div class="sponsor-deck-progress">
+        <div><span>Completitud actual</span><strong>${Number(profile.sponsor_deck_score || 0)}%</strong></div>
+        <div><span>Estado</span><strong>${deck ? "Listo para revisar" : "Borrador pendiente"}</strong></div>
+        <div><span>Capacidad</span><strong>${Number(profile.max_sponsors || 10)} sponsors / mes</strong></div>
+      </div>
+      ${deck ? sponsorDeckMarkup(profile) : ""}
+      <form id="sponsorDeckForm" class="form-grid sponsor-deck-form">
+        <label style="grid-column:1/-1">Objetivo comercial<textarea name="objective" required placeholder="Que quieres lograr con una marca en los proximos 6 a 12 meses.">${escapeHtml(deck?.commercialObjective || "")}</textarea></label>
+        <label style="grid-column:1/-1">Por que eres diferente<textarea name="differentiator" required placeholder="Tu historia, ventaja, comunidad, disciplina, estilo o posicionamiento unico.">${escapeHtml(deck?.positioning || profile.stats || "")}</textarea></label>
+        <label style="grid-column:1/-1">Audiencia y comunidad<textarea name="audience" required placeholder="Quienes te siguen, ubicacion, intereses y datos relevantes.">${escapeHtml(deck?.audience || defaultAudience)}</textarea></label>
+        <label style="grid-column:1/-1">Evidencia y resultados<textarea name="proof" required placeholder="Un resultado por linea: ranking, alcance, engagement, conversion, aparicion o logro.">${escapeHtml(sponsorDeckList(deck?.proofPoints || defaultProof).join("\n"))}</textarea></label>
+        <label style="grid-column:1/-1">Marcas y categorias compatibles<textarea name="brand_fit" required placeholder="Deporte; bienestar; tecnologia; moda; movilidad; hospitalidad...">${escapeHtml(sponsorDeckList(deck?.brandFit || profile.brand_categories).join("\n"))}</textarea></label>
+        <label style="grid-column:1/-1">Entregables disponibles<textarea name="deliverables" required placeholder="Un entregable por linea: publicaciones, reels, presencia, contenido, licencias, clinicas...">${escapeHtml(sponsorDeckList(deck?.deliverables || profile.deliverables).join("\n"))}</textarea></label>
+        <label>Activacion inicial MXN<input name="package_entry" type="number" min="0" step="500" required value="${Number(deck?.packages?.[0]?.price || profile.monthly || 5000)}"></label>
+        <label>Crecimiento de marca MXN<input name="package_growth" type="number" min="0" step="500" required value="${Number(deck?.packages?.[1]?.price || (Number(profile.monthly || 5000) * 2))}"></label>
+        <label>Alianza principal MXN<input name="package_flagship" type="number" min="0" step="500" required value="${Number(deck?.packages?.[2]?.price || (Number(profile.monthly || 5000) * 4))}"></label>
+        <label>Contacto comercial<input name="contact" required value="${escapeAttr(state.session?.email || profile.email || "")}"></label>
+        <p class="hint" style="grid-column:1/-1">El motor intenta usar la funcion segura de IA en Supabase. Si no esta desplegada, genera inmediatamente una version estructurada con el asistente local ROIS; ninguna clave privada se expone en el navegador.</p>
+        <button class="btn primary" type="submit">${deck ? "Mejorar y regenerar deck" : "Generar Sponsor Deck"}</button>
+      </form>
+    </div>
+  `);
+  document.getElementById("sponsorDeckForm")?.addEventListener("submit", submitSponsorDeck);
+}
+
+async function submitSponsorDeck(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const context = getCurrentProfileContext();
+  const profile = currentAthlete();
+  if (!context || !profile) return;
+  const invalid = [...form.querySelectorAll("[required]")].find(field => !String(field.value || "").trim());
+  if (invalid) {
+    invalid.focus();
+    notify("Sponsor Deck", "Falta informacion", "Completa todos los campos requeridos antes de generar el deck.");
+    return;
+  }
+  setSavingState(form, true);
+  const payload = sponsorDeckFormPayload(form, profile, context.role);
+  const fallback = localSponsorDeckDraft(payload);
+  let generated = fallback;
+  let remoteAI = false;
+  try {
+    generated = normalizeSponsorDeck(await requestSponsorDeckAI(payload), fallback);
+    generated.generatedBy = "openai-secure-function";
+    remoteAI = true;
+  } catch (error) {
+    console.info("[ROIS sponsor deck] IA remota no disponible; se uso el generador local", humanError(error));
+  }
+  try {
+    const score = sponsorDeckQualityScore(payload, profile);
+    const updated = await saveProfileRecord({
+      sponsor_deck: generated,
+      sponsor_deck_status: "ready",
+      sponsor_deck_score: score,
+      sponsor_deck_updated_at: new Date().toISOString()
+    }, context);
+    refreshProfileViews(context.role, updated);
+    renderAthleteSponsorDeck();
+    notify("Sponsor Deck", "Deck generado", remoteAI
+      ? "La IA estructuro y guardo tu propuesta. Revisala antes de compartirla con empresas."
+      : "El asistente ROIS genero y guardo tu propuesta. La IA remota podra mejorarla cuando despliegues la funcion segura.");
+  } catch (error) {
+    const message = /sponsor_deck|schema cache|PGRST204/i.test(String(error?.message || ""))
+      ? "Falta ejecutar supabase-sponsor-deck-ai-mvp.sql antes de guardar el deck."
+      : humanError(error);
+    notify("Sponsor Deck", "No fue posible guardar", message);
+  } finally {
+    setSavingState(form, false);
+  }
+}
+
 function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), options = {}) {
   const readOnly = Boolean(options.readOnly);
   const companyView = Boolean(options.companyView);
@@ -4759,6 +5129,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
           <div class="athlete-social-actions">
             ${readOnly ? `
               ${athleteSponsorCta(athlete, "Solicitar fichaje")}
+              ${sponsorDeckButton(athlete)}
               ${athleteProposalLink(athlete)}
               ${profileSocialLinksMarkup(athlete)}
             ` : `
@@ -4770,6 +5141,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
               }
             })}
             ${athlete.proposal_url ? athleteProposalLink(athlete) : `<span class="pill">Propuesta pendiente</span>`}
+            ${sponsorDeckIsReady(athlete) ? sponsorDeckButton(athlete, "Ver Sponsor Deck") : `<button class="btn" type="button" data-dashboard-shortcut="athlete-sponsor-deck">Crear Sponsor Deck con IA</button>`}
             ${athlete.video_url ? `<a class="btn" href="${escapeAttr(athlete.video_url)}" target="_blank" rel="noopener">${videoCtaLabel}</a>` : `<span class="pill">${videoPendingLabel}</span>`}
             `}
           </div>
@@ -5488,6 +5860,7 @@ function athleteAdminActions(athlete) {
   const actions = [
     button(athleteAnnualFeeRequired(athlete) ? "Ocultar anualidad" : "Solicitar anualidad", () => toggleAthleteAnnualFee(athlete))
   ];
+  if (sponsorDeckIsReady(athlete)) actions.push(button("Ver Sponsor Deck", () => openSponsorDeckById(athlete.id)));
   if (!athleteAnnualFeePaid(athlete)) actions.push(button("Marcar pago anual", () => markAthleteAnnualPaid(athlete)));
   if (!athlete.scout_active) actions.push(button("Activar scout", () => activateScoutNetwork(athlete)));
   if (athlete.invited_by_scout_code && athlete.scout_commission_status !== "approved") actions.push(button("Validar scout", () => validateScoutCommission(athlete)));
@@ -5508,6 +5881,7 @@ function founderAdminStatus(founder) {
 
 function founderAdminActions(founder) {
   const actions = [];
+  if (sponsorDeckIsReady(founder)) actions.push(button("Ver Sponsor Deck", () => openSponsorDeckById(founder.id)));
   if (founder.invited_by_scout_code && founder.scout_commission_status !== "approved") {
     actions.push(button("Validar Scout", () => validateScoutCommission(founder, "founders")));
   }
