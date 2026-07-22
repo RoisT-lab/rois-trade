@@ -502,10 +502,7 @@ function dashboardPanelQueries(targetId) {
   const encodedCompanyId = encodeURIComponent(companyId);
   const client = {
     "client-events": [
-      { table: "events", query: "select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" }
-    ],
-    "client-feed": [
-      { table: "athlete_posts", query: "select=id,athlete_id,athlete_email,athlete_name,title,caption,image_url,video_url,status,created_at&status=eq.approved&order=created_at.desc" }
+      { table: "events", query: "select=id,name,category,venue,date,image_url,brochure_url,brochure_name,event_scope,sponsor_levels,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" }
     ],
     "client-sponsors": [
       { table: "partnerships", query: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" },
@@ -1676,7 +1673,7 @@ function supabaseApi() {
       const publicQueries = {
         athletes: "select=id,profile_id,email,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=24",
         founders: "select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status&status=eq.approved&visual_status=eq.approved&order=created_at.desc&limit=24",
-        events: "select=id,name,category,venue,date,image_url,event_scope,sponsor_levels,status,visual_status&status=eq.approved&order=created_at.desc&limit=24",
+        events: "select=id,name,category,venue,date,image_url,brochure_url,brochure_name,event_scope,sponsor_levels,status,visual_status&status=eq.approved&order=created_at.desc&limit=24",
         news: "select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=12",
         partnerships: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&order=created_at.desc&limit=24",
         site_settings: "select=id,value,created_at&limit=40",
@@ -2688,10 +2685,16 @@ function bindGlobalEvents() {
   document.getElementById("recoveryForm").addEventListener("submit", submitPasswordRecovery);
   document.getElementById("passwordForm").addEventListener("submit", submitPasswordChange);
   document.getElementById("registrationForm").addEventListener("submit", submitRegistration);
+  document.getElementById("eventSponsorForm")?.addEventListener("submit", submitEventSponsorshipRequest);
   document.addEventListener("click", handleDashboardDelegatedActions);
 }
 
 function handleDashboardDelegatedActions(event) {
+  const eventSponsorButton = event.target.closest("[data-event-sponsor]");
+  if (eventSponsorButton) {
+    openEventSponsorshipForm(eventSponsorButton.dataset.eventSponsor);
+    return;
+  }
   const loadMoreButton = event.target.closest("[data-load-more-panel]");
   if (loadMoreButton) {
     ensureDashboardPanelData(loadMoreButton.dataset.loadMorePanel, { loadMore: true });
@@ -3474,7 +3477,6 @@ function renderClientPanel(targetId) {
   const map = {
     "client-overview": renderClientOverview,
     "client-events": renderClientEvents,
-    "client-feed": renderClientFeed,
     "client-sponsors": renderClientSponsors,
     "client-marketplace": renderClientMarketplace,
     "client-founders": renderClientFounders,
@@ -3740,7 +3742,7 @@ function clientExperienceOverviewMarkup() {
           <p>Para empresas nuevas, el camino mas eficiente es elegir un producto de F1, Los 300, un athlete o un founder y abrir una solicitud. ROIS hace el seguimiento comercial.</p>
           <div>
             <button class="btn primary" type="button" data-dashboard-shortcut="client-alliances">Ver productos</button>
-            <button class="btn" type="button" data-dashboard-shortcut="client-feed">Ver feed</button>
+            <button class="btn" type="button" data-dashboard-shortcut="client-events">Ver eventos</button>
           </div>
         </div>
         <div class="company-reels-widget">
@@ -3886,20 +3888,6 @@ async function requestPremiumAllianceProduct(value) {
   }
 }
 
-function renderClientFeed() {
-  const posts = state.data.athlete_posts
-    .filter(post => post.status === "approved")
-    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  panel("client-feed", "Oportunidades", "Contenido publicado por athletes y creadores listos para evaluacion comercial", posts.length ? `
-    <div class="panel-body reels-panel-body">
-      <div class="reels-feed tiktok-feed" aria-label="Reels deportivos ROIS">
-        ${posts.map(post => athleteFeedCard(post)).join("")}
-      </div>
-    </div>
-  ` : `<div class="empty">Las publicaciones de athletes y creadores apareceran aqui cuando esten aprobadas.</div>`);
-  setupReelAutoplay();
-}
-
 function renderClientHeader() {
   const company = currentCompany();
   document.getElementById("clientAccountEyebrow").textContent = "Cuenta aprobada";
@@ -3932,27 +3920,13 @@ function renderClientKpis() {
 
 function renderClientEvents() {
   const events = state.data.events.filter(item => item.status === "approved" && visualIsPublic(item));
-  panel("client-events", "Eventos", "Calendario privado publicado por ROIS", events.length ? `
+  panel("client-events", "Eventos", "Oportunidades de patrocinio, posicionamiento y relaciones empresariales", events.length ? `
     <div class="panel-body">
-      <div class="opportunity-grid">
+      <div class="event-commercial-stack">
         ${events.map(event => eventClientCard(event)).join("")}
       </div>
     </div>
   ` : `<div class="empty">Los eventos aprobados por admin aparecer\u00e1n aqu\u00ed.</div>`);
-}
-
-function renderClientNews() {
-  const news = state.data.news.filter(item => item.status === "published" && visualIsPublic(item));
-  panel("client-news", "Noticias", "Publicaciones privadas para detectar oportunidades", news.length ? `
-    <div class="panel-body">
-      <div class="opportunity-grid">
-        ${news.map(item => editorialNewsCard(item, {
-          kicker: "Publicaci\u00f3n ROIS",
-          text: item.summary
-        })).join("")}
-      </div>
-    </div>
-  ` : `<div class="empty">Las noticias publicadas por admin aparecer\u00e1n aqu\u00ed.</div>`);
 }
 
 function companyListingTypeLabel(value) {
@@ -6919,6 +6893,7 @@ function renderAdminEvents() {
         <label>Publicaci\u00f3n<select name="status"><option value="approved">Publicar ahora para empresas</option><option value="pending">Guardar para revisi\u00f3n</option></select></label>
         <label style="grid-column:1/-1">Brochure PDF<input name="brochure_pdf" type="file" accept="application/pdf"></label>
         <label style="grid-column:1/-1">Alcance y posicionamiento del evento<textarea name="event_scope" required placeholder="Resume audiencia, alcance, sectores, tomadores de decisi\u00f3n, medios, impacto esperado y por qu\u00e9 una empresa deber\u00eda considerar este evento."></textarea></label>
+        <label style="grid-column:1/-1">Opciones de patrocinio y beneficios<textarea name="sponsor_levels" required placeholder="Describe activos disponibles, beneficios para la marca, presencia, accesos, entregables y formatos de participaci\u00f3n."></textarea></label>
         <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Crear evento</button>
       </form>
@@ -6933,10 +6908,25 @@ function renderAdminEvents() {
       event.brochure_url ? badge("PDF") : badge("pendiente"),
       badge(event.status),
       badge(event.visual_status || "sin visual"),
-      moderationActions("events", event)
+      adminEventActions(event)
     ]))}
   `);
   document.getElementById("adminEventForm").addEventListener("submit", submitAdminEvent);
+  document.querySelectorAll("[data-admin-event-brochure]").forEach(input => {
+    input.addEventListener("change", updateAdminEventBrochure);
+  });
+}
+
+function adminEventActions(event) {
+  return `
+    <div class="action-group admin-event-actions">
+      ${moderationActions("events", event)}
+      <label class="btn admin-event-file-action">
+        ${event.brochure_url ? "Reemplazar brochure" : "Cargar brochure"}
+        <input type="file" accept="application/pdf" data-admin-event-brochure="${escapeAttr(event.id)}" hidden>
+      </label>
+    </div>
+  `;
 }
 
 function renderAdminNews() {
@@ -8444,6 +8434,11 @@ async function submitAdminEvent(event) {
   const imageFile = form.image.files?.[0];
   const brochureFile = form.brochure_pdf.files?.[0];
   const publishNow = form.status.value === "approved";
+  if (publishNow && !brochureFile) {
+    notify("Eventos", "Brochure requerido", "Agrega el PDF comercial antes de publicar el evento para las empresas.");
+    form.brochure_pdf.focus();
+    return;
+  }
   setSavingState(form, true);
   let created = null;
   try {
@@ -8453,6 +8448,7 @@ async function submitAdminEvent(event) {
       venue: form.venue.value.trim(),
       date: form.date.value.trim(),
       event_scope: form.event_scope.value.trim(),
+      sponsor_levels: form.sponsor_levels.value.trim(),
       status: publishNow ? "approved" : "pending",
       visual_status: "approved"
     });
@@ -8479,6 +8475,27 @@ async function submitAdminEvent(event) {
     notify("Eventos", "No fue posible publicar", `${humanError(error)}${partial}`);
   } finally {
     setSavingState(form, false);
+  }
+}
+
+async function updateAdminEventBrochure(event) {
+  const input = event.currentTarget;
+  const file = input.files?.[0];
+  const record = (state.data.events || []).find(item => item.id === input.dataset.adminEventBrochure);
+  if (!file || !record) return;
+  input.disabled = true;
+  try {
+    const asset = await uploadAdminEventAsset(file, record.id, "brochure");
+    const updated = await api.update("events", record.id, {
+      brochure_url: asset.url,
+      brochure_name: asset.name
+    });
+    if (updated) replaceRecordInState("events", updated);
+    notify("Eventos", "Brochure disponible", "El PDF ya puede consultarse desde el dashboard empresarial.");
+    renderAdminEvents();
+  } catch (error) {
+    notify("Eventos", "No fue posible cargar el brochure", humanError(error));
+    input.disabled = false;
   }
 }
 
@@ -8653,19 +8670,84 @@ function eventBrochureLink(event) {
 }
 
 function eventClientCard(event) {
-  return publishedCard({
-    item: event,
-    kicker: event.category,
-    title: event.name,
-    text: `${event.venue || "Sede por confirmar"} - ${event.date || "Fecha por confirmar"}`,
-    action: `
-      ${eventPositioningBlock(event)}
-      <div class="action-row">
-        ${event.brochure_url ? eventBrochureLink(event) : `<span class="hint inline">Brochure pendiente</span>`}
-        ${button("Solicitar acceso", () => createRequest("Acceso evento", event.name))}
+  const scope = event.event_scope || "Informaci\u00f3n comercial en preparaci\u00f3n.";
+  const sponsorship = event.sponsor_levels || "ROIS definir\u00e1 con la empresa el formato de participaci\u00f3n m\u00e1s adecuado.";
+  return `
+    <article class="event-commercial-card">
+      <div class="event-commercial-cover">
+        ${safeProfileImageMarkup(event.image_url, event.name || "Evento ROIS")}
       </div>
-    `
-  });
+      <div class="event-commercial-content">
+        <div class="event-commercial-heading">
+          <div><p class="eyebrow">${escapeHtml(event.category || "Evento ROIS")}</p><h3>${escapeHtml(event.name || "Evento ROIS")}</h3></div>
+          <div class="event-commercial-meta"><span>${escapeHtml(event.venue || "Sede por confirmar")}</span><span>${escapeHtml(event.date || "Fecha por confirmar")}</span></div>
+        </div>
+        <section><p class="eyebrow">Alcance y posicionamiento</p>${formatEditorialBody(scope)}</section>
+        <section><p class="eyebrow">Patrocinio y participaci\u00f3n empresarial</p>${formatEditorialBody(sponsorship)}</section>
+        ${event.brochure_url ? `
+          <section class="event-brochure-section">
+            <div class="event-brochure-heading">
+              <div><p class="eyebrow">Documento comercial</p><h4>${escapeHtml(event.brochure_name || "Brochure del evento")}</h4></div>
+              ${eventBrochureLink(event)}
+            </div>
+            <iframe class="event-brochure-viewer" src="${escapeAttr(event.brochure_url)}#view=FitH" title="Brochure de ${escapeAttr(event.name || "Evento ROIS")}" loading="lazy"></iframe>
+          </section>
+        ` : `<div class="event-brochure-missing">El documento comercial est\u00e1 en preparaci\u00f3n.</div>`}
+        <div class="event-commercial-actions">
+          <button class="btn primary" type="button" data-event-sponsor="${escapeAttr(event.id)}">Quiero patrocinar este evento</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function openEventSponsorshipForm(eventId) {
+  const event = (state.data.events || []).find(item => item.id === eventId);
+  const form = document.getElementById("eventSponsorForm");
+  const modal = document.getElementById("eventSponsorModal");
+  if (!event || !form || !modal) return;
+  const company = currentCompany();
+  form.reset();
+  form.event_id.value = event.id;
+  form.company.value = company?.name || state.session?.name || "";
+  form.email.value = state.session?.email || company?.contact || "";
+  document.getElementById("eventSponsorTitle").textContent = `Patrocinar ${event.name}`;
+  modal.classList.add("active");
+}
+
+async function submitEventSponsorshipRequest(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const targetEvent = (state.data.events || []).find(item => item.id === form.event_id.value);
+  if (!targetEvent) {
+    notify("Eventos", "Evento no disponible", "Actualiza el dashboard e intenta nuevamente.");
+    return;
+  }
+  setSavingState(form, true);
+  try {
+    await api.insert("requests", {
+      type: "Patrocinio de evento",
+      title: targetEvent.name,
+      owner: form.company.value.trim(),
+      details: [
+        `Evento ID: ${targetEvent.id}`,
+        `Responsable: ${form.contact_name.value.trim()}`,
+        `Correo: ${form.email.value.trim()}`,
+        `Telefono: ${form.phone.value.trim() || "No proporcionado"}`,
+        `Objetivo: ${form.objective.value}`,
+        `Presupuesto: ${form.budget.value}`,
+        `Propuesta: ${form.message.value.trim()}`
+      ].join(" | "),
+      priority: form.budget.value,
+      status: "review"
+    });
+    closeModals();
+    notify("Patrocinio de evento", "Solicitud enviada", "ROIS revisará la afinidad, validará el alcance y coordinará el siguiente paso con tu empresa.");
+  } catch (error) {
+    notify("Patrocinio de evento", "No fue posible enviar", humanError(error));
+  } finally {
+    setSavingState(form, false);
+  }
 }
 
 function newsInteractionCount(news, reaction) {

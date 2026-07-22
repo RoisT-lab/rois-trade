@@ -14245,6 +14245,173 @@ body[data-active-view="home"] .public-feature-grid .editorial-news-body .social-
   }
 }
 
+/* ROIS event commercial dossier */
+.event-commercial-stack {
+  display: grid;
+  gap: 32px;
+  width: min(100%, 1120px);
+  margin: 0 auto;
+}
+
+.event-commercial-card {
+  display: grid;
+  grid-template-columns: minmax(280px, .78fr) minmax(0, 1.22fr);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: var(--shadow-soft);
+}
+
+.event-commercial-cover {
+  min-height: 520px;
+  background: #080a0d;
+}
+
+.event-commercial-cover img {
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  object-fit: cover;
+  display: block;
+}
+
+.event-commercial-content {
+  display: grid;
+  align-content: start;
+  gap: 26px;
+  min-width: 0;
+  padding: clamp(28px, 4vw, 52px);
+}
+
+.event-commercial-heading {
+  display: grid;
+  gap: 18px;
+}
+
+.event-commercial-heading h3 {
+  max-width: 18ch;
+  margin: 7px 0 0;
+  font-size: clamp(30px, 3vw, 48px);
+  line-height: 1.02;
+  letter-spacing: -.045em;
+  overflow-wrap: anywhere;
+}
+
+.event-commercial-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.event-commercial-content > section {
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.event-commercial-content > section > p:not(.eyebrow),
+.event-commercial-content > section li {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.72;
+}
+
+.event-brochure-section {
+  grid-column: 1 / -1;
+}
+
+.event-brochure-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.event-brochure-heading h4 {
+  margin: 5px 0 0;
+  font-size: 18px;
+}
+
+.event-brochure-viewer {
+  width: 100%;
+  height: min(68vh, 720px);
+  min-height: 480px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #f2f4f6;
+}
+
+.event-brochure-missing {
+  padding: 18px 20px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.event-commercial-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.event-commercial-actions .btn.primary {
+  min-height: 52px;
+}
+
+.event-sponsor-modal-card {
+  width: min(92vw, 820px);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.admin-event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-event-file-action {
+  cursor: pointer;
+}
+
+@media (max-width: 920px) {
+  .event-commercial-card {
+    grid-template-columns: 1fr;
+  }
+
+  .event-commercial-cover,
+  .event-commercial-cover img {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (max-width: 620px) {
+  .event-commercial-content {
+    gap: 20px;
+    padding: 24px 18px;
+  }
+
+  .event-commercial-heading h3 {
+    font-size: 32px;
+  }
+
+  .event-brochure-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .event-brochure-viewer {
+    height: 520px;
+    min-height: 0;
+  }
+}
+
 /* ROIS Admin command system */
 body[data-active-view="admin"] [data-dashboard="admin"] .workspace-head {
   min-height: 0;
