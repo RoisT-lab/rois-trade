@@ -6452,6 +6452,19 @@ body[data-active-view="admin"] [data-dashboard="admin"] .workspace-head h1 {
   margin-top: 28px;
 }
 
+.admin-command-provenance,
+.admin-data-source {
+  margin: 9px 0 0;
+  color: #7b8590;
+  font-size: 8px;
+  line-height: 1.55;
+  letter-spacing: .04em;
+}
+
+.admin-data-source {
+  margin-top: 16px;
+}
+
 .admin-command-metric {
   padding: 16px 14px 18px;
 }
@@ -14610,5 +14623,215 @@ body[data-active-view="admin"] [data-dashboard="admin"] .workspace-head h1 {
 
   .admin-command-head h2 {
     font-size: 29px;
+  }
+}
+
+/* ROIS Admin verified geography */
+.admin-geo-dashboard {
+  min-width: 0;
+  border: 1px solid #dce1e5;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, .72);
+}
+
+.admin-geo-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid #dce1e5;
+}
+
+.admin-geo-metrics > div {
+  display: grid;
+  gap: 5px;
+  padding: 13px 16px;
+  border-right: 1px solid #e3e7ea;
+}
+
+.admin-geo-metrics > div:last-child {
+  border-right: 0;
+}
+
+.admin-geo-metrics span,
+.admin-geo-subhead,
+.admin-geo-row small,
+.admin-geo-recent-row small {
+  color: #77818c;
+  font-size: 8px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.admin-geo-metrics strong {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.admin-geo-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(210px, .75fr);
+  min-width: 0;
+}
+
+.admin-geo-ranking,
+.admin-geo-recent {
+  min-width: 0;
+  padding: 18px;
+}
+
+.admin-geo-recent {
+  border-left: 1px solid #e1e5e8;
+}
+
+.admin-geo-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e1e5e8;
+  font-weight: 800;
+}
+
+.admin-geo-subhead small {
+  font-size: 7px;
+  font-weight: 500;
+}
+
+.admin-geo-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(90px, 1.2fr) 24px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.admin-geo-row > div,
+.admin-geo-recent-row > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-geo-row strong,
+.admin-geo-recent-row strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-geo-row small,
+.admin-geo-recent-row small {
+  overflow: hidden;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-geo-row > b,
+.admin-geo-recent-row > b {
+  font-size: 12px;
+  text-align: right;
+}
+
+.admin-geo-bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7ebee;
+}
+
+.admin-geo-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #29333d;
+}
+
+.admin-geo-recent-row {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 11px 0;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.admin-geo-recent-row > i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #26946b;
+}
+
+.admin-geo-empty {
+  display: grid;
+  gap: 7px;
+  min-height: 230px;
+  place-content: center;
+  padding: 30px;
+  border: 1px dashed #cbd2d8;
+  color: #707a85;
+  text-align: center;
+}
+
+.admin-geo-empty strong {
+  color: #16191d;
+  font-size: 15px;
+}
+
+.admin-geo-empty span {
+  max-width: 540px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.admin-geo-source {
+  margin: 0;
+  padding: 9px 18px;
+  border-top: 1px solid #e1e5e8;
+  color: #7b8590;
+  font-size: 7px;
+  line-height: 1.5;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .admin-geo-body {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-geo-recent {
+    border-top: 1px solid #e1e5e8;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-geo-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-geo-metrics > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .admin-geo-metrics > div:nth-child(-n+2) {
+    border-bottom: 1px solid #e3e7ea;
+  }
+
+  .admin-geo-row {
+    grid-template-columns: minmax(0, 1fr) 48px;
+  }
+
+  .admin-geo-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 }

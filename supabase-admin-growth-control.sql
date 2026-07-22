@@ -57,24 +57,32 @@ begin
           jsonb_build_object(
             'location', geo.location,
             'type', geo.account_type,
-            'createdAt', geo.created_at
+            'count', geo.account_count,
+            'latestAt', geo.latest_at
           )
-          order by geo.created_at desc
+          order by geo.account_count desc, geo.latest_at desc
         ),
         '[]'::jsonb
       )
       from (
-        select located.location, located.account_type, located.created_at
+        select
+          located.location,
+          located.account_type,
+          count(*) as account_count,
+          max(located.created_at) as latest_at
         from (
           select nullif(trim(location), '') as location, 'Athlete'::text as account_type, created_at
           from public.athletes
           where nullif(trim(location), '') is not null
+            and coalesce(status, '') <> 'deleted'
           union all
           select nullif(trim(city), '') as location, 'Creador'::text as account_type, created_at
           from public.founders
           where nullif(trim(city), '') is not null
+            and coalesce(status, '') <> 'deleted'
         ) located
-        order by located.created_at desc
+        group by located.location, located.account_type
+        order by account_count desc, latest_at desc
         limit 250
       ) geo
     ),
@@ -96,8 +104,21 @@ begin
       (select count(*) from public.athletes where nullif(trim(invited_by_scout_code), '') is not null and (scout_validation_status in ('validated', 'approved') or scout_commission_status in ('approved', 'paid'))) +
       (select count(*) from public.founders where nullif(trim(invited_by_scout_code), '') is not null and (scout_validation_status in ('validated', 'approved') or scout_commission_status in ('approved', 'paid')))
     ),
-    'activeSponsorships', (select count(*) from public.sponsorships where coalesce(status, '') not in ('rejected', 'deleted', 'cancelled')),
-    'sponsorshipPipelineValue', (select coalesce(sum(amount), 0) from public.sponsorships where coalesce(status, '') not in ('rejected', 'deleted', 'cancelled')),
+    'sponsorshipRequests', (
+      select count(*)
+      from public.sponsorships
+      where coalesce(status, '') in ('review', 'payment_started', 'approved', 'active', 'paid')
+    ),
+    'activeSponsorships', (
+      select count(*)
+      from public.sponsorships
+      where coalesce(status, '') in ('payment_started', 'approved', 'active', 'paid')
+    ),
+    'sponsorshipPipelineValue', (
+      select coalesce(sum(amount), 0)
+      from public.sponsorships
+      where coalesce(status, '') in ('payment_started', 'approved', 'active', 'paid')
+    ),
     'listingsLive', (select count(*) from public.company_listings where status = 'approved' and visual_status = 'approved'),
     'marketplaceLeads', (select count(*) from public.marketplace_leads),
     'closedLeads', (select count(*) from public.marketplace_leads where status = 'closed'),

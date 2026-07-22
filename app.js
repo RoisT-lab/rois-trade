@@ -5536,8 +5536,11 @@ function adminGrowthSnapshotFromState() {
     ["active", "trialing"].includes(String(item.status || "").toLowerCase())
   );
   const income = incomePayments(data.payments || []);
+  const sponsorshipRequests = data.sponsorships.filter(item =>
+    ["review", "payment_started", "approved", "active", "paid"].includes(String(item.status || "").toLowerCase())
+  );
   const activeSponsorships = data.sponsorships.filter(item =>
-    !["rejected", "deleted", "cancelled"].includes(String(item.status || "").toLowerCase())
+    ["payment_started", "approved", "active", "paid"].includes(String(item.status || "").toLowerCase())
   );
   const pendingVisualTalent = talent.filter(item =>
     item.status === "pending" || item.visual_status === "pending_review"
@@ -5560,6 +5563,7 @@ function adminGrowthSnapshotFromState() {
     activeScouts: talent.filter(item => item.scout_active === true).length,
     referrals: referrals.length,
     validatedReferrals: validatedReferrals.length,
+    sponsorshipRequests: sponsorshipRequests.length,
     activeSponsorships: activeSponsorships.length,
     sponsorshipPipelineValue: activeSponsorships.reduce((sum, item) => sum + Number(item.amount || 0), 0),
     listingsLive: data.company_listings.filter(item => item.status === "approved" && item.visual_status === "approved").length,
@@ -5629,7 +5633,7 @@ function renderAdminControlLegacy() {
   const snapshot = adminGrowthSnapshot || adminGrowthSnapshotFromState();
   const totalTalent = Number(snapshot.totalAthletes || 0) + Number(snapshot.totalCreators || 0);
   const publicTalent = Number(snapshot.publicAthletes || 0) + Number(snapshot.publicCreators || 0);
-  const demand = Number(snapshot.activeSponsorships || 0) + Number(snapshot.marketplaceLeads || 0);
+  const sponsorshipRequests = Number(snapshot.sponsorshipRequests || 0);
   const deckCoverage = growthRate(snapshot.deckReady, publicTalent);
   const referralShare = growthRate(snapshot.referrals, totalTalent);
   const leadCloseRate = growthRate(snapshot.closedLeads, snapshot.marketplaceLeads);
@@ -5809,6 +5813,84 @@ function adminGlobalMapMarkup(records = []) {
   `;
 }
 
+function adminGeographyMarkup(records = [], totalTalent = 0) {
+  const grouped = new Map();
+  records.forEach(record => {
+    const label = String(record.location || "").trim();
+    if (!label) return;
+    const key = label
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    const current = grouped.get(key) || {
+      label,
+      count: 0,
+      athletes: 0,
+      creators: 0,
+      latestAt: null
+    };
+    const count = Math.max(1, Number(record.count || 1));
+    current.count += count;
+    if (String(record.type || "").toLowerCase().includes("creador")) current.creators += count;
+    else current.athletes += count;
+    const createdAt = record.latestAt || record.createdAt || record.created_at;
+    if (createdAt && (!current.latestAt || new Date(createdAt) > new Date(current.latestAt))) current.latestAt = createdAt;
+    grouped.set(key, current);
+  });
+  const locations = [...grouped.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "es"));
+  const located = locations.reduce((sum, item) => sum + item.count, 0);
+  const missing = Math.max(0, Number(totalTalent || 0) - located);
+  const coverage = growthRate(located, totalTalent);
+  const maximum = Math.max(1, ...locations.map(item => item.count));
+  const latest = [...locations]
+    .filter(item => item.latestAt)
+    .sort((a, b) => new Date(b.latestAt) - new Date(a.latestAt))
+    .slice(0, 6);
+
+  if (!locations.length) {
+    return `
+      <div class="admin-geo-empty">
+        <strong>Aun no hay ubicaciones estructuradas.</strong>
+        <span>El contador global sigue siendo exacto, pero ningun perfil tiene ciudad o base disponible para analisis geografico.</span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="admin-geo-dashboard">
+      <div class="admin-geo-metrics">
+        <div><span>Con ubicacion</span><strong>${located}</strong></div>
+        <div><span>Sin ubicacion</span><strong>${missing}</strong></div>
+        <div><span>Cobertura</span><strong>${coverage}%</strong></div>
+        <div><span>Plazas activas</span><strong>${locations.length}</strong></div>
+      </div>
+      <div class="admin-geo-body">
+        <div class="admin-geo-ranking">
+          <div class="admin-geo-subhead"><span>Distribucion declarada</span><small>Registros directos</small></div>
+          ${locations.slice(0, 10).map(item => `
+            <div class="admin-geo-row">
+              <div><strong>${escapeHtml(item.label)}</strong><small>${item.athletes} athletes · ${item.creators} creadores</small></div>
+              <span class="admin-geo-bar"><i style="width:${Math.max(5, (item.count / maximum) * 100)}%"></i></span>
+              <b>${item.count}</b>
+            </div>
+          `).join("")}
+        </div>
+        <div class="admin-geo-recent">
+          <div class="admin-geo-subhead"><span>Aperturas recientes</span><small>Ultima alta por plaza</small></div>
+          ${latest.length ? latest.map(item => `
+            <div class="admin-geo-recent-row">
+              <i></i>
+              <div><strong>${escapeHtml(item.label)}</strong><small>${readableDate(item.latestAt)}</small></div>
+              <b>${item.count}</b>
+            </div>
+          `).join("") : `<div class="admin-geo-recent-row"><div><strong>Sin fechas disponibles</strong><small>Las ubicaciones existen, pero no incluyen fecha de alta.</small></div></div>`}
+        </div>
+      </div>
+      <p class="admin-geo-source">Fuente directa: athletes.location y founders.city. No se estiman coordenadas ni se asignan ubicaciones automaticamente.</p>
+    </div>
+  `;
+}
+
 function adminCompactMoney(value) {
   return new Intl.NumberFormat("es-MX", {
     notation: Math.abs(Number(value || 0)) >= 1000000 ? "compact" : "standard",
@@ -5882,6 +5964,8 @@ function startAdminControlRealtime() {
       previous?.registrations24h,
       previous?.paidRevenue,
       previous?.pendingRevenue,
+      previous?.sponsorshipRequests,
+      previous?.sponsorshipPipelineValue,
       previous?.accountLocations?.length,
       previous?.financialCandles?.at?.(-1)?.close
     ]);
@@ -5891,6 +5975,8 @@ function startAdminControlRealtime() {
       next?.registrations24h,
       next?.paidRevenue,
       next?.pendingRevenue,
+      next?.sponsorshipRequests,
+      next?.sponsorshipPipelineValue,
       next?.accountLocations?.length,
       next?.financialCandles?.at?.(-1)?.close
     ]);
@@ -5907,18 +5993,14 @@ function renderAdminControl() {
   const snapshot = adminGrowthSnapshot || adminGrowthSnapshotFromState();
   const totalTalent = Number(snapshot.totalAthletes || 0) + Number(snapshot.totalCreators || 0);
   const publicTalent = Number(snapshot.publicAthletes || 0) + Number(snapshot.publicCreators || 0);
-  const demand = Number(snapshot.activeSponsorships || 0) + Number(snapshot.marketplaceLeads || 0);
+  const sponsorshipRequests = Number(snapshot.sponsorshipRequests || 0);
   const deckCoverage = growthRate(snapshot.deckReady, publicTalent);
   const referralShare = growthRate(snapshot.referrals, totalTalent);
-  const leadCloseRate = growthRate(snapshot.closedLeads, snapshot.marketplaceLeads);
-  const scoutK = Number(snapshot.activeScouts || 0) > 0
-    ? (Number(snapshot.referrals || 0) / Number(snapshot.activeScouts)).toFixed(1)
-    : "0.0";
   const sourceNote = snapshot.exact
     ? "Sincronizado con la base global"
     : "Vista parcial hasta instalar el SQL de control";
   const priorities = [
-    ["Sponsors en revision", snapshot.sponsorReviews, "admin-payments", "Demanda comercial esperando decision"],
+    ["Solicitudes sponsor por revisar", snapshot.sponsorReviews, "admin-payments", "Registros directos en sponsorships con status review"],
     ["Eventos pendientes", snapshot.pendingEvents, "admin-events", "Publicaciones que requieren validacion"],
     ["Talento por revisar", snapshot.pendingVisualTalent, "admin-athletes", "Perfiles fuera del mercado"],
     ["Inventario pendiente", snapshot.pendingListings, "admin-corporate-market", "Oferta empresarial sin publicar"],
@@ -5926,7 +6008,6 @@ function renderAdminControl() {
     ["Solicitudes de plan", snapshot.planRequests, "admin-corporate-market", "Conversion PRO o Business"],
     ["Alertas de datos", snapshot.profileAlerts, "admin-stats", "Integridad de perfiles y relaciones"]
   ].filter(([, value]) => Number(value || 0) > 0).sort((a, b) => Number(b[1]) - Number(a[1]));
-  const openDecisionCount = priorities.reduce((sum, item) => sum + Number(item[1] || 0), 0);
   const accountLocations = Array.isArray(snapshot.accountLocations) ? snapshot.accountLocations : [];
   const financialCandles = Array.isArray(snapshot.financialCandles) ? snapshot.financialCandles : [];
   const lastCandle = financialCandles[financialCandles.length - 1] || {};
@@ -5953,10 +6034,10 @@ function renderAdminControl() {
       <section class="admin-global-overview">
         <div class="admin-global-map-panel">
           <div class="admin-global-section-head">
-            <div><p class="eyebrow">Apertura global</p><h3>Nuevas cuentas por ubicacion.</h3></div>
+            <div><p class="eyebrow">Cobertura geografica</p><h3>Donde esta creciendo la red.</h3></div>
             <span class="admin-live-status"><i></i><b>LIVE</b><small data-admin-live-time>cada 15 s</small></span>
           </div>
-          ${adminGlobalMapMarkup(accountLocations)}
+          ${adminGeographyMarkup(accountLocations, totalTalent)}
         </div>
 
         <aside class="admin-live-counter">
@@ -5986,10 +6067,11 @@ function renderAdminControl() {
         ${adminCommandMetric("Altas 7d", snapshot.registrations7d || 0, `${snapshot.registrations24h || 0} en 24 h`)}
         ${adminCommandMetric("Talento publico", publicTalent, `${snapshot.publicAthletes || 0} athletes / ${snapshot.publicCreators || 0} creadores`)}
         ${adminCommandMetric("Deck listos", `${deckCoverage}%`, `${snapshot.deckReady || 0} activos`) }
-        ${adminCommandMetric("K Scout", scoutK, `${snapshot.referrals || 0} referidos`)}
-        ${adminCommandMetric("Demanda", demand, `${leadCloseRate}% cierre`) }
-        ${adminCommandMetric("Pipeline", money(snapshot.sponsorshipPipelineValue), `${snapshot.activeSponsorships || 0} oportunidades`) }
+        ${adminCommandMetric("Scouts activos", snapshot.activeScouts || 0, `${snapshot.referrals || 0} referidos registrados`)}
+        ${adminCommandMetric("Solicitudes sponsor", sponsorshipRequests, `${snapshot.sponsorReviews || 0} por revisar`) }
+        ${adminCommandMetric("Pipeline calificado", money(snapshot.sponsorshipPipelineValue), `${snapshot.activeSponsorships || 0} con avance confirmado`) }
       </div>
+      <p class="admin-command-provenance">Datos directos: profiles, companies, athletes, founders, sponsorships y payments. Los porcentajes muestran exclusivamente divisiones entre esos registros.</p>
 
       <div class="admin-command-layout">
         <main>
@@ -6007,8 +6089,8 @@ function renderAdminControl() {
             <div class="admin-flow-list">
               ${adminFlowRow(1, "Adquisicion", snapshot.registrations30d || 0, `${snapshot.talent7d || 0} talentos y ${snapshot.companies7d || 0} empresas en 7 dias`, "admin-users")}
               ${adminFlowRow(2, "Activacion", `${deckCoverage}%`, `${snapshot.deckReady || 0} perfiles con activo comercial`, "admin-athletes")}
-              ${adminFlowRow(3, "Propagacion", `${referralShare}%`, `${snapshot.activeScouts || 0} Scouts activos / K ${scoutK}`, "admin-athletes")}
-              ${adminFlowRow(4, "Demanda", demand, `${snapshot.marketplaceLeads || 0} leads / ${snapshot.activeSponsorships || 0} patrocinios`, "admin-corporate-market")}
+              ${adminFlowRow(3, "Propagacion", snapshot.referrals || 0, `${snapshot.activeScouts || 0} Scouts activos · ${referralShare}% del talento`, "admin-athletes")}
+              ${adminFlowRow(4, "Comercial", sponsorshipRequests, `${snapshot.sponsorReviews || 0} en revision / ${snapshot.activeSponsorships || 0} con avance confirmado`, "admin-payments")}
             </div>
           </section>
         </main>
@@ -6017,13 +6099,14 @@ function renderAdminControl() {
           <section class="admin-command-section admin-command-ledger">
             <div class="admin-command-section-head"><div><p class="eyebrow">Comercial</p><h3>Posicion actual</h3></div></div>
             <dl>
-              <div><dt>Pipeline sponsor</dt><dd>${money(snapshot.sponsorshipPipelineValue)}</dd></div>
+              <div><dt>Pipeline calificado</dt><dd>${money(snapshot.sponsorshipPipelineValue)}</dd></div>
               <div><dt>Ingreso pagado</dt><dd>${money(snapshot.paidRevenue)}</dd></div>
               <div><dt>Ingreso pendiente</dt><dd>${money(snapshot.pendingRevenue)}</dd></div>
               <div><dt>Inventario publicado</dt><dd>${snapshot.listingsLive || 0}</dd></div>
               <div><dt>PRO / Business</dt><dd>${Number(snapshot.activePro || 0) + Number(snapshot.activeBusiness || 0)}</dd></div>
             </dl>
             ${button("Abrir ingresos", () => showDashboardPanel("admin-revenue"))}
+            <p class="admin-data-source">Fuente: payments, sponsorships y company_listings. Pipeline incluye solo payment_started, approved, active o paid.</p>
           </section>
 
           <section class="admin-command-section admin-command-ledger">
