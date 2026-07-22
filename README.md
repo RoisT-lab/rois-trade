@@ -2,6 +2,14 @@
 
 Aplicacion web estatica conectada a Supabase para empresas, athletes, creadores y administracion. La compatibilidad tecnica de creadores conserva el role `founder` y la tabla `founders`.
 
+## Sponsor Deck IA
+
+Athletes y creadores cuentan con un constructor de Sponsor Deck dentro de su dashboard. El deck guarda narrativa, audiencia, evidencia, afinidad con marcas, entregables, paquetes comerciales y puntuacion de completitud en su registro real. Las empresas pueden abrirlo desde Mercado de fichajes, Creadores o el perfil completo.
+
+El Sponsor Deck ROIS es la unica propuesta comercial activa. Los dashboards ya no permiten cargar ni descargar propuestas PDF externas. Los PDF historicos y sus metadatos se conservan para auditoria y migracion, pero no se muestran ni se modifican desde la aplicacion.
+
+Ejecuta primero `supabase-sponsor-deck-ai-mvp.sql`. El modulo incluye un generador guiado local para disponibilidad inmediata y una Edge Function segura opcional en `supabase/functions/generate-sponsor-deck`. Consulta `SPONSOR-DECK-AI-SETUP.md`; nunca coloques `OPENAI_API_KEY` en archivos del frontend.
+
 ## Creator Marketplace
 
 Ejecuta `supabase-creators-marketplace-evolution.sql` despues de las migraciones base de perfiles. Es aditiva y conserva todos los founders existentes, que se clasifican inicialmente como `creator_type = founder`.
@@ -18,6 +26,9 @@ Sube estos archivos:
 - `supabase-profile-persistence-storage.sql`
 - `supabase-creators-marketplace-evolution.sql`
 - `supabase-company-marketplace-pro-business.sql`
+- `supabase-sponsor-deck-ai-mvp.sql`
+- `supabase/functions/generate-sponsor-deck/index.ts`
+- `SPONSOR-DECK-AI-SETUP.md`
 - `PROFILE-PERSISTENCE-VALIDATION.md`
 - `README.md`
 
@@ -73,7 +84,7 @@ supabase-profile-persistence-storage.sql
 
 La migracion:
 
-- agrega rutas y metadatos de avatar/propuesta;
+- agrega rutas y metadatos legacy de avatar/propuesta;
 - completa las columnas de medios de founders;
 - crea indices por `profile_id`, `email` y `contact` legacy;
 - activa RLS para founders;
@@ -110,17 +121,14 @@ Rutas:
 
 ```text
 athletes/{profile_id}/avatar/{filename}
-athletes/{profile_id}/proposals/{filename}
 athletes/{profile_id}/sponsors/{filename}
 founders/{profile_id}/avatar/{filename}
-founders/{profile_id}/proposals/{filename}
 founders/{profile_id}/sponsors/{filename}
 ```
 
 Limites:
 
 - avatar: JPG, PNG o WEBP, maximo 5 MB;
-- propuesta: PDF, maximo 15 MB;
 - logo: JPG, PNG o WEBP, maximo 3 MB;
 - maximo 10 logos;
 - imagenes mayores a 1600 px se reducen en el navegador.
@@ -156,7 +164,7 @@ Athlete:
 - avatar valido;
 - avatar roto;
 - avatar mayor a 5 MB;
-- PDF de propuesta;
+- generacion y guardado del Sponsor Deck ROIS;
 - maximo 10 logos.
 
 Founder:
@@ -166,7 +174,7 @@ Founder:
 - founder sin fila real;
 - industria, etapa, ciudad y traccion;
 - avatar;
-- PDF;
+- Sponsor Deck ROIS;
 - tarjeta visible para empresas.
 
 Empresa:
