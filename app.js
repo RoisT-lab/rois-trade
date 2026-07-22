@@ -41,6 +41,7 @@ const dashboardPanelFreshnessMs = 30000;
 let adminGrowthSnapshot = null;
 let adminGrowthSnapshotPromise = null;
 let adminGrowthSnapshotLoadedAt = 0;
+let adminControlRealtimeTimer = null;
 
 const companyPlanCatalog = {
   free: {
@@ -468,6 +469,10 @@ function resetDashboardPanelState() {
   adminGrowthSnapshot = null;
   adminGrowthSnapshotPromise = null;
   adminGrowthSnapshotLoadedAt = 0;
+  if (adminControlRealtimeTimer) {
+    clearInterval(adminControlRealtimeTimer);
+    adminControlRealtimeTimer = null;
+  }
 }
 
 function markBootstrapPanelLoaded(role, data = {}) {
@@ -5483,6 +5488,37 @@ function growthRate(numerator, denominator) {
   return denominator > 0 ? Math.round((Number(numerator || 0) / denominator) * 100) : 0;
 }
 
+function adminLocalFinancialCandles(payments = []) {
+  const expenseKeys = new Set(["manualExpense", "fixedExpense"]);
+  const paid = payments.filter(item => String(item.status || "").toLowerCase() === "paid");
+  let running = 0;
+  return Array.from({ length: 30 }, (_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (29 - index));
+    const dateKey = date.toISOString().slice(0, 10);
+    const daily = paid.filter(item => String(item.created_at || "").slice(0, 10) === dateKey);
+    const income = daily
+      .filter(item => !expenseKeys.has(item.product_key))
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const expense = daily
+      .filter(item => expenseKeys.has(item.product_key))
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const open = running;
+    const close = open + income - expense;
+    running = close;
+    return {
+      date: dateKey,
+      open,
+      high: open + income,
+      low: open - expense,
+      close,
+      income,
+      expense
+    };
+  });
+}
+
 function adminGrowthSnapshotFromState() {
   const data = normalizeLoadedData(state.data || {});
   const talent = [...data.athletes, ...data.founders];
@@ -5539,7 +5575,12 @@ function adminGrowthSnapshotFromState() {
     pendingListings: data.company_listings.filter(item => item.status === "pending" || item.visual_status === "pending_review").length,
     sponsorReviews: data.sponsorships.filter(item => item.status === "review").length,
     planRequests: data.requests.filter(item => item.type === "Plan empresarial" && item.status !== "closed").length,
-    profileAlerts: profileDiagnostics().length
+    profileAlerts: profileDiagnostics().length,
+    accountLocations: [
+      ...data.athletes.map(item => ({ location: item.location, type: "Athlete", createdAt: item.created_at })),
+      ...data.founders.map(item => ({ location: item.city, type: "Creador", createdAt: item.created_at }))
+    ].filter(item => String(item.location || "").trim()),
+    financialCandles: adminLocalFinancialCandles(data.payments || [])
   };
 }
 
@@ -5692,6 +5733,176 @@ function adminFlowRow(index, label, value, note, targetPanel) {
   `;
 }
 
+function adminLocationCoordinates(value = "") {
+  const location = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const locations = [
+    [["queretaro", "qro"], [235, 238]],
+    [["ciudad de mexico", "cdmx", "mexico city"], [230, 255]],
+    [["guadalajara", "jalisco"], [213, 247]],
+    [["monterrey", "nuevo leon"], [231, 220]],
+    [["cancun", "quintana roo"], [261, 252]],
+    [["mexico"], [231, 244]],
+    [["miami", "florida"], [279, 224]],
+    [["los angeles", "california"], [168, 207]],
+    [["new york"], [302, 185]],
+    [["toronto"], [285, 174]],
+    [["vancouver"], [181, 162]],
+    [["bogota", "colombia"], [304, 309]],
+    [["lima", "peru"], [287, 348]],
+    [["santiago", "chile"], [306, 420]],
+    [["buenos aires", "argentina"], [345, 414]],
+    [["sao paulo", "brazil", "brasil"], [367, 367]],
+    [["madrid", "spain", "espana"], [471, 201]],
+    [["london", "londres", "united kingdom", "uk"], [474, 169]],
+    [["paris", "france", "francia"], [487, 184]],
+    [["berlin", "germany", "alemania"], [514, 165]],
+    [["milan", "milano", "italy", "italia"], [508, 197]],
+    [["moscow", "russia", "rusia"], [572, 148]],
+    [["dubai", "emirates", "uae"], [612, 247]],
+    [["singapore", "singapur"], [737, 319]],
+    [["seoul", "korea", "corea"], [802, 210]],
+    [["tokyo", "japan", "japon"], [835, 219]],
+    [["sydney", "australia"], [841, 401]]
+  ];
+  return locations.find(([terms]) => terms.some(term => location.includes(term)))?.[1] || null;
+}
+
+function adminGlobalMapMarkup(records = []) {
+  const located = records.map((record, index) => {
+    const point = adminLocationCoordinates(record.location);
+    if (!point) return null;
+    const jitter = ((index * 17) % 9) - 4;
+    return { ...record, x: point[0] + jitter, y: point[1] + (jitter * 0.55) };
+  }).filter(Boolean);
+  const nodes = located.map(record => `
+    <g class="admin-map-node" transform="translate(${record.x} ${record.y})">
+      <circle class="admin-map-node-halo" r="9"></circle>
+      <circle class="admin-map-node-core" r="3.4"></circle>
+      <title>${escapeHtml(`${record.type || "Cuenta"} · ${record.location || "Ubicacion"}`)}</title>
+    </g>
+  `).join("");
+  return `
+    <div class="admin-world-map" role="img" aria-label="Mapa global de cuentas ROIS con ubicacion disponible">
+      <svg viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <pattern id="admin-map-grid" width="50" height="50" patternUnits="userSpaceOnUse">
+            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="currentColor" stroke-width=".55"></path>
+          </pattern>
+        </defs>
+        <rect class="admin-map-grid" width="1000" height="500" fill="url(#admin-map-grid)"></rect>
+        <g class="admin-map-land">
+          <path d="M78 105 128 72 201 74 264 112 304 151 274 178 225 170 200 203 162 211 124 181 88 158Z"></path>
+          <path d="M258 265 310 280 344 330 367 376 343 456 310 422 292 361Z"></path>
+          <path d="M435 119 492 91 560 104 594 137 565 170 521 171 506 204 466 198 441 166Z"></path>
+          <path d="M493 209 548 204 586 241 572 321 536 370 505 316 487 258Z"></path>
+          <path d="M570 122 648 89 746 102 846 131 913 166 884 205 814 208 777 250 718 232 678 260 623 220 578 176Z"></path>
+          <path d="M768 337 833 322 893 351 908 407 858 438 794 414Z"></path>
+          <path d="M922 244 945 250 953 275 935 286 916 270Z"></path>
+        </g>
+        <g>${nodes}</g>
+      </svg>
+      <div class="admin-map-legend"><span><i></i>Cuenta con ubicacion</span><b>${located.length}</b></div>
+    </div>
+  `;
+}
+
+function adminCompactMoney(value) {
+  return new Intl.NumberFormat("es-MX", {
+    notation: Math.abs(Number(value || 0)) >= 1000000 ? "compact" : "standard",
+    maximumFractionDigits: 1
+  }).format(Number(value || 0));
+}
+
+function adminFinancialCandlesMarkup(candles = []) {
+  const rows = candles.map(item => ({
+    date: String(item.date || "").slice(0, 10),
+    open: Number(item.open || 0),
+    high: Number(item.high || 0),
+    low: Number(item.low || 0),
+    close: Number(item.close || 0),
+    income: Number(item.income || 0),
+    expense: Number(item.expense || 0)
+  }));
+  const hasMovement = rows.some(item => item.income || item.expense || item.open || item.close);
+  if (!rows.length || !hasMovement) {
+    return `<div class="admin-candle-empty"><span>Sin movimientos pagados en los ultimos 30 dias.</span><small>La grafica se activara con el primer ingreso o egreso confirmado.</small></div>`;
+  }
+  const width = 960;
+  const height = 280;
+  const padding = { top: 20, right: 18, bottom: 34, left: 72 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  let minimum = Math.min(...rows.map(item => item.low));
+  let maximum = Math.max(...rows.map(item => item.high));
+  if (minimum === maximum) {
+    minimum -= 1;
+    maximum += 1;
+  }
+  const y = value => padding.top + ((maximum - value) / (maximum - minimum)) * plotHeight;
+  const step = plotWidth / rows.length;
+  const bodyWidth = Math.max(4, Math.min(16, step * .52));
+  const grid = Array.from({ length: 5 }, (_, index) => {
+    const ratio = index / 4;
+    const value = maximum - ((maximum - minimum) * ratio);
+    const lineY = padding.top + (plotHeight * ratio);
+    return `<g><line x1="${padding.left}" x2="${width - padding.right}" y1="${lineY}" y2="${lineY}"></line><text x="${padding.left - 10}" y="${lineY + 4}" text-anchor="end">${escapeHtml(adminCompactMoney(value))}</text></g>`;
+  }).join("");
+  const candleMarkup = rows.map((item, index) => {
+    const x = padding.left + (step * index) + (step / 2);
+    const rising = item.close >= item.open;
+    const bodyTop = Math.min(y(item.open), y(item.close));
+    const bodyHeight = Math.max(2, Math.abs(y(item.open) - y(item.close)));
+    return `
+      <g class="admin-candle ${rising ? "up" : "down"}">
+        <line x1="${x}" x2="${x}" y1="${y(item.high)}" y2="${y(item.low)}"></line>
+        <rect x="${x - bodyWidth / 2}" y="${bodyTop}" width="${bodyWidth}" height="${bodyHeight}" rx="1"></rect>
+        <title>${escapeHtml(`${item.date} · Apertura ${money(item.open)} · Cierre ${money(item.close)} · Ingreso ${money(item.income)} · Egreso ${money(item.expense)}`)}</title>
+      </g>
+    `;
+  }).join("");
+  const labels = rows.map((item, index) => {
+    if (index !== 0 && index !== rows.length - 1 && index % 6 !== 0) return "";
+    const x = padding.left + (step * index) + (step / 2);
+    const date = new Date(`${item.date}T12:00:00`);
+    return `<text class="admin-candle-date" x="${x}" y="${height - 10}" text-anchor="middle">${escapeHtml(date.toLocaleDateString("es-MX", { day: "2-digit", month: "short" }))}</text>`;
+  }).join("");
+  return `<svg class="admin-candle-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Grafica de velas del flujo financiero ROIS de los ultimos 30 dias"><g class="admin-candle-grid">${grid}</g>${candleMarkup}${labels}</svg>`;
+}
+
+function startAdminControlRealtime() {
+  if (adminControlRealtimeTimer || state.session?.role !== "admin") return;
+  adminControlRealtimeTimer = setInterval(async () => {
+    if (document.hidden || activeDashboardPanelId("admin") !== "admin-control") return;
+    const previous = adminGrowthSnapshot;
+    const previousSignature = JSON.stringify([
+      previous?.totalProfiles,
+      previous?.registrations24h,
+      previous?.paidRevenue,
+      previous?.pendingRevenue,
+      previous?.accountLocations?.length,
+      previous?.financialCandles?.at?.(-1)?.close
+    ]);
+    const next = await loadAdminGrowthSnapshot({ force: true });
+    const nextSignature = JSON.stringify([
+      next?.totalProfiles,
+      next?.registrations24h,
+      next?.paidRevenue,
+      next?.pendingRevenue,
+      next?.accountLocations?.length,
+      next?.financialCandles?.at?.(-1)?.close
+    ]);
+    if (previousSignature !== nextSignature) {
+      renderAdminControl();
+      return;
+    }
+    const time = document.querySelector("[data-admin-live-time]");
+    if (time) time.textContent = "Sincronizado ahora";
+  }, 15000);
+}
+
 function renderAdminControl() {
   const snapshot = adminGrowthSnapshot || adminGrowthSnapshotFromState();
   const totalTalent = Number(snapshot.totalAthletes || 0) + Number(snapshot.totalCreators || 0);
@@ -5716,14 +5927,18 @@ function renderAdminControl() {
     ["Alertas de datos", snapshot.profileAlerts, "admin-stats", "Integridad de perfiles y relaciones"]
   ].filter(([, value]) => Number(value || 0) > 0).sort((a, b) => Number(b[1]) - Number(a[1]));
   const openDecisionCount = priorities.reduce((sum, item) => sum + Number(item[1] || 0), 0);
+  const accountLocations = Array.isArray(snapshot.accountLocations) ? snapshot.accountLocations : [];
+  const financialCandles = Array.isArray(snapshot.financialCandles) ? snapshot.financialCandles : [];
+  const lastCandle = financialCandles[financialCandles.length - 1] || {};
+  startAdminControlRealtime();
 
   panel("admin-control", "", "", `
     <div class="admin-command">
       <header class="admin-command-head">
         <div>
-          <p class="eyebrow">Executive command</p>
-          <h2>${openDecisionCount ? `${openDecisionCount} decisiones abiertas` : "Operacion al dia"}</h2>
-          <p>Una lectura ordenada de crecimiento, activacion, propagacion y demanda. ${escapeHtml(sourceNote)}.</p>
+          <p class="eyebrow">ROIS global command</p>
+          <h2>Red y crecimiento en una sola vista.</h2>
+          <p>${escapeHtml(sourceNote)}. El resumen se actualiza automaticamente sin recargar las tablas del panel.</p>
         </div>
         <div class="admin-command-actions">
           ${button("Actualizar", async () => {
@@ -5735,13 +5950,45 @@ function renderAdminControl() {
         </div>
       </header>
 
-      <div class="admin-command-strip">
+      <section class="admin-global-overview">
+        <div class="admin-global-map-panel">
+          <div class="admin-global-section-head">
+            <div><p class="eyebrow">Apertura global</p><h3>Nuevas cuentas por ubicacion.</h3></div>
+            <span class="admin-live-status"><i></i><b>LIVE</b><small data-admin-live-time>cada 15 s</small></span>
+          </div>
+          ${adminGlobalMapMarkup(accountLocations)}
+        </div>
+
+        <aside class="admin-live-counter">
+          <p class="eyebrow">Cuentas ROIS</p>
+          <strong>${Number(snapshot.totalProfiles || 0).toLocaleString("es-MX")}</strong>
+          <span>perfiles registrados</span>
+          <dl>
+            <div><dt>Ultimas 24 h</dt><dd>+${snapshot.registrations24h || 0}</dd></div>
+            <div><dt>Ultimos 7 dias</dt><dd>+${snapshot.registrations7d || 0}</dd></div>
+            <div><dt>Empresas</dt><dd>${snapshot.totalCompanies || 0}</dd></div>
+            <div><dt>Talento</dt><dd>${totalTalent}</dd></div>
+          </dl>
+          <small>Las cuentas sin ciudad siguen incluidas en el contador aunque no generen un punto en el mapa.</small>
+        </aside>
+      </section>
+
+      <section class="admin-financial-market">
+        <div class="admin-global-section-head">
+          <div><p class="eyebrow">Financial pulse</p><h3>Crecimiento financiero · 30 dias.</h3></div>
+          <div class="admin-finance-summary"><span>Cierre actual</span><strong>${money(lastCandle.close || 0)}</strong></div>
+        </div>
+        ${adminFinancialCandlesMarkup(financialCandles)}
+        <div class="admin-chart-legend"><span class="income"><i></i>Crecimiento / ingreso</span><span class="expense"><i></i>Contraccion / egreso</span><small>Velas construidas con movimientos marcados como pagados.</small></div>
+      </section>
+
+      <div class="admin-command-strip admin-command-strip-compact">
         ${adminCommandMetric("Altas 7d", snapshot.registrations7d || 0, `${snapshot.registrations24h || 0} en 24 h`)}
         ${adminCommandMetric("Talento publico", publicTalent, `${snapshot.publicAthletes || 0} athletes / ${snapshot.publicCreators || 0} creadores`)}
-        ${adminCommandMetric("Deck coverage", `${deckCoverage}%`, `${snapshot.deckReady || 0} listos`)}
+        ${adminCommandMetric("Deck listos", `${deckCoverage}%`, `${snapshot.deckReady || 0} activos`) }
         ${adminCommandMetric("K Scout", scoutK, `${snapshot.referrals || 0} referidos`)}
-        ${adminCommandMetric("Demanda", demand, `${leadCloseRate}% cierre leads`)}
-        ${adminCommandMetric("Pipeline", money(snapshot.sponsorshipPipelineValue), `${snapshot.activeSponsorships || 0} oportunidades`)}
+        ${adminCommandMetric("Demanda", demand, `${leadCloseRate}% cierre`) }
+        ${adminCommandMetric("Pipeline", money(snapshot.sponsorshipPipelineValue), `${snapshot.activeSponsorships || 0} oportunidades`) }
       </div>
 
       <div class="admin-command-layout">
@@ -5750,7 +5997,7 @@ function renderAdminControl() {
             <div class="admin-command-section-head"><div><p class="eyebrow">Prioridad ahora</p><h3>Decisiones pendientes</h3></div><span>${priorities.length} frentes</span></div>
             <div class="admin-priority-list">
               ${priorities.length
-                ? priorities.map(item => adminPriorityRow(item[0], item[1], item[2], item[3])).join("")
+                ? priorities.slice(0, 5).map(item => adminPriorityRow(item[0], item[1], item[2], item[3])).join("")
                 : `<div class="admin-command-empty"><strong>Sin bloqueos operativos.</strong><span>El sistema no registra decisiones pendientes.</span></div>`}
             </div>
           </section>
@@ -5766,7 +6013,7 @@ function renderAdminControl() {
           </section>
         </main>
 
-        <aside>
+        <aside class="admin-command-side">
           <section class="admin-command-section admin-command-ledger">
             <div class="admin-command-section-head"><div><p class="eyebrow">Comercial</p><h3>Posicion actual</h3></div></div>
             <dl>

@@ -51,6 +51,33 @@ begin
       (select count(*) from public.founders where created_at >= now() - interval '7 days')
     ),
     'companies7d', (select count(*) from public.companies where created_at >= now() - interval '7 days'),
+    'accountLocations', (
+      select coalesce(
+        jsonb_agg(
+          jsonb_build_object(
+            'location', geo.location,
+            'type', geo.account_type,
+            'createdAt', geo.created_at
+          )
+          order by geo.created_at desc
+        ),
+        '[]'::jsonb
+      )
+      from (
+        select located.location, located.account_type, located.created_at
+        from (
+          select nullif(trim(location), '') as location, 'Athlete'::text as account_type, created_at
+          from public.athletes
+          where nullif(trim(location), '') is not null
+          union all
+          select nullif(trim(city), '') as location, 'Creador'::text as account_type, created_at
+          from public.founders
+          where nullif(trim(city), '') is not null
+        ) located
+        order by located.created_at desc
+        limit 250
+      ) geo
+    ),
     'publicAthletes', (select count(*) from public.athletes where status = 'approved' and visual_status = 'approved'),
     'publicCreators', (select count(*) from public.founders where status = 'approved' and visual_status = 'approved'),
     'deckReady', (
@@ -79,6 +106,64 @@ begin
     'activeBusiness', (select count(*) from public.company_subscriptions where plan = 'business' and status in ('active', 'trialing')),
     'paidRevenue', (select coalesce(sum(amount), 0) from public.payments where status = 'paid' and coalesce(product_key, '') not in ('manualExpense', 'fixedExpense')),
     'pendingRevenue', (select coalesce(sum(amount), 0) from public.payments where status <> 'paid' and coalesce(status, '') <> 'deleted' and coalesce(product_key, '') not in ('manualExpense', 'fixedExpense')),
+    'financialCandles', (
+      with days as (
+        select generate_series(current_date - 29, current_date, interval '1 day')::date as day
+      ),
+      daily as (
+        select
+          d.day,
+          coalesce(sum(
+            case
+              when p.status = 'paid' and coalesce(p.product_key, '') not in ('manualExpense', 'fixedExpense')
+              then coalesce(p.amount, 0)
+              else 0
+            end
+          ), 0)::numeric as income,
+          coalesce(sum(
+            case
+              when p.status = 'paid' and coalesce(p.product_key, '') in ('manualExpense', 'fixedExpense')
+              then coalesce(p.amount, 0)
+              else 0
+            end
+          ), 0)::numeric as expense
+        from days d
+        left join public.payments p
+          on p.created_at >= d.day
+         and p.created_at < d.day + interval '1 day'
+        group by d.day
+      ),
+      running as (
+        select
+          day,
+          income,
+          expense,
+          coalesce(
+            sum(income - expense) over (
+              order by day
+              rows between unbounded preceding and 1 preceding
+            ),
+            0
+          )::numeric as open_value
+        from daily
+      )
+      select coalesce(
+        jsonb_agg(
+          jsonb_build_object(
+            'date', day,
+            'open', open_value,
+            'high', open_value + income,
+            'low', open_value - expense,
+            'close', open_value + income - expense,
+            'income', income,
+            'expense', expense
+          )
+          order by day
+        ),
+        '[]'::jsonb
+      )
+      from running
+    ),
     'pendingProfiles', (
       (select count(*) from public.profiles where status = 'pending') +
       (select count(*) from public.companies where status = 'pending')
