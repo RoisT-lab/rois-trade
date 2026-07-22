@@ -6916,12 +6916,13 @@ function renderAdminEvents() {
         <label>Categor\u00eda<input name="category" required placeholder="Ejecutivo, sponsor, membres\u00eda"></label>
         <label>Sede<input name="venue" required placeholder="Sede o ciudad"></label>
         <label>Fecha<input name="date" required placeholder="Por confirmar"></label>
+        <label>Publicaci\u00f3n<select name="status"><option value="approved">Publicar ahora para empresas</option><option value="pending">Guardar para revisi\u00f3n</option></select></label>
         <label style="grid-column:1/-1">Brochure PDF<input name="brochure_pdf" type="file" accept="application/pdf"></label>
         <label style="grid-column:1/-1">Alcance y posicionamiento del evento<textarea name="event_scope" required placeholder="Resume audiencia, alcance, sectores, tomadores de decisi\u00f3n, medios, impacto esperado y por qu\u00e9 una empresa deber\u00eda considerar este evento."></textarea></label>
         <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button class="btn primary" type="submit">Crear evento</button>
       </form>
-      <p class="hint">El evento y su imagen pasan por revisi\u00f3n antes de publicarse.</p>
+      <p class="hint">Los eventos publicados por Admin quedan visibles para las empresas inmediatamente. Tambi\u00e9n puedes guardarlos para revisi\u00f3n.</p>
     </div>
     ${table(["Visual", "Evento", "Empresa", "Sede", "Success fee", "Brochure", "Estado", "Visual", "Acciones"], state.data.events.map(event => [
       visualThumb(event),
@@ -8440,23 +8441,81 @@ async function requestScoutCode() {
 async function submitAdminEvent(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  const image_url = await fileToDataUrl(form.image.files[0]);
-  const brochureFile = form.brochure_pdf.files[0];
-  const brochure_url = brochureFile ? await fileToDataUrl(brochureFile) : "";
-  await api.insert("events", {
-    name: form.name.value,
-    category: form.category.value,
-    venue: form.venue.value,
-    date: form.date.value,
-    brochure_url,
-    brochure_name: brochureFile?.name || "",
-    event_scope: form.event_scope.value,
-    status: "pending",
-    image_url,
-    visual_status: image_url ? "pending_review" : "approved"
-  });
-  notify("Eventos", "Evento creado", "El evento qued\u00f3 pendiente de aprobaci\u00f3n y revisi\u00f3n visual.");
-  renderAdmin();
+  const imageFile = form.image.files?.[0];
+  const brochureFile = form.brochure_pdf.files?.[0];
+  const publishNow = form.status.value === "approved";
+  setSavingState(form, true);
+  let created = null;
+  try {
+    created = await api.insert("events", {
+      name: form.name.value.trim(),
+      category: form.category.value.trim(),
+      venue: form.venue.value.trim(),
+      date: form.date.value.trim(),
+      event_scope: form.event_scope.value.trim(),
+      status: publishNow ? "approved" : "pending",
+      visual_status: "approved"
+    });
+    if (!created?.id) throw new Error("Supabase no devolvi\u00f3 el evento creado.");
+
+    const [imageAsset, brochureAsset] = await Promise.all([
+      imageFile ? uploadAdminEventAsset(imageFile, created.id, "image") : null,
+      brochureFile ? uploadAdminEventAsset(brochureFile, created.id, "brochure") : null
+    ]);
+    const mediaPatch = {
+      ...(imageAsset ? { image_url: imageAsset.url, image_path: imageAsset.path } : {}),
+      ...(brochureAsset ? { brochure_url: brochureAsset.url, brochure_name: brochureAsset.name } : {}),
+      visual_status: "approved"
+    };
+    if (imageAsset || brochureAsset) created = await api.update("events", created.id, mediaPatch) || { ...created, ...mediaPatch };
+
+    notify("Eventos", publishNow ? "Evento publicado" : "Evento guardado", publishNow
+      ? "El evento ya est\u00e1 disponible en el dashboard de las empresas."
+      : "El evento qued\u00f3 pendiente de revisi\u00f3n antes de mostrarse a las empresas.");
+    form.reset();
+    renderAdminEvents();
+  } catch (error) {
+    const partial = created?.id ? " El registro base fue creado; revisa sus archivos desde la tabla." : "";
+    notify("Eventos", "No fue posible publicar", `${humanError(error)}${partial}`);
+  } finally {
+    setSavingState(form, false);
+  }
+}
+
+async function uploadAdminEventAsset(file, eventId, kind) {
+  if (!file) return null;
+  const isBrochure = kind === "brochure";
+  if (isBrochure) {
+    if (file.type !== "application/pdf") throw new Error("El brochure debe ser un archivo PDF.");
+    if (file.size > 15 * 1024 * 1024) throw new Error("El brochure supera 15 MB.");
+  } else {
+    validateProfileAsset(file, "avatar");
+  }
+  const prepared = isBrochure ? file : await resizeProfileImage(file);
+  const filename = `${crypto.randomUUID()}-${sanitizedStorageFilename(prepared.name)}`;
+  const adminId = state.session?.authId || state.session?.id;
+  if (!adminId) throw new Error("La sesi\u00f3n administrativa expir\u00f3.");
+  const path = `admin/${adminId}/events/${eventId}/${kind}/${filename}`;
+  const response = await withTimeout(fetch(`${config.supabaseUrl}/storage/v1/object/${companyMediaBucket}/${path}`, {
+    method: "POST",
+    headers: {
+      apikey: config.supabaseAnonKey,
+      Authorization: `Bearer ${state.session?.token || config.supabaseAnonKey}`,
+      "Content-Type": prepared.type,
+      "x-upsert": "false"
+    },
+    body: prepared
+  }), operationTimeoutMs, "La red est\u00e1 tardando demasiado al subir el archivo.");
+  if (!response.ok) {
+    const detail = await response.text();
+    if (/row-level security|rls|unauthorized/i.test(detail)) throw new Error("Supabase bloque\u00f3 el archivo por permisos RLS.");
+    throw new Error(isBrochure ? "No fue posible subir el brochure." : "No fue posible subir la imagen del evento.");
+  }
+  return {
+    path,
+    url: `${config.supabaseUrl}/storage/v1/object/public/${companyMediaBucket}/${path}`,
+    name: file.name
+  };
 }
 
 async function submitAdminPartner(event) {
@@ -8582,7 +8641,7 @@ function eventPositioningBlock(event) {
   return `
     <div class="event-positioning">
       <p class="eyebrow">Alcance del evento</p>
-      <p>${scope}</p>
+      <p>${escapeHtml(scope)}</p>
     </div>
   `;
 }
