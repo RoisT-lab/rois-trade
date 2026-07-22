@@ -2,13 +2,15 @@
 
 Aplicacion web estatica conectada a Supabase para empresas, athletes, creadores y administracion. La compatibilidad tecnica de creadores conserva el role `founder` y la tabla `founders`.
 
-## Sponsor Deck IA
+## Sponsor Deck ROIS y ROIS IA
 
-Athletes y creadores cuentan con un constructor de Sponsor Deck dentro de su dashboard. El deck guarda narrativa, audiencia, evidencia, afinidad con marcas, entregables, paquetes comerciales y puntuacion de completitud en su registro real. Las empresas pueden abrirlo desde Mercado de fichajes, Creadores o el perfil completo.
+Athletes y creadores cuentan con un constructor de Sponsor Deck dentro de su dashboard. El deck guarda narrativa, audiencia, evidencia, afinidad con marcas, entregables, beneficios y puntuacion de completitud en su registro real. Las empresas pueden abrirlo desde Mercado de fichajes, Creadores o el perfil completo.
 
-El Sponsor Deck ROIS es la unica propuesta comercial activa. Los dashboards ya no permiten cargar ni descargar propuestas PDF externas. Los PDF historicos y sus metadatos se conservan para auditoria y migracion, pero no se muestran ni se modifican desde la aplicacion.
+El Sponsor Deck ROIS es la unica propuesta comercial activa. Los dashboards ya no permiten cargar ni descargar propuestas PDF externas ni imprimir el deck. Los PDF historicos y sus metadatos se conservan para auditoria y migracion, pero no se muestran ni se modifican desde la aplicacion.
 
-Ejecuta primero `supabase-sponsor-deck-ai-mvp.sql`. El modulo incluye un generador guiado local para disponibilidad inmediata y una Edge Function segura opcional en `supabase/functions/generate-sponsor-deck`. Consulta `SPONSOR-DECK-AI-SETUP.md`; nunca coloques `OPENAI_API_KEY` en archivos del frontend.
+Cada deck usa un solo ticket mensual por patrocinador, permite un maximo de 10 sponsors y presenta beneficios verificables en lugar de paquetes escalonados. Athlete y Creador pueden agregar dos imagenes comerciales para calendario, competiciones, eventos o evidencia; estos medios se guardan en `profile-media/{role}/{profile_id}/sponsor-deck/` y sus metadatos viven dentro del JSON del deck.
+
+Ejecuta primero `supabase-sponsor-deck-ai-mvp.sql`. El modulo usa actualmente el generador guiado local, sin consumo de API. ROIS IA queda preparada como una mejora futura y se activa con `ROIS_CONFIG.roisIAEnabled: true` cuando exista presupuesto API. La Edge Function opcional permanece en `supabase/functions/generate-sponsor-deck`; nunca coloques `OPENAI_API_KEY` en archivos del frontend.
 
 ## Creator Marketplace
 

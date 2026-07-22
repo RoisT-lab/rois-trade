@@ -18,6 +18,7 @@ const operationTimeoutMs = 15000;
 const profileImageFallback = "./assets/rois-logo.png";
 const runtimeCacheRowsPerTable = 120;
 const sponsorDeckFunctionName = "generate-sponsor-deck";
+const roisIAEnabled = config.roisIAEnabled === true;
 
 const state = {
   session: readSession(),
@@ -4916,7 +4917,7 @@ function sponsorDeckMarkup(profile, options = {}) {
       <section class="sponsor-deck-commercial-model">
         <p class="eyebrow">Propuesta de patrocinio mensual</p>
         <h3>Beneficios y ventajas para construir una relacion de valor.</h3>
-        <p>El ticket mensual es el mismo para cada patrocinador. La IA ROIS organiza los activos que este perfil puede aportar y nuestro equipo valida alcance, derechos, calendario y condiciones.</p>
+        <p>El ticket mensual es el mismo para cada patrocinador. La metodologia comercial ROIS organiza los activos que este perfil puede aportar y nuestro equipo valida alcance, derechos, calendario y condiciones.</p>
         <div class="sponsor-deck-offer-summary"><div><span>Ticket mensual</span><strong>$${monthlyTicket.toLocaleString("es-MX")} MXN</strong></div><div><span>Capacidad maxima</span><strong>${maxSponsors} sponsors</strong></div></div>
       </section>
       <div class="sponsor-deck-benefits">${benefits.map(sponsorDeckBenefitMarkup).join("") || `<div class="empty">Los beneficios para patrocinadores estan en preparacion.</div>`}</div>
@@ -4987,7 +4988,7 @@ function sponsorDeckButton(profile, label = "Ver Sponsor Deck") {
 function renderAthleteSponsorDeck() {
   const profile = currentAthlete();
   if (!profile) {
-    panel("athlete-sponsor-deck", "Sponsor Deck IA", "Propuesta comercial estructurada", `<div class="empty">Completa primero tu perfil ROIS.</div>`);
+    panel("athlete-sponsor-deck", "Sponsor Deck ROIS", "Propuesta comercial estructurada", `<div class="empty">Completa primero tu perfil ROIS.</div>`);
     return;
   }
   const founder = isFounderProfile(profile);
@@ -4997,12 +4998,16 @@ function renderAthleteSponsorDeck() {
   const defaultAudience = founder
     ? [profile.audience_size ? `${Number(profile.audience_size).toLocaleString("es-MX")} personas` : "", profile.engagement_rate ? `${profile.engagement_rate}% engagement` : "", profile.audience_location || ""].filter(Boolean).join(" · ")
     : `Audiencia interesada en ${profile.sport || "deporte"}, rendimiento, estilo de vida y comunidad en ${profile.location || "Mexico"}.`;
-  panel("athlete-sponsor-deck", "Sponsor Deck IA", founder ? "Convierte audiencia y contenido en una propuesta clara para marcas" : "Convierte trayectoria y resultados en una propuesta clara para sponsors", `
+  panel("athlete-sponsor-deck", "Sponsor Deck ROIS", founder ? "Convierte audiencia y contenido en una propuesta clara para marcas" : "Convierte trayectoria y resultados en una propuesta clara para sponsors", `
     <div class="panel-body sponsor-deck-builder">
       <div class="section-minihead">
-        <p class="eyebrow">Asistente comercial ROIS</p>
+        <p class="eyebrow">Metodologia comercial ROIS</p>
         <h3>Construye una propuesta capaz de ocupar tus 10 espacios de patrocinio.</h3>
-        <p>La IA ROIS organiza tu narrativa, evidencia, audiencia, beneficios y activos visuales para que cada patrocinador entienda el valor de una relacion mensual.</p>
+        <p>Organiza tu narrativa, evidencia, audiencia, beneficios y activos visuales para que cada patrocinador entienda el valor de una relacion mensual.</p>
+      </div>
+      <div class="sponsor-deck-ai-coming">
+        <span class="pill">ROIS IA · Proximamente</span>
+        <p>Tu propuesta ya puede estructurarse y guardarse con la metodologia comercial ROIS. Proximamente ROIS IA podra optimizar automaticamente la narrativa, los beneficios y la propuesta de valor.</p>
       </div>
       <div class="sponsor-deck-progress">
         <div><span>Completitud actual</span><strong>${Number(profile.sponsor_deck_score || 0)}%</strong></div>
@@ -5030,7 +5035,7 @@ function renderAthleteSponsorDeck() {
           ${deckMedia.length ? `<div class="sponsor-deck-media-grid current">${deckMedia.map((item, index) => `<figure>${safeProfileImageMarkup(item.url, item.caption || `Imagen ${index + 1}`)}<figcaption>${escapeHtml(item.caption || `Imagen ${index + 1}`)}</figcaption></figure>`).join("")}</div>` : ""}
         </div>
         <div class="sponsor-deck-managed-contact"><span>Contacto comercial</span><strong>Gestionado exclusivamente por ROIS</strong><p>Las empresas no reciben correos, telefonos ni datos de contacto directo del perfil.</p></div>
-        <button class="btn primary" type="submit">${deck ? "Mejorar propuesta con IA" : "Generar propuesta con IA"}</button>
+        <button class="btn primary" type="submit">${deck ? "Actualizar propuesta ROIS" : "Generar propuesta ROIS"}</button>
       </form>
     </div>
   `);
@@ -5078,13 +5083,15 @@ async function submitSponsorDeck(event) {
   const payload = sponsorDeckFormPayload(form, profile, context.role, media);
   const fallback = localSponsorDeckDraft(payload);
   let generated = fallback;
-  let remoteAI = false;
-  try {
-    generated = normalizeSponsorDeck(await requestSponsorDeckAI(payload), fallback);
-    generated.generatedBy = "openai-secure-function";
-    remoteAI = true;
-  } catch (error) {
-    console.warn("[ROIS sponsor deck] La generacion con IA no respondio", humanError(error));
+  let roisIAUsed = false;
+  if (roisIAEnabled) {
+    try {
+      generated = normalizeSponsorDeck(await requestSponsorDeckAI(payload), fallback);
+      generated.generatedBy = "rois-ia";
+      roisIAUsed = true;
+    } catch (error) {
+      console.warn("[ROIS IA] La optimizacion no respondio", humanError(error));
+    }
   }
   try {
     const score = sponsorDeckQualityScore(payload, profile);
@@ -5096,9 +5103,9 @@ async function submitSponsorDeck(event) {
     }, context);
     refreshProfileViews(context.role, updated);
     renderAthleteSponsorDeck();
-    notify("Sponsor Deck", remoteAI ? "Propuesta generada con IA" : "Borrador comercial guardado", remoteAI
-      ? "La IA ROIS estructuro beneficios, evidencia y propuesta de valor. Revisala antes de presentarla a empresas."
-      : "La mejora con IA no respondio en este intento. Conservamos un borrador estructurado para que no pierdas tu informacion; intenta generarlo nuevamente.");
+    notify("Sponsor Deck ROIS", roisIAUsed ? "Propuesta mejorada con ROIS IA" : "Propuesta ROIS guardada", roisIAUsed
+      ? "ROIS IA optimizo beneficios, evidencia y propuesta de valor. Revisala antes de presentarla a empresas."
+      : "Tu Sponsor Deck fue estructurado y guardado correctamente con la metodologia comercial ROIS.");
   } catch (error) {
     const message = /sponsor_deck|schema cache|PGRST204/i.test(String(error?.message || ""))
       ? "Falta ejecutar supabase-sponsor-deck-ai-mvp.sql antes de guardar el deck."

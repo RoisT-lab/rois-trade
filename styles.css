@@ -13618,3 +13618,31 @@ body[data-active-view="home"] .public-feature-grid .editorial-news-body .social-
     border-bottom: 0;
   }
 }
+/* ROIS IA availability notice */
+.sponsor-deck-ai-coming {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0 28px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255,255,255,.72);
+}
+
+.sponsor-deck-ai-coming p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.sponsor-deck-ai-coming .pill {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 760px) {
+  .sponsor-deck-ai-coming {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
