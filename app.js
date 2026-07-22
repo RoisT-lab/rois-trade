@@ -647,7 +647,10 @@ async function ensureDashboardPanelData(targetId, options = {}) {
     state.dataSignature = runtimeDataSignature(state.data);
     writeDataCache(state.data);
     if (targetId.startsWith("client-")) renderClientKpis();
-    if (document.querySelector(`[data-dashboard-panel="${targetId}"]`)?.classList.contains("active")) {
+    if (
+      document.querySelector(`[data-dashboard-panel="${targetId}"]`)?.classList.contains("active") &&
+      !dashboardPanelHasProtectedDraft(targetId)
+    ) {
       renderDashboardPanelById(targetId);
       optimizeRenderedMedia(document.querySelector(`[data-dashboard-panel="${targetId}"]`));
     }
@@ -688,6 +691,27 @@ function replaceRecordInState(table, updatedRecord) {
   state.dataSignature = runtimeDataSignature(state.data);
   writeDataCache(state.data);
   return updatedRecord;
+}
+
+function dashboardFormHasDraft(form) {
+  if (!form) return false;
+  return [...form.elements].some(control => {
+    if (!control?.name || control.disabled || control.type === "submit" || control.type === "button") return false;
+    if (control.type === "file") return Boolean(control.files?.length);
+    if (control.type === "checkbox" || control.type === "radio") return control.checked !== control.defaultChecked;
+    if (control.tagName === "SELECT") {
+      const defaultIndex = [...control.options].findIndex(option => option.defaultSelected);
+      return control.selectedIndex !== (defaultIndex >= 0 ? defaultIndex : 0);
+    }
+    return String(control.value || "") !== String(control.defaultValue || "");
+  });
+}
+
+function dashboardPanelHasProtectedDraft(targetId) {
+  if (!targetId) return false;
+  const panel = document.querySelector(`[data-dashboard-panel="${targetId}"]`);
+  if (!panel?.classList.contains("active")) return false;
+  return [...panel.querySelectorAll("form[data-preserve-dashboard-draft]")].some(dashboardFormHasDraft);
 }
 
 function removeRecordFromState(table, id) {
@@ -1207,7 +1231,7 @@ async function ensureDashboardHydrated(role = state.session?.role, options = {})
       const view = dashboardViewForRole(role);
       if (view === "client") renderClient();
       if (view === "athlete") renderAthlete();
-      if (view === "admin") renderAdmin();
+      if (view === "admin" && !dashboardPanelHasProtectedDraft(activeDashboardPanelId("admin"))) renderAdmin();
       optimizeRenderedMedia();
       return true;
     } catch (error) {
@@ -1248,6 +1272,7 @@ function refreshActiveDashboardIfStale() {
   if (!state.session || document.visibilityState === "hidden") return;
   if (state.session.role === "admin") {
     const adminPanelId = activeDashboardPanelId("admin");
+    if (adminPanelId && dashboardPanelHasProtectedDraft(adminPanelId)) return;
     if (adminPanelId) ensureDashboardPanelData(adminPanelId, { maxAgeMs: dashboardPanelFreshnessMs });
     return;
   }
@@ -6885,7 +6910,7 @@ function renderAdminAthleteNotifications() {
 function renderAdminEvents() {
   panel("admin-events", "Eventos", "Alta, visuales y aprobaci\u00f3n", `
     <div class="panel-body">
-      <form id="adminEventForm" class="form-grid">
+      <form id="adminEventForm" class="form-grid" data-preserve-dashboard-draft>
         <label>Evento<input name="name" required placeholder="Nombre del evento"></label>
         <label>Categor\u00eda<input name="category" required placeholder="Ejecutivo, sponsor, membres\u00eda"></label>
         <label>Sede<input name="venue" required placeholder="Sede o ciudad"></label>
