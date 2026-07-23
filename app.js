@@ -1197,6 +1197,7 @@ async function init() {
     document.getElementById("passwordModal").classList.add("active");
     return;
   }
+  openRegistrationFromUrl();
   if (state.session) showView(dashboardViewForRole(state.session.role));
   if (cachedData || needsPublicRuntimeData) refreshDataInBackground();
 }
@@ -3650,6 +3651,40 @@ function clientNewsPreviewCard(news) {
   });
 }
 
+function registrationReferralFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const requestedType = String(params.get("registro") || params.get("register") || "").trim().toLowerCase();
+  const typeAliases = {
+    athlete: "athlete",
+    atleta: "athlete",
+    deportista: "athlete",
+    creator: "founder",
+    creador: "founder",
+    founder: "founder",
+    company: "company",
+    empresa: "company"
+  };
+
+  return {
+    type: typeAliases[requestedType] || "",
+    scoutCode: normalizeScoutCode(params.get("scout") || params.get("codigo") || "")
+  };
+}
+
+function applyRegistrationReferral(type) {
+  const form = document.getElementById("registrationForm");
+  const { scoutCode } = registrationReferralFromUrl();
+  if (!form || !scoutCode || !["athlete", "founder"].includes(type) || !form.scout_code) return;
+  form.scout_code.value = scoutCode;
+  form.scout_code.dataset.prefilled = "true";
+}
+
+function openRegistrationFromUrl() {
+  if (state.session || state.pendingSession) return;
+  const { type } = registrationReferralFromUrl();
+  if (type) openRegistration(type);
+}
+
 function formatEditorialBody(text = "") {
   const paragraphs = String(text || "Informacion disponible para miembros aprobados.")
     .split(/\n\s*\n/)
@@ -5501,7 +5536,13 @@ function renderAthleteScouts() {
           <p>${athlete.scout_active ? `Tu codigo esta activo para invitar ${referredPlural}.` : `Unete a la red para activar tu codigo y empezar a invitar ${referredPlural}.`}</p>
         </div>
         <div class="scout-actions">
-          ${athlete.scout_active ? button("Copiar codigo", () => copyScoutCode(code)) : button("Unirme a Scouts ROIS", () => activateScoutNetwork(athlete))}
+          ${athlete.scout_active
+            ? [
+                button("Copiar codigo", () => copyScoutCode(code)),
+                button("Enlace Athlete", () => copyScoutReferralLink(code, "athlete")),
+                button("Enlace Creador", () => copyScoutReferralLink(code, "founder"))
+              ].join("")
+            : button("Unirme a Scouts ROIS", () => activateScoutNetwork(athlete))}
         </div>
       </div>
       <div class="scout-metrics">
@@ -8503,6 +8544,26 @@ async function submitAdminEvent(event) {
   }
 }
 
+function scoutReferralUrl(code, type = "athlete") {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("registro", type === "founder" ? "creator" : "athlete");
+  url.searchParams.set("scout", normalizeScoutCode(code));
+  return url.toString();
+}
+
+async function copyScoutReferralLink(code, type = "athlete") {
+  const url = scoutReferralUrl(code, type);
+  const label = type === "founder" ? "Creador" : "Athlete";
+  try {
+    await navigator.clipboard.writeText(url);
+    notify("Scouts ROIS", `Enlace ${label} copiado`, "Al abrirlo, el registro correcto mostrara el codigo Scout precargado.");
+  } catch (error) {
+    notify("Scouts ROIS", `Enlace ${label}`, url);
+  }
+}
+
 async function updateAdminEventBrochure(event) {
   const input = event.currentTarget;
   const file = input.files?.[0];
@@ -9320,6 +9381,7 @@ function openRegistration(type) {
   document.getElementById("registrationKicker").textContent = "Registro ROIS";
   document.getElementById("registrationTitle").textContent = title;
   document.getElementById("registrationForm").innerHTML = registrationFields(type);
+  applyRegistrationReferral(type);
   if (type === "athlete") setupAthleteAgeGate();
   document.getElementById("registrationModal").classList.add("active");
 }
