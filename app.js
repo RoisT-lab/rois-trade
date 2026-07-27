@@ -38,6 +38,8 @@ const dashboardPanelLoads = new Map();
 const dashboardPanelPromises = new Map();
 const dashboardPanelPageSizes = { client: 24, admin: 75 };
 const dashboardPanelFreshnessMs = 30000;
+const profileEvidenceLoadedAt = new Map();
+const profileEvidenceFreshnessMs = 30000;
 let adminGrowthSnapshot = null;
 let adminGrowthSnapshotPromise = null;
 let adminGrowthSnapshotLoadedAt = 0;
@@ -519,6 +521,7 @@ function mergePageRecords(table, records = []) {
 function resetDashboardPanelState() {
   dashboardPanelLoads.clear();
   dashboardPanelPromises.clear();
+  profileEvidenceLoadedAt.clear();
   adminGrowthSnapshot = null;
   adminGrowthSnapshotPromise = null;
   adminGrowthSnapshotLoadedAt = 0;
@@ -4669,8 +4672,12 @@ function renderAthleteKpis() {
 
 function athleteSocialMedia(post, athlete) {
   const image = post.image_url || athlete?.image_url || profileImageFallback;
-  if (post.video_url?.startsWith("data:video")) {
-    return `<video src="${post.video_url}" muted loop playsinline preload="metadata" poster="${escapeAttr(image)}"></video>`;
+  if (post.video_url) {
+    const embedUrl = videoEmbedUrl(post.video_url);
+    if (embedUrl) {
+      return `<iframe src="${escapeAttr(embedUrl)}" title="${escapeAttr(post.title || "Evidencia ROIS")}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+    }
+    return `<video src="${escapeAttr(post.video_url)}" controls playsinline preload="metadata" poster="${escapeAttr(profileImageUrl(image))}"></video>`;
   }
   return safeProfileImageMarkup(image, post.title || "Publicacion ROIS");
 }
@@ -5353,14 +5360,35 @@ async function submitSponsorDeck(event) {
   }
 }
 
+function competitiveEvidenceFormMarkup(founder = false) {
+  return `
+    <section class="athlete-evidence-composer">
+      <div class="section-minihead">
+        <p class="eyebrow">${founder ? "Evidencia creativa" : "Evidencia competitiva"}</p>
+        <h4>${founder ? "Muestra campañas, presentaciones y contenido real." : "Muestra entrenamientos, competencias y resultados reales."}</h4>
+        <p>Publica una foto o un reel. Esta evidencia será visible para empresas cuando abran tu perfil.</p>
+      </div>
+      <form id="athletePostForm" class="form-grid">
+        <label>Título<input name="title" required maxlength="120" placeholder="${founder ? "Campaña o proyecto destacado" : "Competencia o avance destacado"}"></label>
+        <label>Foto o reel<input name="media_file" type="file" required accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime"></label>
+        <label style="grid-column:1/-1">Descripción<textarea name="caption" required maxlength="1200" placeholder="Explica el contexto, resultado y por qué esta evidencia es relevante para una marca."></textarea></label>
+        <label style="grid-column:1/-1">Portada opcional para reel<input name="thumbnail_file" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <p class="hint" style="grid-column:1/-1">Fotos JPG, PNG o WEBP de hasta 5 MB. Reels MP4, WebM o MOV de hasta 35 MB.</p>
+        <button class="btn primary" type="submit">Publicar evidencia</button>
+      </form>
+    </section>
+  `;
+}
+
 function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), options = {}) {
   const readOnly = Boolean(options.readOnly);
   const companyView = Boolean(options.companyView);
   const founder = isFounderProfile(athlete);
   const copy = verticalCopy(athlete);
   const showPostsTab = true;
+  const profileEmail = String(athlete.email || athlete.contact || "").trim().toLowerCase();
   const posts = state.data.athlete_posts
-    .filter(item => item.athlete_email === athlete.email && item.status === "approved")
+    .filter(item => String(item.athlete_email || "").trim().toLowerCase() === profileEmail && item.status === "approved")
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
     .slice(0, 12);
   const email = athlete.email || state.session?.email || "";
@@ -5431,6 +5459,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
       </div>
 
       <div class="athlete-social-tab-content active" data-athlete-tab-panel="posts">
+        ${readOnly ? "" : competitiveEvidenceFormMarkup(founder)}
         ${hasPosts ? `
           <div class="athlete-social-grid">
             ${posts.map(post => athleteSocialPostTile(post, athlete, { canDelete: !readOnly })).join("")}
@@ -5535,6 +5564,7 @@ function renderAthleteProfile() {
     </div>
   `);
   document.getElementById("athleteProfileForm").addEventListener("submit", submitAthleteProfile);
+  document.getElementById("athletePostForm")?.addEventListener("submit", submitAthletePost);
   document.querySelectorAll("[data-athlete-profile-tab]").forEach(button => {
     button.addEventListener("click", () => activateAthleteProfileTab(button.dataset.athleteProfileTab));
   });
@@ -5673,13 +5703,7 @@ function renderAthleteReels() {
   const posts = state.data.athlete_posts.filter(item => item.athlete_email === email).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   panel("athlete-reels", "Publicaciones", "Publica avances visibles para empresas", `
     <div class="panel-body">
-      <form id="athletePostForm" class="form-grid">
-        <label>T\u00edtulo<input name="title" required placeholder="Avance destacado"></label>
-        <label>Video o archivo de publicaci\u00f3n<input name="video_file" type="file" required accept="video/mp4,video/webm,video/quicktime"></label>
-        <label style="grid-column:1/-1">Descripci\u00f3n<textarea name="caption" required placeholder="Contexto, avance y valor para sponsors."></textarea></label>
-        <label style="grid-column:1/-1">Imagen miniatura opcional<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <button class="btn primary" type="submit">Publicar contenido</button>
-      </form>
+      ${competitiveEvidenceFormMarkup(isFounderProfile(currentAthlete()))}
       ${posts.length ? `<div class="athlete-own-reels">${posts.map(post => athleteOwnReelCard(post)).join("")}</div>` : `<div class="empty">Aun no has publicado contenido.</div>`}
     </div>
   `);
@@ -8297,33 +8321,46 @@ async function submitAthleteResult(event) {
 async function submitAthletePost(event) {
   event.preventDefault();
   const form = event.currentTarget;
+  const context = getCurrentProfileContext();
   const athlete = currentAthlete();
-  const videoFile = form.video_file.files[0];
-  if (!videoFile) {
-    notify("Entrenamientos", "Video requerido", "Selecciona un archivo de video para publicar tu reel.");
+  const title = String(form.elements.namedItem("title")?.value || "").trim();
+  const caption = String(form.elements.namedItem("caption")?.value || "").trim();
+  const mediaFile = form.elements.namedItem("media_file")?.files?.[0];
+  const thumbnailFile = form.elements.namedItem("thumbnail_file")?.files?.[0];
+  if (!context || !athlete) {
+    notify("Evidencia", "Perfil no encontrado", "No encontramos el registro real de tu perfil.");
     return;
   }
-  if (videoFile.size > 35 * 1024 * 1024) {
-    notify("Entrenamientos", "Video demasiado pesado", "Sube un reel corto en MP4, WebM o MOV de hasta 35 MB.");
+  if (!title || !caption || !mediaFile) {
+    notify("Evidencia", "Falta completar", "Agrega titulo, descripcion y una foto o reel.");
     return;
   }
-  const video_url = await fileToDataUrl(videoFile);
-  const image_url = await fileToDataUrl(form.image.files[0]);
-  await api.insert("athlete_posts", {
-    athlete_id: athlete?.id,
-    athlete_email: state.session.email,
-    athlete_name: athlete?.name || state.session.name,
-    title: form.title.value,
-    caption: form.caption.value,
-    video_url,
-    image_url,
-    status: "approved",
-    visual_status: "approved"
-  });
-  notify("Entrenamientos", "Reel publicado", "El contenido ya aparece en el feed de empresas.");
-  renderAthlete();
-  renderAdmin();
-  renderClient();
+  setSavingState(form, true);
+  try {
+    const media = await uploadCompetitiveEvidenceAsset(mediaFile, context);
+    const thumbnail = media.kind === "video" && thumbnailFile
+      ? await uploadCompetitiveEvidenceAsset(thumbnailFile, context)
+      : null;
+    await api.insert("athlete_posts", {
+      athlete_id: athlete.id,
+      athlete_email: context.email,
+      athlete_name: athlete.name || state.session?.name || "Atleta ROIS",
+      title,
+      caption,
+      video_url: media.kind === "video" ? media.url : "",
+      image_url: media.kind === "image" ? media.url : thumbnail?.url || "",
+      status: "approved",
+      visual_status: "approved"
+    });
+    profileEvidenceLoadedAt.set(context.email, Date.now());
+    form.reset();
+    renderAthleteProfile();
+    notify("Evidencia", "Publicacion visible", "Tu evidencia ya esta disponible para las empresas que abran tu perfil.");
+  } catch (error) {
+    notify("Evidencia", "No fue posible publicar", humanError(error));
+  } finally {
+    if (form.isConnected) setSavingState(form, false);
+  }
 }
 
 async function submitAthleteExpense(event) {
@@ -9432,17 +9469,15 @@ function videoEmbedUrl(url = "") {
 function reelMedia(post, athlete, options = {}) {
   const embedUrl = videoEmbedUrl(post.video_url);
   const isFeed = Boolean(options.feed);
-  if (post.video_url?.startsWith("data:video")) {
-    return `<video src="${post.video_url}" ${isFeed ? "muted loop autoplay" : "controls muted loop"} playsinline preload="${isFeed ? "auto" : "metadata"}" poster="${escapeAttr(post.image_url || athlete?.image_url || "")}"></video>`;
-  }
   if (embedUrl) {
     return `<iframe src="${embedUrl}" title="${escapeAttr(post.title || "Reel deportivo")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
   }
+  if (post.video_url) {
+    return `<video src="${escapeAttr(post.video_url)}" ${isFeed ? "muted loop autoplay" : "controls muted loop"} playsinline preload="metadata" poster="${escapeAttr(post.image_url || athlete?.image_url || "")}"></video>`;
+  }
   const image = post.image_url || athlete?.image_url || profileImageFallback;
-  const link = post.video_url ? `<a class="btn primary" href="${post.video_url}" target="_blank" rel="noopener">Abrir reel</a>` : "";
   return `
     ${safeProfileImageMarkup(image, post.title || "Reel deportivo")}
-    <div class="reel-media-fallback">${link}</div>
   `;
 }
 
@@ -9526,7 +9561,23 @@ function athleteOwnReelCard(post) {
   `;
 }
 
-function openAthleteProfileView(athlete) {
+async function ensureProfileEvidenceLoaded(athlete) {
+  const email = String(athlete?.email || athlete?.contact || "").trim().toLowerCase();
+  if (!email || !api.loadTablePage) return false;
+  const loadedAt = profileEvidenceLoadedAt.get(email) || 0;
+  if (Date.now() - loadedAt < profileEvidenceFreshnessMs) return false;
+  const columns = "id,athlete_id,athlete_email,athlete_name,title,caption,video_url,image_url,visual_status,visual_notes,status,created_at";
+  const rows = await api.loadTablePage(
+    "athlete_posts",
+    `select=${columns}&athlete_email=eq.${encodeURIComponent(email)}&status=eq.approved&visual_status=eq.approved&order=created_at.desc`,
+    { offset: 0, limit: 24, token: state.session?.token }
+  );
+  mergePageRecords("athlete_posts", rows || []);
+  profileEvidenceLoadedAt.set(email, Date.now());
+  return true;
+}
+
+function renderAthleteProfileModal(athlete) {
   const modal = document.getElementById("actionModal");
   const founder = isFounderProfile(athlete);
   modal.dataset.profileRecordId = String(athlete.id || "");
@@ -9541,6 +9592,20 @@ function openAthleteProfileView(athlete) {
   document.querySelectorAll("#actionModal [data-athlete-profile-tab]").forEach(button => {
     button.addEventListener("click", () => activateAthleteProfileTab(button.dataset.athleteProfileTab));
   });
+}
+
+async function openAthleteProfileView(athlete) {
+  renderAthleteProfileModal(athlete);
+  if (state.session?.role !== "client") return;
+  try {
+    const updated = await ensureProfileEvidenceLoaded(athlete);
+    const modal = document.getElementById("actionModal");
+    if (updated && modal?.classList.contains("active") && modal.dataset.profileRecordId === String(athlete.id || "")) {
+      renderAthleteProfileModal(athlete);
+    }
+  } catch (error) {
+    console.warn("[ROIS] No fue posible cargar la evidencia del perfil.", error);
+  }
 }
 
 async function deleteAthletePost(postId) {
@@ -10006,6 +10071,52 @@ async function uploadProfileAsset(file, kind, context = getCurrentProfileContext
     path,
     name: file.name,
     mime: preparedFile.type
+  };
+}
+
+function competitiveEvidenceAssetKind(file) {
+  if (!file) throw new Error("Selecciona una foto o reel.");
+  const imageTypes = ["image/jpeg", "image/png", "image/webp"];
+  const videoTypes = ["video/mp4", "video/webm", "video/quicktime"];
+  if (imageTypes.includes(file.type)) {
+    if (file.size > 5 * 1024 * 1024) throw new Error("La imagen supera 5 MB.");
+    return "image";
+  }
+  if (videoTypes.includes(file.type)) {
+    if (file.size > 35 * 1024 * 1024) throw new Error("El reel supera 35 MB.");
+    return "video";
+  }
+  throw new Error("Usa una foto JPG, PNG o WEBP, o un reel MP4, WebM o MOV.");
+}
+
+async function uploadCompetitiveEvidenceAsset(file, context = getCurrentProfileContext()) {
+  await ensureActiveSession();
+  if (!context?.profileId || !context?.table) throw new Error("No encontramos el registro real del perfil.");
+  const kind = competitiveEvidenceAssetKind(file);
+  const preparedFile = kind === "image" ? await resizeProfileImage(file) : file;
+  const filename = `${crypto.randomUUID()}-${sanitizedStorageFilename(preparedFile.name)}`;
+  const path = `${context.table}/${context.profileId}/evidence/${filename}`;
+  const response = await withTimeout(fetch(`${config.supabaseUrl}/storage/v1/object/${profileMediaBucket}/${path}`, {
+    method: "POST",
+    headers: {
+      apikey: config.supabaseAnonKey,
+      Authorization: `Bearer ${state.session?.token || config.supabaseAnonKey}`,
+      "Content-Type": preparedFile.type,
+      "x-upsert": "true"
+    },
+    body: preparedFile
+  }), 60000, "La red esta tardando demasiado al subir la evidencia.");
+  if (!response.ok) {
+    const detail = await response.text();
+    if (/row-level security|rls|unauthorized/i.test(detail)) throw new Error("Supabase bloqueo la operacion por RLS.");
+    throw new Error("No fue posible subir la evidencia.");
+  }
+  return {
+    url: `${config.supabaseUrl}/storage/v1/object/public/${profileMediaBucket}/${path}`,
+    path,
+    name: file.name,
+    mime: preparedFile.type,
+    kind
   };
 }
 
