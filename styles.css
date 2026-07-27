@@ -17876,3 +17876,7 @@ body[data-active-view="home"] .premium-home-footer-meta a:hover {
     padding: 18px;
   }
 }
+/* The public navigation belongs to Home, not to the commercial workspace. */
+body[data-active-view="commercial"] .topbar {
+  display: none;
+}
