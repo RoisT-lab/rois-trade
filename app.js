@@ -244,6 +244,7 @@ function withCachedLoadAll(sourceApi) {
 }
 
 function normalizedRole(email, role) {
+  if (role === "commercial") return "commercial";
   if (role === "founder") return "founder";
   if (role === "athlete") return "athlete";
   if (role !== "admin") return "client";
@@ -252,7 +253,9 @@ function normalizedRole(email, role) {
 }
 
 function dashboardViewForRole(role) {
-  return role === "admin" ? "admin" : role === "athlete" || role === "founder" ? "athlete" : "client";
+  if (role === "admin") return "admin";
+  if (role === "commercial") return "commercial";
+  return role === "athlete" || role === "founder" ? "athlete" : "client";
 }
 
 function readSession() {
@@ -358,7 +361,7 @@ function enforceCompanyClientSession() {
   if (!state.session || !state.data?.companies) return;
   const email = state.session.email?.toLowerCase();
   const isCompany = state.data.companies.some(company => (company.contact || "").toLowerCase() === email);
-  if (isCompany && !["athlete", "founder"].includes(state.session.role)) {
+  if (isCompany && !["admin", "commercial", "athlete", "founder"].includes(state.session.role)) {
     state.session = { ...state.session, role: "client" };
   }
 }
@@ -371,7 +374,7 @@ function enforceMemberSessionRole() {
     item.id === state.session.id ||
     String(item.email || "").trim().toLowerCase() === email
   );
-  if (!["athlete", "founder"].includes(profile?.role)) return;
+  if (!["commercial", "athlete", "founder"].includes(profile?.role)) return;
   if (state.session.role !== profile.role) {
     state.session = { ...state.session, role: profile.role };
   }
@@ -526,8 +529,8 @@ function resetDashboardPanelState() {
 }
 
 function markBootstrapPanelLoaded(role, data = {}) {
-  if (role !== "admin") return;
-  const targetId = "admin-users";
+  if (!["admin", "commercial"].includes(role)) return;
+  const targetId = role === "commercial" ? "commercial-overview" : "admin-users";
   const pageSize = dashboardPanelPageSizes.admin;
   const tables = dashboardPanelQueries(targetId).map(item => item.table);
   dashboardPanelLoads.set(targetId, {
@@ -546,6 +549,7 @@ function activeDashboardPanelId(view = dashboardViewForRole(state.session?.role)
 function dashboardPanelQueries(targetId) {
   const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,created_at";
   const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at";
+  const crmColumns = "id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at";
   const companyName = currentCompany()?.name || state.session?.name || "";
   const companyId = currentCompany()?.id || "";
   const encodedCompany = encodeURIComponent(companyName);
@@ -605,7 +609,7 @@ function dashboardPanelQueries(targetId) {
       { table: "marketplace_leads", query: "select=id,listing_id,seller_company_id,buyer_company_id,requester_email,requester_name,requester_company,message,status,created_at,updated_at&order=created_at.desc" },
       { table: "requests", query: "select=id,type,title,owner,details,priority,status,created_at&type=eq.Plan%20empresarial&order=created_at.desc" }
     ],
-    "admin-crm": [{ table: "crm", query: "select=id,name,volume,status,created_at&order=created_at.desc" }],
+    "admin-crm": [{ table: "crm", query: `select=${crmColumns}&order=created_at.desc` }],
     "admin-revenue": [
       { table: "payments", query: "select=id,concept,amount,company,status,product_key,created_at&order=created_at.desc" },
       { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` }
@@ -632,11 +636,18 @@ function dashboardPanelQueries(targetId) {
       { table: "requests", query: "select=id,type,title,owner,details,priority,status,created_at&order=created_at.desc" }
     ]
   };
-  return client[targetId] || admin[targetId] || [];
+  const commercial = {
+    "commercial-overview": [{ table: "crm", query: `select=${crmColumns}&order=created_at.desc` }],
+    "commercial-prospects": [{ table: "crm", query: `select=${crmColumns}&order=created_at.desc` }],
+    "commercial-followup": [{ table: "crm", query: `select=${crmColumns}&order=next_follow_up_at.asc.nullslast,created_at.desc` }]
+  };
+  return client[targetId] || admin[targetId] || commercial[targetId] || [];
 }
 
 function dashboardPanelPageSize(targetId) {
-  return targetId.startsWith("admin-") ? dashboardPanelPageSizes.admin : dashboardPanelPageSizes.client;
+  return targetId.startsWith("admin-") || targetId.startsWith("commercial-")
+    ? dashboardPanelPageSizes.admin
+    : dashboardPanelPageSizes.client;
 }
 
 async function ensureDashboardPanelData(targetId, options = {}) {
@@ -1284,6 +1295,7 @@ async function ensureDashboardHydrated(role = state.session?.role, options = {})
       const view = dashboardViewForRole(role);
       if (view === "client") renderClient();
       if (view === "athlete") renderAthlete();
+      if (view === "commercial") renderCommercial();
       if (view === "admin" && !dashboardPanelHasProtectedDraft(activeDashboardPanelId("admin"))) renderAdmin();
       optimizeRenderedMedia();
       return true;
@@ -1787,7 +1799,7 @@ function supabaseApi() {
         news: `select=id,title,summary,image_url,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${smallLimit}`,
         partnerships: `select=id,name,type,tier,description,image_url,url,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${smallLimit}`,
         site_settings: `select=id,value,created_at&limit=${Math.min(smallLimit, 80)}`,
-        crm: `select=id,name,volume,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
+        crm: `select=id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
         payments: `select=id,concept,amount,company,status,product_key,created_at&order=created_at.desc&limit=${mediumLimit}`,
         uploads: `select=id,type,status,name,size,image_url,visual_status,visual_notes,created_at&order=created_at.desc&limit=${lightweight ? Math.min(smallLimit, 80) : mediumLimit}`,
         athlete_posts: `select=id,athlete_id,athlete_email,athlete_name,title,caption,video_url,image_url,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
@@ -1828,6 +1840,13 @@ function supabaseApi() {
           result[spec.table] = await roleRequest(`/rest/v1/${spec.table}?${spec.query}&limit=${dashboardPanelPageSizes.admin}`);
         }));
         return normalizeLoadedData(result);
+      }
+      if (role === "commercial") {
+        const [profiles, crm] = await Promise.all([
+          roleRequest(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`),
+          roleRequest("/rest/v1/crm?select=id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=250")
+        ]);
+        return normalizeLoadedData({ profiles, crm });
       }
       const profileQuery = `/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`;
       const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
@@ -1993,7 +2012,9 @@ function supabaseApi() {
       if (companies.some(company => ["blocked", "deleted", "rejected"].includes(company.status))) throw new Error("Esta empresa fue dada de baja por ROIS.");
       if (athletes.some(athlete => ["blocked", "deleted", "rejected"].includes(athlete.status))) throw new Error("Esta cuenta emprendedora fue dada de baja por ROIS.");
       if (founders.some(founder => ["blocked", "deleted", "rejected"].includes(founder.status))) throw new Error("Esta cuenta de creador fue dada de baja por ROIS.");
-      const role = profile.role === "founder"
+      const role = profile.role === "commercial"
+        ? "commercial"
+        : profile.role === "founder"
         ? "founder"
         : profile.role === "athlete"
           ? "athlete"
@@ -2883,6 +2904,10 @@ function showView(name) {
     renderAthlete();
     ensureDashboardHydrated(state.session?.role === "founder" ? "founder" : "athlete", { maxAgeMs: dashboardFreshnessMs });
   }
+  if (name === "commercial") {
+    renderCommercial();
+    ensureDashboardHydrated("commercial", { maxAgeMs: dashboardFreshnessMs });
+  }
   if (name === "admin") {
     renderAdmin();
     ensureDashboardHydrated("admin", { maxAgeMs: dashboardFreshnessMs }).then(success => {
@@ -2907,6 +2932,8 @@ function showDashboardPanel(targetId) {
     ? (state.session?.role === "founder" ? "founder" : "athlete")
     : workspace.dataset.dashboard === "client"
       ? "client"
+      : workspace.dataset.dashboard === "commercial"
+        ? "commercial"
       : workspace.dataset.dashboard === "admin"
         ? "admin"
         : null;
@@ -2920,13 +2947,20 @@ function showDashboardPanel(targetId) {
 function renderDashboardPanelById(targetId) {
   if (targetId.startsWith("client-")) renderClientPanel(targetId);
   if (targetId.startsWith("athlete-")) renderAthletePanel(targetId);
+  if (targetId.startsWith("commercial-")) renderCommercialPanel(targetId);
   if (targetId.startsWith("admin-")) renderAdminPanel(targetId);
   decoratePanelPagination(targetId);
 }
 
 function openMobileDashboardMenu(type) {
   closeMobileDashboardMenus();
-  const viewName = type === "admin" ? "admin" : type === "athlete" ? "athlete" : "client";
+  const viewName = type === "admin"
+    ? "admin"
+    : type === "commercial"
+      ? "commercial"
+      : type === "athlete"
+        ? "athlete"
+        : "client";
   const view = document.querySelector(`[data-view="${viewName}"]`);
   view?.classList.add("nav-open");
 }
@@ -3378,9 +3412,18 @@ function renderSession() {
     area.querySelector("[data-open-login]").addEventListener("click", openLogin);
     return;
   }
+  const panelLabel = state.session.role === "admin"
+    ? "Panel admin"
+    : state.session.role === "commercial"
+      ? "Panel comercial"
+      : state.session.role === "founder"
+        ? "Panel creador"
+        : state.session.role === "athlete"
+          ? "Panel deportista"
+          : "Panel cliente";
   area.innerHTML = `
-    <span class="pill">${state.session.role === "admin" ? "Admin" : state.session.name}</span>
-    <button class="btn subtle" type="button" data-panel-link>${state.session.role === "admin" ? "Panel admin" : state.session.role === "founder" ? "Panel founder" : state.session.role === "athlete" ? "Panel deportista" : "Panel cliente"}</button>
+    <span class="pill">${state.session.role === "admin" ? "Admin" : state.session.role === "commercial" ? "Comercial" : state.session.name}</span>
+    <button class="btn subtle" type="button" data-panel-link>${panelLabel}</button>
   `;
   area.querySelector("[data-panel-link]").addEventListener("click", () => showView(dashboardViewForRole(state.session.role)));
 }
@@ -7275,10 +7318,191 @@ function renderAdminCorporateMarket() {
   `);
 }
 
+function crmProspectTypeLabel(value) {
+  return {
+    company: "Empresa",
+    creator: "Creador",
+    athlete: "Deportista"
+  }[String(value || "").toLowerCase()] || "Prospecto";
+}
+
+function crmInvitationStatusLabel(value) {
+  return {
+    not_sent: "Sin enviar",
+    queued: "En cola",
+    sending: "Enviando",
+    sent: "Enviado",
+    email_error: "Reintentar"
+  }[String(value || "").toLowerCase()] || "Sin enviar";
+}
+
+function commercialCrmRecords() {
+  return [...(state.data.crm || [])]
+    .filter(item => ["company", "creator", "athlete"].includes(String(item.prospect_type || "").toLowerCase()))
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
+function crmFollowUpIsPending(item) {
+  if (!item.next_follow_up_at || ["Registrado", "No interesado"].includes(item.status)) return false;
+  const due = new Date(item.next_follow_up_at);
+  return !Number.isNaN(due.getTime()) && due <= new Date();
+}
+
+function crmProspectActions(item) {
+  const actions = [];
+  if (item.invitation_status === "sent") {
+    actions.push(button("Reenviar invitaci\u00f3n", () => retryCrmInvitation(item.id)));
+  } else {
+    actions.push(button("Enviar invitaci\u00f3n", () => retryCrmInvitation(item.id)));
+  }
+  if (!["Contactado", "Interesado", "Registrado"].includes(item.status)) {
+    actions.push(button("Marcar contactado", () => updateCrmStage(item.id, "Contactado")));
+  }
+  if (!["Interesado", "Registrado"].includes(item.status)) {
+    actions.push(button("Marcar interesado", () => updateCrmStage(item.id, "Interesado")));
+  }
+  if (item.status !== "Registrado") {
+    actions.push(button("Marcar registrado", () => updateCrmStage(item.id, "Registrado")));
+  }
+  return actionGroup(actions);
+}
+
+function crmProspectRows(records = commercialCrmRecords()) {
+  return records.map(item => [
+    `<strong>${escapeHtml(item.name || item.contact_name || "Prospecto ROIS")}</strong><br><span class="hint">${escapeHtml(item.organization || "")}</span>`,
+    escapeHtml(item.email || "Sin correo"),
+    badge(crmProspectTypeLabel(item.prospect_type)),
+    badge(item.status || "Nuevo"),
+    `${badge(crmInvitationStatusLabel(item.invitation_status))}${item.invitation_sent_at ? `<br><span class="hint">${readableDate(item.invitation_sent_at)}</span>` : ""}`,
+    item.next_follow_up_at ? readableDate(item.next_follow_up_at) : "Sin fecha",
+    crmProspectActions(item)
+  ]);
+}
+
+function commercialProspectFormMarkup() {
+  return `
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Nueva invitaci\u00f3n</p>
+        <h3>Registra el prospecto y env\u00eda su acceso a ROIS.</h3>
+        <p>El registro se guarda antes de enviar el correo. Creadores y deportistas necesitan un c\u00f3digo Scout activo para completar su alta.</p>
+      </div>
+      <form id="commercialProspectForm" class="form-grid" data-preserve-dashboard-draft>
+        <label>Tipo de prospecto
+          <select name="prospect_type" required>
+            <option value="company">Empresa</option>
+            <option value="creator">Creador</option>
+            <option value="athlete">Deportista</option>
+          </select>
+        </label>
+        <label>Nombre<input name="name" required placeholder="Nombre de la persona o empresa"></label>
+        <label>Correo electr\u00f3nico<input name="email" type="email" required placeholder="correo@dominio.com"></label>
+        <label>Empresa / organizaci\u00f3n<input name="organization" placeholder="Marca, agencia, academia o equipo"></label>
+        <label>Tel\u00e9fono<input name="phone" inputmode="tel" placeholder="+52..."></label>
+        <label>Origen
+          <select name="source">
+            <option value="Prospeccion directa">Prospecci\u00f3n directa</option>
+            <option value="Instagram">Instagram</option>
+            <option value="LinkedIn">LinkedIn</option>
+            <option value="Referido">Referido</option>
+            <option value="Evento">Evento</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </label>
+        <label data-commercial-scout-field hidden>C\u00f3digo Scout<input name="scout_code" placeholder="Obligatorio para creador o deportista"></label>
+        <label>Pr\u00f3ximo seguimiento<input name="next_follow_up_at" type="date"></label>
+        <label style="grid-column:1/-1">Notas<textarea name="notes" placeholder="Contexto, inter\u00e9s, relaci\u00f3n previa o siguiente acci\u00f3n."></textarea></label>
+        <button class="btn primary" type="submit">Guardar y enviar invitaci\u00f3n</button>
+      </form>
+    </div>
+  `;
+}
+
+function bindCommercialProspectForm() {
+  const form = document.getElementById("commercialProspectForm");
+  if (!form) return;
+  const scoutField = form.querySelector("[data-commercial-scout-field]");
+  const scoutInput = form.elements.scout_code;
+  const syncScoutRequirement = () => {
+    const required = ["creator", "athlete"].includes(form.elements.prospect_type.value);
+    scoutField.hidden = !required;
+    scoutInput.required = required;
+    if (!required) scoutInput.value = "";
+  };
+  form.elements.prospect_type.addEventListener("change", syncScoutRequirement);
+  form.addEventListener("submit", submitCommercialProspect);
+  syncScoutRequirement();
+}
+
+function renderCommercial() {
+  const activePanel = document.querySelector('[data-dashboard="commercial"] [data-dashboard-panel].active')?.dataset.dashboardPanel || "commercial-overview";
+  renderCommercialPanel(activePanel);
+}
+
+function renderCommercialPanel(targetId) {
+  const map = {
+    "commercial-overview": renderCommercialOverview,
+    "commercial-prospects": renderCommercialProspects,
+    "commercial-followup": renderCommercialFollowup
+  };
+  if (map[targetId]) map[targetId]();
+  decoratePanelPagination(targetId);
+}
+
+function renderCommercialOverview() {
+  const records = commercialCrmRecords();
+  const sent = records.filter(item => item.invitation_status === "sent").length;
+  const retries = records.filter(item => item.invitation_status === "email_error").length;
+  const due = records.filter(crmFollowUpIsPending).length;
+  const recentRows = crmProspectRows(records.slice(0, 10));
+  panel("commercial-overview", "Control comercial", "Prospecci\u00f3n e invitaciones ROIS", `
+    <div class="panel-body">
+      <div class="scout-metrics">
+        <div><span>Prospectos</span><strong>${records.length}</strong></div>
+        <div><span>Invitaciones enviadas</span><strong>${sent}</strong></div>
+        <div><span>Requieren reintento</span><strong>${retries}</strong></div>
+        <div><span>Seguimientos vencidos</span><strong>${due}</strong></div>
+      </div>
+    </div>
+    <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Actividad reciente</p><h3>\u00daltimos prospectos registrados.</h3></div></div>
+    ${recentRows.length ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], recentRows) : `<div class="empty">A\u00fan no hay prospectos en el CRM.</div>`}
+  `);
+}
+
+function renderCommercialProspects() {
+  const rows = crmProspectRows();
+  panel("commercial-prospects", "Prospectos", "Alta, invitaci\u00f3n y avance comercial", `
+    ${commercialProspectFormMarkup()}
+    ${rows.length ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], rows) : `<div class="empty">Registra el primer prospecto para iniciar el pipeline.</div>`}
+  `);
+  bindCommercialProspectForm();
+}
+
+function renderCommercialFollowup() {
+  const records = commercialCrmRecords()
+    .filter(item => !["Registrado", "No interesado"].includes(item.status))
+    .sort((a, b) => new Date(a.next_follow_up_at || "9999-12-31") - new Date(b.next_follow_up_at || "9999-12-31"));
+  const rows = crmProspectRows(records);
+  panel("commercial-followup", "Seguimiento", "Pr\u00f3ximas acciones del equipo comercial", rows.length
+    ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], rows)
+    : `<div class="empty">No hay seguimientos pendientes.</div>`);
+}
+
 function renderAdminCrm() {
-  panel("admin-crm", "CRM", "Pipeline de relaciones", table(["Categor\u00eda", "Volumen", "Estado", "Acci\u00f3n"], state.data.crm.map(item => [
-    item.name, item.volume, badge(item.status), button("Avanzar", () => updateCrm(item.id))
-  ])));
+  const prospects = commercialCrmRecords();
+  const legacy = (state.data.crm || []).filter(item => !["company", "creator", "athlete"].includes(String(item.prospect_type || "").toLowerCase()));
+  const legacyRows = legacy.map(item => [
+    escapeHtml(item.name || "Registro CRM"),
+    Number(item.volume || 0),
+    badge(item.status || "Activo"),
+    button("Avanzar", () => updateCrm(item.id))
+  ]);
+  panel("admin-crm", "CRM", "Prospecci\u00f3n, invitaciones y trazabilidad", `
+    ${commercialProspectFormMarkup()}
+    ${prospects.length ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], crmProspectRows(prospects)) : `<div class="empty">A\u00fan no hay prospectos comerciales.</div>`}
+    ${legacyRows.length ? `<div class="panel-body"><div class="section-minihead"><p class="eyebrow">Registros anteriores</p><h3>Pipeline legacy conservado.</h3></div></div>${table(["Categor\u00eda", "Volumen", "Estado", "Acci\u00f3n"], legacyRows)}` : ""}
+  `);
+  bindCommercialProspectForm();
 }
 
 function renderAdminPayments() {
@@ -8291,6 +8515,158 @@ async function updateCrm(id) {
   await api.update("crm", id, { status: "En seguimiento" });
   notify("CRM", "Pipeline actualizado", "El elemento cambi\u00f3 a seguimiento.");
   renderAdmin();
+}
+
+function crmInvitationEmailEndpoint() {
+  return config.crmInvitationWebhook || `${String(config.supabaseUrl || "").replace(/\/$/, "")}/functions/v1/send-rois-crm-invitation`;
+}
+
+function renderCrmAfterMutation() {
+  if (state.session?.role === "commercial") {
+    renderCommercialPanel(activeDashboardPanelId("commercial") || "commercial-overview");
+  } else if (state.session?.role === "admin") {
+    renderAdminCrm();
+  }
+}
+
+async function updateCrmStage(id, status) {
+  await api.update("crm", id, {
+    status,
+    last_contact_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  });
+  notify("CRM", "Etapa actualizada", `El prospecto avanz\u00f3 a ${status}.`);
+  renderCrmAfterMutation();
+}
+
+async function sendCrmInvitation(prospectId, options = {}) {
+  const prospect = (state.data.crm || []).find(item => item.id === prospectId);
+  if (!prospect) throw new Error("No encontramos el prospecto dentro del CRM.");
+  const endpoint = crmInvitationEmailEndpoint();
+  if (!endpoint || !state.session?.token) throw new Error("La sesi\u00f3n comercial expir\u00f3. Inicia sesi\u00f3n nuevamente.");
+  if (!options.silent) notify("CRM", "Enviando invitaci\u00f3n", "Estamos preparando el acceso personalizado a ROIS.");
+  const response = await withTimeout(fetch(endpoint, {
+    method: "POST",
+    headers: {
+      apikey: config.supabaseAnonKey,
+      Authorization: `Bearer ${state.session.token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ prospectId })
+  }), operationTimeoutMs, "La red est\u00e1 tardando demasiado al enviar la invitaci\u00f3n.");
+  if (!response.ok) {
+    const responseText = await response.text();
+    let message = responseText;
+    try {
+      message = JSON.parse(responseText)?.error || responseText;
+    } catch (parseError) {
+      message = responseText;
+    }
+    throw new Error(message || "No fue posible enviar la invitaci\u00f3n.");
+  }
+  const result = await response.json();
+  if (result.prospect) replaceRecordInState("crm", result.prospect);
+  if (!options.silent) {
+    notify("CRM", "Invitaci\u00f3n enviada", `El correo para ${prospect.name || prospect.email} fue procesado correctamente.`);
+    renderCrmAfterMutation();
+  }
+  return result;
+}
+
+async function retryCrmInvitation(prospectId) {
+  try {
+    await sendCrmInvitation(prospectId);
+  } catch (error) {
+    const message = humanError(error);
+    try {
+      await api.update("crm", prospectId, {
+        invitation_status: "email_error",
+        invitation_error: message.slice(0, 1000),
+        updated_at: new Date().toISOString()
+      });
+    } catch (updateError) {
+      console.warn("[ROIS CRM invitation retry]", humanError(updateError));
+    }
+    notify("CRM", "Correo no enviado", message);
+    renderCrmAfterMutation();
+  }
+}
+
+async function submitCommercialProspect(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const submitButton = form.querySelector('[type="submit"]');
+  const prospectType = String(form.prospect_type.value || "").trim().toLowerCase();
+  const email = normalizedAccountEmail(form.email.value);
+  const name = String(form.name.value || "").trim();
+  const scoutCode = String(form.scout_code.value || "").trim().toUpperCase();
+  if (!["company", "creator", "athlete"].includes(prospectType) || !name || !email) {
+    notify("CRM", "Datos incompletos", "Completa tipo, nombre y correo electr\u00f3nico.");
+    return;
+  }
+  if (["creator", "athlete"].includes(prospectType)) {
+    if (!scoutCode) {
+      notify("CRM", "C\u00f3digo Scout requerido", "Creadores y deportistas necesitan un c\u00f3digo Scout para recibir su invitaci\u00f3n.");
+      form.scout_code.focus();
+      return;
+    }
+    const scoutValidation = await api.validateScoutCode(scoutCode);
+    if (!scoutValidation.valid) {
+      notify("CRM", "C\u00f3digo Scout no v\u00e1lido", scoutValidation.message || "Verifica el c\u00f3digo antes de enviar la invitaci\u00f3n.");
+      form.scout_code.focus();
+      return;
+    }
+  }
+  submitButton.disabled = true;
+  submitButton.textContent = "Guardando y enviando...";
+  try {
+    const now = new Date().toISOString();
+    const record = {
+      name,
+      contact_name: name,
+      email,
+      prospect_type: prospectType,
+      organization: String(form.organization.value || "").trim(),
+      phone: String(form.phone.value || "").trim(),
+      source: String(form.source.value || "Prospeccion directa").trim(),
+      notes: String(form.notes.value || "").trim(),
+      scout_code: scoutCode || null,
+      volume: 1,
+      status: "Nuevo",
+      invitation_status: "queued",
+      next_follow_up_at: form.next_follow_up_at.value || null,
+      created_by: state.session.authId || state.session.id,
+      updated_at: now
+    };
+    const existing = (state.data.crm || []).find(item => normalizedAccountEmail(item.email) === email);
+    const prospect = existing
+      ? await api.update("crm", existing.id, record)
+      : await api.insert("crm", record);
+    if (!prospect?.id) throw new Error("El CRM no devolvi\u00f3 el prospecto guardado.");
+    try {
+      await sendCrmInvitation(prospect.id, { silent: true });
+      notify("CRM", "Prospecto e invitaci\u00f3n listos", `${name} fue guardado y recibi\u00f3 el correo para crear su cuenta.`);
+    } catch (emailError) {
+      const message = humanError(emailError);
+      try {
+        await api.update("crm", prospect.id, {
+          invitation_status: "email_error",
+          invitation_error: message.slice(0, 1000),
+          updated_at: new Date().toISOString()
+        });
+      } catch (updateError) {
+        console.warn("[ROIS CRM invitation state]", humanError(updateError));
+      }
+      notify("CRM", "Prospecto guardado", `El registro qued\u00f3 seguro, pero el correo requiere reintento. ${message}`);
+    }
+    form.reset();
+    renderCrmAfterMutation();
+  } catch (error) {
+    notify("CRM", "No fue posible guardar", humanError(error));
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Guardar y enviar invitaci\u00f3n";
+  }
 }
 
 async function markPaid(id) {

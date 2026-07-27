@@ -4,7 +4,7 @@
 create table if not exists profiles (
   id uuid primary key,
   email text unique not null,
-  role text not null check (role in ('admin', 'client', 'athlete', 'founder')),
+  role text not null check (role in ('admin', 'commercial', 'client', 'athlete', 'founder')),
   name text not null,
   status text not null default 'pending',
   must_change_password boolean not null default false,
@@ -12,7 +12,7 @@ create table if not exists profiles (
 );
 
 alter table profiles drop constraint if exists profiles_role_check;
-alter table profiles add constraint profiles_role_check check (role in ('admin', 'client', 'athlete', 'founder'));
+alter table profiles add constraint profiles_role_check check (role in ('admin', 'commercial', 'client', 'athlete', 'founder'));
 
 create table if not exists companies (
   id uuid primary key default gen_random_uuid(),
@@ -242,9 +242,25 @@ create table if not exists site_settings (
 create table if not exists crm (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  contact_name text,
+  email text,
+  prospect_type text check (prospect_type is null or prospect_type in ('company', 'creator', 'athlete')),
+  organization text,
+  phone text,
+  source text,
+  notes text,
+  scout_code text,
   volume numeric default 0,
   status text not null default 'Activo',
-  created_at timestamptz not null default now()
+  invitation_status text not null default 'not_sent' check (invitation_status in ('not_sent', 'queued', 'sending', 'sent', 'email_error')),
+  invitation_sent_at timestamptz,
+  invitation_attempts integer not null default 0,
+  invitation_error text,
+  last_contact_at timestamptz,
+  next_follow_up_at timestamptz,
+  created_by uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists payments (
@@ -379,6 +395,24 @@ as $$
   );
 $$;
 
+create or replace function is_commercial_operator()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from profiles
+    where (
+      profiles.id = auth.uid()
+      or lower(profiles.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    )
+    and profiles.role in ('admin', 'commercial')
+    and profiles.status = 'approved'
+  );
+$$;
+
 create or replace function rois_base36(value bigint)
 returns text
 language plpgsql
@@ -481,6 +515,9 @@ drop policy if exists "site settings public read" on site_settings;
 drop policy if exists "site settings admin write" on site_settings;
 drop policy if exists "crm admin all" on crm;
 drop policy if exists "crm client insert" on crm;
+drop policy if exists "crm commercial select" on crm;
+drop policy if exists "crm commercial insert" on crm;
+drop policy if exists "crm commercial update" on crm;
 drop policy if exists "payments admin all" on payments;
 drop policy if exists "uploads admin all" on uploads;
 drop policy if exists "athlete posts read approved" on athlete_posts;
@@ -581,10 +618,9 @@ create policy "partnerships admin write" on partnerships for all using (is_admin
 create policy "site settings public read" on site_settings for select using (true);
 create policy "site settings admin write" on site_settings for all using (is_admin()) with check (is_admin());
 create policy "crm admin all" on crm for all using (is_admin()) with check (is_admin());
-create policy "crm client insert" on crm
-for insert
-to authenticated
-with check (status = 'Nuevo cliente');
+create policy "crm commercial select" on crm for select to authenticated using (is_commercial_operator());
+create policy "crm commercial insert" on crm for insert to authenticated with check (is_commercial_operator());
+create policy "crm commercial update" on crm for update to authenticated using (is_commercial_operator()) with check (is_commercial_operator());
 create policy "payments admin all" on payments for all using (is_admin()) with check (is_admin());
 create policy "payments company read own" on payments
 for select
@@ -629,6 +665,7 @@ create policy "terms self insert" on terms_acceptances for insert to authenticat
 create policy "terms admin read" on terms_acceptances for select using (is_admin());
 
 grant usage on schema public to anon, authenticated;
+grant execute on function is_commercial_operator() to authenticated;
 grant select on profiles, companies, athletes, events, requests, sponsorships, news, partnerships, site_settings, crm, payments, uploads, athlete_posts, athlete_results, athlete_expenses, athlete_deposits, athlete_notifications, terms_acceptances to anon, authenticated;
 grant insert on profiles to authenticated;
 grant update (name, role, status, must_change_password) on profiles to authenticated;
@@ -654,7 +691,7 @@ grant update (
 ) on athletes to authenticated;
 grant insert on companies to authenticated;
 grant update (name, owner, interest, website, description, logo_url, status) on companies to authenticated;
-grant insert on crm to authenticated;
+grant select, insert, update on crm to authenticated;
 grant insert on requests to anon, authenticated;
 grant update on requests to authenticated;
 grant insert, update on sponsorships, payments to authenticated;

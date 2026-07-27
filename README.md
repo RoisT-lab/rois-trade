@@ -1,27 +1,28 @@
-# ROIS notification email
+# ROIS CRM invitation email
 
-Edge Function para procesar correos individuales y comunicados colectivos creados desde Admin > Notificaciones.
-
-## Antes de desplegar
-
-1. Ejecuta `supabase-broadcast-notifications.sql` en Supabase SQL Editor.
-2. Crea y verifica el dominio remitente en Resend.
-3. Agrega estos secretos en Supabase Edge Functions:
-
-```text
-RESEND_API_KEY=re_...
-ROIS_EMAIL_FROM=ROIS <notificaciones@tudominio.com>
-ROIS_APP_URL=https://roistrade.com
-```
-
-`SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` son secretos predeterminados de Supabase. No deben copiarse al frontend.
+Esta funcion envia invitaciones individuales desde el panel Comercial o Admin. Nunca expone `RESEND_API_KEY` en el navegador y solo acepta sesiones aprobadas con role `admin` o `commercial`.
 
 ## Despliegue
 
-Nombre exacto de la funcion:
+1. Ejecuta `supabase-commercial-crm-invitations.sql` en Supabase SQL Editor.
+2. Verifica en Edge Function Secrets:
+   - `RESEND_API_KEY`
+   - `ROIS_EMAIL_FROM` con un remitente verificado, por ejemplo `ROIS <notificaciones@roistrade.com>`
+   - `ROIS_APP_URL` con `https://roistrade.com`
+3. Crea o despliega la funcion con el nombre exacto:
+   - `send-rois-crm-invitation`
+4. Conserva la validacion JWT activa. La funcion tambien verifica el usuario y su role dentro de `profiles`.
 
-```text
-send-rois-notification-email
+## Crear un usuario comercial
+
+Crea primero el usuario en Supabase Authentication. Despues crea o actualiza su fila en `profiles` con el mismo correo y ejecuta:
+
+```sql
+update public.profiles
+set role = 'commercial',
+    status = 'approved',
+    must_change_password = false
+where lower(email) = lower('ejecutivo@tu-dominio.com');
 ```
 
-Mantener activa la validacion JWT. La funcion vuelve a validar que el usuario autenticado tenga role `admin` y status `approved` antes de leer la cola.
+No compartas `SUPABASE_SERVICE_ROLE_KEY` ni `RESEND_API_KEY` con el frontend.

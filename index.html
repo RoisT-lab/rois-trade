@@ -175,6 +175,39 @@
         </div>
       </section>
 
+      <section class="view dashboard" id="commercialView" data-view="commercial">
+        <div class="mobile-appbar" aria-label="Navegaci&oacute;n m&oacute;vil comercial">
+          <button class="mobile-avatar" type="button" data-mobile-menu="commercial" aria-label="Abrir men&uacute;"><img src="./assets/rois-logo.png" alt="ROIS" /></button>
+          <button class="mobile-app-action" type="button" data-mobile-menu="commercial" aria-label="Abrir men&uacute;">&#9776;</button>
+        </div>
+        <button class="mobile-dash-toggle" type="button" data-mobile-menu="commercial" aria-label="Abrir men&uacute; comercial">
+          <span></span><span></span><span></span>
+          <strong>Men&uacute;</strong>
+        </button>
+        <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar men&uacute;"></button>
+        <aside class="sidebar">
+          <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar men&uacute;">&times;</button>
+          <nav class="side-nav" data-dashboard-nav="commercial">
+            <span class="side-nav-label">Comercial</span>
+            <button class="active" type="button" data-dashboard-target="commercial-overview">Inicio</button>
+            <button type="button" data-dashboard-target="commercial-prospects">Prospectos</button>
+            <button type="button" data-dashboard-target="commercial-followup">Seguimiento</button>
+          </nav>
+        </aside>
+        <div class="workspace" data-dashboard="commercial">
+          <div class="workspace-head">
+            <div>
+              <p class="eyebrow">Operaci&oacute;n comercial</p>
+              <h1>CRM ROIS</h1>
+            </div>
+            <button class="btn" type="button" data-logout>Cerrar sesi&oacute;n</button>
+          </div>
+          <section class="dash-section active" data-dashboard-panel="commercial-overview"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-prospects"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-followup"></section>
+        </div>
+      </section>
+
       <section class="view dashboard" id="adminView" data-view="admin">
         <div class="mobile-appbar" aria-label="Navegación móvil administrador">
           <button class="mobile-avatar" type="button" data-mobile-menu="admin" aria-label="Abrir menú"><img src="./assets/rois-logo.png" alt="ROIS" /></button>
@@ -322,7 +355,7 @@
   </div>
 
   <script src="./app-config.js?v=20260706-success-fee-only-model" charset="UTF-8"></script>
-  <script src="./app.js?v=20260727-compact-profile-market" charset="UTF-8"></script>
+  <script src="./app.js?v=20260727-commercial-crm-invitations" charset="UTF-8"></script>
 </body>
 </html>
 
