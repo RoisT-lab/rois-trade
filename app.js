@@ -4397,7 +4397,7 @@ function renderClientMarketplace() {
   const athletes = clientAthleteRecords();
   panel("client-marketplace", "Mercado de fichajes", "Athletes listos para evaluacion comercial y patrocinio.", athletes.length ? `
     <div class="panel-body">
-      <div class="athlete-showcase compact">
+      <div class="market-profile-grid">
         ${athletes.map(athlete => athleteCard(athlete)).join("")}
       </div>
     </div>
@@ -4406,49 +4406,19 @@ function renderClientMarketplace() {
 
 function marketProfileCard(profile, options = {}) {
   const founder = options.founder === true;
-  const primary = founder ? profile.industry || profile.sport : profile.sport;
-  const secondary = founder ? profile.stage || profile.category : profile.category;
-  const location = founder ? profile.city || profile.location : profile.location;
-  const summary = profile.stats || (founder
-    ? "Perfil de creador en evaluacion dentro de ROIS."
-    : "Perfil deportivo en evaluacion dentro de ROIS.");
-  const ticket = Number(profile.monthly || (founder ? 2500 : 5000)).toLocaleString("es-MX");
-  const ranking = profile.ranking || "En evaluacion";
-  const typeLabel = founder ? `${creatorTypeLabel(profile.creator_type)} ROIS` : "Athlete ROIS";
   const displayName = founder ? profile.public_name || profile.name : profile.name;
-  const decisionCopy = founder
-    ? `Perfil para marcas interesadas en ${profile.content_categories || primary || "contenido, cultura y comunidades"}. Consulta su Sponsor Deck ROIS, redes y disponibilidad comercial.`
-    : "Ideal para empresas interesadas en talento deportivo, visibilidad de marca, narrativa competitiva y relaciones de patrocinio.";
+  const typeLabel = founder ? `${creatorTypeLabel(profile.creator_type)} ROIS` : "Athlete ROIS";
   return `
-    <article class="athlete-card founder-card">
-      <div class="athlete-media">
+    <article class="market-profile-card">
+      <div class="market-profile-photo">
         ${safeProfileImageMarkup(profile.image_url, displayName || typeLabel)}
-        <span class="pill media-pill">${founder ? creatorTypeLabel(profile.creator_type) : "Athlete"}</span>
       </div>
-      <div class="athlete-info">
-        <div>
-          <p class="eyebrow">${founder ? "Creador ROIS" : "Perfil athlete"}</p>
-          <h3>${escapeHtml(displayName || typeLabel)}</h3>
-          <p class="athlete-summary">${escapeHtml(summary)}</p>
-        </div>
-        <div class="athlete-technical">
-          <div><span>${founder ? "Categoria / nicho" : "Deporte"}</span><strong>${escapeHtml(primary || "Por definir")}</strong></div>
-          <div><span>${founder ? "Plataforma" : "Categoria"}</span><strong>${escapeHtml(founder ? profile.primary_platform || secondary || "Por definir" : secondary || "Por definir")}</strong></div>
-          <div><span>Base</span><strong>${escapeHtml(location)}</strong></div>
-          <div><span>${founder ? "Audiencia" : "Ranking / marca"}</span><strong>${escapeHtml(founder ? creatorAudienceLabel(profile) : ranking)}</strong></div>
-        </div>
-        <div class="athlete-metrics">
-          <div><span>${founder ? "Engagement" : "Ticket mensual"}</span><strong>${founder ? creatorEngagementLabel(profile) : `$${ticket} MXN`}</strong></div>
-          <div><span>${founder ? "Inversion objetivo" : "Tipo"}</span><strong>${founder ? `$${ticket} MXN` : typeLabel}</strong></div>
-        </div>
-        <div class="athlete-decision">
-          <p>${decisionCopy}</p>
-          <div class="athlete-actions">
-            <button class="btn" type="button" data-athlete-profile="${escapeAttr(profile.id)}">Ver perfil</button>
-            ${sponsorDeckButton(profile)}
-            ${athleteSponsorCta(profile, founder ? "Solicitar colaboracion" : "Solicitar patrocinio")}
-            ${profileSocialLinksMarkup(profile)}
-          </div>
+      <div class="market-profile-summary">
+        <h3>${escapeHtml(displayName || typeLabel)}</h3>
+        <div class="market-profile-actions">
+          <button class="btn" type="button" data-athlete-profile="${escapeAttr(profile.id)}">Ver perfil</button>
+          ${athleteSponsorCta(profile, founder ? "Solicitar colaboracion" : "Solicitar patrocinio")}
+          ${profileSocialLinksMarkup(profile, { showUnavailable: true })}
         </div>
       </div>
     </article>
@@ -4469,7 +4439,7 @@ function renderClientFounders() {
         <p>Compara categoria, plataforma, audiencia, engagement, Sponsor Deck y afinidad comercial antes de solicitar una colaboracion.</p>
       </div>
       ${founders.length
-        ? `<div class="athlete-showcase compact founder-market-grid">${founders.map(founder => founderMarketCard(founder)).join("")}</div>`
+        ? `<div class="market-profile-grid founder-market-grid">${founders.map(founder => founderMarketCard(founder)).join("")}</div>`
         : `<div class="empty">Los creadores aprobados apareceran aqui cuando su perfil y metricas esten listos para evaluacion empresarial.</div>`
       }
     </div>
@@ -9411,9 +9381,13 @@ function profileSocialLinks(profile = {}) {
   ].filter(([, url]) => url);
 }
 
-function profileSocialLinksMarkup(profile) {
+function profileSocialLinksMarkup(profile, options = {}) {
   const links = profileSocialLinks(profile);
-  if (!links.length) return "";
+  if (!links.length) {
+    return options.showUnavailable
+      ? `<button class="btn market-social-unavailable" type="button" disabled aria-disabled="true">Ver redes sociales</button>`
+      : "";
+  }
   return `
     <details class="market-social-links">
       <summary class="btn">Ver redes sociales</summary>
