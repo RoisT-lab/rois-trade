@@ -265,6 +265,56 @@ function saveSession(session) {
   if (session) sessionStorage.setItem(sessionKey, JSON.stringify(session));
 }
 
+function authSessionCredentials(auth = {}) {
+  const source = auth.session || auth;
+  const expiresAt = Number(source.expires_at || 0) > 0
+    ? Number(source.expires_at) * 1000
+    : Number(source.expires_in || 0) > 0
+      ? Date.now() + Number(source.expires_in) * 1000
+      : 0;
+  return {
+    token: source.access_token || "",
+    refreshToken: source.refresh_token || "",
+    expiresAt
+  };
+}
+
+function jwtExpirationMs(token = "") {
+  try {
+    const payload = String(token).split(".")[1];
+    if (!payload) return 0;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")));
+    return Number(decoded.exp || 0) * 1000;
+  } catch (error) {
+    return 0;
+  }
+}
+
+async function ensureActiveSession() {
+  if (demoMode || !state.session?.token) return state.session;
+  const expiresAt = Number(state.session.expiresAt || 0) || jwtExpirationMs(state.session.token);
+  if (!expiresAt || expiresAt > Date.now() + 60_000) return state.session;
+  if (!state.session.refreshToken || typeof api.refreshSession !== "function") {
+    throw new Error("La sesion expiro. Cierra sesion e ingresa nuevamente para guardar tus cambios.");
+  }
+  const refreshed = await withTimeout(
+    api.refreshSession(state.session.refreshToken),
+    operationTimeoutMs,
+    "La red esta tardando demasiado al renovar la sesion."
+  );
+  const credentials = authSessionCredentials(refreshed);
+  if (!credentials.token) throw new Error("La sesion expiro. Inicia sesion nuevamente.");
+  state.session = {
+    ...state.session,
+    token: credentials.token,
+    refreshToken: credentials.refreshToken || state.session.refreshToken,
+    expiresAt: credentials.expiresAt
+  };
+  saveSession(state.session);
+  return state.session;
+}
+
 function clearSession() {
   sessionStorage.removeItem(sessionKey);
   localStorage.removeItem(sessionKey);
@@ -919,7 +969,7 @@ async function saveProfileRecord(patch, context = getCurrentProfileContext()) {
     );
   } catch (error) {
     const message = String(error?.message || "");
-    if (!/PGRST204|schema cache|image_path|proposal_path|image_mime|proposal_mime|image_name|instagram_url|tiktok_url|facebook_url|linkedin_url|creator_type|public_name|content_categories|primary_platform|audience_size|engagement_rate|audience_location|audience_demographics|brand_categories|past_collaborations|deliverables|availability/i.test(message)) throw error;
+    if (!/PGRST204|schema cache|image_path|proposal_path|image_mime|proposal_mime|image_name|instagram_url|tiktok_url|facebook_url|linkedin_url|video_url|sponsor_logos|creator_type|public_name|content_categories|primary_platform|audience_size|engagement_rate|audience_location|audience_demographics|brand_categories|past_collaborations|deliverables|availability/i.test(message)) throw error;
     const compatiblePatch = Object.fromEntries(Object.entries(persistedPatch).filter(([key]) =>
       ![
         "image_path",
@@ -931,6 +981,8 @@ async function saveProfileRecord(patch, context = getCurrentProfileContext()) {
         "tiktok_url",
         "facebook_url",
         "linkedin_url",
+        "video_url",
+        "sponsor_logos",
         "creator_type",
         "public_name",
         "content_categories",
@@ -1633,6 +1685,9 @@ function demoApi() {
       replaceRecordInState(table, item);
       return item;
     },
+    async refreshSession() {
+      return { access_token: "demo", refresh_token: "demo", expires_in: 3600 };
+    },
     async changePassword(session, password) {
       const data = read();
       data.profiles = data.profiles.map(user => user.id === session.id ? { ...user, password, mustChangePassword: false } : user);
@@ -1945,13 +2000,16 @@ function supabaseApi() {
           : companies.length
             ? "client"
             : normalizedRole(normalizedEmail, profile.role);
+      const credentials = authSessionCredentials(auth);
       return {
         id: profile.id,
         authId: auth.user.id,
         email: normalizedEmail,
         role,
         name: profile.name,
-        token: auth.access_token,
+        token: credentials.token,
+        refreshToken: credentials.refreshToken,
+        expiresAt: credentials.expiresAt,
         mustChangePassword: !!profile.must_change_password,
         bootstrapData: {
           profiles: [profile],
@@ -1976,7 +2034,8 @@ function supabaseApi() {
           }
         })
       });
-      const accessToken = auth.session?.access_token || auth.access_token;
+      const credentials = authSessionCredentials(auth);
+      const accessToken = credentials.token;
       const authUser = auth.user || auth;
       if (!accessToken || !authUser?.id) {
         return { confirmed: false, email };
@@ -1985,7 +2044,7 @@ function supabaseApi() {
       mergeLoadedData(await this.loadRoleData("client", { id: profile.id, email, token: accessToken }));
       return {
         confirmed: true,
-        session: { id: profile.id, authId: authUser.id, email, role: "client", name: profile.name, token: accessToken, mustChangePassword: false }
+        session: { id: profile.id, authId: authUser.id, email, role: "client", name: profile.name, token: accessToken, refreshToken: credentials.refreshToken, expiresAt: credentials.expiresAt, mustChangePassword: false }
       };
     },
     async signupAthlete(payload) {
@@ -2007,7 +2066,8 @@ function supabaseApi() {
           }
         })
       });
-      const accessToken = auth.session?.access_token || auth.access_token;
+      const credentials = authSessionCredentials(auth);
+      const accessToken = credentials.token;
       const authUser = auth.user || auth;
       if (!accessToken || !authUser?.id) {
         await request("/rest/v1/athletes", {
@@ -2158,7 +2218,7 @@ function supabaseApi() {
       mergeLoadedData(await this.loadRoleData("athlete", { id: athleteProfileId, email: normalizedEmail, token: accessToken }));
       return {
         confirmed: true,
-        session: { id: athleteProfileId, authId: authUser.id, email: normalizedEmail, role: "athlete", name: payload.name, token: accessToken, mustChangePassword: false }
+        session: { id: athleteProfileId, authId: authUser.id, email: normalizedEmail, role: "athlete", name: payload.name, token: accessToken, refreshToken: credentials.refreshToken, expiresAt: credentials.expiresAt, mustChangePassword: false }
       };
     },
     async signupFounder(payload) {
@@ -2185,7 +2245,8 @@ function supabaseApi() {
           }
         })
       });
-      const accessToken = auth.session?.access_token || auth.access_token;
+      const credentials = authSessionCredentials(auth);
+      const accessToken = credentials.token;
       const authUser = auth.user || auth;
       if (!accessToken || !authUser?.id) {
         return { confirmed: false, email: normalizedEmail };
@@ -2194,7 +2255,7 @@ function supabaseApi() {
       mergeLoadedData(await this.loadRoleData("founder", { id: profile.id, email: normalizedEmail, token: accessToken }));
       return {
         confirmed: true,
-        session: { id: profile.id, authId: authUser.id, email: normalizedEmail, role: "founder", name: profile.name, token: accessToken, mustChangePassword: false }
+        session: { id: profile.id, authId: authUser.id, email: normalizedEmail, role: "founder", name: profile.name, token: accessToken, refreshToken: credentials.refreshToken, expiresAt: credentials.expiresAt, mustChangePassword: false }
       };
     },
     async resendSignup(email) {
@@ -2210,6 +2271,13 @@ function supabaseApi() {
         })
       });
       return { email };
+    },
+    async refreshSession(refreshToken) {
+      return request("/auth/v1/token?grant_type=refresh_token", {
+        method: "POST",
+        headers: headers(config.supabaseAnonKey),
+        body: JSON.stringify({ refresh_token: refreshToken })
+      });
     },
     async recoverPassword(email) {
       await request("/auth/v1/recover", {
@@ -7883,6 +7951,7 @@ function setSavingState(form, saving) {
 }
 
 async function persistProfileForm(form, options = {}) {
+  await ensureActiveSession();
   const context = getCurrentProfileContext();
   if (!context) throw new Error("No encontramos el contexto autenticado del perfil.");
   if (!validateProfileForm(form, context.role)) return null;
@@ -9560,6 +9629,7 @@ async function resizeProfileImage(file, maxDimension = 1600) {
 
 async function uploadProfileAsset(file, kind, context = getCurrentProfileContext()) {
   if (!file) return null;
+  await ensureActiveSession();
   if (!context?.profileId || !context?.table) throw new Error("No encontramos el registro real del perfil.");
   validateProfileAsset(file, kind);
   const preparedFile = await resizeProfileImage(file);
