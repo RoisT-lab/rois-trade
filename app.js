@@ -115,6 +115,7 @@ const seed = {
   companies: [],
   athletes: [],
   founders: [],
+  scouts: [],
   events: [],
   requests: [],
   sponsorships: [],
@@ -133,7 +134,26 @@ const seed = {
   company_subscriptions: [],
   company_listings: [],
   company_listing_media: [],
-  marketplace_leads: []
+  marketplace_leads: [],
+  brand_growth_campaigns: [],
+  brand_growth_participants: [],
+  user_profiles: [],
+  user_social_accounts: [],
+  company_verifications: [],
+  company_plan_definitions: [],
+  opportunities: [],
+  opportunity_applications: [],
+  application_consents: [],
+  participations: [],
+  tracking_links: [],
+  conversions: [],
+  commissions: [],
+  reviews: [],
+  disputes: [],
+  privacy_consents: [],
+  data_subject_requests: [],
+  data_access_logs: [],
+  analytics_events: []
 };
 
 const api = withCachedLoadAll(demoMode ? demoApi() : supabaseApi());
@@ -246,6 +266,7 @@ function withCachedLoadAll(sourceApi) {
 }
 
 function normalizedRole(email, role) {
+  if (role === "scout") return "scout";
   if (role === "commercial") return "commercial";
   if (role === "founder") return "founder";
   if (role === "athlete") return "athlete";
@@ -256,7 +277,7 @@ function normalizedRole(email, role) {
 
 function dashboardViewForRole(role) {
   if (role === "admin") return "admin";
-  if (role === "commercial") return "commercial";
+  if (role === "scout" || role === "commercial") return "commercial";
   return role === "athlete" || role === "founder" ? "athlete" : "client";
 }
 
@@ -363,7 +384,7 @@ function enforceCompanyClientSession() {
   if (!state.session || !state.data?.companies) return;
   const email = state.session.email?.toLowerCase();
   const isCompany = state.data.companies.some(company => (company.contact || "").toLowerCase() === email);
-  if (isCompany && !["admin", "commercial", "athlete", "founder"].includes(state.session.role)) {
+  if (isCompany && !["admin", "scout", "commercial", "athlete", "founder"].includes(state.session.role)) {
     state.session = { ...state.session, role: "client" };
   }
 }
@@ -376,7 +397,7 @@ function enforceMemberSessionRole() {
     item.id === state.session.id ||
     String(item.email || "").trim().toLowerCase() === email
   );
-  if (!["commercial", "athlete", "founder"].includes(profile?.role)) return;
+  if (!["scout", "commercial", "athlete", "founder"].includes(profile?.role)) return;
   if (state.session.role !== profile.role) {
     state.session = { ...state.session, role: profile.role };
   }
@@ -386,6 +407,24 @@ function currentCompany() {
   if (!state.session || !state.data?.companies) return null;
   const email = state.session.email?.toLowerCase();
   return state.data.companies.find(company => (company.contact || "").toLowerCase() === email) || null;
+}
+
+function isScoutSession() {
+  return ["scout", "commercial"].includes(String(state.session?.role || "").toLowerCase());
+}
+
+function currentScoutRecord() {
+  if (!state.session) return null;
+  const email = normalizedAccountEmail(state.session.email);
+  const profileId = state.session.authId || state.session.id;
+  return (state.data?.scouts || []).find(item =>
+    item.profile_id === profileId ||
+    normalizedAccountEmail(item.email) === email
+  ) || null;
+}
+
+function currentScoutCode() {
+  return normalizeScoutCode(currentScoutRecord()?.scout_code || state.session?.scoutCode || "");
 }
 
 function currentCompanySubscription(company = currentCompany()) {
@@ -532,8 +571,8 @@ function resetDashboardPanelState() {
 }
 
 function markBootstrapPanelLoaded(role, data = {}) {
-  if (!["admin", "commercial"].includes(role)) return;
-  const targetId = role === "commercial" ? "commercial-overview" : "admin-users";
+  if (!["admin", "scout", "commercial"].includes(role)) return;
+  const targetId = ["scout", "commercial"].includes(role) ? "commercial-overview" : "admin-users";
   const pageSize = dashboardPanelPageSizes.admin;
   const tables = dashboardPanelQueries(targetId).map(item => item.table);
   dashboardPanelLoads.set(targetId, {
@@ -550,8 +589,11 @@ function activeDashboardPanelId(view = dashboardViewForRole(state.session?.role)
 }
 
 function dashboardPanelQueries(targetId) {
-  const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,created_at";
-  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at";
+  const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
+  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
+  const universalProfileColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,email,name,public_name,image_url,bio,city,state_region,country,birth_date,age_range,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,verification_status,created_at,updated_at";
+  const opportunityColumns = "id,company_id,created_by,title,description,opportunity_type,category,industry,objective,desired_profile,territory,location,modality,starts_at,closes_at,slots,compensation_type,compensation_amount,commission_rate,margin_amount,wholesale_price,suggested_price,minimum_purchase,purchase_required,inventory_available,delivery_method,return_policy,deliverables,acceptance_criteria,attribution_rules,payment_terms,requested_data_fields,materials,legal_documents,status,moderation_notes,approved_at,published_at,created_at,updated_at";
+  const applicationColumns = "id,opportunity_id,user_profile_id,applicant_profile_id,message,shared_profile_snapshot,status,company_notes,requested_information,submitted_at,decided_at,created_at,updated_at";
   const crmColumns = "id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at";
   const companyName = currentCompany()?.name || state.session?.name || "";
   const companyId = currentCompany()?.id || "";
@@ -567,10 +609,10 @@ function dashboardPanelQueries(targetId) {
       { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at" }
     ],
     "client-marketplace": [
-      { table: "athletes", query: `select=${athleteColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc` }
+      { table: "athletes", query: `select=${athleteColumns}&status=eq.approved&visual_status=eq.approved&marketplace_access_status=eq.active&order=created_at.desc` }
     ],
     "client-founders": [
-      { table: "founders", query: `select=${founderColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc` }
+      { table: "founders", query: `select=${founderColumns}&status=eq.approved&visual_status=eq.approved&marketplace_access_status=eq.active&order=created_at.desc` }
     ],
     "client-payments": companyName ? [
       { table: "payments", query: `select=id,concept,amount,company,status,product_key,created_at&company=eq.${encodedCompany}&order=created_at.desc` },
@@ -579,6 +621,24 @@ function dashboardPanelQueries(targetId) {
     "client-register": [
       { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at" },
       ...(companyId ? [{ table: "events", query: `select=id,company_id,profile_id,name,status,created_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` }] : [])
+    ],
+    "client-opportunities": [
+      { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` },
+      { table: "company_verifications", query: "select=id,company_id,legal_name,tax_id,representative_name,corporate_email,website,billing_data,document_paths,status,reviewed_by,reviewed_at,notes,created_at,updated_at&order=created_at.desc" },
+      { table: "company_plan_definitions", query: "select=id,plan_key,name,description,monthly_price,transaction_fee_rate,active_opportunity_limit,features,status,created_at,updated_at&status=eq.active&order=monthly_price.asc" }
+    ],
+    "client-applicants": [
+      { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` },
+      { table: "opportunity_applications", query: `select=${applicationColumns}&order=created_at.desc` }
+    ],
+    "client-results": [
+      { table: "participations", query: "select=id,opportunity_id,application_id,user_profile_id,company_id,status,started_at,completed_at,created_at,updated_at&order=created_at.desc" },
+      { table: "conversions", query: "select=id,participation_id,opportunity_id,user_profile_id,company_id,conversion_type,economic_value,commission_amount,evidence,validation_status,estimated_payment_at,validated_at,validated_by,created_at,updated_at&order=created_at.desc" }
+    ],
+    "client-intelligence": [
+      { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` },
+      { table: "opportunity_applications", query: `select=${applicationColumns}&order=created_at.desc` },
+      { table: "conversions", query: "select=id,opportunity_id,company_id,conversion_type,economic_value,commission_amount,validation_status,created_at&order=created_at.desc" }
     ]
   };
   const admin = {
@@ -590,6 +650,10 @@ function dashboardPanelQueries(targetId) {
     ],
     "admin-athletes": [{ table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` }],
     "admin-founders": [{ table: "founders", query: `select=${founderColumns}&order=created_at.desc` }],
+    "admin-brand-growth": [
+      { table: "brand_growth_campaigns", query: "select=id,title,objective,brief,deliverables,start_date,end_date,status,created_by,created_at,updated_at&order=created_at.desc" },
+      { table: "brand_growth_participants", query: "select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,status,created_at,updated_at&order=created_at.desc" }
+    ],
     "admin-payment-links": [
       { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` },
       { table: "founders", query: `select=${founderColumns}&order=created_at.desc` }
@@ -637,14 +701,52 @@ function dashboardPanelQueries(targetId) {
       { table: "founders", query: `select=${founderColumns}&order=created_at.desc` },
       { table: "sponsorships", query: "select=id,athlete,athlete_email,amount,company,details,status,created_at&order=created_at.desc" },
       { table: "requests", query: "select=id,type,title,owner,details,priority,status,created_at&order=created_at.desc" }
-    ]
+    ],
+    "admin-opportunities": [
+      { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` },
+      { table: "opportunity_applications", query: `select=${applicationColumns}&order=created_at.desc` },
+      { table: "companies", query: "select=id,name,contact,status,created_at&order=created_at.desc" },
+      { table: "company_verifications", query: "select=id,company_id,legal_name,tax_id,representative_name,corporate_email,website,billing_data,document_paths,status,reviewed_by,reviewed_at,notes,created_at,updated_at&order=created_at.desc" }
+    ],
+    "admin-commissions": [
+      { table: "commissions", query: "select=id,conversion_id,opportunity_id,user_profile_id,company_id,gross_amount,withholding_amount,net_amount,status,estimated_payment_at,paid_at,payment_evidence_url,created_at,updated_at&order=created_at.desc" },
+      { table: "conversions", query: "select=id,participation_id,opportunity_id,user_profile_id,company_id,conversion_type,economic_value,commission_amount,validation_status,created_at&order=created_at.desc" }
+    ],
+    "admin-disputes": [{ table: "disputes", query: "select=id,participation_id,application_id,opened_by,reason,details,evidence,status,resolution,resolved_by,resolved_at,created_at,updated_at&order=created_at.desc" }],
+    "admin-privacy": [
+      { table: "privacy_consents", query: "select=id,profile_id,consent_type,purpose,scope,recipient_company_id,version,granted_at,expires_at,revoked_at,created_at&order=created_at.desc" },
+      { table: "data_subject_requests", query: "select=id,profile_id,request_type,details,status,response_notes,resolved_by,resolved_at,created_at,updated_at&order=created_at.desc" },
+      { table: "data_access_logs", query: "select=id,actor_profile_id,company_id,subject_profile_id,application_id,purpose,fields_accessed,created_at&order=created_at.desc" }
+    ],
+    "admin-plans": [{ table: "company_plan_definitions", query: "select=id,plan_key,name,description,monthly_price,transaction_fee_rate,active_opportunity_limit,features,status,created_at,updated_at&order=monthly_price.asc" }]
   };
+  const opportunityUserQueries = [
+    { table: "opportunities", query: `select=${opportunityColumns}&status=eq.published&order=published_at.desc` },
+    { table: "user_profiles", query: `select=${universalProfileColumns}&order=created_at.desc` }
+  ];
+  const opportunityApplicationQueries = [
+    { table: "opportunity_applications", query: `select=${applicationColumns}&order=created_at.desc` },
+    { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` }
+  ];
+  const opportunityIncomeQueries = [
+    { table: "commissions", query: "select=id,conversion_id,opportunity_id,user_profile_id,company_id,gross_amount,withholding_amount,net_amount,status,estimated_payment_at,paid_at,payment_evidence_url,created_at,updated_at&order=created_at.desc" },
+    { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` }
+  ];
   const commercial = {
     "commercial-overview": [{ table: "crm", query: `select=${crmColumns}&order=created_at.desc` }],
     "commercial-prospects": [{ table: "crm", query: `select=${crmColumns}&order=created_at.desc` }],
     "commercial-followup": [{ table: "crm", query: `select=${crmColumns}&order=next_follow_up_at.asc.nullslast,created_at.desc` }]
   };
-  return client[targetId] || admin[targetId] || commercial[targetId] || [];
+  const athlete = {
+    "athlete-growth": [
+      { table: "brand_growth_campaigns", query: "select=id,title,objective,brief,deliverables,start_date,end_date,status,created_at&status=eq.active&order=created_at.desc" },
+      { table: "brand_growth_participants", query: "select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,status,created_at,updated_at&order=created_at.desc" }
+    ],
+    "athlete-opportunities": opportunityUserQueries,
+    "athlete-applications": opportunityApplicationQueries,
+    "athlete-income": opportunityIncomeQueries
+  };
+  return client[targetId] || admin[targetId] || commercial[targetId] || athlete[targetId] || [];
 }
 
 function dashboardPanelPageSize(targetId) {
@@ -806,8 +908,15 @@ function founderAsAthleteProfile(founder) {
     ranking: founder.ranking || "",
     contact: founder.email,
     terms_accepted: founder.terms_accepted ?? false,
-    annual_fee_required: false,
-    annual_fee_paid: true
+    annual: Number(founder.annual || athleteAnnualFeeAmount),
+    annual_fee_required: founder.annual_fee_required === true,
+    annual_fee_paid: founder.annual_fee_paid === true,
+    annual_payment_status: founder.annual_payment_status || "not_requested",
+    annual_payment_requested_at: founder.annual_payment_requested_at || null,
+    annual_access_started_at: founder.annual_access_started_at || null,
+    annual_access_expires_at: founder.annual_access_expires_at || null,
+    marketplace_access_status: founder.marketplace_access_status || "locked",
+    marketplace_access_requested_at: founder.marketplace_access_requested_at || null
   };
 }
 
@@ -1156,7 +1265,112 @@ function athleteProfileCompleteForScout(athlete) {
 }
 
 function athleteAnnualFeePaid(athlete) {
-  return Boolean(athlete?.annual_fee_paid || athlete?.annual_payment_status === "paid");
+  if (!athlete?.annual_fee_paid && athlete?.annual_payment_status !== "paid") return false;
+  if (!athlete?.annual_access_expires_at) return true;
+  return new Date(athlete.annual_access_expires_at).getTime() > Date.now();
+}
+
+function athleteAnnualAccessExpired(athlete) {
+  if (!athlete?.annual_access_expires_at) return false;
+  return new Date(athlete.annual_access_expires_at).getTime() <= Date.now();
+}
+
+function annualAccessLabel(profile = currentAthlete()) {
+  return isFounderProfile(profile) ? "Acceso anual Creador ROIS" : "Acceso anual Athlete ROIS";
+}
+
+function annualAccessStatus(profile = currentAthlete()) {
+  if (athleteAnnualFeePaid(profile)) return "active";
+  if (athleteAnnualAccessExpired(profile)) return "expired";
+  if (["pending", "payment_started", "review"].includes(String(profile?.annual_payment_status || "").toLowerCase())) return "pending";
+  return "locked";
+}
+
+function annualAccessPaywall(feature = "sponsor-deck", profile = currentAthlete()) {
+  const founder = isFounderProfile(profile);
+  const featureName = feature === "marketplace"
+    ? (founder ? "publicar tu perfil en Creadores" : "publicar tu perfil en Mercado de fichajes")
+    : "crear y mostrar tu Sponsor Deck ROIS";
+  return `
+    <div class="annual-access-lock">
+      <p class="eyebrow">Acceso anual ROIS</p>
+      <h3>Desbloquea ${escapeHtml(featureName)}.</h3>
+      <p>Un solo pago anual habilita Sponsor Deck y publicación del perfil para evaluación de empresas. El patrocinio mensual se negocia por separado.</p>
+      <div class="annual-access-price"><strong>$${athleteAnnualFeeAmount.toLocaleString("es-MX")} MXN</strong><span>por 12 meses</span></div>
+      <ul>
+        <li>Sponsor Deck estructurado dentro de ROIS.</li>
+        <li>Solicitud de publicación en el mercado correspondiente.</li>
+        <li>Doce meses de acceso a estas herramientas comerciales.</li>
+      </ul>
+      <button class="btn primary" type="button" data-unlock-annual="${escapeAttr(feature)}">${annualAccessStatus(profile) === "pending" ? "Continuar pago anual" : annualAccessStatus(profile) === "expired" ? "Renovar acceso anual" : "Activar acceso anual"}</button>
+      ${annualAccessStatus(profile) === "pending" ? `<p class="hint">Tu pago está pendiente de confirmación. ROIS no activa el acceso automáticamente sin validación.</p>` : ""}
+    </div>
+  `;
+}
+
+async function requestAnnualAccess(feature = "sponsor-deck") {
+  const context = getCurrentProfileContext();
+  const profile = currentAthlete();
+  if (!context || !profile) {
+    notify("Acceso anual", "Perfil no encontrado", "No encontramos el registro real de tu perfil.");
+    return;
+  }
+  if (athleteAnnualFeePaid(profile)) {
+    if (feature === "marketplace") await requestMarketplacePublication();
+    else {
+      renderAthleteSponsorDeck();
+      showDashboardPanel("athlete-sponsor-deck");
+    }
+    return;
+  }
+  const renewalRequest = athleteAnnualAccessExpired(profile);
+  const firstRequest = !profile.annual_payment_requested_at || renewalRequest;
+  const requestedAt = firstRequest ? new Date().toISOString() : profile.annual_payment_requested_at;
+  await saveProfileRecord({
+    annual: athleteAnnualFeeAmount,
+    annual_fee_required: true,
+    annual_fee_paid: false,
+    annual_payment_status: "payment_started",
+    annual_payment_requested_at: requestedAt,
+    ...(renewalRequest ? { annual_access_started_at: null, annual_access_expires_at: null } : {}),
+    ...(feature === "marketplace" ? { marketplace_access_status: "pending_payment" } : {})
+  }, context);
+  if (firstRequest) {
+    try {
+      await api.insert("payments", {
+        concept: `${annualAccessLabel(profile)} - ${profile.name || state.session?.email || "Perfil ROIS"}`,
+        amount: athleteAnnualFeeAmount,
+        company: `${profile.name || "Perfil ROIS"} · ${profile.email || profile.contact || state.session?.email || ""}`.trim(),
+        status: "pending",
+        product_key: "athleteAnnualProfile"
+      });
+    } catch (error) {
+      console.warn("[ROIS annual access] No fue posible registrar el pago pendiente", humanError(error));
+    }
+  }
+  openStripeCheckout("athleteAnnualProfile", annualAccessLabel(profile));
+  notify("Acceso anual", "Checkout abierto", "El acceso se habilitará cuando ROIS confirme el pago anual de $2,500 MXN.");
+}
+
+async function requestMarketplacePublication() {
+  const context = getCurrentProfileContext();
+  const profile = currentAthlete();
+  if (!context || !profile) return;
+  if (!athleteAnnualFeePaid(profile)) {
+    await requestAnnualAccess("marketplace");
+    return;
+  }
+  if (String(profile.marketplace_access_status || "").toLowerCase() === "active") {
+    notify("Publicación", "Perfil activo", "Tu perfil ya está publicado para evaluación de empresas.");
+    return;
+  }
+  await saveProfileRecord({
+    marketplace_access_status: "pending_review",
+    marketplace_access_requested_at: new Date().toISOString(),
+    visual_status: "pending_review"
+  }, context);
+  notify("Publicación", "Solicitud recibida", "ROIS revisará tu perfil antes de publicarlo en el mercado empresarial.");
+  renderAthleteProfile();
 }
 
 function creatorProfileCompleteForScout(creator) {
@@ -1172,11 +1386,43 @@ function creatorProfileCompleteForScout(creator) {
 
 function scoutReferralStatus(record) {
   const creator = record?._profile_table === "founders" || record?.role === "founder" || Boolean(record?.creator_type);
-  const paid = creator ? record?.scout_commission_status === "approved" : athleteAnnualFeePaid(record);
+  const commissionStatus = String(record?.scout_commission_status || "pending").toLowerCase();
+  const commissionValidated = ["approved", "paid"].includes(commissionStatus);
+  const paid = creator ? commissionValidated : athleteAnnualFeePaid(record);
   const profile = creator ? creatorProfileCompleteForScout(record) : athleteProfileCompleteForScout(record);
-  const validated = record?.scout_validation_status === "validated" || record?.scout_commission_status === "approved";
+  const validated = record?.scout_validation_status === "validated" || commissionValidated;
   const eligible = Boolean(record?.invited_by_scout_code && paid && profile && validated && !["blocked", "deleted", "rejected"].includes(record.status));
-  return { paid, profile, validated, eligible };
+  return {
+    paid,
+    profile,
+    validated,
+    eligible,
+    commissionPaid: commissionStatus === "paid",
+    commissionStatus
+  };
+}
+
+function scoutCommissionLabel(record) {
+  const status = scoutReferralStatus(record);
+  if (status.commissionPaid) return "pagada";
+  if (status.eligible) return "pago pendiente";
+  return "no generada";
+}
+
+function uniqueScoutCommissionReferrals(records = []) {
+  const unique = new Map();
+  records.filter(record => scoutReferralStatus(record).eligible).forEach(record => {
+    const key = String(record.id || record.profile_id || record.email || record.contact || "").trim().toLowerCase();
+    if (key && !unique.has(key)) unique.set(key, record);
+  });
+  return [...unique.values()];
+}
+
+function allScoutCommissionReferrals() {
+  return uniqueScoutCommissionReferrals([
+    ...(state.data.athletes || []).map(item => ({ ...item, _profile_table: "athletes" })),
+    ...(state.data.founders || []).map(item => ({ ...item, _profile_table: "founders", role: "founder" }))
+  ]);
 }
 
 function currentWeekStart() {
@@ -1644,6 +1890,40 @@ function demoApi() {
         session: { id, email: normalizedEmail, role: "founder", name: payload.name, token: "demo", mustChangePassword: false }
       };
     },
+    async signupScout(payload) {
+      const data = read();
+      const email = normalizedAccountEmail(payload.email);
+      if (data.profiles.some(item => normalizedAccountEmail(item.email) === email)) {
+        throw new Error("Ya existe una cuenta con ese correo.");
+      }
+      const id = crypto.randomUUID();
+      const scoutCode = makeScoutCode(payload.name, email);
+      data.profiles.unshift({
+        id,
+        email,
+        password: payload.password,
+        role: "scout",
+        name: payload.name,
+        status: "approved",
+        mustChangePassword: false
+      });
+      data.scouts.unshift({
+        id: crypto.randomUUID(),
+        profile_id: id,
+        email,
+        name: payload.name,
+        scout_code: scoutCode,
+        status: "approved",
+        commission_per_active_referral: scoutCommissionAmount,
+        created_at: new Date().toISOString()
+      });
+      write(data);
+      state.data = data;
+      return {
+        confirmed: true,
+        session: { id, email, role: "scout", name: payload.name, token: "demo", mustChangePassword: false, scoutCode }
+      };
+    },
     async resendSignup(email) {
       return { email };
     },
@@ -1793,9 +2073,10 @@ function supabaseApi() {
       const smallLimit = adminMode ? 300 : 80;
       const tableQueries = {
         profiles: `select=id,email,role,name,status,must_change_password,created_at&order=created_at.desc&limit=${mainLimit}`,
+        scouts: `select=id,profile_id,email,name,scout_code,status,commission_per_active_referral,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
         companies: `select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc&limit=${mainLimit}`,
-        athletes: `select=id,profile_id,email,contact,name,sport,stats,monthly,annual,category,location,ranking,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,image_url,image_path,visual_status,visual_notes,terms_accepted,scout_code,scout_active,scout_terms_accepted,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,scout_validation_status,scout_commission_status,max_sponsors,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,sponsor_payment_url,sponsor_terms,sponsor_logos,birth_date,age_status,guardian_name,guardian_email,guardian_phone,guardian_relationship,guardian_consent,status,created_at&order=created_at.desc&limit=${mainLimit}`,
-        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,image_url,image_path,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
+        athletes: `select=id,profile_id,email,contact,name,sport,stats,monthly,annual,category,location,ranking,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,image_url,image_path,visual_status,visual_notes,terms_accepted,scout_code,scout_active,scout_terms_accepted,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,max_sponsors,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,sponsor_payment_url,sponsor_terms,sponsor_logos,birth_date,age_status,guardian_name,guardian_email,guardian_phone,guardian_relationship,guardian_consent,status,created_at&order=created_at.desc&limit=${mainLimit}`,
+        founders: `select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,image_url,image_path,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,terms_accepted,status,visual_status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
         events: `select=id,company_id,profile_id,name,category,venue,date,image_url,image_path,brochure_url,brochure_name,event_scope,sponsor_levels,success_fee_level,success_fee_rate,visual_status,visual_notes,status,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
         requests: `select=id,type,title,owner,details,priority,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         sponsorships: `select=id,athlete,athlete_email,amount,company,details,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
@@ -1814,7 +2095,9 @@ function supabaseApi() {
         company_subscriptions: `select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
         company_listings: `select=id,company_id,profile_id,company_name,listing_type,category,subcategory,title,summary,description,price,currency,price_label,location,inventory_count,availability,contact_email,website_url,primary_image_url,plan_required,featured,featured_until,status,visual_status,visual_notes,expires_at,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
         company_listing_media: `select=id,listing_id,company_id,storage_path,public_url,original_name,mime_type,sort_order,created_at&order=created_at.desc&limit=${mediumLimit}`,
-        marketplace_leads: `select=id,listing_id,seller_company_id,buyer_company_id,requester_profile_id,requester_email,requester_name,requester_company,message,status,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`
+        marketplace_leads: `select=id,listing_id,seller_company_id,buyer_company_id,requester_profile_id,requester_email,requester_name,requester_company,message,status,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
+        brand_growth_campaigns: `select=id,title,objective,brief,deliverables,start_date,end_date,status,created_by,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
+        brand_growth_participants: `select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`
       };
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const result = {};
@@ -1844,16 +2127,24 @@ function supabaseApi() {
         }));
         return normalizeLoadedData(result);
       }
-      if (role === "commercial") {
-        const [profiles, crm] = await Promise.all([
+      if (role === "scout" || role === "commercial") {
+        const [profiles, scouts, crm] = await Promise.all([
           roleRequest(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`),
+          roleRequest(`/rest/v1/scouts?select=id,profile_id,email,name,scout_code,status,commission_per_active_referral,created_at&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`),
           roleRequest("/rest/v1/crm?select=id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=250")
         ]);
-        return normalizeLoadedData({ profiles, crm });
+        const scoutCode = normalizeScoutCode(scouts[0]?.scout_code || "");
+        const [athletes, founders] = scoutCode
+          ? await Promise.all([
+              roleRequest(`/rest/v1/athletes?select=id,email,contact,name,sport,category,location,stats,image_url,registration_terms_accepted,annual_fee_paid,annual_payment_status,status,visual_status,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at&invited_by_scout_code=eq.${encodeURIComponent(scoutCode)}&limit=250`),
+              roleRequest(`/rest/v1/founders?select=id,email,name,industry,city,stats,creator_type,image_url,status,visual_status,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at&invited_by_scout_code=eq.${encodeURIComponent(scoutCode)}&limit=250`)
+            ])
+          : [[], []];
+        return normalizeLoadedData({ profiles, scouts, crm, athletes, founders });
       }
       const profileQuery = `/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`;
-      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,created_at";
-      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,created_at";
+      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,created_at";
+      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,created_at";
       const ownProfile = roleRequest(profileQuery);
       if (role === "athlete") {
         const [profiles, ownAthletes, terms, notifications, posts, results] = await Promise.all([
@@ -1918,7 +2209,6 @@ function supabaseApi() {
     async validateScoutCode(code) {
       const normalized = normalizeScoutCode(code);
       if (!normalized) return { valid: false, exists: false };
-      const validFormat = scoutCodeLooksValid(normalized);
       try {
         const result = await request("/rest/v1/rpc/is_active_scout_code", {
           method: "POST",
@@ -1927,17 +2217,17 @@ function supabaseApi() {
         });
         const valid = result === true || result === "true" || result?.is_active_scout_code === true;
         return {
-          valid: valid || validFormat,
+          valid,
           exists: valid,
-          pendingValidation: !valid && validFormat
+          pendingValidation: false
         };
       } catch (error) {
         const candidate = findScoutCandidateByCode(normalized);
         const activeCandidate = Boolean(candidate && scoutCanInvite(candidate));
         return {
-          valid: activeCandidate || validFormat,
+          valid: activeCandidate,
           exists: Boolean(candidate),
-          pendingValidation: !activeCandidate && validFormat
+          pendingValidation: false
         };
       }
     },
@@ -1976,13 +2266,17 @@ function supabaseApi() {
       const authRole = String(auth.user.user_metadata?.role || "").toLowerCase();
       let profile = profiles[0] || null;
       if (!profile) {
-        if (authRole === "founder" || founders.length) {
+        if (authRole === "scout" || authRole === "commercial") {
+          profile = await this.ensureScoutAccount(auth);
+        } else if (authRole === "founder" || founders.length) {
           profile = await this.ensureFounderAccount(auth);
         } else if (authRole === "athlete") {
           profile = await this.ensureAthleteAccount(auth);
         } else {
           profile = await this.ensureClientAccount(auth);
         }
+      } else if (profile.role === "scout" || profile.role === "commercial") {
+        profile = await this.ensureScoutAccount(auth, { name: profile.name });
       } else if (profile.role === "founder" && !founders.length) {
         profile = await this.ensureFounderAccount(auth, { name: profile.name });
       } else if (profile.role === "athlete" && !athletes.length) {
@@ -2015,7 +2309,9 @@ function supabaseApi() {
       if (companies.some(company => ["blocked", "deleted", "rejected"].includes(company.status))) throw new Error("Esta empresa fue dada de baja por ROIS.");
       if (athletes.some(athlete => ["blocked", "deleted", "rejected"].includes(athlete.status))) throw new Error("Esta cuenta emprendedora fue dada de baja por ROIS.");
       if (founders.some(founder => ["blocked", "deleted", "rejected"].includes(founder.status))) throw new Error("Esta cuenta de creador fue dada de baja por ROIS.");
-      const role = profile.role === "commercial"
+      const role = profile.role === "scout"
+        ? "scout"
+        : profile.role === "commercial"
         ? "commercial"
         : profile.role === "founder"
         ? "founder"
@@ -2025,6 +2321,9 @@ function supabaseApi() {
             ? "client"
             : normalizedRole(normalizedEmail, profile.role);
       const credentials = authSessionCredentials(auth);
+      const scoutCode = role === "scout" || role === "commercial"
+        ? normalizeScoutCode(profile.scout_code || "")
+        : "";
       return {
         id: profile.id,
         authId: auth.user.id,
@@ -2035,6 +2334,7 @@ function supabaseApi() {
         refreshToken: credentials.refreshToken,
         expiresAt: credentials.expiresAt,
         mustChangePassword: !!profile.must_change_password,
+        scoutCode,
         bootstrapData: {
           profiles: [profile],
           companies,
@@ -2069,6 +2369,50 @@ function supabaseApi() {
       return {
         confirmed: true,
         session: { id: profile.id, authId: authUser.id, email, role: "client", name: profile.name, token: accessToken, refreshToken: credentials.refreshToken, expiresAt: credentials.expiresAt, mustChangePassword: false }
+      };
+    },
+    async signupScout(payload) {
+      const email = normalizedAccountEmail(payload.email);
+      const auth = await request("/auth/v1/signup", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          email,
+          password: payload.password,
+          data: { name: payload.name, role: "scout" }
+        })
+      });
+      const credentials = authSessionCredentials(auth);
+      const accessToken = credentials.token;
+      const authUser = auth.user || auth;
+      if (!accessToken || !authUser?.id) return { confirmed: false, email };
+      const registered = await request("/rest/v1/rpc/register_external_scout", {
+        method: "POST",
+        headers: headers(accessToken),
+        body: JSON.stringify({ scout_name: payload.name, scout_email: email })
+      });
+      const profileId = registered?.profile_id || authUser.id;
+      const scoutCode = normalizeScoutCode(registered?.scout_code || makeScoutCode(payload.name, email));
+      mergeLoadedData(await this.loadRoleData("scout", {
+        id: profileId,
+        authId: authUser.id,
+        email,
+        token: accessToken
+      }));
+      return {
+        confirmed: true,
+        session: {
+          id: profileId,
+          authId: authUser.id,
+          email,
+          role: "scout",
+          name: payload.name,
+          token: accessToken,
+          refreshToken: credentials.refreshToken,
+          expiresAt: credentials.expiresAt,
+          mustChangePassword: false,
+          scoutCode
+        }
       };
     },
     async signupAthlete(payload) {
@@ -2355,21 +2699,31 @@ function supabaseApi() {
       if (!profile) {
         try {
           const authRole = String(user.user_metadata?.role || "").toLowerCase();
-          profile = authRole === "founder"
-            ? await this.ensureFounderAccount({ user, access_token: accessToken })
-            : authRole === "athlete"
-              ? await this.ensureAthleteAccount({ user, access_token: accessToken })
-              : await this.ensureClientAccount({ user, access_token: accessToken });
+          profile = authRole === "scout" || authRole === "commercial"
+            ? await this.ensureScoutAccount({ user, access_token: accessToken })
+            : authRole === "founder"
+              ? await this.ensureFounderAccount({ user, access_token: accessToken })
+              : authRole === "athlete"
+                ? await this.ensureAthleteAccount({ user, access_token: accessToken })
+                : await this.ensureClientAccount({ user, access_token: accessToken });
         } catch (error) {
           profile = {
             id: user.id,
             email: normalizedEmail,
-            role: user.user_metadata?.role === "founder" ? "founder" : user.user_metadata?.role === "athlete" ? "athlete" : "client",
+            role: ["scout", "commercial"].includes(String(user.user_metadata?.role || "").toLowerCase())
+              ? "scout"
+              : user.user_metadata?.role === "founder"
+                ? "founder"
+                : user.user_metadata?.role === "athlete"
+                  ? "athlete"
+                  : "client",
             name: user.user_metadata?.name || normalizedEmail.split("@")[0] || "Perfil ROIS",
             status: "approved",
             must_change_password: true
           };
         }
+      } else if (profile.role === "scout" || profile.role === "commercial") {
+        profile = await this.ensureScoutAccount({ user, access_token: accessToken }, { name: profile.name });
       }
       let companies = [];
       try {
@@ -2379,8 +2733,52 @@ function supabaseApi() {
       } catch (error) {
         companies = [];
       }
-      const role = profile.role === "founder" ? "founder" : profile.role === "athlete" ? "athlete" : companies.length ? "client" : normalizedRole(normalizedEmail, profile.role);
-      return { id: profile.id || user.id, authId: user.id, email: normalizedEmail, role, name: profile.name || user.user_metadata?.name || normalizedEmail.split("@")[0] || "Perfil ROIS", token: accessToken, mustChangePassword: true };
+      const role = profile.role === "scout" || profile.role === "commercial"
+        ? "scout"
+        : profile.role === "founder"
+          ? "founder"
+          : profile.role === "athlete"
+            ? "athlete"
+            : companies.length
+              ? "client"
+              : normalizedRole(normalizedEmail, profile.role);
+      return {
+        id: profile.id || user.id,
+        authId: user.id,
+        email: normalizedEmail,
+        role,
+        name: profile.name || user.user_metadata?.name || normalizedEmail.split("@")[0] || "Perfil ROIS",
+        token: accessToken,
+        mustChangePassword: true,
+        scoutCode: role === "scout" ? normalizeScoutCode(profile.scout_code || "") : ""
+      };
+    },
+    async ensureScoutAccount(auth, fallback = {}) {
+      const token = auth.access_token || auth.session?.access_token;
+      const normalizedEmail = normalizedAccountEmail(auth.user?.email);
+      if (!token || !normalizedEmail) throw new Error("No fue posible validar la sesion Scout.");
+      const meta = auth.user.user_metadata || {};
+      const name = String(fallback.name || meta.name || normalizedEmail.split("@")[0] || "Scout ROIS").trim();
+      const registered = await request("/rest/v1/rpc/register_external_scout", {
+        method: "POST",
+        headers: headers(token),
+        body: JSON.stringify({
+          scout_name: name,
+          scout_email: normalizedEmail
+        })
+      });
+      if (!registered?.profile_id || !registered?.scout_code) {
+        throw new Error("No fue posible crear o recuperar el codigo Scout.");
+      }
+      return {
+        id: registered.profile_id,
+        email: normalizedEmail,
+        role: "scout",
+        name: registered.name || name,
+        status: registered.status || "approved",
+        must_change_password: false,
+        scout_code: normalizeScoutCode(registered.scout_code)
+      };
     },
     async ensureClientAccount(auth, fallback = {}) {
       const token = auth.access_token || auth.session?.access_token;
@@ -3161,6 +3559,7 @@ function openRegistrationChoice(context = "profile") {
       <button class="btn primary" type="button" data-registration="company">Empresa</button>
       <button class="btn" type="button" data-registration="athlete">Athlete</button>
       <button class="btn" type="button" data-registration="founder">Creador</button>
+      <button class="btn" type="button" data-registration="scout">Scout</button>
     </div>`
   );
   document.querySelectorAll("#actionModal [data-registration]").forEach(button => {
@@ -3224,30 +3623,6 @@ function openExternalUrl(url, title) {
   return true;
 }
 
-function registrationPaymentConfig(type, payload = {}) {
-  if (type === "founder") {
-    return {
-      productKey: "founderMonthlyMembership",
-      title: "Membresia mensual Creador ROIS",
-      concept: "Membresia mensual Creador ROIS",
-      amount: 2500,
-      payer: payload.name || payload.email || "Creador ROIS"
-    };
-  }
-
-  if (type === "athlete") {
-    return {
-      productKey: "athleteMonthlyMembership",
-      title: "Membresia mensual Athlete ROIS",
-      concept: "Membresia mensual Athlete ROIS",
-      amount: 2500,
-      payer: payload.name || payload.email || "Athlete ROIS"
-    };
-  }
-
-  return null;
-}
-
 function eventSuccessFeeOptions() {
   return [
     {
@@ -3299,25 +3674,6 @@ function eventSuccessFeeSelectMarkup() {
       ROIS puede participar bajo success fee del 5% al 20% sobre sponsors cerrados a traves de la plataforma o gestion comercial de ROIS. El porcentaje depende del nivel de involucramiento seleccionado.
     </p>
   `;
-}
-
-async function registerMembershipPayment(type, payload = {}) {
-  const payment = registrationPaymentConfig(type, payload);
-  if (!payment) return null;
-
-  try {
-    await api.insert("payments", {
-      concept: payment.concept,
-      amount: payment.amount,
-      company: payment.payer,
-      status: "pending",
-      product_key: payment.productKey
-    });
-  } catch (error) {
-    // No bloquear el registro si el log de pago falla.
-  }
-
-  return payment;
 }
 
 async function insertEventRegistrationRecord(payload) {
@@ -3417,15 +3773,15 @@ function renderSession() {
   }
   const panelLabel = state.session.role === "admin"
     ? "Panel admin"
-    : state.session.role === "commercial"
-      ? "Panel comercial"
+    : ["scout", "commercial"].includes(state.session.role)
+      ? "Panel Scout"
       : state.session.role === "founder"
         ? "Panel creador"
         : state.session.role === "athlete"
           ? "Panel deportista"
           : "Panel cliente";
   area.innerHTML = `
-    <span class="pill">${state.session.role === "admin" ? "Admin" : state.session.role === "commercial" ? "Comercial" : state.session.name}</span>
+    <span class="pill">${state.session.role === "admin" ? "Admin" : ["scout", "commercial"].includes(state.session.role) ? "Scout" : state.session.name}</span>
     <button class="btn subtle" type="button" data-panel-link>${panelLabel}</button>
   `;
   area.querySelector("[data-panel-link]").addEventListener("click", () => showView(dashboardViewForRole(state.session.role)));
@@ -3620,6 +3976,10 @@ function renderClientPanel(targetId) {
     "client-sponsors": renderClientSponsors,
     "client-marketplace": renderClientMarketplace,
     "client-founders": renderClientFounders,
+    "client-opportunities": renderClientOpportunities,
+    "client-applicants": renderClientApplicants,
+    "client-results": renderClientOpportunityResults,
+    "client-intelligence": renderClientIntelligence,
     "client-register": renderClientRegister,
     "client-payments": renderClientPayments,
     "client-settings": () => renderAccountSettings("client-settings")
@@ -3688,7 +4048,8 @@ function clientAthleteRecords() {
   return (state.data.athletes || [])
     .filter(item => item.id && !item.is_virtual)
     .filter(item => String(item.status || "").toLowerCase() === "approved")
-    .filter(item => String(item.visual_status || "").toLowerCase() === "approved");
+    .filter(item => String(item.visual_status || "").toLowerCase() === "approved")
+    .filter(item => String(item.marketplace_access_status || "").toLowerCase() === "active");
 }
 
 function clientFounderRecords() {
@@ -3702,7 +4063,8 @@ function clientFounderRecords() {
     .filter(item => item.id && !item.is_virtual)
     .filter(item => !athleteEmails.has(String(item.email || "").trim().toLowerCase()))
     .filter(item => !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase()))
-    .filter(item => String(item.visual_status || "").toLowerCase() === "approved");
+    .filter(item => String(item.visual_status || "").toLowerCase() === "approved")
+    .filter(item => String(item.marketplace_access_status || "").toLowerCase() === "active");
 }
 
 function renderClientOverview() {
@@ -3776,7 +4138,9 @@ function registrationReferralFromUrl() {
     creador: "founder",
     founder: "founder",
     company: "company",
-    empresa: "company"
+    empresa: "company",
+    scout: "scout",
+    scouts: "scout"
   };
 
   return {
@@ -4575,8 +4939,98 @@ function renderClientPayments() {
   `);
 }
 
+function universalCapabilitiesMarkup(profile = {}) {
+  const selected = new Set(Array.isArray(profile.capabilities) ? profile.capabilities : []);
+  const options = [
+    ["venta", "Venta"],
+    ["recomendacion", "Recomendacion"],
+    ["distribucion", "Distribucion"],
+    ["creacion_contenido", "Creacion de contenido"],
+    ["generacion_prospectos", "Generacion de prospectos"],
+    ["apariciones", "Apariciones"],
+    ["conferencias", "Conferencias"],
+    ["representacion_marca", "Representacion de marca"],
+    ["activaciones", "Activaciones"],
+    ["servicios_profesionales", "Servicios profesionales"],
+    ["deportes", "Deportes"],
+    ["emprendimiento", "Emprendimiento"]
+  ];
+  return options.map(([value, label]) => `
+    <label class="check-option">
+      <input type="checkbox" name="capabilities" value="${value}" ${selected.has(value) ? "checked" : ""}>
+      <span>${label}</span>
+    </label>
+  `).join("");
+}
+
+function commaSeparatedValues(value) {
+  return String(value || "").split(",").map(item => item.trim()).filter(Boolean);
+}
+
+async function submitUniversalProfileSettings(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const submit = form.querySelector('button[type="submit"]');
+  const capabilities = [...form.querySelectorAll('[name="capabilities"]:checked')].map(input => input.value);
+  const missing = [];
+  if (!form.name.value.trim()) missing.push("Nombre");
+  if (!form.city.value.trim()) missing.push("Ciudad");
+  if (!capabilities.length) missing.push("Al menos una capacidad");
+  if (missing.length) {
+    notify("Perfil", "Falta completar informacion", missing.join(" · "));
+    form.querySelector(":invalid, input:not([type=checkbox])")?.focus();
+    return;
+  }
+  submit.disabled = true;
+  submit.textContent = "Guardando...";
+  try {
+    const seed = { ...universalProfileSeed(), ...(currentUniversalProfile() || {}) };
+    const updated = await api.upsertByEmail("user_profiles", {
+      ...seed,
+      profile_id: seed.profile_id || state.session?.authId || state.session?.id,
+      email: normalizedAccountEmail(state.session?.email || seed.email),
+      name: form.name.value.trim(),
+      public_name: form.public_name.value.trim() || form.name.value.trim(),
+      bio: form.bio.value.trim(),
+      city: form.city.value.trim(),
+      state_region: form.state_region.value.trim(),
+      country: form.country.value.trim() || "Mexico",
+      languages: commaSeparatedValues(form.languages.value),
+      availability: form.availability.value,
+      capabilities,
+      interests: commaSeparatedValues(form.interests.value),
+      industries: commaSeparatedValues(form.industries.value),
+      territories: commaSeparatedValues(form.territories.value),
+      sales_experience: form.sales_experience.value.trim(),
+      audience_size: Math.max(0, Number(form.audience_size.value || 0)),
+      audience_description: form.audience_description.value.trim(),
+      travel_availability: form.travel_availability.checked,
+      can_invoice: form.can_invoice.checked,
+      updated_at: new Date().toISOString()
+    });
+    if (updated?.name && state.session) {
+      state.session = { ...state.session, name: updated.name };
+      saveSession(state.session);
+    }
+    recordMarketplaceEvent("profile_completed", "user_profile", updated?.id || seed.id, {
+      capabilities: capabilities.length,
+      industries: commaSeparatedValues(form.industries.value).length
+    });
+    renderAthleteHeader();
+    notify("Perfil", "Informacion actualizada", "Tu perfil universal quedo guardado y disponible para futuras oportunidades.");
+    renderAccountSettings("athlete-settings");
+  } catch (error) {
+    notify("Perfil", "No fue posible guardar", humanError(error));
+    submit.disabled = false;
+    submit.textContent = "Guardar perfil universal";
+  }
+}
+
 function renderAccountSettings(panelId) {
   const company = panelId === "client-settings" ? currentCompany() : null;
+  const universal = panelId === "athlete-settings"
+    ? { ...universalProfileSeed(), ...(currentUniversalProfile() || {}) }
+    : null;
   panel(panelId, "Configuraci\u00f3n", panelId === "client-settings" ? "Perfil de empresa y seguridad" : "Seguridad de acceso", `
     <div class="panel-body">
       <div class="settings-grid">
@@ -4601,6 +5055,38 @@ function renderAccountSettings(panelId) {
             <label>Logotipo de empresa<input name="logo" type="file" accept="image/png,image/jpeg,image/webp"></label>
             <label style="grid-column:1/-1">Descripci\u00f3n breve<textarea name="description" placeholder="Describe a qu\u00e9 se dedica la empresa y qu\u00e9 tipo de oportunidades busca.">${escapeHtml(company.description || "")}</textarea></label>
             <button class="btn primary" type="submit">Guardar perfil de empresa</button>
+          </form>
+        ` : ""}
+        ${universal ? `
+          <div class="settings-block">
+            <p class="eyebrow">Perfil universal</p>
+            <h3>Lo que puedes aportar a una oportunidad</h3>
+            <p class="hint">Este perfil reutiliza tu cuenta actual. Puedes combinar capacidades de creador, atleta, vendedor, profesionista o emprendedor sin perder tus distintivos existentes.</p>
+          </div>
+          <form class="form-grid universal-profile-form" data-universal-profile>
+            <label>Nombre<input name="name" required value="${escapeAttr(universal.name || state.session?.name || "")}"></label>
+            <label>Nombre publico<input name="public_name" value="${escapeAttr(universal.public_name || universal.name || "")}"></label>
+            <label>Ciudad<input name="city" required value="${escapeAttr(universal.city || "")}"></label>
+            <label>Estado<input name="state_region" value="${escapeAttr(universal.state_region || "")}"></label>
+            <label>Pais<input name="country" value="${escapeAttr(universal.country || "Mexico")}"></label>
+            <label>Disponibilidad<select name="availability">
+              ${["available", "limited", "unavailable"].map(value => `<option value="${value}" ${universal.availability === value ? "selected" : ""}>${value === "available" ? "Disponible" : value === "limited" ? "Limitada" : "No disponible"}</option>`).join("")}
+            </select></label>
+            <label>Idiomas<input name="languages" value="${escapeAttr((universal.languages || []).join(", "))}" placeholder="Español, Ingles"></label>
+            <label>Industrias conocidas<input name="industries" value="${escapeAttr((universal.industries || []).join(", "))}" placeholder="Deportes, belleza, tecnologia"></label>
+            <label>Intereses<input name="interests" value="${escapeAttr((universal.interests || []).join(", "))}" placeholder="Contenido, ventas, eventos"></label>
+            <label>Territorios<input name="territories" value="${escapeAttr((universal.territories || []).join(", "))}" placeholder="Mexico, Queretaro, remoto"></label>
+            <label>Audiencia digital<input name="audience_size" type="number" min="0" value="${Number(universal.audience_size || 0)}"></label>
+            <label class="check-option"><input name="travel_availability" type="checkbox" ${universal.travel_availability ? "checked" : ""}><span>Disponible para viajar</span></label>
+            <label class="check-option"><input name="can_invoice" type="checkbox" ${universal.can_invoice ? "checked" : ""}><span>Puedo facturar cuando corresponda</span></label>
+            <fieldset class="requested-data-fieldset" style="grid-column:1/-1">
+              <legend>Capacidades</legend>
+              ${universalCapabilitiesMarkup(universal)}
+            </fieldset>
+            <label style="grid-column:1/-1">Descripcion<textarea name="bio" required placeholder="Explica tu experiencia, valor y el tipo de proyectos que puedes ejecutar.">${escapeHtml(universal.bio || "")}</textarea></label>
+            <label style="grid-column:1/-1">Experiencia comercial<textarea name="sales_experience" placeholder="Ventas, recomendaciones, colaboraciones o proyectos anteriores.">${escapeHtml(universal.sales_experience || "")}</textarea></label>
+            <label style="grid-column:1/-1">Descripcion de audiencia<textarea name="audience_description" placeholder="Tipo de publico, comunidad o relaciones profesionales.">${escapeHtml(universal.audience_description || "")}</textarea></label>
+            <button class="btn primary" type="submit">Guardar perfil universal</button>
           </form>
         ` : ""}
         <div class="settings-block">
@@ -4631,6 +5117,8 @@ function renderAccountSettings(panelId) {
   `);
   const companyForm = document.querySelector(`[data-dashboard-panel="${panelId}"] [data-company-profile]`);
   if (companyForm) companyForm.addEventListener("submit", submitCompanyProfile);
+  const universalForm = document.querySelector(`[data-dashboard-panel="${panelId}"] [data-universal-profile]`);
+  if (universalForm) universalForm.addEventListener("submit", submitUniversalProfileSettings);
   document.querySelector(`[data-dashboard-panel="${panelId}"] [data-settings-password]`).addEventListener("submit", submitSettingsPassword);
 }
 
@@ -4649,6 +5137,10 @@ function renderAthletePanel(targetId) {
     "athlete-scouts": renderAthleteScouts,
     "athlete-results": renderAthleteResults,
     "athlete-sponsor-deck": renderAthleteSponsorDeck,
+    "athlete-growth": renderAthleteBrandGrowth,
+    "athlete-opportunities": renderUserOpportunities,
+    "athlete-applications": renderUserApplications,
+    "athlete-income": renderUserIncome,
     "athlete-settings": () => renderAccountSettings("athlete-settings")
   };
   if (map[targetId]) map[targetId]();
@@ -4892,16 +5384,16 @@ function isFounderProfile(profile) {
 function verticalCopy(profile) {
   const founder = isFounderProfile(profile);
   return founder ? {
-    accountEyebrow: "Cuenta de creador",
-    profileDefaultName: "Creador ROIS",
-    primaryFieldLabel: "Categoria / nicho",
-    secondaryFieldLabel: "Etapa profesional",
+    accountEyebrow: "Cuenta universal",
+    profileDefaultName: "Usuario ROIS",
+    primaryFieldLabel: "Industria / especialidad",
+    secondaryFieldLabel: "Experiencia / etapa",
     locationLabel: "Ciudad / base",
     rankingLabel: "Alcance o indicador destacado",
-    summaryLabel: "Resumen comercial del creador",
-    summaryPlaceholder: "Audiencia, estilo, contenido, relevancia cultural, resultados y valor para marcas.",
+    summaryLabel: "Resumen profesional y comercial",
+    summaryPlaceholder: "Habilidades, experiencia, intereses, audiencia, resultados y valor que puedes generar.",
     videoLabel: "Showreel, portafolio o canal principal",
-    profileEmptyText: "No encontramos una ficha de creador vinculada a tu correo. Contacta a ROIS para asociarla.",
+    profileEmptyText: "No encontramos una ficha universal vinculada a tu correo. Contacta a ROIS para asociarla.",
     resultsTitle: "Resultados de campanas y contenido",
     resultsSubtitle: "Alcance, engagement, conversiones e hitos para marcas",
     resultMonthPlaceholder: "Junio 2026",
@@ -4910,8 +5402,8 @@ function verticalCopy(profile) {
     sponsorshipsTitle: "Patrocinios",
     sponsorshipsSubtitle: "Marcas y aliados que respaldan tu trayectoria creativa",
     scoutsTitle: "Scouts",
-    scoutsSubtitle: "Invita creadores y comunidades a ROIS",
-    postsEmptyText: "Tus publicaciones aparecer\u00e1n aqu\u00ed. Comparte contenido, campanas, presentaciones y evidencia para que las marcas eval\u00faen tu perfil.",
+    scoutsSubtitle: "Invita personas y comunidades a ROIS",
+    postsEmptyText: "Tus publicaciones aparecer\u00e1n aqu\u00ed. Comparte experiencia, proyectos, contenido y evidencia para fortalecer tu reputaci\u00f3n.",
     profileStatusLabel: "Estado del perfil"
   } : {
     accountEyebrow: "Cuenta deportiva",
@@ -5224,6 +5716,11 @@ function renderAthleteSponsorDeck() {
     panel("athlete-sponsor-deck", "Sponsor Deck ROIS", "Propuesta comercial estructurada", `<div class="empty">Completa primero tu perfil ROIS.</div>`);
     return;
   }
+  if (!athleteAnnualFeePaid(profile)) {
+    panel("athlete-sponsor-deck", "Sponsor Deck ROIS", "Propuesta comercial estructurada", annualAccessPaywall("sponsor-deck", profile));
+    document.querySelector('[data-dashboard-panel="athlete-sponsor-deck"] [data-unlock-annual]')?.addEventListener("click", event => requestAnnualAccess(event.currentTarget.dataset.unlockAnnual));
+    return;
+  }
   const founder = isFounderProfile(profile);
   const deck = sponsorDeckData(profile);
   const deckMedia = sponsorDeckMedia(profile, deck || {});
@@ -5358,6 +5855,134 @@ async function submitSponsorDeck(event) {
   } finally {
     setSavingState(form, false);
   }
+}
+
+function brandGrowthProfileScore(profile = currentAthlete()) {
+  if (!profile) return 0;
+  const creator = isFounderProfile(profile);
+  const audience = Number(profile.audience_size || 0);
+  const engagement = Number(profile.engagement_rate || 0);
+  const socialCount = ["instagram_url", "tiktok_url", "facebook_url", "linkedin_url"]
+    .filter(key => String(profile[key] || "").trim()).length;
+  const identityFields = creator
+    ? ["name", "industry", "city", "creator_type", "stats", "image_url"]
+    : ["name", "sport", "category", "location", "stats", "image_url"];
+  const identityScore = identityFields.filter(key => String(profile[key] || "").trim()).length / identityFields.length;
+  const email = normalizedAccountEmail(profile.email || profile.contact || state.session?.email);
+  const posts = (state.data.athlete_posts || []).filter(item =>
+    item.profile_id === profile.profile_id ||
+    item.athlete_id === profile.id ||
+    normalizedAccountEmail(item.email || item.user_email) === email
+  ).length;
+  const results = (state.data.athlete_results || []).filter(item =>
+    item.profile_id === profile.profile_id ||
+    item.athlete_id === profile.id ||
+    normalizedAccountEmail(item.email || item.user_email) === email
+  ).length;
+  const audienceScore = creator ? Math.min(28, Math.log10(Math.max(1, audience)) * 6) : 0;
+  const engagementScore = creator ? Math.min(16, engagement * 2) : 0;
+  const profileScore = identityScore * 30;
+  const socialScore = socialCount * 4;
+  const evidenceScore = Math.min(20, (posts * 3) + (results * 4));
+  const deckScore = sponsorDeckIsReady(profile) ? 20 : 0;
+  return Math.max(0, Math.min(100, Math.round(audienceScore + engagementScore + profileScore + socialScore + evidenceScore + deckScore)));
+}
+
+function brandGrowthScoreLabel(score) {
+  if (score >= 75) return "Posicionamiento alto";
+  if (score >= 45) return "Posicionamiento medio";
+  return "Marca en crecimiento";
+}
+
+function brandGrowthCampaigns() {
+  return [...(state.data.brand_growth_campaigns || [])]
+    .filter(item => String(item.status || "").toLowerCase() === "active")
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
+function currentBrandGrowthParticipation(campaignId) {
+  const profile = currentAthlete();
+  const profileId = profile?.profile_id || state.session?.authId || state.session?.id;
+  const email = normalizedAccountEmail(profile?.email || profile?.contact || state.session?.email);
+  return (state.data.brand_growth_participants || []).find(item =>
+    item.campaign_id === campaignId &&
+    (item.profile_id === profileId || normalizedAccountEmail(item.email) === email)
+  ) || null;
+}
+
+async function joinBrandGrowthCampaign(campaignId) {
+  const context = getCurrentProfileContext();
+  const profile = currentAthlete();
+  if (!context || !profile || context.isVirtual) {
+    notify("Impulso de marca", "Perfil real requerido", "Completa y guarda tu perfil antes de participar.");
+    return;
+  }
+  if (currentBrandGrowthParticipation(campaignId)) {
+    notify("Impulso de marca", "Participacion registrada", "Ya formas parte de esta campana.");
+    return;
+  }
+  try {
+    await api.insert("brand_growth_participants", {
+      campaign_id: campaignId,
+      profile_id: profile.profile_id || state.session?.authId || state.session?.id,
+      profile_record_id: profile.id,
+      profile_table: context.table,
+      email: normalizedAccountEmail(profile.email || profile.contact || state.session?.email),
+      name: profile.public_name || profile.name || state.session?.name || "Perfil ROIS",
+      positioning_score: brandGrowthProfileScore(profile),
+      participation_type: "pending",
+      status: "joined"
+    });
+    notify("Impulso de marca", "Solicitud registrada", "ROIS usara datos reales de posicionamiento para definir una colaboracion equilibrada.");
+    renderAthleteBrandGrowth();
+  } catch (error) {
+    notify("Impulso de marca", "No fue posible participar", humanError(error));
+  }
+}
+
+function renderAthleteBrandGrowth() {
+  const profile = currentAthlete();
+  const score = brandGrowthProfileScore(profile);
+  const campaigns = brandGrowthCampaigns();
+  const participants = state.data.brand_growth_participants || [];
+  panel("athlete-growth", "Impulso de marca", "Colaboraciones internas para crecer con otros perfiles ROIS", `
+    <div class="panel-body">
+      <div class="brand-growth-intro">
+        <div>
+          <p class="eyebrow">Posicionamiento digital</p>
+          <h3>Crecer en red, con una colaboracion medible.</h3>
+          <p>ROIS conecta perfiles con mayor posicionamiento con perfiles en crecimiento. Cada campana define un objetivo, entregables y una colaboracion equilibrada; nadie obtiene acceso a datos privados.</p>
+        </div>
+        <div class="brand-growth-score">
+          <strong>${score}</strong>
+          <span>/ 100</span>
+          <small>${escapeHtml(brandGrowthScoreLabel(score))}</small>
+        </div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="brand-growth-grid">
+        ${campaigns.length ? campaigns.map(campaign => {
+          const participation = currentBrandGrowthParticipation(campaign.id);
+          return `
+            <article class="brand-growth-campaign">
+              <p class="eyebrow">${participation ? escapeHtml(participation.status || "registrado") : "Convocatoria abierta"}</p>
+              <h3>${escapeHtml(campaign.title || "Campana ROIS")}</h3>
+              <p>${escapeHtml(campaign.objective || campaign.brief || "Colaboracion interna de crecimiento.")}</p>
+              ${campaign.deliverables ? `<div class="brand-growth-deliverables"><strong>Entregables</strong><p>${escapeHtml(campaign.deliverables)}</p></div>` : ""}
+              ${participation?.paired_with_name ? `<div class="brand-growth-match"><span>Match asignado</span><strong>${escapeHtml(participation.paired_with_name)}</strong></div>` : ""}
+              ${participation
+                ? `<span class="pill">${participation.status === "matched" ? "Match confirmado" : "Participando"}</span>`
+                : `<button class="btn primary" type="button" data-join-growth="${escapeAttr(campaign.id)}">Quiero participar</button>`}
+            </article>
+          `;
+        }).join("") : `<div class="empty">Las proximas campanas internas apareceran aqui cuando ROIS abra una convocatoria.</div>`}
+      </div>
+    </div>
+  `);
+  document.querySelectorAll('[data-dashboard-panel="athlete-growth"] [data-join-growth]').forEach(button => {
+    button.addEventListener("click", () => joinBrandGrowthCampaign(button.dataset.joinGrowth));
+  });
 }
 
 function competitiveEvidenceFormMarkup(founder = false) {
@@ -5495,7 +6120,8 @@ function renderAthleteProfile() {
   }
   const founder = isFounderProfile(athlete);
   const logos = athleteSponsorLogos(athlete);
-  const annualRequired = athleteAnnualFeeRequired(athlete);
+  const annualStatus = annualAccessStatus(athlete);
+  const marketplaceStatus = String(athlete.marketplace_access_status || "locked").toLowerCase();
   panel("athlete-profile", "Mi perfil", "Perfil profesional para sponsors", `
     <div class="panel-body">
       ${athleteProfileHero(athlete, logos)}
@@ -5544,17 +6170,25 @@ function renderAthleteProfile() {
         <div class="profile-status-grid" style="grid-column:1/-1">
           <div>
             <span>Sponsor Deck ROIS</span>
-            <strong>${sponsorDeckIsReady(athlete) ? "Disponible" : "Pendiente"}</strong>
-            ${sponsorDeckIsReady(athlete) ? sponsorDeckButton(athlete, "Ver Sponsor Deck") : `<button class="btn" type="button" data-dashboard-shortcut="athlete-sponsor-deck">Crear con IA</button>`}
+            <strong>${annualStatus === "active" ? (sponsorDeckIsReady(athlete) ? "Disponible" : "Listo para crear") : "Bloqueado"}</strong>
+            ${annualStatus === "active"
+              ? (sponsorDeckIsReady(athlete) ? sponsorDeckButton(athlete, "Ver Sponsor Deck") : `<button class="btn" type="button" data-dashboard-shortcut="athlete-sponsor-deck">Crear Sponsor Deck</button>`)
+              : `<button class="btn" type="button" data-unlock-annual="sponsor-deck">Desbloquear Sponsor Deck</button>`}
           </div>
           <div>
             <span>Link mensual admin</span>
             <strong>${athlete.sponsor_payment_url ? "Asignado" : "Pendiente por ROIS"}</strong>
           </div>
           <div>
-            <span>Pago anual</span>
-            <strong>${annualRequired ? `$${athleteAnnualFeeAmount.toLocaleString("es-MX")} MXN` : "No solicitado"}</strong>
-            ${annualRequired ? `<button class="btn" type="button" data-stripe-key="athleteAnnualProfile">Pagar anualidad</button>` : `<span>Completa tu perfil. ROIS habilitara el pago cuando corresponda.</span>`}
+            <span>Acceso anual</span>
+            <strong>${annualStatus === "active" ? "Activo" : annualStatus === "pending" ? "Pago pendiente" : `$${athleteAnnualFeeAmount.toLocaleString("es-MX")} MXN / año`}</strong>
+            ${annualStatus === "active"
+              ? (marketplaceStatus === "active"
+                ? `<span>Perfil publicado para empresas.</span>`
+                : marketplaceStatus === "pending_review"
+                  ? `<span>Publicación en revisión ROIS.</span>`
+                  : `<button class="btn" type="button" data-request-marketplace>Solicitar publicación</button>`)
+              : `<button class="btn" type="button" data-unlock-annual="marketplace">Activar anualidad y publicar</button>`}
           </div>
         </div>
         <div class="athlete-sponsor-brands" style="grid-column:1/-1"><span>Sponsors actuales</span>${athleteSponsorBubbleStrip(logos, { limit: 10, emptyLabel: "Disponible", compact: true })}</div>
@@ -5568,7 +6202,10 @@ function renderAthleteProfile() {
   document.querySelectorAll("[data-athlete-profile-tab]").forEach(button => {
     button.addEventListener("click", () => activateAthleteProfileTab(button.dataset.athleteProfileTab));
   });
-  if (annualRequired) document.querySelector("[data-stripe-key='athleteAnnualProfile']")?.addEventListener("click", () => openStripeCheckout("athleteAnnualProfile", founder ? "Anualidad Creador ROIS" : "Anualidad Deportiva ROIS"));
+  document.querySelectorAll('[data-dashboard-panel="athlete-profile"] [data-unlock-annual]').forEach(button => {
+    button.addEventListener("click", () => requestAnnualAccess(button.dataset.unlockAnnual));
+  });
+  document.querySelector('[data-dashboard-panel="athlete-profile"] [data-request-marketplace]')?.addEventListener("click", requestMarketplacePublication);
 }
 
 function renderAthleteSponsorships() {
@@ -5592,7 +6229,8 @@ function scoutRulesList(profile = currentAthlete()) {
     <ul class="scout-rules">
       <li>El scout no puede cobrar dinero directamente al ${singularProfile}.</li>
       <li>El pago de inscripcion se hace unicamente a ROIS.</li>
-      <li>La comision es de $${scoutCommissionAmount.toLocaleString("es-MX")} MXN por cuenta pagada y validada.</li>
+      <li>La comision es un pago unico de $${scoutCommissionAmount.toLocaleString("es-MX")} MXN por cuenta activada y validada.</li>
+      <li>Cada referido puede generar una sola comision, sin recurrencia mensual.</li>
       <li>No se paga por registros incompletos ni cuentas duplicadas.</li>
       <li>No se puede prometer patrocinio automatico ni decir que ROIS garantiza sponsors.</li>
       <li>ROIS es una plataforma para construir perfil, documentar evolucion y aspirar a patrocinios.</li>
@@ -5626,6 +6264,8 @@ function renderAthleteScouts() {
   const weekStart = currentWeekStart();
   const eligibleRows = referrals.filter(item => scoutReferralStatus(item).eligible);
   const weeklyRows = eligibleRows.filter(item => new Date(item.created_at || 0) >= weekStart);
+  const paidCommissionRows = eligibleRows.filter(item => scoutReferralStatus(item).commissionPaid);
+  const pendingCommissionRows = eligibleRows.filter(item => !scoutReferralStatus(item).commissionPaid);
   const rows = referrals.map(item => {
     const status = scoutReferralStatus(item);
     return [
@@ -5635,7 +6275,9 @@ function renderAthleteScouts() {
       status.paid ? badge("pagado") : badge("sin pago"),
       status.profile ? badge("perfil completo") : badge("perfil pendiente"),
       status.validated ? badge("validado") : badge("revision ROIS"),
-      status.eligible ? `$${scoutCommissionAmount.toLocaleString("es-MX")} MXN` : "$0 MXN"
+      status.eligible
+        ? `${badge(scoutCommissionLabel(item))} $${scoutCommissionAmount.toLocaleString("es-MX")} MXN`
+        : "$0 MXN"
     ];
   });
   panel("athlete-scouts", copy.scoutsTitle, copy.scoutsSubtitle, `
@@ -5658,13 +6300,13 @@ function renderAthleteScouts() {
       </div>
       <div class="scout-metrics">
         <div><span>Referidos</span><strong>${referrals.length}</strong></div>
-        <div><span>Validados</span><strong>${eligibleRows.length}</strong></div>
-        <div><span>Semana</span><strong>$${(weeklyRows.length * scoutCommissionAmount).toLocaleString("es-MX")}</strong></div>
-        <div><span>Total</span><strong>$${(eligibleRows.length * scoutCommissionAmount).toLocaleString("es-MX")}</strong></div>
+        <div><span>Elegibles registrados 7d</span><strong>$${(weeklyRows.length * scoutCommissionAmount).toLocaleString("es-MX")}</strong></div>
+        <div><span>Por pagar</span><strong>$${(pendingCommissionRows.length * scoutCommissionAmount).toLocaleString("es-MX")}</strong></div>
+        <div><span>Pagado acumulado</span><strong>$${(paidCommissionRows.length * scoutCommissionAmount).toLocaleString("es-MX")}</strong></div>
       </div>
       <div class="scout-policy">
         <p class="eyebrow">Reglas obligatorias</p>
-        <p>La comision sigue siendo de $${scoutCommissionAmount.toLocaleString("es-MX")} MXN por referido directo activo y validado por ROIS.</p>
+        <p>ROIS paga una sola comision de $${scoutCommissionAmount.toLocaleString("es-MX")} MXN por cada referido directo que complete su activacion y sea validado. No es un pago mensual.</p>
         <p>Comparte tu codigo con ${referredPlural}, comunidades y perfiles alineados con el ${talentLabel} que quieres acercar al ecosistema.</p>
         ${scoutRulesList(athlete)}
       </div>
@@ -6367,12 +7009,804 @@ function renderAdmin() {
   }
 }
 
+const opportunityTypeLabels = {
+  sell: "Vende y gana",
+  refer: "Recomienda y gana",
+  create: "Crea y cobra",
+  collaborate: "Colabora"
+};
+
+const opportunityStatusLabels = {
+  draft: "Borrador",
+  in_review: "En revision",
+  published: "Publicada",
+  submitted: "Postulacion enviada",
+  information_requested: "Informacion solicitada",
+  accepted: "Aceptada",
+  rejected: "Rechazada",
+  in_progress: "En ejecucion",
+  result_submitted: "Resultado enviado",
+  result_validated: "Resultado validado",
+  commission_pending: "Comision pendiente",
+  commission_paid: "Comision pagada",
+  completed: "Completada",
+  cancelled: "Cancelada",
+  disputed: "En disputa"
+};
+
+function opportunityTypeLabel(value = "") {
+  return opportunityTypeLabels[value] || "Oportunidad";
+}
+
+function opportunityStatusLabel(value = "") {
+  return opportunityStatusLabels[value] || String(value || "Pendiente").replaceAll("_", " ");
+}
+
+function currentUniversalProfile() {
+  const email = normalizedAccountEmail(state.session?.email);
+  const authId = state.session?.authId || state.session?.id;
+  return (state.data?.user_profiles || []).find(item =>
+    (authId && item.profile_id === authId) ||
+    (email && normalizedAccountEmail(item.email) === email)
+  ) || null;
+}
+
+function universalProfileSeed() {
+  const founder = currentFounder();
+  const athlete = currentAthlete();
+  const source = founder || athlete || {};
+  const isCreator = Boolean(founder) || state.session?.role === "founder";
+  return {
+    profile_id: state.session?.authId || state.session?.id,
+    legacy_athlete_id: athlete?.id || null,
+    legacy_founder_id: founder?.id || null,
+    email: normalizedAccountEmail(state.session?.email || source.email || source.contact),
+    name: source.name || state.session?.name || "Usuario ROIS",
+    public_name: source.public_name || source.name || state.session?.name || "Usuario ROIS",
+    image_url: source.image_url || "",
+    bio: source.stats || "",
+    city: source.city || source.location || "",
+    state_region: "",
+    country: "Mexico",
+    languages: ["Español"],
+    availability: source.availability || "available",
+    capabilities: isCreator
+      ? ["creacion_contenido", "recomendacion", "generacion_prospectos", "representacion_marca"]
+      : ["deportes", "representacion_marca", "creacion_contenido"],
+    interests: [],
+    industries: String(source.brand_categories || source.industry || source.sport || "")
+      .split(",").map(value => value.trim()).filter(Boolean),
+    sales_experience: "",
+    territories: [source.city || source.location || "Mexico"].filter(Boolean),
+    audience_size: Number(source.audience_size || 0),
+    audience_description: source.audience_demographics || source.audience_location || "",
+    travel_availability: false,
+    can_invoice: false,
+    badges: isCreator ? ["creator"] : ["athlete"],
+    status: "active",
+    verification_status: "pending"
+  };
+}
+
+async function ensureUniversalUserProfile() {
+  const existing = currentUniversalProfile();
+  if (existing) return existing;
+  const seed = universalProfileSeed();
+  if (!seed.email || !seed.profile_id) throw new Error("No encontramos el registro autenticado para crear tu perfil universal.");
+  return api.upsertByEmail("user_profiles", seed);
+}
+
+function opportunityCompanyName(opportunity) {
+  const company = (state.data?.companies || []).find(item => item.id === opportunity.company_id);
+  return company?.name || "Empresa verificada ROIS";
+}
+
+function opportunityCompensation(opportunity) {
+  const amount = Number(opportunity.compensation_amount || opportunity.margin_amount || 0);
+  if (opportunity.commission_rate) return `${Number(opportunity.commission_rate)}% de comision`;
+  if (amount) return money(amount);
+  return opportunity.compensation_type || "Segun condiciones";
+}
+
+function opportunityCardMarkup(opportunity, options = {}) {
+  const canApply = options.canApply === true;
+  const deadline = opportunity.closes_at ? readableDate(opportunity.closes_at) : "Vigencia abierta";
+  return `
+    <article class="opportunity-card" data-opportunity-type="${escapeAttr(opportunity.opportunity_type || "")}">
+      <div class="opportunity-card-head">
+        <span class="pill">${escapeHtml(opportunityTypeLabel(opportunity.opportunity_type))}</span>
+        <span class="opportunity-status">${escapeHtml(opportunityStatusLabel(opportunity.status))}</span>
+      </div>
+      <div>
+        <p class="eyebrow">${escapeHtml(opportunityCompanyName(opportunity))}</p>
+        <h3>${escapeHtml(opportunity.title || "Oportunidad ROIS")}</h3>
+        <p>${escapeHtml(opportunity.description || "Consulta las condiciones completas antes de participar.")}</p>
+      </div>
+      <dl class="opportunity-facts">
+        <div><dt>Modalidad</dt><dd>${escapeHtml(opportunity.modality || "Por definir")}</dd></div>
+        <div><dt>Territorio</dt><dd>${escapeHtml(opportunity.territory || opportunity.location || "Abierto")}</dd></div>
+        <div><dt>Compensacion</dt><dd>${escapeHtml(opportunityCompensation(opportunity))}</dd></div>
+        <div><dt>Cierre</dt><dd>${escapeHtml(deadline)}</dd></div>
+      </dl>
+      <div class="opportunity-card-actions">
+        ${canApply ? button("Ver y postularme", () => openOpportunityApplication(opportunity)) : ""}
+      </div>
+    </article>
+  `;
+}
+
+function opportunityRequestedFields(opportunity) {
+  const fields = opportunity.requested_data_fields;
+  if (Array.isArray(fields) && fields.length) return fields;
+  if (typeof fields === "string") {
+    try {
+      const parsed = JSON.parse(fields);
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    } catch (error) {
+      return fields.split(",").map(value => value.trim()).filter(Boolean);
+    }
+  }
+  return ["name", "city", "capabilities"];
+}
+
+function universalProfileField(profile, field) {
+  const labels = {
+    name: "Nombre publico",
+    city: "Ciudad",
+    country: "Pais",
+    capabilities: "Capacidades",
+    industries: "Industrias",
+    audience_size: "Audiencia digital",
+    social_accounts: "Redes sociales",
+    sales_experience: "Experiencia comercial",
+    territories: "Territorios"
+  };
+  let value = profile?.[field];
+  if (Array.isArray(value)) value = value.join(", ");
+  if (field === "social_accounts") value = "Se compartiran solo las redes publicas vinculadas";
+  return { label: labels[field] || field.replaceAll("_", " "), value: value || "Sin completar" };
+}
+
+function closeOpportunityModal() {
+  document.getElementById("opportunityApplicationModal")?.remove();
+}
+
+async function recordMarketplaceEvent(eventName, entityType = "", entityId = null, properties = {}) {
+  const profile = currentUniversalProfile();
+  const company = currentCompany();
+  if (!profile?.id && !company?.id) return;
+  try {
+    await api.insert("analytics_events", {
+      profile_id: profile?.id || null,
+      company_id: company?.id || null,
+      event_name: eventName,
+      entity_type: entityType || null,
+      entity_id: entityId || null,
+      properties
+    });
+  } catch (error) {
+    console.warn("[ROIS analytics]", eventName, humanError(error));
+  }
+}
+
+async function openOpportunityApplication(opportunity) {
+  let profile;
+  try {
+    profile = await ensureUniversalUserProfile();
+  } catch (error) {
+    notify("Oportunidades", "Completa tu perfil", humanError(error));
+    return;
+  }
+  recordMarketplaceEvent("opportunity_viewed", "opportunity", opportunity.id, {
+    opportunity_type: opportunity.opportunity_type || ""
+  });
+  const requestedFields = opportunityRequestedFields(opportunity);
+  const existing = (state.data?.opportunity_applications || []).find(item =>
+    item.opportunity_id === opportunity.id && item.user_profile_id === profile.id
+  );
+  if (existing) {
+    notify("Oportunidades", "Postulacion existente", `Esta oportunidad ya tiene una postulacion con estado: ${opportunityStatusLabel(existing.status)}.`);
+    return;
+  }
+  closeOpportunityModal();
+  const modal = document.createElement("div");
+  modal.id = "opportunityApplicationModal";
+  modal.className = "modal active opportunity-modal";
+  modal.innerHTML = `
+    <div class="modal-card opportunity-modal-card">
+      <button class="modal-close" type="button" data-close-opportunity aria-label="Cerrar">×</button>
+      <p class="eyebrow">${escapeHtml(opportunityTypeLabel(opportunity.opportunity_type))}</p>
+      <h2>${escapeHtml(opportunity.title)}</h2>
+      <p>${escapeHtml(opportunity.description || "")}</p>
+      <div class="opportunity-terms">
+        <h3>Condiciones principales</h3>
+        <p>${escapeHtml(opportunity.deliverables || "La empresa compartira instrucciones al aceptar tu postulacion.")}</p>
+        <p><strong>Pago:</strong> ${escapeHtml(opportunity.payment_terms || opportunityCompensation(opportunity))}</p>
+        ${opportunity.purchase_required ? `<p class="opportunity-warning">Esta oportunidad requiere una compra informada de ${money(opportunity.minimum_purchase || 0)}.</p>` : ""}
+      </div>
+      <form class="form-grid" data-opportunity-application>
+        <div class="consent-fields" style="grid-column:1/-1">
+          <p class="eyebrow">Datos solicitados por ${escapeHtml(opportunityCompanyName(opportunity))}</p>
+          ${requestedFields.map(field => {
+            const item = universalProfileField(profile, field);
+            return `<label class="consent-field"><input type="checkbox" name="authorized_fields" value="${escapeAttr(field)}" required><span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(String(item.value))}</small></span></label>`;
+          }).join("")}
+        </div>
+        <label style="grid-column:1/-1">Mensaje para la empresa<textarea name="message" placeholder="Explica brevemente por que eres compatible con esta oportunidad."></textarea></label>
+        <label class="check-option" style="grid-column:1/-1"><input name="consent" type="checkbox" required><span>Autorizo expresamente compartir solo los campos seleccionados con ${escapeHtml(opportunityCompanyName(opportunity))} para evaluar esta oportunidad. Esta autorizacion queda registrada y no aplica a otras empresas.</span></label>
+        <button class="btn primary" type="submit">Enviar postulacion</button>
+      </form>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector("[data-close-opportunity]").addEventListener("click", closeOpportunityModal);
+  modal.querySelector("[data-opportunity-application]").addEventListener("submit", event => submitOpportunityApplication(event, opportunity, profile));
+}
+
+async function submitOpportunityApplication(event, opportunity, profile) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const authorizedFields = [...form.querySelectorAll('[name="authorized_fields"]:checked')].map(input => input.value);
+  if (!authorizedFields.length) {
+    notify("Privacidad", "Autorizacion requerida", "Selecciona los datos que autorizas compartir para enviar tu postulacion.");
+    return;
+  }
+  const buttonElement = form.querySelector('button[type="submit"]');
+  buttonElement.disabled = true;
+  buttonElement.textContent = "Enviando...";
+  try {
+    const snapshot = Object.fromEntries(authorizedFields.map(field => [field, universalProfileField(profile, field).value]));
+    const application = await api.insert("opportunity_applications", {
+      opportunity_id: opportunity.id,
+      user_profile_id: profile.id,
+      applicant_profile_id: state.session?.authId || state.session?.id,
+      message: form.message.value.trim(),
+      shared_profile_snapshot: snapshot,
+      status: "submitted",
+      submitted_at: new Date().toISOString()
+    });
+    await api.insert("application_consents", {
+      application_id: application.id,
+      user_profile_id: profile.id,
+      company_id: opportunity.company_id,
+      opportunity_id: opportunity.id,
+      requested_fields: opportunityRequestedFields(opportunity),
+      authorized_fields: authorizedFields,
+      purpose: `Evaluacion de postulacion: ${opportunity.title}`,
+      privacy_notice_version: "opportunities-v1",
+      granted: true,
+      granted_at: new Date().toISOString()
+    });
+    recordMarketplaceEvent("application_submitted", "opportunity_application", application.id, {
+      opportunity_id: opportunity.id,
+      authorized_fields: authorizedFields.length
+    });
+    closeOpportunityModal();
+    notify("Oportunidades", "Postulacion enviada", "La empresa podra revisar exclusivamente los datos que autorizaste. Te notificaremos cualquier cambio.");
+    renderUserApplications();
+  } catch (error) {
+    notify("Oportunidades", "No fue posible postularte", humanError(error));
+    buttonElement.disabled = false;
+    buttonElement.textContent = "Enviar postulacion";
+  }
+}
+
+function renderUserOpportunities() {
+  const opportunities = (state.data?.opportunities || []).filter(item => item.status === "published");
+  panel("athlete-opportunities", "Oportunidades", "Vende, recomienda, crea o colabora", `
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Mercado gestionado ROIS</p>
+        <h3>Encuentra oportunidades compatibles con lo que sabes hacer.</h3>
+        <p>Revisa requisitos, compensacion y datos solicitados antes de postularte. ROIS no garantiza ingresos.</p>
+      </div>
+      <label class="opportunity-filter">Filtrar por tipo<select data-opportunity-filter>
+        <option value="">Todas</option>
+        ${Object.entries(opportunityTypeLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}
+      </select></label>
+      <div class="opportunity-grid" data-opportunity-grid>
+        ${opportunities.length ? opportunities.map(item => opportunityCardMarkup(item, { canApply: true })).join("") : `<div class="empty">Las oportunidades aprobadas por ROIS apareceran aqui.</div>`}
+      </div>
+    </div>`);
+  document.querySelector("[data-opportunity-filter]")?.addEventListener("change", event => {
+    document.querySelectorAll("[data-opportunity-type]").forEach(card => {
+      card.hidden = Boolean(event.target.value) && card.dataset.opportunityType !== event.target.value;
+    });
+  });
+}
+
+function renderUserApplications() {
+  const profile = currentUniversalProfile();
+  const rows = (profile ? state.data?.opportunity_applications || [] : [])
+    .filter(item => item.user_profile_id === profile.id)
+    .map(application => {
+      const opportunity = (state.data?.opportunities || []).find(item => item.id === application.opportunity_id);
+      return [
+        escapeHtml(opportunity?.title || "Oportunidad"),
+        escapeHtml(opportunityTypeLabel(opportunity?.opportunity_type)),
+        badge(opportunityStatusLabel(application.status)),
+        escapeHtml(readableDate(application.submitted_at || application.created_at))
+      ];
+    });
+  panel("athlete-applications", "Mis postulaciones", "Seguimiento de oportunidades", `
+    <div class="panel-body">${rows.length ? table(["Oportunidad", "Tipo", "Estado", "Fecha"], rows) : `<div class="empty">Todavia no has enviado postulaciones.</div>`}</div>`);
+}
+
+function renderUserIncome() {
+  const profile = currentUniversalProfile();
+  const commissions = (profile ? state.data?.commissions || [] : []).filter(item => item.user_profile_id === profile.id);
+  const amountByStatus = status => commissions.filter(item => item.status === status).reduce((sum, item) => sum + Number(item.net_amount || 0), 0);
+  const rows = commissions.map(item => {
+    const opportunity = (state.data?.opportunities || []).find(row => row.id === item.opportunity_id);
+    return [escapeHtml(opportunity?.title || "Oportunidad"), money(item.net_amount), badge(opportunityStatusLabel(item.status)), escapeHtml(item.estimated_payment_at ? readableDate(item.estimated_payment_at) : "Por definir")];
+  });
+  panel("athlete-income", "Ingresos", "Comisiones y pagos validados", `
+    <div class="panel-body">
+      <div class="scout-metrics">
+        <div><span>Pendiente</span><strong>${money(amountByStatus("pending"))}</strong></div>
+        <div><span>Aprobado</span><strong>${money(amountByStatus("approved"))}</strong></div>
+        <div><span>Pagado</span><strong>${money(amountByStatus("paid"))}</strong></div>
+      </div>
+      <p class="hint">ROIS no garantiza ingresos. Cada pago depende de las condiciones de la oportunidad, validacion del resultado y obligaciones fiscales aplicables.</p>
+      ${rows.length ? table(["Oportunidad", "Ingreso", "Estado", "Fecha estimada"], rows) : `<div class="empty">Tus comisiones validadas apareceran aqui.</div>`}
+    </div>`);
+}
+
+function companyOpportunityRecords() {
+  const companyId = currentCompany()?.id;
+  if (!companyId) return [];
+  return (state.data?.opportunities || []).filter(item => item.company_id === companyId);
+}
+
+function companyVerificationStatus() {
+  const companyId = currentCompany()?.id;
+  return (state.data?.company_verifications || []).find(item => item.company_id === companyId)?.status || "pending";
+}
+
+function currentCompanyVerification() {
+  const companyId = currentCompany()?.id;
+  return (state.data?.company_verifications || []).find(item => item.company_id === companyId) || null;
+}
+
+function requestedDataCheckboxes() {
+  const fields = [
+    ["name", "Nombre publico"],
+    ["city", "Ciudad"],
+    ["country", "Pais"],
+    ["capabilities", "Capacidades"],
+    ["industries", "Industrias"],
+    ["audience_size", "Audiencia digital"],
+    ["social_accounts", "Redes sociales"],
+    ["sales_experience", "Experiencia comercial"],
+    ["territories", "Territorios"]
+  ];
+  return fields.map(([value, label]) => `<label class="check-option"><input type="checkbox" name="requested_data_fields" value="${value}" ${["name", "city", "capabilities"].includes(value) ? "checked" : ""}><span>${label}</span></label>`).join("");
+}
+
+function renderClientOpportunities() {
+  const opportunities = companyOpportunityRecords();
+  const verification = companyVerificationStatus();
+  const verificationRecord = currentCompanyVerification();
+  const company = currentCompany();
+  panel("client-opportunities", "Oportunidades", "Publicacion y distribucion comercial", `
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Empresa ${escapeHtml(opportunityStatusLabel(verification))}</p>
+        <h3>Activa personas para vender, recomendar, crear o colaborar.</h3>
+        <p>Toda oportunidad pasa por revision ROIS antes de publicarse. No se permiten promesas de ingreso, reclutamiento multinivel ni compras ocultas.</p>
+      </div>
+      ${verification !== "approved" ? `
+        <form class="form-grid company-verification-form" data-company-verification>
+          <div class="section-minihead" style="grid-column:1/-1">
+            <p class="eyebrow">Verificacion empresarial</p>
+            <h3>Identifica a la organizacion responsable.</h3>
+            <p>Estos datos son internos. ROIS debe validarlos antes de publicar oportunidades o entregar postulaciones.</p>
+          </div>
+          <label>Razon social<input name="legal_name" required value="${escapeAttr(verificationRecord?.legal_name || company?.name || "")}"></label>
+          <label>RFC o identificador fiscal<input name="tax_id" required value="${escapeAttr(verificationRecord?.tax_id || "")}"></label>
+          <label>Representante<input name="representative_name" required value="${escapeAttr(verificationRecord?.representative_name || company?.owner || "")}"></label>
+          <label>Correo corporativo<input name="corporate_email" type="email" required value="${escapeAttr(verificationRecord?.corporate_email || company?.contact || state.session?.email || "")}"></label>
+          <label>Sitio web<input name="website" type="url" value="${escapeAttr(verificationRecord?.website || company?.website || "")}" placeholder="https://"></label>
+          <button class="btn" type="submit">Solicitar verificacion</button>
+        </form>
+      ` : ""}
+      <form class="form-grid opportunity-company-form" data-company-opportunity>
+        <label>Titulo<input name="title" required maxlength="120" placeholder="Ej. Crea contenido para nuestro lanzamiento"></label>
+        <label>Tipo<select name="opportunity_type" required>${Object.entries(opportunityTypeLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}</select></label>
+        <label>Categoria<input name="category" required placeholder="Belleza, tecnologia, alimentos..."></label>
+        <label>Industria<input name="industry" placeholder="Industria principal"></label>
+        <label style="grid-column:1/-1">Descripcion<textarea name="description" required placeholder="Explica la oportunidad, condiciones y lo que espera la empresa."></textarea></label>
+        <label style="grid-column:1/-1">Objetivo<textarea name="objective" required placeholder="Resultado comercial esperado."></textarea></label>
+        <label>Perfil buscado<input name="desired_profile" required placeholder="Habilidades, experiencia o audiencia"></label>
+        <label>Territorio<input name="territory" placeholder="Mexico, CDMX, remoto..."></label>
+        <label>Modalidad<select name="modality"><option>Remoto</option><option>Presencial</option><option>Hibrido</option></select></label>
+        <label>Cupos<input name="slots" type="number" min="1" value="1"></label>
+        <label>Inicio<input name="starts_at" type="date"></label>
+        <label>Cierre<input name="closes_at" type="date"></label>
+        <label>Tipo de compensacion<input name="compensation_type" required placeholder="Comision, pago fijo, margen..."></label>
+        <label>Monto de referencia<input name="compensation_amount" type="number" min="0" step="0.01"></label>
+        <label>Comision %<input name="commission_rate" type="number" min="0" max="100" step="0.01"></label>
+        <label>Margen MXN<input name="margin_amount" type="number" min="0" step="0.01"></label>
+        <label>Precio mayorista<input name="wholesale_price" type="number" min="0" step="0.01"></label>
+        <label>Precio sugerido<input name="suggested_price" type="number" min="0" step="0.01"></label>
+        <label>Compra minima<input name="minimum_purchase" type="number" min="0" step="0.01"></label>
+        <label class="check-option"><input name="purchase_required" type="checkbox"><span>La compra es obligatoria y esta informada.</span></label>
+        <label>Inventario disponible<input name="inventory_available" type="number" min="0" step="1"></label>
+        <label>Forma de entrega<input name="delivery_method" placeholder="Envio, recoleccion, entrega digital..."></label>
+        <label style="grid-column:1/-1">Politica de devolucion<textarea name="return_policy" placeholder="Plazos, condiciones y responsable de la devolucion."></textarea></label>
+        <label style="grid-column:1/-1">Materiales comerciales<textarea name="materials" placeholder="Una URL por linea: catalogo, kit de marca o capacitacion."></textarea></label>
+        <label style="grid-column:1/-1">Documentos legales<textarea name="legal_documents" placeholder="Una URL por linea: terminos, contrato o aviso aplicable."></textarea></label>
+        <label style="grid-column:1/-1">Entregables<textarea name="deliverables" required placeholder="Contenido, prospectos, ventas, asistencia o evidencia requerida."></textarea></label>
+        <label style="grid-column:1/-1">Criterios de aceptacion<textarea name="acceptance_criteria" required placeholder="Como se evaluara y validara el resultado."></textarea></label>
+        <label style="grid-column:1/-1">Reglas de atribucion<textarea name="attribution_rules" required placeholder="Como se atribuye una venta, prospecto o resultado."></textarea></label>
+        <label style="grid-column:1/-1">Condiciones de pago<textarea name="payment_terms" required placeholder="Plazo, validacion y calendario de pago."></textarea></label>
+        <fieldset class="requested-data-fieldset" style="grid-column:1/-1"><legend>Datos que solicitas al postulante</legend>${requestedDataCheckboxes()}</fieldset>
+        <button class="btn primary" type="submit">Enviar a revision ROIS</button>
+      </form>
+      <div class="opportunity-company-list">
+        <div class="section-minihead"><p class="eyebrow">Publicaciones</p><h3>Oportunidades de tu empresa</h3></div>
+        ${opportunities.length ? `<div class="opportunity-grid">${opportunities.map(item => opportunityCardMarkup(item)).join("")}</div>` : `<div class="empty">Todavia no has creado oportunidades.</div>`}
+      </div>
+    </div>`);
+  document.querySelector("[data-company-verification]")?.addEventListener("submit", submitCompanyVerification);
+  document.querySelector("[data-company-opportunity]")?.addEventListener("submit", submitCompanyOpportunity);
+}
+
+async function submitCompanyVerification(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const company = currentCompany();
+  if (!company?.id) return;
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  submit.textContent = "Enviando...";
+  try {
+    const existing = currentCompanyVerification();
+    const record = {
+      company_id: company.id,
+      legal_name: form.legal_name.value.trim(),
+      tax_id: form.tax_id.value.trim(),
+      representative_name: form.representative_name.value.trim(),
+      corporate_email: normalizedAccountEmail(form.corporate_email.value),
+      website: form.website.value.trim(),
+      status: "pending",
+      updated_at: new Date().toISOString()
+    };
+    if (existing?.id) {
+      await api.update("company_verifications", existing.id, record);
+    } else {
+      await api.insert("company_verifications", record);
+    }
+    notify("Empresa", "Verificacion solicitada", "ROIS revisara la identidad corporativa antes de publicar oportunidades y habilitar postulantes.");
+    renderClientOpportunities();
+  } catch (error) {
+    notify("Empresa", "No fue posible enviar", humanError(error));
+    submit.disabled = false;
+    submit.textContent = "Solicitar verificacion";
+  }
+}
+
+async function submitCompanyOpportunity(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const company = currentCompany();
+  if (!company?.id) {
+    notify("Oportunidades", "Perfil empresarial requerido", "No encontramos una empresa vinculada a esta sesion.");
+    return;
+  }
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  submit.textContent = "Enviando...";
+  try {
+    const number = name => Number(form.elements[name]?.value || 0);
+    const requestedFields = [...form.querySelectorAll('[name="requested_data_fields"]:checked')].map(input => input.value);
+    const createdOpportunity = await api.insert("opportunities", {
+      company_id: company.id,
+      created_by: state.session?.authId || state.session?.id,
+      title: form.title.value.trim(),
+      description: form.description.value.trim(),
+      opportunity_type: form.opportunity_type.value,
+      category: form.category.value.trim(),
+      industry: form.industry.value.trim(),
+      objective: form.objective.value.trim(),
+      desired_profile: form.desired_profile.value.trim(),
+      territory: form.territory.value.trim(),
+      location: form.territory.value.trim(),
+      modality: form.modality.value,
+      starts_at: form.starts_at.value || null,
+      closes_at: form.closes_at.value || null,
+      slots: Math.max(1, number("slots")),
+      compensation_type: form.compensation_type.value.trim(),
+      compensation_amount: number("compensation_amount"),
+      commission_rate: number("commission_rate"),
+      margin_amount: number("margin_amount"),
+      wholesale_price: number("wholesale_price"),
+      suggested_price: number("suggested_price"),
+      minimum_purchase: number("minimum_purchase"),
+      purchase_required: form.purchase_required.checked,
+      inventory_available: number("inventory_available"),
+      delivery_method: form.delivery_method.value.trim(),
+      return_policy: form.return_policy.value.trim(),
+      materials: form.materials.value.split(/\r?\n/).map(value => value.trim()).filter(Boolean),
+      legal_documents: form.legal_documents.value.split(/\r?\n/).map(value => value.trim()).filter(Boolean),
+      deliverables: form.deliverables.value.trim(),
+      acceptance_criteria: form.acceptance_criteria.value.trim(),
+      attribution_rules: form.attribution_rules.value.trim(),
+      payment_terms: form.payment_terms.value.trim(),
+      requested_data_fields: requestedFields,
+      status: "in_review"
+    });
+    recordMarketplaceEvent("opportunity_created", "opportunity", createdOpportunity?.id || null, {
+      opportunity_type: form.opportunity_type.value
+    });
+    form.reset();
+    notify("Oportunidades", "Enviada a revision", companyVerificationStatus() === "approved"
+      ? "ROIS revisara condiciones, compensacion y cumplimiento antes de publicarla."
+      : "La oportunidad fue guardada. Antes de publicarla, ROIS tambien debe completar la verificacion de tu empresa.");
+    renderClientOpportunities();
+  } catch (error) {
+    notify("Oportunidades", "No fue posible guardar", humanError(error));
+    submit.disabled = false;
+    submit.textContent = "Enviar a revision ROIS";
+  }
+}
+
+function renderClientApplicants() {
+  if (companyVerificationStatus() !== "approved") {
+    panel("client-applicants", "Postulantes", "Acceso protegido", `
+      <div class="panel-body"><div class="empty">ROIS habilitara los postulantes cuando la verificacion empresarial quede aprobada.</div></div>
+    `);
+    return;
+  }
+  const opportunityIds = new Set(companyOpportunityRecords().map(item => item.id));
+  const applications = (state.data?.opportunity_applications || []).filter(item => opportunityIds.has(item.opportunity_id));
+  const rows = applications.map(application => {
+    const opportunity = (state.data?.opportunities || []).find(item => item.id === application.opportunity_id);
+    const shared = application.shared_profile_snapshot || {};
+    const snapshot = typeof shared === "string" ? (() => { try { return JSON.parse(shared); } catch (error) { return {}; } })() : shared;
+    return [
+      escapeHtml(opportunity?.title || "Oportunidad"),
+      escapeHtml(snapshot.name || snapshot.public_name || "Perfil autorizado"),
+      escapeHtml(Object.entries(snapshot).filter(([key]) => key !== "name").map(([, value]) => Array.isArray(value) ? value.join(", ") : value).filter(Boolean).join(" · ") || "Sin datos adicionales"),
+      badge(opportunityStatusLabel(application.status)),
+      actionGroup([
+        button("Aceptar", () => decideOpportunityApplication(application, "accepted")),
+        button("Rechazar", () => decideOpportunityApplication(application, "rejected"))
+      ])
+    ];
+  });
+  panel("client-applicants", "Postulantes", "Perfiles que autorizaron compartir informacion", `
+    <div class="panel-body">
+      <p class="hint">Solo se muestran los campos autorizados expresamente para cada oportunidad. No descargues ni reutilices estos datos para otra finalidad.</p>
+      ${rows.length ? table(["Oportunidad", "Perfil", "Datos autorizados", "Estado", "Decision"], rows) : `<div class="empty">Las postulaciones autorizadas apareceran aqui.</div>`}
+    </div>`);
+}
+
+async function decideOpportunityApplication(application, status) {
+  try {
+    await api.update("opportunity_applications", application.id, { status, decided_at: new Date().toISOString() });
+    if (status === "accepted") {
+      await api.insert("participations", {
+        opportunity_id: application.opportunity_id,
+        application_id: application.id,
+        user_profile_id: application.user_profile_id,
+        company_id: (state.data.opportunities || []).find(item => item.id === application.opportunity_id)?.company_id,
+        status: "accepted",
+        started_at: new Date().toISOString()
+      });
+    }
+    notify("Postulantes", status === "accepted" ? "Perfil aceptado" : "Perfil rechazado", "La decision quedo registrada y puede auditarse.");
+    renderClientApplicants();
+  } catch (error) {
+    notify("Postulantes", "No fue posible actualizar", humanError(error));
+  }
+}
+
+function renderClientOpportunityResults() {
+  const companyId = currentCompany()?.id;
+  const participations = (state.data?.participations || []).filter(item => !companyId || item.company_id === companyId);
+  const conversions = (state.data?.conversions || []).filter(item => !companyId || item.company_id === companyId);
+  const validated = conversions.filter(item => item.validation_status === "validated");
+  panel("client-results", "Resultados", "Actividad y conversiones verificadas", `
+    <div class="panel-body">
+      <div class="scout-metrics">
+        <div><span>Participaciones</span><strong>${participations.length}</strong></div>
+        <div><span>Conversiones</span><strong>${conversions.length}</strong></div>
+        <div><span>Validadas</span><strong>${validated.length}</strong></div>
+        <div><span>Valor validado</span><strong>${money(validated.reduce((sum, item) => sum + Number(item.economic_value || 0), 0))}</strong></div>
+      </div>
+      <div class="empty">La captura detallada de resultados se habilita al iniciar una participacion aceptada. ROIS mantiene validacion y auditoria.</div>
+    </div>`);
+}
+
+function renderClientIntelligence() {
+  const minimumSegmentSize = 5;
+  const opportunityIds = new Set(companyOpportunityRecords().map(item => item.id));
+  const applications = (state.data?.opportunity_applications || []).filter(item => opportunityIds.has(item.opportunity_id));
+  const conversions = (state.data?.conversions || []).filter(item => opportunityIds.has(item.opportunity_id));
+  const enough = applications.length >= minimumSegmentSize;
+  panel("client-intelligence", "Inteligencia", "Informacion agregada y protegida", `
+    <div class="panel-body">
+      <div class="section-minihead"><p class="eyebrow">Privacidad por diseño</p><h3>Comportamiento agregado de tus oportunidades.</h3><p>ROIS no muestra segmentos pequeños ni permite descargar bases completas de personas.</p></div>
+      ${enough ? `<div class="scout-metrics">
+        <div><span>Postulaciones</span><strong>${applications.length}</strong></div>
+        <div><span>Conversiones</span><strong>${conversions.length}</strong></div>
+        <div><span>Tasa de conversion</span><strong>${applications.length ? Math.round(conversions.length / applications.length * 100) : 0}%</strong></div>
+        <div><span>Valor observado</span><strong>${money(conversions.reduce((sum, item) => sum + Number(item.economic_value || 0), 0))}</strong></div>
+      </div>` : `<div class="empty">Se requieren al menos ${minimumSegmentSize} postulaciones para mostrar un segmento agregado sin comprometer la privacidad.</div>`}
+    </div>`);
+}
+
+async function moderateOpportunity(opportunity, status) {
+  if (status === "published") {
+    const verification = (state.data?.company_verifications || []).find(item => item.company_id === opportunity.company_id);
+    if (verification?.status !== "approved") {
+      notify("Oportunidades", "Empresa no verificada", "Aprueba primero la verificacion de la empresa responsable. La oportunidad no fue publicada.");
+      return;
+    }
+  }
+  const notes = status === "rejected" ? window.prompt("Motivo de rechazo o ajustes requeridos:") : "";
+  if (status === "rejected" && notes === null) return;
+  try {
+    await api.update("opportunities", opportunity.id, {
+      status,
+      moderation_notes: notes || "",
+      approved_at: status === "published" ? new Date().toISOString() : null,
+      published_at: status === "published" ? new Date().toISOString() : null
+    });
+    notify("Oportunidades", status === "published" ? "Oportunidad publicada" : "Oportunidad rechazada", "La moderacion quedo registrada.");
+    renderAdminOpportunities();
+  } catch (error) {
+    notify("Oportunidades", "No fue posible moderar", humanError(error));
+  }
+}
+
+async function updateCompanyVerificationStatus(verification, status) {
+  const notes = status === "rejected"
+    ? window.prompt("Indica el motivo del rechazo o los documentos que debe corregir la empresa:")
+    : verification.notes || "";
+  if (status === "rejected" && notes === null) return;
+  try {
+    await api.update("company_verifications", verification.id, {
+      status,
+      notes: notes || "",
+      reviewed_by: state.session?.authId || state.session?.id,
+      reviewed_at: new Date().toISOString()
+    });
+    notify("Empresas", status === "approved" ? "Empresa verificada" : "Verificacion rechazada", "La decision quedo registrada y controla el acceso a postulantes.");
+    renderAdminOpportunities();
+  } catch (error) {
+    notify("Empresas", "No fue posible actualizar", humanError(error));
+  }
+}
+
+function renderAdminOpportunities() {
+  const verificationRows = (state.data?.company_verifications || []).map(item => {
+    const company = (state.data?.companies || []).find(row => row.id === item.company_id);
+    return [
+      escapeHtml(item.legal_name || company?.name || "Empresa"),
+      escapeHtml(item.tax_id || "Sin RFC"),
+      escapeHtml(item.representative_name || "Sin representante"),
+      escapeHtml(item.corporate_email || company?.contact || ""),
+      badge(opportunityStatusLabel(item.status)),
+      actionGroup([
+        item.status !== "approved" ? button("Aprobar", () => updateCompanyVerificationStatus(item, "approved")) : "",
+        item.status !== "rejected" ? button("Rechazar", () => updateCompanyVerificationStatus(item, "rejected")) : ""
+      ].filter(Boolean))
+    ];
+  });
+  const rows = (state.data?.opportunities || []).map(item => [
+    escapeHtml(item.title || "Oportunidad"),
+    escapeHtml(opportunityCompanyName(item)),
+    escapeHtml(opportunityTypeLabel(item.opportunity_type)),
+    escapeHtml(opportunityCompensation(item)),
+    badge(opportunityStatusLabel(item.status)),
+    actionGroup([
+      item.status !== "published" ? button("Publicar", () => moderateOpportunity(item, "published")) : "",
+      !["rejected", "cancelled"].includes(item.status) ? button("Rechazar", () => moderateOpportunity(item, "rejected")) : ""
+    ].filter(Boolean))
+  ]);
+  panel("admin-opportunities", "Oportunidades", "Verificacion, moderacion y publicacion", `
+    <div class="panel-body">
+      <div class="section-minihead"><p class="eyebrow">Verificacion empresarial</p><h3>Identidad y acceso a postulantes.</h3><p>Una empresa debe estar aprobada antes de publicar oportunidades o consultar perfiles autorizados.</p></div>
+      ${verificationRows.length ? table(["Empresa", "RFC", "Representante", "Correo", "Estado", "Acciones"], verificationRows) : `<div class="empty">No hay verificaciones empresariales pendientes.</div>`}
+      <div class="section-minihead"><p class="eyebrow">Mercado gestionado</p><h3>Oportunidades en revision.</h3></div>
+      ${rows.length ? table(["Titulo", "Empresa", "Tipo", "Compensacion", "Estado", "Acciones"], rows) : `<div class="empty">No hay oportunidades para revisar.</div>`}
+    </div>`);
+}
+
+function renderAdminCommissions() {
+  const rows = (state.data?.commissions || []).map(item => [
+    escapeHtml(item.opportunity_id || "Sin oportunidad"),
+    money(item.gross_amount),
+    money(item.net_amount),
+    badge(opportunityStatusLabel(item.status)),
+    actionGroup([
+      item.status === "pending" ? button("Aprobar", () => updateCommissionStatus(item, "approved")) : "",
+      item.status === "approved" ? button("Marcar pagada", () => updateCommissionStatus(item, "paid")) : ""
+    ].filter(Boolean))
+  ]);
+  panel("admin-commissions", "Comisiones", "Validacion y control de pagos", `<div class="panel-body">${rows.length ? table(["Oportunidad", "Valor bruto", "Ingreso usuario", "Estado", "Accion"], rows) : `<div class="empty">No hay comisiones registradas.</div>`}</div>`);
+}
+
+async function updateCommissionStatus(commission, status) {
+  try {
+    await api.update("commissions", commission.id, {
+      status,
+      paid_at: status === "paid" ? new Date().toISOString() : commission.paid_at || null
+    });
+    renderAdminCommissions();
+  } catch (error) {
+    notify("Comisiones", "No fue posible actualizar", humanError(error));
+  }
+}
+
+function renderAdminDisputes() {
+  const rows = (state.data?.disputes || []).map(item => [
+    escapeHtml(item.reason || "Disputa"),
+    escapeHtml(item.details || ""),
+    badge(opportunityStatusLabel(item.status)),
+    escapeHtml(readableDate(item.created_at)),
+    item.status !== "resolved" ? button("Resolver", () => resolveDispute(item)) : escapeHtml(item.resolution || "Resuelta")
+  ]);
+  panel("admin-disputes", "Disputas", "Resolucion y auditoria", `<div class="panel-body">${rows.length ? table(["Asunto", "Descripcion", "Estado", "Fecha", "Accion"], rows) : `<div class="empty">No hay disputas abiertas.</div>`}</div>`);
+}
+
+async function resolveDispute(dispute) {
+  const resolution = window.prompt("Describe la resolucion final:");
+  if (!resolution) return;
+  try {
+    await api.update("disputes", dispute.id, { status: "resolved", resolution, resolved_by: state.session?.authId || state.session?.id, resolved_at: new Date().toISOString() });
+    renderAdminDisputes();
+  } catch (error) {
+    notify("Disputas", "No fue posible resolver", humanError(error));
+  }
+}
+
+function renderAdminPrivacy() {
+  const consents = state.data?.privacy_consents || [];
+  const requests = state.data?.data_subject_requests || [];
+  const accessLogs = state.data?.data_access_logs || [];
+  const rows = requests.map(item => [escapeHtml(item.request_type || "Solicitud"), escapeHtml(item.details || ""), badge(item.status || "pending"), escapeHtml(readableDate(item.created_at))]);
+  panel("admin-privacy", "Privacidad", "Consentimientos, derechos y accesos", `
+    <div class="panel-body">
+      <div class="scout-metrics"><div><span>Consentimientos</span><strong>${consents.length}</strong></div><div><span>Solicitudes</span><strong>${requests.length}</strong></div><div><span>Accesos auditados</span><strong>${accessLogs.length}</strong></div></div>
+      ${rows.length ? table(["Tipo", "Descripcion", "Estado", "Fecha"], rows) : `<div class="empty">No hay solicitudes de privacidad pendientes.</div>`}
+    </div>`);
+}
+
+function renderAdminPlans() {
+  const plans = state.data?.company_plan_definitions || [];
+  panel("admin-plans", "Planes", "Configuracion empresarial sin precios fijos en codigo", `
+    <div class="panel-body"><div class="plan-admin-grid">${plans.map(plan => `
+      <form class="plan-admin-card" data-plan-form="${escapeAttr(plan.id)}">
+        <p class="eyebrow">${escapeHtml(plan.plan_key)}</p><h3>${escapeHtml(plan.name)}</h3>
+        <label>Precio mensual<input name="monthly_price" type="number" min="0" step="0.01" value="${Number(plan.monthly_price || 0)}"></label>
+        <label>Comision transaccional %<input name="transaction_fee_rate" type="number" min="0" max="100" step="0.01" value="${Number(plan.transaction_fee_rate || 0)}"></label>
+        <label>Oportunidades activas<input name="active_opportunity_limit" type="number" min="1" value="${Number(plan.active_opportunity_limit || 1)}"></label>
+        <button class="btn" type="submit">Guardar plan</button>
+      </form>`).join("")}</div></div>`);
+  document.querySelectorAll("[data-plan-form]").forEach(form => form.addEventListener("submit", async event => {
+    event.preventDefault();
+    try {
+      await api.update("company_plan_definitions", form.dataset.planForm, {
+        monthly_price: Number(form.monthly_price.value || 0),
+        transaction_fee_rate: Number(form.transaction_fee_rate.value || 0),
+        active_opportunity_limit: Number(form.active_opportunity_limit.value || 1)
+      });
+      notify("Planes", "Configuracion guardada", "Los nuevos valores quedaron disponibles para el producto.");
+    } catch (error) {
+      notify("Planes", "No fue posible guardar", humanError(error));
+    }
+  }));
+}
+
 function renderAdminPanel(targetId) {
   const map = {
     "admin-control": renderAdminControl,
     "admin-users": renderAdminUsers,
     "admin-athletes": renderAdminAthletes,
     "admin-founders": renderAdminFounders,
+    "admin-brand-growth": renderAdminBrandGrowth,
     "admin-payment-links": renderAdminPaymentLinks,
     "admin-athlete-notifications": renderAdminAthleteNotifications,
     "admin-events": renderAdminEvents,
@@ -6384,6 +7818,11 @@ function renderAdminPanel(targetId) {
     "admin-payments": renderAdminPayments,
     "admin-uploads": renderAdminUploads,
     "admin-stats": renderAdminStats,
+    "admin-opportunities": renderAdminOpportunities,
+    "admin-commissions": renderAdminCommissions,
+    "admin-disputes": renderAdminDisputes,
+    "admin-privacy": renderAdminPrivacy,
+    "admin-plans": renderAdminPlans,
     "admin-settings": () => renderAccountSettings("admin-settings")
   };
   if (map[targetId]) map[targetId]();
@@ -6393,7 +7832,7 @@ function renderAdminPanel(targetId) {
 const fiscalConfig = {
   ivaRate: 0.16,
   isrRate: 0.30,
-  scoutCommissionMonthly: 500
+  scoutCommissionPerActivatedReferral: scoutCommissionAmount
 };
 
 const fixedExpenseConfig = [
@@ -6492,22 +7931,8 @@ function isMembershipPayment(payment) {
   ].includes(payment.product_key);
 }
 
-function isScoutCommissionEligiblePayment(payment) {
-  return ["founderMonthlyMembership", "athleteMonthlyMembership"].includes(payment.product_key);
-}
-
-function paymentScoutCommission(payment) {
-  if (!isScoutCommissionEligiblePayment(payment)) return 0;
-  const accountName = String(payment.company || "").toLowerCase();
-  const athlete = (state.data.athletes || []).find(item => {
-    const name = String(item.name || "").toLowerCase();
-    const email = String(item.email || item.contact || "").toLowerCase();
-    return (name && accountName.includes(name)) || (email && accountName.includes(email));
-  });
-  if (athlete?.invited_by_scout_code || athlete?.scout_code || athlete?.scout_active) {
-    return fiscalConfig.scoutCommissionMonthly;
-  }
-  return fiscalConfig.scoutCommissionMonthly;
+function oneTimeScoutCommissionTotal() {
+  return allScoutCommissionReferrals().length * fiscalConfig.scoutCommissionPerActivatedReferral;
 }
 
 function estimatedDeductibleExpenses() {
@@ -6539,9 +7964,7 @@ function revenueTaxSummary(payments = []) {
     return sum + paymentIvaAmount(payment);
   }, 0);
   const totalCollectedWithIva = membershipBaseRevenue + ivaTransferred;
-  const scoutCommissions = membershipPayments.reduce((sum, payment) => {
-    return sum + paymentScoutCommission(payment);
-  }, 0);
+  const scoutCommissions = oneTimeScoutCommissionTotal();
   const deductibleExpenses = estimatedDeductibleExpenses();
   const taxableProfit = Math.max(
     0,
@@ -6806,7 +8229,7 @@ function renderAdminAthletes() {
       athleteAnnualFeePaid(athlete) ? badge("pagada") : athleteAnnualFeeRequired(athlete) ? badge("solicitada") : badge("no solicitada"),
       athleteProfileCompleteForScout(athlete) ? badge("completo") : badge("pendiente"),
       athlete.sponsor_payment_url ? badge("link activo") : badge("sin link"),
-      scoutReferralStatus(athlete).eligible ? badge("validada") : badge(athlete.scout_validation_status || "review"),
+      badge(scoutCommissionLabel(athlete)),
       athleteAdminActions(athlete)
     ])) : `<div class="empty">Los deportistas registrados con codigo Scout ROIS apareceran aqui.</div>`}
   `);
@@ -6817,9 +8240,17 @@ function athleteAdminActions(athlete) {
     button(athleteAnnualFeeRequired(athlete) ? "Ocultar anualidad" : "Solicitar anualidad", () => toggleAthleteAnnualFee(athlete))
   ];
   if (sponsorDeckIsReady(athlete)) actions.push(button("Ver Sponsor Deck", () => openSponsorDeckById(athlete.id)));
-  if (!athleteAnnualFeePaid(athlete)) actions.push(button("Marcar pago anual", () => markAthleteAnnualPaid(athlete)));
+  if (!athleteAnnualFeePaid(athlete)) actions.push(button("Marcar pago anual", () => markAthleteAnnualPaid(athlete, "athletes")));
+  if (String(athlete.marketplace_access_status || "").toLowerCase() === "pending_review") {
+    actions.push(button("Publicar en mercado", () => approveMarketplaceProfile(athlete, "athletes")));
+  }
   if (!athlete.scout_active) actions.push(button("Activar scout", () => activateScoutNetwork(athlete)));
-  if (athlete.invited_by_scout_code && athlete.scout_commission_status !== "approved") actions.push(button("Validar scout", () => validateScoutCommission(athlete)));
+  if (athlete.invited_by_scout_code && !["approved", "paid"].includes(String(athlete.scout_commission_status || "").toLowerCase())) {
+    actions.push(button("Validar scout", () => validateScoutCommission(athlete)));
+  }
+  if (athlete.invited_by_scout_code && athlete.scout_commission_status === "approved") {
+    actions.push(button("Marcar comision pagada", () => markScoutCommissionPaid(athlete)));
+  }
   actions.push(button("Eliminar", () => deleteContent("athletes", athlete)));
   return actionGroup(actions);
 }
@@ -6838,11 +8269,160 @@ function founderAdminStatus(founder) {
 function founderAdminActions(founder) {
   const actions = [];
   if (sponsorDeckIsReady(founder)) actions.push(button("Ver Sponsor Deck", () => openSponsorDeckById(founder.id)));
-  if (founder.invited_by_scout_code && founder.scout_commission_status !== "approved") {
+  if (!athleteAnnualFeePaid(founder)) actions.push(button("Marcar pago anual", () => markAthleteAnnualPaid(founder, "founders")));
+  if (String(founder.marketplace_access_status || "").toLowerCase() === "pending_review") {
+    actions.push(button("Publicar en Creadores", () => approveMarketplaceProfile(founder, "founders")));
+  }
+  if (founder.invited_by_scout_code && !["approved", "paid"].includes(String(founder.scout_commission_status || "").toLowerCase())) {
     actions.push(button("Validar Scout", () => validateScoutCommission(founder, "founders")));
+  }
+  if (founder.invited_by_scout_code && founder.scout_commission_status === "approved") {
+    actions.push(button("Marcar comision pagada", () => markScoutCommissionPaid(founder, "founders")));
   }
   actions.push(button("Eliminar", () => deleteContent("founders", founder)));
   return actionGroup(actions);
+}
+
+function campaignParticipants(campaignId) {
+  return (state.data.brand_growth_participants || [])
+    .filter(item => item.campaign_id === campaignId)
+    .sort((a, b) => Number(b.positioning_score || 0) - Number(a.positioning_score || 0));
+}
+
+async function submitBrandGrowthCampaign(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  setSavingState(form, true);
+  try {
+    await api.insert("brand_growth_campaigns", {
+      title: form.title.value.trim(),
+      objective: form.objective.value.trim(),
+      brief: form.brief.value.trim(),
+      deliverables: form.deliverables.value.trim(),
+      start_date: form.start_date.value || null,
+      end_date: form.end_date.value || null,
+      status: form.status.value,
+      created_by: state.session?.authId || state.session?.id || null
+    });
+    notify("Impulso de marca", "Campana creada", "La convocatoria ya esta disponible para los perfiles seleccionados.");
+    renderAdminBrandGrowth();
+  } catch (error) {
+    notify("Impulso de marca", "No fue posible crear la campana", humanError(error));
+  } finally {
+    setSavingState(form, false);
+  }
+}
+
+async function pairBrandGrowthCampaign(campaignId) {
+  const available = campaignParticipants(campaignId).filter(item => item.status === "joined" && !item.paired_with_id);
+  if (available.length < 2) {
+    notify("Impulso de marca", "Participantes insuficientes", "Se necesitan al menos dos perfiles sin match para generar una colaboracion.");
+    return;
+  }
+  const updates = [];
+  const pairCount = Math.floor(available.length / 2);
+  for (let index = 0; index < pairCount; index += 1) {
+    const leader = available[index];
+    const growing = available[available.length - 1 - index];
+    if (!leader || !growing || leader.id === growing.id) continue;
+    updates.push(api.update("brand_growth_participants", leader.id, {
+      participation_type: "impulsor",
+      paired_with_id: growing.profile_id,
+      paired_with_name: growing.name || "Perfil ROIS",
+      status: "matched"
+    }));
+    updates.push(api.update("brand_growth_participants", growing.id, {
+      participation_type: "crecimiento",
+      paired_with_id: leader.profile_id,
+      paired_with_name: leader.name || "Perfil ROIS",
+      status: "matched"
+    }));
+  }
+  try {
+    await Promise.all(updates);
+    notify("Impulso de marca", "Matches generados", `${Math.floor(updates.length / 2)} colaboraciones fueron asignadas usando posicionamiento real.`);
+    renderAdminBrandGrowth();
+  } catch (error) {
+    notify("Impulso de marca", "No fue posible completar los matches", humanError(error));
+  }
+}
+
+async function updateBrandGrowthCampaignStatus(campaign, status) {
+  await api.update("brand_growth_campaigns", campaign.id, { status });
+  notify("Impulso de marca", "Estado actualizado", `La campana ahora esta ${status}.`);
+  renderAdminBrandGrowth();
+}
+
+function renderAdminBrandGrowth() {
+  const campaigns = [...(state.data.brand_growth_campaigns || [])]
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const allParticipants = state.data.brand_growth_participants || [];
+  const matched = allParticipants.filter(item => item.status === "matched").length;
+  panel("admin-brand-growth", "Impulso de marca", "Campanas internas y matches de posicionamiento digital", `
+    <div class="panel-body">
+      <div class="scout-metrics">
+        <div><span>Campanas activas</span><strong>${campaigns.filter(item => item.status === "active").length}</strong></div>
+        <div><span>Participantes</span><strong>${allParticipants.length}</strong></div>
+        <div><span>Perfiles con match</span><strong>${matched}</strong></div>
+        <div><span>Colaboraciones</span><strong>${Math.floor(matched / 2)}</strong></div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Nueva campana</p>
+        <h3>Define una colaboracion concreta y medible.</h3>
+        <p>El sistema ordena perfiles por posicionamiento y empareja el nivel mas alto con el nivel mas bajo disponible.</p>
+      </div>
+      <form id="brandGrowthCampaignForm" class="form-grid">
+        <label>Nombre de campana<input name="title" required maxlength="120" placeholder="Impulso ROIS - Agosto"></label>
+        <label>Estado<select name="status"><option value="active">Activa</option><option value="draft">Borrador</option></select></label>
+        <label style="grid-column:1/-1">Objetivo<input name="objective" required maxlength="240" placeholder="Aumentar alcance y descubrimiento de perfiles participantes."></label>
+        <label style="grid-column:1/-1">Brief<textarea name="brief" required placeholder="Describe la dinamica, canales y criterio de colaboracion."></textarea></label>
+        <label style="grid-column:1/-1">Entregables<textarea name="deliverables" required placeholder="Ejemplo: 1 reel colaborativo, 3 historias cruzadas y reporte de resultados."></textarea></label>
+        <label>Inicio<input name="start_date" type="date"></label>
+        <label>Cierre<input name="end_date" type="date"></label>
+        <button class="btn primary" type="submit">Crear campana</button>
+      </form>
+    </div>
+    <div class="panel-body">
+      <div class="brand-growth-grid">
+        ${campaigns.length ? campaigns.map(campaign => {
+          const participants = campaignParticipants(campaign.id);
+          const pairs = Math.floor(participants.filter(item => item.status === "matched").length / 2);
+          return `
+            <article class="brand-growth-campaign">
+              <div class="brand-growth-campaign-head">
+                <div>
+                  <p class="eyebrow">${escapeHtml(campaign.status || "draft")}</p>
+                  <h3>${escapeHtml(campaign.title || "Campana ROIS")}</h3>
+                </div>
+                ${badge(`${participants.length} participantes`)}
+              </div>
+              <p>${escapeHtml(campaign.objective || campaign.brief || "")}</p>
+              <div class="brand-growth-admin-stats">
+                <span><strong>${pairs}</strong> matches</span>
+                <span><strong>${participants.filter(item => item.status === "joined").length}</strong> esperando</span>
+              </div>
+              ${participants.length ? `<div class="brand-growth-participant-list">${participants.map(item => `
+                <div>
+                  <span>${escapeHtml(item.name || item.email || "Perfil ROIS")}</span>
+                  <strong>${Number(item.positioning_score || 0)} / 100</strong>
+                  ${badge(item.participation_type || item.status || "joined")}
+                </div>
+              `).join("")}</div>` : `<p class="hint">Aun no hay participantes.</p>`}
+              <div class="table-actions">
+                ${button("Generar matches", () => pairBrandGrowthCampaign(campaign.id))}
+                ${campaign.status === "active"
+                  ? button("Cerrar campana", () => updateBrandGrowthCampaignStatus(campaign, "closed"))
+                  : button("Activar", () => updateBrandGrowthCampaignStatus(campaign, "active"))}
+              </div>
+            </article>
+          `;
+        }).join("") : `<div class="empty">Crea la primera campana interna de crecimiento ROIS.</div>`}
+      </div>
+    </div>
+  `);
+  document.getElementById("brandGrowthCampaignForm")?.addEventListener("submit", submitBrandGrowthCampaign);
 }
 
 function renderAdminFounders() {
@@ -6860,7 +8440,7 @@ function renderAdminFounders() {
       </div>
       <p class="hint">La tabla tecnica founders se conserva para compatibilidad. Creator type identifica artistas, influencers, musicos y founders legacy.</p>
     </div>
-    ${founders.length ? table(["Creador", "Tipo", "Correo", "Referido por", "Categoria", "Plataforma", "Audiencia", "Engagement", "Sponsor Deck", "Estado", "Acciones"], founders.map(founder => [
+    ${founders.length ? table(["Creador", "Tipo", "Correo", "Referido por", "Categoria", "Plataforma", "Audiencia", "Engagement", "Anualidad", "Sponsor Deck", "Estado", "Acciones"], founders.map(founder => [
       `<strong>${escapeHtml(founder.public_name || founder.name || "Creador")}</strong>`,
       badge(creatorTypeLabel(founder.creator_type)),
       escapeHtml(founder.email || "Sin correo"),
@@ -6869,6 +8449,7 @@ function renderAdminFounders() {
       escapeHtml(founder.primary_platform || "Por definir"),
       escapeHtml(creatorAudienceLabel(founder)),
       escapeHtml(creatorEngagementLabel(founder)),
+      athleteAnnualFeePaid(founder) ? badge("pagada") : badge(founder.annual_payment_status || "no solicitada"),
       sponsorDeckIsReady(founder) ? badge("disponible") : badge("pendiente"),
       founderAdminStatus(founder),
       founderAdminActions(founder)
@@ -7361,8 +8942,18 @@ function crmInvitationStatusLabel(value) {
 }
 
 function commercialCrmRecords() {
+  const sessionIds = new Set([
+    String(state.session?.authId || ""),
+    String(state.session?.id || ""),
+    String(currentScoutRecord()?.profile_id || "")
+  ].filter(Boolean));
   return [...(state.data.crm || [])]
-    .filter(item => ["company", "creator", "athlete"].includes(String(item.prospect_type || "").toLowerCase()))
+    .filter(item => {
+      const type = String(item.prospect_type || "").toLowerCase();
+      if (!["company", "creator", "athlete"].includes(type)) return false;
+      if (!isScoutSession()) return true;
+      return ["creator", "athlete"].includes(type) && sessionIds.has(String(item.created_by || ""));
+    })
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 }
 
@@ -7403,18 +8994,22 @@ function crmProspectRows(records = commercialCrmRecords()) {
   ]);
 }
 
-function commercialProspectFormMarkup() {
+function commercialProspectFormMarkup(options = {}) {
+  const adminMode = options.admin === true;
+  const scoutCode = currentScoutCode();
   return `
     <div class="panel-body">
       <div class="section-minihead">
         <p class="eyebrow">Nueva invitaci\u00f3n</p>
-        <h3>Registra el prospecto y env\u00eda su acceso a ROIS.</h3>
-        <p>El registro se guarda antes de enviar el correo. Creadores y deportistas necesitan un c\u00f3digo Scout activo para completar su alta.</p>
+        <h3>${adminMode ? "Registra el prospecto y env\u00eda su acceso a ROIS." : "Invita talento con tu c\u00f3digo Scout."}</h3>
+        <p>${adminMode
+          ? "El CRM interno puede registrar empresas, creadores y deportistas. Para talento debe asignarse un c\u00f3digo Scout activo."
+          : `Puedes registrar exclusivamente deportistas y creadores. Tu c\u00f3digo ${escapeHtml(scoutCode || "est\u00e1 pendiente")} se asigna autom\u00e1ticamente y cada referido activo validado puede generar comisi\u00f3n.`}</p>
       </div>
       <form id="commercialProspectForm" class="form-grid" data-preserve-dashboard-draft>
         <label>Tipo de prospecto
           <select name="prospect_type" required>
-            <option value="company">Empresa</option>
+            ${adminMode ? `<option value="company">Empresa</option>` : ""}
             <option value="creator">Creador</option>
             <option value="athlete">Deportista</option>
           </select>
@@ -7433,7 +9028,9 @@ function commercialProspectFormMarkup() {
             <option value="Otro">Otro</option>
           </select>
         </label>
-        <label data-commercial-scout-field hidden>C\u00f3digo Scout<input name="scout_code" placeholder="Obligatorio para creador o deportista"></label>
+        ${adminMode
+          ? `<label data-commercial-scout-field hidden>C\u00f3digo Scout<input name="scout_code" placeholder="Obligatorio para creador o deportista"></label>`
+          : `<label>C\u00f3digo Scout<input name="scout_code" value="${escapeAttr(scoutCode)}" readonly required></label>`}
         <label>Pr\u00f3ximo seguimiento<input name="next_follow_up_at" type="date"></label>
         <label style="grid-column:1/-1">Notas<textarea name="notes" placeholder="Contexto, inter\u00e9s, relaci\u00f3n previa o siguiente acci\u00f3n."></textarea></label>
         <button class="btn primary" type="submit">Guardar y enviar invitaci\u00f3n</button>
@@ -7442,12 +9039,18 @@ function commercialProspectFormMarkup() {
   `;
 }
 
-function bindCommercialProspectForm() {
+function bindCommercialProspectForm(options = {}) {
   const form = document.getElementById("commercialProspectForm");
   if (!form) return;
+  const adminMode = options.admin === true;
   const scoutField = form.querySelector("[data-commercial-scout-field]");
   const scoutInput = form.elements.scout_code;
   const syncScoutRequirement = () => {
+    if (!adminMode) {
+      scoutInput.value = currentScoutCode();
+      scoutInput.required = true;
+      return;
+    }
     const required = ["creator", "athlete"].includes(form.elements.prospect_type.value);
     scoutField.hidden = !required;
     scoutInput.required = required;
@@ -7475,29 +9078,52 @@ function renderCommercialPanel(targetId) {
 
 function renderCommercialOverview() {
   const records = commercialCrmRecords();
+  const scout = currentScoutRecord();
+  const scoutCode = currentScoutCode();
+  const talent = [...(state.data.athletes || []), ...(state.data.founders || [])];
+  const referrals = talent.filter(item => normalizeScoutCode(item.invited_by_scout_code) === scoutCode);
+  const validatedReferrals = referrals.filter(item => scoutReferralStatus(item).eligible);
   const sent = records.filter(item => item.invitation_status === "sent").length;
   const retries = records.filter(item => item.invitation_status === "email_error").length;
   const due = records.filter(crmFollowUpIsPending).length;
   const recentRows = crmProspectRows(records.slice(0, 10));
-  panel("commercial-overview", "Control comercial", "Prospecci\u00f3n e invitaciones ROIS", `
+  const commission = Number(scout?.commission_per_active_referral || scoutCommissionAmount);
+  const paidCommissions = validatedReferrals.filter(item => scoutReferralStatus(item).commissionPaid);
+  const pendingCommissions = validatedReferrals.filter(item => !scoutReferralStatus(item).commissionPaid);
+  panel("commercial-overview", "Red Scout", "Referidos, invitaciones y comisiones ROIS", `
     <div class="panel-body">
-      <div class="scout-metrics">
-        <div><span>Prospectos</span><strong>${records.length}</strong></div>
-        <div><span>Invitaciones enviadas</span><strong>${sent}</strong></div>
-        <div><span>Requieren reintento</span><strong>${retries}</strong></div>
-        <div><span>Seguimientos vencidos</span><strong>${due}</strong></div>
+      <div class="section-minihead">
+        <p class="eyebrow">Tu c\u00f3digo personal</p>
+        <h3>${escapeHtml(scoutCode || "C\u00f3digo pendiente")}</h3>
+        <p>Comp\u00e1rtelo con deportistas y creadores. Las empresas no forman parte del programa de comisiones Scout.</p>
+        ${scoutCode ? `<button class="btn" type="button" data-copy-external-scout-code>Copiar c\u00f3digo</button>` : ""}
       </div>
     </div>
-    <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Actividad reciente</p><h3>\u00daltimos prospectos registrados.</h3></div></div>
-    ${recentRows.length ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], recentRows) : `<div class="empty">A\u00fan no hay prospectos en el CRM.</div>`}
+    <div class="panel-body">
+      <div class="scout-metrics">
+        <div><span>Referidos CRM</span><strong>${records.length}</strong></div>
+        <div><span>Invitaciones enviadas</span><strong>${sent}</strong></div>
+        <div><span>Registrados con tu c\u00f3digo</span><strong>${referrals.length}</strong></div>
+        <div><span>Comisi\u00f3n por pagar</span><strong>$${(pendingCommissions.length * commission).toLocaleString("es-MX")} MXN</strong></div>
+        <div><span>Pagado acumulado</span><strong>$${(paidCommissions.length * commission).toLocaleString("es-MX")} MXN</strong></div>
+      </div>
+    </div>
+    <div class="panel-body"><p class="hint">Cada referido activado y validado genera un solo pago de $${commission.toLocaleString("es-MX")} MXN. La comisi\u00f3n no es mensual.</p></div>
+    ${retries || due ? `<div class="panel-body"><p class="hint">${retries} invitaciones requieren reintento y ${due} seguimientos est\u00e1n vencidos.</p></div>` : ""}
+    <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Actividad reciente</p><h3>\u00daltimos referidos registrados.</h3></div></div>
+    ${recentRows.length ? table(["Referido", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], recentRows) : `<div class="empty">A\u00fan no has registrado referidos.</div>`}
   `);
+  document.querySelector("[data-copy-external-scout-code]")?.addEventListener("click", async () => {
+    await navigator.clipboard.writeText(scoutCode);
+    notify("Scouts", "C\u00f3digo copiado", "Tu c\u00f3digo Scout est\u00e1 listo para compartir.");
+  });
 }
 
 function renderCommercialProspects() {
   const rows = crmProspectRows();
-  panel("commercial-prospects", "Prospectos", "Alta, invitaci\u00f3n y avance comercial", `
+  panel("commercial-prospects", "Referidos", "Alta e invitaci\u00f3n de deportistas y creadores", `
     ${commercialProspectFormMarkup()}
-    ${rows.length ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], rows) : `<div class="empty">Registra el primer prospecto para iniciar el pipeline.</div>`}
+    ${rows.length ? table(["Referido", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], rows) : `<div class="empty">Registra tu primer referido para iniciar tu red Scout.</div>`}
   `);
   bindCommercialProspectForm();
 }
@@ -7507,8 +9133,8 @@ function renderCommercialFollowup() {
     .filter(item => !["Registrado", "No interesado"].includes(item.status))
     .sort((a, b) => new Date(a.next_follow_up_at || "9999-12-31") - new Date(b.next_follow_up_at || "9999-12-31"));
   const rows = crmProspectRows(records);
-  panel("commercial-followup", "Seguimiento", "Pr\u00f3ximas acciones del equipo comercial", rows.length
-    ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], rows)
+  panel("commercial-followup", "Seguimiento", "Pr\u00f3ximas acciones de tu red Scout", rows.length
+    ? table(["Referido", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], rows)
     : `<div class="empty">No hay seguimientos pendientes.</div>`);
 }
 
@@ -7522,11 +9148,11 @@ function renderAdminCrm() {
     button("Avanzar", () => updateCrm(item.id))
   ]);
   panel("admin-crm", "CRM", "Prospecci\u00f3n, invitaciones y trazabilidad", `
-    ${commercialProspectFormMarkup()}
+    ${commercialProspectFormMarkup({ admin: true })}
     ${prospects.length ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], crmProspectRows(prospects)) : `<div class="empty">A\u00fan no hay prospectos comerciales.</div>`}
     ${legacyRows.length ? `<div class="panel-body"><div class="section-minihead"><p class="eyebrow">Registros anteriores</p><h3>Pipeline legacy conservado.</h3></div></div>${table(["Categor\u00eda", "Volumen", "Estado", "Acci\u00f3n"], legacyRows)}` : ""}
   `);
-  bindCommercialProspectForm();
+  bindCommercialProspectForm({ admin: true });
 }
 
 function renderAdminPayments() {
@@ -7617,7 +9243,7 @@ function renderAdminRevenue() {
     ["Ingreso membresias sin IVA", money(taxSummary.membershipBaseRevenue), "Base comercial antes de IVA"],
     ["IVA trasladado 16%", money(taxSummary.ivaTransferred), "Impuesto cobrado al cliente; reservar para entero mensual"],
     ["Total cobrado con IVA", money(taxSummary.totalCollectedWithIva), "Flujo total recibido por membresias"],
-    ["Comisiones Scouts", money(taxSummary.scoutCommissions), "Estimacion de $500 MXN por founder/athlete elegible"],
+    ["Comisiones Scouts", money(taxSummary.scoutCommissions), "Pago unico de $500 MXN por creador/deportista activado y validado"],
     ["Gastos deducibles", money(taxSummary.deductibleExpenses), "Placeholder hasta crear modulo de gastos"],
     ["Utilidad estimada para ISR", money(taxSummary.taxableProfit), "Membresias sin IVA - scouts - deducibles"],
     ["ISR estimado 30%", money(taxSummary.estimatedIsr), "Estimacion interna de ISR persona moral"],
@@ -8559,7 +10185,7 @@ function crmInvitationEmailEndpoint() {
 }
 
 function renderCrmAfterMutation() {
-  if (state.session?.role === "commercial") {
+  if (isScoutSession()) {
     renderCommercialPanel(activeDashboardPanelId("commercial") || "commercial-overview");
   } else if (state.session?.role === "admin") {
     renderAdminCrm();
@@ -8633,24 +10259,33 @@ async function submitCommercialProspect(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const submitButton = form.querySelector('[type="submit"]');
+  const scoutMode = isScoutSession();
   const prospectType = String(form.prospect_type.value || "").trim().toLowerCase();
   const email = normalizedAccountEmail(form.email.value);
   const name = String(form.name.value || "").trim();
-  const scoutCode = String(form.scout_code.value || "").trim().toUpperCase();
+  const scoutCode = scoutMode
+    ? currentScoutCode()
+    : normalizeScoutCode(form.scout_code?.value || "");
   if (!["company", "creator", "athlete"].includes(prospectType) || !name || !email) {
     notify("CRM", "Datos incompletos", "Completa tipo, nombre y correo electr\u00f3nico.");
     return;
   }
+  if (scoutMode && prospectType === "company") {
+    notify("Scouts", "Registro no disponible", "Las cuentas Scout s\u00f3lo pueden invitar deportistas y creadores. El alta de empresas corresponde al equipo interno de ROIS.");
+    return;
+  }
   if (["creator", "athlete"].includes(prospectType)) {
     if (!scoutCode) {
-      notify("CRM", "C\u00f3digo Scout requerido", "Creadores y deportistas necesitan un c\u00f3digo Scout para recibir su invitaci\u00f3n.");
-      form.scout_code.focus();
+      notify("CRM", "C\u00f3digo Scout requerido", scoutMode
+        ? "No encontramos tu c\u00f3digo personal. Cierra sesi\u00f3n e ingresa nuevamente; si contin\u00faa, solicita revisi\u00f3n a ROIS."
+        : "Creadores y deportistas necesitan un c\u00f3digo Scout para recibir su invitaci\u00f3n.");
+      form.scout_code?.focus();
       return;
     }
     const scoutValidation = await api.validateScoutCode(scoutCode);
     if (!scoutValidation.valid) {
       notify("CRM", "C\u00f3digo Scout no v\u00e1lido", scoutValidation.message || "Verifica el c\u00f3digo antes de enviar la invitaci\u00f3n.");
-      form.scout_code.focus();
+      form.scout_code?.focus();
       return;
     }
   }
@@ -8675,7 +10310,7 @@ async function submitCommercialProspect(event) {
       created_by: state.session.authId || state.session.id,
       updated_at: now
     };
-    const existing = (state.data.crm || []).find(item => normalizedAccountEmail(item.email) === email);
+    const existing = commercialCrmRecords().find(item => normalizedAccountEmail(item.email) === email);
     const prospect = existing
       ? await api.update("crm", existing.id, record)
       : await api.insert("crm", record);
@@ -8902,14 +10537,52 @@ async function activateScoutNetwork(athlete) {
   renderAdmin();
 }
 
-async function markAthleteAnnualPaid(athlete) {
-  await api.update("athletes", athlete.id, {
+async function markAthleteAnnualPaid(athlete, tableName = "athletes") {
+  const marketplaceRequested = ["pending_payment", "pending_review"].includes(String(athlete.marketplace_access_status || "").toLowerCase());
+  const accessStartedAt = new Date();
+  const accessExpiresAt = new Date(accessStartedAt);
+  accessExpiresAt.setFullYear(accessExpiresAt.getFullYear() + 1);
+  await api.update(tableName, athlete.id, {
     annual_fee_paid: true,
     annual_payment_status: "paid",
-    annual: athleteAnnualFeeAmount
+    annual_fee_required: true,
+    annual: athleteAnnualFeeAmount,
+    annual_access_started_at: accessStartedAt.toISOString(),
+    annual_access_expires_at: accessExpiresAt.toISOString(),
+    ...(marketplaceRequested ? { marketplace_access_status: "pending_review" } : {})
   });
-  notify("Anualidad", "Pago registrado", "El pago anual quedo marcado para seguimiento interno.");
+  const athleteEmail = normalizedAccountEmail(athlete.email || athlete.contact);
+  const athleteName = String(athlete.name || "").trim().toLowerCase();
+  const pendingPayment = (state.data.payments || []).find(payment =>
+    payment.product_key === "athleteAnnualProfile" &&
+    payment.status !== "paid" &&
+    (
+      (athleteEmail && normalizedAccountEmail(payment.company).includes(athleteEmail)) ||
+      (athleteName && String(payment.company || "").toLowerCase().includes(athleteName))
+    )
+  );
+  if (pendingPayment) {
+    try {
+      await api.update("payments", pendingPayment.id, { status: "paid" });
+    } catch (error) {
+      console.warn("[ROIS annual access] Perfil activado; no se pudo actualizar el log financiero", humanError(error));
+    }
+  }
+  notify("Acceso anual", "Pago confirmado", marketplaceRequested
+    ? "El acceso anual quedo activo y el perfil paso a revision de publicacion."
+    : "El acceso anual quedo activo por 12 meses.");
   renderAdmin();
+}
+
+async function approveMarketplaceProfile(profile, tableName) {
+  await api.update(tableName, profile.id, {
+    status: "approved",
+    visual_status: "approved",
+    marketplace_access_status: "active"
+  });
+  notify("Mercado ROIS", "Perfil publicado", `${profile.name || "El perfil"} ya puede ser evaluado por empresas.`);
+  renderAdmin();
+  renderClient();
 }
 
 async function validateScoutCommission(record, tableName = "athletes") {
@@ -8917,7 +10590,16 @@ async function validateScoutCommission(record, tableName = "athletes") {
     scout_validation_status: "validated",
     scout_commission_status: "approved"
   });
-  notify("Scouts", "Comision validada", "La cuenta queda elegible para comision si tambien cumple pago y perfil completo.");
+  notify("Scouts", "Comision unica validada", "La cuenta queda elegible para un solo pago Scout si tambien cumple activacion y perfil completo.");
+  renderAdmin();
+}
+
+async function markScoutCommissionPaid(record, tableName = "athletes") {
+  if (record.scout_commission_status !== "approved") return;
+  await api.update(tableName, record.id, {
+    scout_commission_status: "paid"
+  });
+  notify("Scouts", "Comision pagada", "El pago unico de esta referencia quedo liquidado y no volvera a generarse.");
   renderAdmin();
 }
 
@@ -9857,6 +11539,8 @@ function openRegistration(type) {
   state.registrationType = type;
   const title = type === "company"
     ? "Crear cuenta de empresa"
+    : type === "scout"
+      ? "Registro de Scout"
     : type === "founder"
       ? "Registro de creador"
       : type === "athlete"
@@ -9871,6 +11555,23 @@ function openRegistration(type) {
 }
 
 function registrationFields(type) {
+  if (type === "scout") {
+    return `
+      <label>Nombre completo<input name="name" required placeholder="Tu nombre"></label>
+      <label>Correo de acceso<input name="email" type="email" required placeholder="correo@dominio.com"></label>
+      <label>Contrasena<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Minimo 8 caracteres"></label>
+      <label>Confirmar contrasena<input name="confirm" type="password" minlength="8" autocomplete="new-password" required placeholder="Repite tu contrasena"></label>
+      <div class="registration-note" style="grid-column:1/-1">
+        <p class="eyebrow">Red Scout ROIS</p>
+        <p>Recibiras un codigo personal para invitar deportistas y creadores. ROIS paga una comision unica de $${scoutCommissionAmount.toLocaleString("es-MX")} MXN por cada referido directo que complete su activacion y sea validado. Las empresas no generan comision Scout.</p>
+      </div>
+      <label class="check-option" style="grid-column:1/-1">
+        <input name="terms" type="checkbox" required>
+        <span>Acepto que cada referido puede generar una sola comision, sujeta a activacion, validacion y condiciones comerciales vigentes de ROIS. No registrare empresas ni prospectos ajenos.</span>
+      </label>
+      <button class="btn primary full" type="submit">Crear cuenta Scout</button>
+    `;
+  }
   if (type === "company") {
     return `
       <label>Empresa<input name="name" required placeholder="Nombre legal o comercial"></label>
@@ -9894,7 +11595,7 @@ function registrationFields(type) {
       <label style="grid-column:1/-1">Codigo de Scout ROIS<input name="scout_code" required placeholder="ROIS-ABC123"></label>
       <div class="registration-note scout-registration-note" style="grid-column:1/-1">
         <p class="eyebrow">Acceso por invitacion</p>
-        <p>Ningun deportista puede registrarse sin codigo de Scout ROIS. La anualidad deportiva es de $${athleteAnnualFeeAmount.toLocaleString("es-MX")} MXN y solo se habilita desde administracion cuando tu perfil avance.</p>
+        <p>Ningun deportista puede registrarse sin codigo de Scout ROIS. Crear y completar el perfil no tiene costo inicial. El acceso anual de $${athleteAnnualFeeAmount.toLocaleString("es-MX")} MXN se solicita cuando desbloqueas Sponsor Deck o pides publicar tu perfil en Mercado de fichajes.</p>
         <button class="btn" type="button" data-request-scout-code>No tienes codigo de scout? Solicita uno y te asignamos un Scout ROIS.</button>
       </div>
       <label>Fecha de nacimiento<input name="birth_date" type="date" required></label>
@@ -9916,7 +11617,7 @@ function registrationFields(type) {
       </div>
       <div class="registration-note" style="grid-column:1/-1">
         <p class="eyebrow">Alta deportiva</p>
-        <p>Despues de crear tu cuenta entraras a tu dashboard para completar expediente, terminos de representacion, foto, ficha tecnica, propuesta, videos y documentos operativos. El pago anual no se solicita hasta que ROIS lo habilite.</p>
+        <p>Despues de crear tu cuenta entraras a tu dashboard para completar expediente, terminos de representacion, foto, ficha tecnica, evidencia y documentos operativos. El pago anual se solicita unicamente cuando decides activar tus herramientas comerciales.</p>
       </div>
       <label class="check-option" style="grid-column:1/-1">
         <input name="terms" type="checkbox" required>
@@ -9928,36 +11629,35 @@ function registrationFields(type) {
   if (type === "founder") {
     return `
       <label>Nombre legal<input name="name" required placeholder="Nombre completo"></label>
-      <label>Correo<input name="email" type="email" required placeholder="correo@creador.com"></label>
-      <label style="grid-column:1/-1">Codigo de Scout ROIS<input name="scout_code" required placeholder="ROIS-ABC123"></label>
+      <label>Correo<input name="email" type="email" required placeholder="correo@ejemplo.com"></label>
+      <label style="grid-column:1/-1">Codigo de Scout ROIS (opcional)<input name="scout_code" placeholder="ROIS-ABC123"></label>
       <div class="registration-note scout-registration-note" style="grid-column:1/-1">
-        <p class="eyebrow">Acceso por invitacion</p>
-        <p>Todo Creador necesita el codigo del Scout ROIS que lo invito. El codigo quedara vinculado al registro para seguimiento y comisiones.</p>
-        <button class="btn" type="button" data-request-scout-code>No tienes codigo de Scout? Solicita uno.</button>
+        <p class="eyebrow">Cuenta universal ROIS</p>
+        <p>El registro es gratuito y no requiere invitacion. Si alguien te compartio su codigo Scout, agregalo para reconocer el referido.</p>
       </div>
-      <label>Tipo de creador<select name="creator_type" required>${creatorTypeOptionsMarkup("influencer")}</select></label>
-      <label>Nombre publico o artistico<input name="public_name" required placeholder="Nombre visible para marcas"></label>
-      <label style="grid-column:1/-1">Proyecto, canal o marca personal<input name="venture_name" required placeholder="Nombre del proyecto creativo"></label>
-      <label>Categoria o nicho<input name="industry" required placeholder="Musica, moda, gaming, lifestyle..."></label>
-      <label>Etapa profesional<input name="stage" required placeholder="Emergente, consolidado, crecimiento..."></label>
+      <label>Perfil principal<select name="creator_type" required>${creatorTypeOptionsMarkup("influencer")}</select></label>
+      <label>Nombre publico<input name="public_name" required placeholder="Como quieres aparecer en ROIS"></label>
+      <label style="grid-column:1/-1">Proyecto, actividad o marca personal<input name="venture_name" placeholder="Opcional"></label>
+      <label>Habilidad, industria o categoria<input name="industry" required placeholder="Ventas, moda, tecnologia, fitness..."></label>
+      <label>Experiencia<input name="stage" required placeholder="Inicial, intermedia, avanzada..."></label>
       <label>Ciudad<input name="city" required placeholder="Ciudad base"></label>
-      <label>Plataforma principal<select name="primary_platform" required><option value="">Selecciona</option><option>Instagram</option><option>TikTok</option><option>YouTube</option><option>Facebook</option><option>LinkedIn</option><option>Twitch</option><option>Spotify</option><option>Podcast</option><option>Eventos en vivo</option><option>Multiplataforma</option></select></label>
+      <label>Plataforma principal<select name="primary_platform"><option value="">No aplica</option><option>Instagram</option><option>TikTok</option><option>YouTube</option><option>Facebook</option><option>LinkedIn</option><option>Twitch</option><option>Spotify</option><option>Podcast</option><option>Eventos en vivo</option><option>Multiplataforma</option></select></label>
       <label>Audiencia total<input name="audience_size" type="number" min="0" step="1" placeholder="Seguidores o suscriptores"></label>
       <label>Engagement promedio %<input name="engagement_rate" type="number" min="0" max="100" step="0.01" placeholder="Ej. 4.8"></label>
-      <label style="grid-column:1/-1">Categorias de contenido<input name="content_categories" required placeholder="Musica, entretenimiento, moda, tecnologia..."></label>
+      <label style="grid-column:1/-1">Habilidades e intereses<input name="content_categories" required placeholder="Ventas, recomendaciones, contenido, eventos, deporte..."></label>
       <label>Mercado de audiencia<input name="audience_location" placeholder="Mexico, LATAM, global..."></label>
       <label>Categorias de marca compatibles<input name="brand_categories" placeholder="Consumo, moda, tecnologia..."></label>
       <label>Contrasena<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Minimo 8 caracteres"></label>
       <label>Confirmar contrasena<input name="confirm" type="password" minlength="8" autocomplete="new-password" required placeholder="Repite tu contrasena"></label>
       <div class="registration-note" style="grid-column:1/-1">
-        <p class="eyebrow">Creator Marketplace ROIS</p>
-        <p>Despues de entrar podras crear tu Sponsor Deck ROIS con IA, completar redes, audiencia, resultados, entregables para marcas y codigo de referidos.</p>
+        <p class="eyebrow">Oportunidades ROIS</p>
+        <p>Crea un perfil para vender, recomendar, crear contenido o colaborar con empresas. Cada oportunidad tiene condiciones propias y los ingresos nunca estan garantizados.</p>
       </div>
       <label class="check-option" style="grid-column:1/-1">
         <input name="terms" type="checkbox" required>
-        <span>Acepto las condiciones iniciales de ROIS e ${roisLegalEntity}: mi perfil creativo, metricas y medios quedan sujetos a revision y cualquier relacion comercial o patrocinio se gestiona dentro de la plataforma.</span>
+        <span>Acepto las condiciones iniciales de ROIS e ${roisLegalEntity}. Entiendo que cada postulacion solicita autorizaciones de datos independientes y que ROIS no garantiza oportunidades ni ingresos.</span>
       </label>
-      <button class="btn primary full" type="submit">Crear cuenta de creador</button>
+      <button class="btn primary full" type="submit">Crear mi perfil ROIS</button>
     `;
   }
   return `
@@ -10145,6 +11845,41 @@ async function submitRegistrationLegacy(event) {
   const type = state.registrationType;
   let paymentAction = null;
   try {
+    if (type === "scout") {
+      if (form.password.value !== form.confirm.value) {
+        notify("Registro Scout", "Las contraseñas no coinciden", "Confirma la contraseña para crear tu cuenta.");
+        return;
+      }
+      const signup = await api.signupScout({
+        name: form.name.value.trim(),
+        email: form.email.value,
+        password: form.password.value,
+        termsAccepted: form.terms.checked
+      });
+      closeModals();
+      if (signup.confirmed) {
+        state.session = signup.session;
+        saveSession(state.session);
+        try {
+          await api.insert("terms_acceptances", {
+            user_email: signup.session.email,
+            user_role: "scout",
+            version: "external-scout-v1",
+            status: "accepted"
+          });
+        } catch (error) {
+          console.warn("[ROIS Scout terms]", humanError(error));
+        }
+        await hydrateDashboardData(true);
+        renderSession();
+        renderCommercial();
+        showView("commercial");
+        notify("Cuenta Scout", "Tu red está activa", `Tu código personal es ${currentScoutCode() || signup.session.scoutCode}. Ya puedes invitar deportistas y creadores desde tu panel.`);
+      } else {
+        showVerificationNotice(signup.email || form.email.value);
+      }
+      return;
+    }
     if (type === "company") {
       if (form.password.value !== form.confirm.value) {
         notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrase\u00f1a para crear tu cuenta.");
@@ -10179,7 +11914,7 @@ async function submitRegistrationLegacy(event) {
       }
       const scoutCode = normalizeScoutCode(form.scout_code.value);
       if (!scoutCode) {
-        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta emprendedora necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
+        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta deportiva necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
         form.scout_code.focus();
         return;
       }
@@ -10222,6 +11957,19 @@ async function submitRegistrationLegacy(event) {
         state.session = signup.session;
         saveSession(state.session);
         await api.insert("terms_acceptances", { user_email: form.email.value, user_role: isMinor ? "athlete_minor_guardian" : "athlete", version: isMinor ? "athlete-minor-guardian-consent-v1-intelliquant" : "athlete-registration-v1-intelliquant", status: "accepted" });
+        await api.upsertByEmail("user_profiles", {
+          profile_id: state.session.authId || state.session.id,
+          email: normalizedAccountEmail(form.email.value),
+          name: form.name.value.trim(),
+          public_name: form.name.value.trim(),
+          birth_date: form.birth_date.value,
+          capabilities: ["deportes", "representacion_marca", "creacion_contenido"],
+          interests: ["oportunidades_deportivas", "patrocinios"],
+          industries: ["Deporte"],
+          badges: ["athlete"],
+          status: "active",
+          verification_status: "pending"
+        });
         renderSession();
         renderAthlete();
         showView("athlete");
@@ -10238,13 +11986,8 @@ async function submitRegistrationLegacy(event) {
         return;
       }
       const scoutCode = normalizeScoutCode(form.scout_code.value);
-      if (!scoutCode) {
-        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta de Creador necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
-        form.scout_code.focus();
-        return;
-      }
-      const scoutValidation = await api.validateScoutCode(scoutCode);
-      if (!scoutValidation.valid) {
+      const scoutValidation = scoutCode ? await api.validateScoutCode(scoutCode) : { valid: true };
+      if (scoutCode && !scoutValidation.valid) {
         notify("Codigo Scout", "Codigo no valido", `El codigo ${scoutCode} no esta activo para registrar Creadores. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
         form.scout_code.focus();
         return;
@@ -10365,7 +12108,7 @@ async function submitRegistration(event) {
       }
       const scoutCode = normalizeScoutCode(form.scout_code.value);
       if (!scoutCode) {
-        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta emprendedora necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
+        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta deportiva necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
         form.scout_code.focus();
         return;
       }
@@ -10408,15 +12151,23 @@ async function submitRegistration(event) {
         state.session = signup.session;
         saveSession(state.session);
         await api.insert("terms_acceptances", { user_email: form.email.value, user_role: isMinor ? "athlete_minor_guardian" : "athlete", version: isMinor ? "athlete-minor-guardian-consent-v1-intelliquant" : "athlete-registration-v1-intelliquant", status: "accepted" });
-        const membershipPayment = await registerMembershipPayment("athlete", {
-          name: form.name.value,
-          email: form.email.value
+        await api.upsertByEmail("user_profiles", {
+          profile_id: state.session.authId || state.session.id,
+          email: normalizedAccountEmail(form.email.value),
+          name: form.name.value.trim(),
+          public_name: form.name.value.trim(),
+          birth_date: form.birth_date.value,
+          capabilities: ["deportes", "representacion_marca", "creacion_contenido"],
+          interests: ["oportunidades_deportivas", "patrocinios"],
+          industries: ["Deporte"],
+          badges: ["athlete"],
+          status: "active",
+          verification_status: "pending"
         });
         renderSession();
         renderAthlete();
         showView("athlete");
-        if (membershipPayment) openStripeCheckout(membershipPayment.productKey, membershipPayment.title);
-        notify("Perfil deportivo", "Bienvenido a ROIS", "Tu dashboard ya est\u00e1 activo. Completa el pago mensual en Stripe para activar tu membres\u00eda Athlete ROIS.");
+        notify("Perfil deportivo", "Bienvenido a ROIS", "Tu dashboard ya esta activo. El acceso anual de $2,500 MXN se solicita unicamente cuando desbloqueas Sponsor Deck o publicas tu perfil en Mercado de fichajes.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }
@@ -10429,13 +12180,8 @@ async function submitRegistration(event) {
         return;
       }
       const scoutCode = normalizeScoutCode(form.scout_code.value);
-      if (!scoutCode) {
-        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta de Creador necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
-        form.scout_code.focus();
-        return;
-      }
-      const scoutValidation = await api.validateScoutCode(scoutCode);
-      if (!scoutValidation.valid) {
+      const scoutValidation = scoutCode ? await api.validateScoutCode(scoutCode) : { valid: true };
+      if (scoutCode && !scoutValidation.valid) {
         notify("Codigo Scout", "Codigo no valido", `El codigo ${scoutCode} no esta activo para registrar Creadores. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
         form.scout_code.focus();
         return;
@@ -10474,15 +12220,28 @@ async function submitRegistration(event) {
         state.session = signup.session;
         saveSession(state.session);
         await api.insert("terms_acceptances", { user_email: form.email.value, user_role: "founder", version: "founder-registration-v1-intelliquant", status: "accepted" });
-        const membershipPayment = await registerMembershipPayment("founder", {
-          name: form.name.value,
-          email: form.email.value
+        await api.upsertByEmail("user_profiles", {
+          profile_id: state.session.authId || state.session.id,
+          email: normalizedAccountEmail(form.email.value),
+          name: form.name.value.trim(),
+          public_name: publicName,
+          bio: founderStats,
+          city: founderCity,
+          country: "Mexico",
+          capabilities: ["venta", "recomendacion", "distribucion", "creacion_contenido", "generacion_prospectos", "representacion_marca"],
+          interests: form.content_categories.value.split(",").map(value => value.trim()).filter(Boolean),
+          industries: [founderIndustry],
+          territories: [founderCity].filter(Boolean),
+          audience_size: Number(form.audience_size.value || 0),
+          audience_description: form.audience_location.value.trim(),
+          badges: [creatorType === "founder" ? "founder" : "creator"],
+          status: "active",
+          verification_status: "pending"
         });
         renderSession();
         renderAthlete();
         showView("athlete");
-        if (membershipPayment) openStripeCheckout(membershipPayment.productKey, membershipPayment.title);
-        notify("Perfil de creador", "Bienvenido a ROIS", "Tu dashboard de creador ya esta activo. Completa el pago mensual en Stripe para activar tu membresia Creador ROIS.");
+        notify("Perfil universal", "Bienvenido a ROIS", "Tu cuenta ya puede explorar oportunidades y construir reputacion. Cada postulacion te mostrara condiciones y datos solicitados antes de enviarse.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }

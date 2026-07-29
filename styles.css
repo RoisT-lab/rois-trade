@@ -11198,6 +11198,156 @@ body[data-active-view="athlete"] .topbar .brand-logo {
   display: block;
 }
 
+/* ROIS managed opportunities marketplace */
+.opportunity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 18px;
+  width: 100%;
+}
+
+.opportunity-card {
+  display: grid;
+  align-content: start;
+  gap: 22px;
+  min-width: 0;
+  padding: clamp(22px, 2.4vw, 30px);
+  border: 1px solid rgba(44, 52, 64, 0.12);
+  border-radius: 26px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(20, 25, 32, 0.05);
+}
+
+.opportunity-card-head,
+.opportunity-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.opportunity-card h3 {
+  margin: 8px 0 10px;
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.opportunity-card p {
+  line-height: 1.65;
+}
+
+.opportunity-status {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.opportunity-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.opportunity-facts div {
+  min-width: 0;
+  padding: 14px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.opportunity-facts dt {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.opportunity-facts dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.requested-data-fieldset {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+
+.requested-data-fieldset legend {
+  padding: 0 8px;
+  font-weight: 800;
+}
+
+.requested-data-fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  background: #f6f7f8;
+}
+
+.requested-data-fieldset input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+}
+
+.company-verification-form,
+.opportunity-company-form {
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: #fafafa;
+}
+
+.plan-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 18px;
+}
+
+.plan-admin-card {
+  display: grid;
+  gap: 15px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+}
+
+@media (max-width: 760px) {
+  .opportunity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opportunity-card {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .opportunity-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .requested-data-fieldset {
+    grid-template-columns: 1fr;
+  }
+}
+
 .athlete-evidence-composer {
   padding: clamp(22px, 3vw, 36px);
   border-bottom: 1px solid var(--line);
@@ -17900,4 +18050,175 @@ body[data-active-view="home"] .premium-home-footer-meta a:hover {
 /* The public navigation belongs to Home, not to the commercial workspace. */
 body[data-active-view="commercial"] .topbar {
   display: none;
+}
+
+/* Annual commercial access */
+.annual-access-lock {
+  display: grid;
+  gap: 18px;
+  max-width: 760px;
+  padding: clamp(26px, 5vw, 52px);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: #fff;
+}
+
+.annual-access-lock h3,
+.annual-access-lock p {
+  margin: 0;
+}
+
+.annual-access-lock ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.annual-access-price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.annual-access-price strong {
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1;
+}
+
+.annual-access-price span {
+  color: var(--muted);
+}
+
+/* Internal brand growth */
+.brand-growth-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: center;
+}
+
+.brand-growth-intro h3 {
+  margin: 8px 0 12px;
+}
+
+.brand-growth-score {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  min-width: 180px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #f5f6f7;
+}
+
+.brand-growth-score strong {
+  font-size: clamp(42px, 6vw, 68px);
+  line-height: .9;
+}
+
+.brand-growth-score span {
+  color: var(--muted);
+}
+
+.brand-growth-score small {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.brand-growth-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.brand-growth-campaign {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+}
+
+.brand-growth-campaign h3,
+.brand-growth-campaign p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.brand-growth-campaign-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.brand-growth-deliverables,
+.brand-growth-match {
+  padding: 16px;
+  border-radius: 16px;
+  background: #f5f6f7;
+}
+
+.brand-growth-deliverables strong,
+.brand-growth-match span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.brand-growth-admin-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand-growth-participant-list {
+  display: grid;
+  max-height: 280px;
+  overflow: auto;
+  border-top: 1px solid var(--line);
+}
+
+.brand-growth-participant-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+@media (max-width: 700px) {
+  .brand-growth-intro {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-growth-score {
+    min-width: 0;
+  }
+
+  .brand-growth-participant-list > div {
+    grid-template-columns: 1fr auto;
+  }
+
+  .brand-growth-participant-list .pill {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
 }

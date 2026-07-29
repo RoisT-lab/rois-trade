@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ROIS | Patrocinios y oportunidades comerciales</title>
-  <meta name="rois-build" content="20260630-stable-data-v75" />
-  <meta name="description" content="Crea un perfil profesional, estructura tu Sponsor Deck y presenta tu valor ante empresas dentro de ROIS." />
-    <link rel="stylesheet" href="./styles.css?v=20260727-athlete-competitive-evidence" />
+  <title>ROIS | Oportunidades, distribucion e inteligencia</title>
+  <meta name="rois-build" content="20260729-opportunities-mvp" />
+  <meta name="description" content="ROIS conecta personas con oportunidades y a empresas con distribucion, talento e inteligencia de mercado." />
+    <link rel="stylesheet" href="./styles.css?v=20260729-opportunities-mvp" />
 </head>
 <body data-active-view="home">
   <div id="app" class="app-shell">
@@ -20,7 +20,8 @@
         <a href="./informacion.html#vision">VISI&Oacute;N</a>
         <a href="./informacion.html#empresas">EMPRESAS</a>
         <a href="./informacion.html#atletas">ATLETAS</a>
-        <a href="./informacion.html#creadores">CREADORES</a>
+        <a href="./informacion.html#creadores">PERSONAS</a>
+        <a href="./index.html?register=scout">SCOUTS</a>
       </nav>
       <div class="session-area" id="sessionArea">
         <button class="btn subtle" type="button" data-open-login>INICIAR SESIÓN</button>
@@ -37,22 +38,22 @@
                 <img src="./assets/home/rois-card-company.png" alt="Empresas ROIS" loading="eager" fetchpriority="high" decoding="async" />
               </div>
               <p class="eyebrow">EMPRESAS</p>
-              <h3>Eval&uacute;a oportunidades antes de invertir.</h3>
-              <p>Consulta athletes, creadores y eventos con informaci&oacute;n estructurada. Revisa Sponsor Decks y env&iacute;a solicitudes desde ROIS.</p>
+              <h3>Activa una red para hacer crecer tu empresa.</h3>
+              <p>Publica oportunidades, encuentra perfiles compatibles, genera distribuci&oacute;n y consulta resultados desde ROIS.</p>
               <p><strong>Registro sin costo inicial.</strong></p>
-              <p>La empresa decide qu&eacute; perfiles desea evaluar. ROIS coordina las relaciones comerciales aprobadas.</p>
+              <p>Toda empresa y oportunidad pasa por revisi&oacute;n antes de acceder a postulantes o informaci&oacute;n autorizada.</p>
               <button class="btn primary" type="button" data-registration="company">CREAR CUENTA EMPRESA</button>
             </article>
             <article class="rois-role-card membership-card founder" id="role-creator">
               <div class="membership-visual visual-founder">
                 <img src="./assets/home/rois-card-founder.png" alt="Creadores ROIS" loading="lazy" decoding="async" />
               </div>
-              <p class="eyebrow">CREADORES</p>
-              <h3>Haz que tu contenido tambi&eacute;n trabaje para ti.</h3>
-              <p>Re&uacute;ne tu audiencia, engagement, estilo, formatos y beneficios en un Sponsor Deck que las marcas puedan entender.</p>
-              <p><strong>Acceso por invitaci&oacute;n con c&oacute;digo Scout.</strong></p>
-              <p>Aplica a contenido de marca, embajadur&iacute;as, lanzamientos, experiencias y campa&ntilde;as.</p>
-              <button class="btn" type="button" data-registration="founder">UNIRME COMO CREADOR</button>
+              <p class="eyebrow">PERSONAS</p>
+              <h3>Encuentra oportunidades. Genera valor. Construye tu reputaci&oacute;n.</h3>
+              <p>Vende, recomienda, crea contenido, genera prospectos o colabora con empresas desde un solo perfil.</p>
+              <p><strong>Cuenta gratuita. C&oacute;digo Scout opcional.</strong></p>
+              <p>Tu perfil puede combinar capacidades de creador, vendedor, founder, profesionista o representante de marca.</p>
+              <button class="btn" type="button" data-registration="founder">CREAR MI PERFIL</button>
             </article>
             <article class="rois-role-card membership-card athlete" id="role-athlete">
               <div class="membership-visual visual-athlete">
@@ -62,7 +63,7 @@
               <h3>Tu carrera es m&aacute;s que un resultado.</h3>
               <p>Muestra trayectoria, resultados, calendario, comunidad y beneficios para patrocinadores en un solo perfil.</p>
               <p><strong>Acceso por invitaci&oacute;n con c&oacute;digo Scout.</strong></p>
-              <p>Aplica a patrocinios, equipamiento, contenido, activaciones y representaci&oacute;n de marca.</p>
+              <p>Conserva tu perfil deportivo y participa tambi&eacute;n en oportunidades compatibles con tus capacidades.</p>
               <button class="btn" type="button" data-registration="athlete">UNIRME COMO DEPORTISTA</button>
             </article>
           </div>
@@ -75,7 +76,7 @@
             <a href="./informacion.html#vision">Visi&oacute;n</a>
             <a href="./informacion.html#empresas">Empresas</a>
             <a href="./informacion.html#atletas">Atletas</a>
-            <a href="./informacion.html#creadores">Creadores</a>
+            <a href="./informacion.html#creadores">Personas</a>
             <span>Privacidad</span>
             <span>Condiciones</span>
             <span>Contacto</span>
@@ -102,6 +103,10 @@
           <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menú">&times;</button>
           <nav class="side-nav" data-dashboard-nav="client">
             <button class="active" type="button" data-dashboard-target="client-overview">Inicio</button>
+            <button type="button" data-dashboard-target="client-opportunities">Oportunidades</button>
+            <button type="button" data-dashboard-target="client-applicants">Postulantes</button>
+            <button type="button" data-dashboard-target="client-results">Resultados</button>
+            <button type="button" data-dashboard-target="client-intelligence">Inteligencia</button>
             <button type="button" data-dashboard-target="client-events">Eventos</button>
             <button type="button" data-dashboard-target="client-sponsors">Mercado Corporativo</button>
             <button type="button" data-dashboard-target="client-marketplace">Mercado de fichajes</button>
@@ -123,6 +128,10 @@
           </div>
           <div class="kpis" id="clientKpis"></div>
           <section class="dash-section active" data-dashboard-panel="client-overview"></section>
+          <section class="dash-section" data-dashboard-panel="client-opportunities"></section>
+          <section class="dash-section" data-dashboard-panel="client-applicants"></section>
+          <section class="dash-section" data-dashboard-panel="client-results"></section>
+          <section class="dash-section" data-dashboard-panel="client-intelligence"></section>
           <section class="dash-section" data-dashboard-panel="client-events"></section>
           <section class="dash-section" data-dashboard-panel="client-sponsors"></section>
           <section class="dash-section" data-dashboard-panel="client-marketplace"></section>
@@ -147,10 +156,14 @@
           <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar menú">&times;</button>
           <nav class="side-nav" data-dashboard-nav="athlete">
             <button class="active" type="button" data-dashboard-target="athlete-profile">Perfil</button>
+            <button type="button" data-dashboard-target="athlete-opportunities">Oportunidades</button>
+            <button type="button" data-dashboard-target="athlete-applications">Mis postulaciones</button>
+            <button type="button" data-dashboard-target="athlete-income">Ingresos</button>
             <button type="button" data-dashboard-target="athlete-notifications">Notificaciones</button>
             <button type="button" data-dashboard-target="athlete-scouts">Scouts</button>
             <button type="button" data-dashboard-target="athlete-results">Resultados</button>
             <button type="button" data-dashboard-target="athlete-sponsor-deck">Sponsor Deck ROIS</button>
+            <button type="button" data-dashboard-target="athlete-growth">Impulso de marca</button>
             <button type="button" data-dashboard-target="athlete-settings">Ajustes</button>
           </nav>
         </aside>
@@ -167,20 +180,24 @@
           </div>
           <div class="kpis" id="athleteKpis"></div>
           <section class="dash-section active" data-dashboard-panel="athlete-profile"></section>
+          <section class="dash-section" data-dashboard-panel="athlete-opportunities"></section>
+          <section class="dash-section" data-dashboard-panel="athlete-applications"></section>
+          <section class="dash-section" data-dashboard-panel="athlete-income"></section>
           <section class="dash-section" data-dashboard-panel="athlete-notifications"></section>
           <section class="dash-section" data-dashboard-panel="athlete-scouts"></section>
           <section class="dash-section" data-dashboard-panel="athlete-results"></section>
           <section class="dash-section" data-dashboard-panel="athlete-sponsor-deck"></section>
+          <section class="dash-section" data-dashboard-panel="athlete-growth"></section>
           <section class="dash-section" data-dashboard-panel="athlete-settings"></section>
         </div>
       </section>
 
       <section class="view dashboard" id="commercialView" data-view="commercial">
-        <div class="mobile-appbar" aria-label="Navegaci&oacute;n m&oacute;vil comercial">
+        <div class="mobile-appbar" aria-label="Navegaci&oacute;n m&oacute;vil Scout">
           <button class="mobile-avatar" type="button" data-mobile-menu="commercial" aria-label="Abrir men&uacute;"><img src="./assets/rois-logo.png" alt="ROIS" /></button>
           <button class="mobile-app-action" type="button" data-mobile-menu="commercial" aria-label="Abrir men&uacute;">&#9776;</button>
         </div>
-        <button class="mobile-dash-toggle" type="button" data-mobile-menu="commercial" aria-label="Abrir men&uacute; comercial">
+        <button class="mobile-dash-toggle" type="button" data-mobile-menu="commercial" aria-label="Abrir men&uacute; Scout">
           <span></span><span></span><span></span>
           <strong>Men&uacute;</strong>
         </button>
@@ -188,17 +205,17 @@
         <aside class="sidebar">
           <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar men&uacute;">&times;</button>
           <nav class="side-nav" data-dashboard-nav="commercial">
-            <span class="side-nav-label">Comercial</span>
+            <span class="side-nav-label">Scouts</span>
             <button class="active" type="button" data-dashboard-target="commercial-overview">Inicio</button>
-            <button type="button" data-dashboard-target="commercial-prospects">Prospectos</button>
+            <button type="button" data-dashboard-target="commercial-prospects">Referidos</button>
             <button type="button" data-dashboard-target="commercial-followup">Seguimiento</button>
           </nav>
         </aside>
         <div class="workspace" data-dashboard="commercial">
           <div class="workspace-head">
             <div>
-              <p class="eyebrow">Operaci&oacute;n comercial</p>
-              <h1>CRM ROIS</h1>
+              <p class="eyebrow">Red Scout ROIS</p>
+              <h1>Panel Scout</h1>
             </div>
             <button class="btn" type="button" data-logout>Cerrar sesi&oacute;n</button>
           </div>
@@ -227,8 +244,12 @@
             <button type="button" data-dashboard-target="admin-users">Usuarios</button>
             <button type="button" data-dashboard-target="admin-athletes">Deportistas</button>
             <button type="button" data-dashboard-target="admin-founders">Creadores</button>
+            <button type="button" data-dashboard-target="admin-brand-growth">Impulso de marca</button>
             <button type="button" data-dashboard-target="admin-athlete-notifications">Notificaciones</button>
             <span class="side-nav-label">Comercial</span>
+            <button type="button" data-dashboard-target="admin-opportunities">Oportunidades</button>
+            <button type="button" data-dashboard-target="admin-commissions">Comisiones</button>
+            <button type="button" data-dashboard-target="admin-disputes">Disputas</button>
             <button type="button" data-dashboard-target="admin-corporate-market">Mercado Corporativo</button>
             <button type="button" data-dashboard-target="admin-events">Eventos</button>
             <button type="button" data-dashboard-target="admin-crm">CRM</button>
@@ -240,6 +261,8 @@
             <button type="button" data-dashboard-target="admin-partners">Centro VIP</button>
             <button type="button" data-dashboard-target="admin-uploads">Uploads</button>
             <span class="side-nav-label">Sistema</span>
+            <button type="button" data-dashboard-target="admin-privacy">Privacidad</button>
+            <button type="button" data-dashboard-target="admin-plans">Planes</button>
             <button type="button" data-dashboard-target="admin-stats">Estadísticas</button>
             <button type="button" data-dashboard-target="admin-settings">Configuración</button>
           </nav>
@@ -256,16 +279,22 @@
           <section class="dash-section" data-dashboard-panel="admin-users"></section>
           <section class="dash-section" data-dashboard-panel="admin-athletes"></section>
           <section class="dash-section" data-dashboard-panel="admin-founders"></section>
+          <section class="dash-section" data-dashboard-panel="admin-brand-growth"></section>
           <section class="dash-section" data-dashboard-panel="admin-payment-links"></section>
           <section class="dash-section" data-dashboard-panel="admin-athlete-notifications"></section>
           <section class="dash-section" data-dashboard-panel="admin-events"></section>
           <section class="dash-section" data-dashboard-panel="admin-news"></section>
           <section class="dash-section" data-dashboard-panel="admin-partners"></section>
+          <section class="dash-section" data-dashboard-panel="admin-opportunities"></section>
+          <section class="dash-section" data-dashboard-panel="admin-commissions"></section>
+          <section class="dash-section" data-dashboard-panel="admin-disputes"></section>
           <section class="dash-section" data-dashboard-panel="admin-corporate-market"></section>
           <section class="dash-section" data-dashboard-panel="admin-crm"></section>
           <section class="dash-section" data-dashboard-panel="admin-revenue"></section>
           <section class="dash-section" data-dashboard-panel="admin-payments"></section>
           <section class="dash-section" data-dashboard-panel="admin-uploads"></section>
+          <section class="dash-section" data-dashboard-panel="admin-privacy"></section>
+          <section class="dash-section" data-dashboard-panel="admin-plans"></section>
           <section class="dash-section" data-dashboard-panel="admin-stats"></section>
           <section class="dash-section" data-dashboard-panel="admin-settings"></section>
         </div>
@@ -355,7 +384,7 @@
   </div>
 
   <script src="./app-config.js?v=20260706-success-fee-only-model" charset="UTF-8"></script>
-  <script src="./app.js?v=20260727-athlete-competitive-evidence" charset="UTF-8"></script>
+  <script src="./app.js?v=20260729-opportunities-mvp" charset="UTF-8"></script>
 </body>
 </html>
 
