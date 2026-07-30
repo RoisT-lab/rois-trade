@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260729-company-marketplace-visibility-ui";
+const roisBuild = "20260729-athlete-marketplace-visibility-recovery";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = [];
 const athleteAnnualFeeAmount = 2500;
@@ -655,10 +655,10 @@ function dashboardPanelQueries(targetId) {
       { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at" }
     ],
     "client-marketplace": [
-      { table: "athletes", query: `select=${athleteColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc` }
+      { table: "athletes", query: `select=${athleteColumns}&status=eq.approved&order=created_at.desc` }
     ],
     "client-founders": [
-      { table: "founders", query: `select=${founderColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc` }
+      { table: "founders", query: `select=${founderColumns}&status=eq.approved&order=created_at.desc` }
     ],
     "client-payments": companyName ? [
       { table: "payments", query: `select=id,concept,amount,company,status,product_key,created_at&company=eq.${encodedCompany}&order=created_at.desc` },
@@ -4163,7 +4163,7 @@ function clientAthleteRecords() {
   return (state.data.athletes || [])
     .filter(item => item.id && !item.is_virtual)
     .filter(item => String(item.status || "").toLowerCase() === "approved")
-    .filter(item => String(item.visual_status || "").toLowerCase() === "approved");
+    .map(marketplaceProfileRecord);
 }
 
 function clientFounderRecords() {
@@ -4177,7 +4177,13 @@ function clientFounderRecords() {
     .filter(item => item.id && !item.is_virtual)
     .filter(item => !athleteEmails.has(String(item.email || "").trim().toLowerCase()))
     .filter(item => String(item.status || "").toLowerCase() === "approved")
-    .filter(item => String(item.visual_status || "").toLowerCase() === "approved");
+    .map(marketplaceProfileRecord);
+}
+
+function marketplaceProfileRecord(item) {
+  const visualStatus = String(item?.visual_status || "").toLowerCase();
+  if (!item?.image_url || visualStatus === "approved") return item;
+  return { ...item, image_url: "", image_path: "" };
 }
 
 function renderClientOverview() {
