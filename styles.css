@@ -18671,6 +18671,127 @@ body[data-active-view="commercial"] .topbar {
   border-bottom: 1px solid var(--line);
 }
 
+.brand-growth-participant-list > div > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.brand-growth-participant-list small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.social-audience-fields {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+
+.social-audience-fields legend {
+  padding: 0 8px;
+  font-weight: 800;
+}
+
+.social-audience-fields > div,
+.brand-growth-eligibility,
+.brand-growth-quote-grid,
+.brand-growth-quote-result {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.brand-growth-eligibility {
+  margin-top: 20px;
+}
+
+.brand-growth-eligibility span,
+.brand-growth-quote-result span {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.brand-growth-eligibility strong,
+.brand-growth-quote-result strong {
+  color: var(--ink);
+  font-size: 15px;
+  text-transform: none;
+}
+
+.brand-growth-quote-form {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #f7f8f9;
+}
+
+.brand-growth-received-quote {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #f7f8f9;
+}
+
+.brand-growth-quote-form label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.brand-growth-quote-form input,
+.brand-growth-quote-form select,
+.brand-growth-quote-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.brand-growth-quote-response {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.brand-growth-quote-response.success {
+  border-color: #17864b;
+  color: #126c3d;
+}
+
+.brand-growth-quote-response.declined {
+  border-color: #bb7a22;
+  color: #8c570f;
+}
+
+.brand-growth-no-commission {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 @media (max-width: 700px) {
   .brand-growth-intro {
     grid-template-columns: 1fr;
@@ -18687,5 +18808,12 @@ body[data-active-view="commercial"] .topbar {
   .brand-growth-participant-list .pill {
     grid-column: 1 / -1;
     justify-self: start;
+  }
+
+  .social-audience-fields > div,
+  .brand-growth-eligibility,
+  .brand-growth-quote-grid,
+  .brand-growth-quote-result {
+    grid-template-columns: 1fr;
   }
 }

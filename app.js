@@ -619,8 +619,8 @@ function activeDashboardPanelId(view = dashboardViewForRole(state.session?.role)
 }
 
 function dashboardPanelQueries(targetId) {
-  const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
-  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
+  const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,instagram_followers,tiktok_followers,facebook_followers,linkedin_followers,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
+  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,instagram_followers,tiktok_followers,facebook_followers,linkedin_followers,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
   const universalProfileColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,email,name,public_name,image_url,bio,city,state_region,country,birth_date,age_range,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,verification_status,scout_code,scout_active,created_at,updated_at";
   const marketplaceUniversalColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,name,public_name,image_url,bio,city,state_region,country,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,visual_status,verification_status,scout_code,scout_active,created_at,updated_at";
   const opportunityColumns = "id,company_id,created_by,title,description,opportunity_type,category,industry,objective,desired_profile,territory,location,modality,starts_at,closes_at,slots,compensation_type,compensation_amount,commission_rate,margin_amount,wholesale_price,suggested_price,minimum_purchase,purchase_required,inventory_available,delivery_method,return_policy,deliverables,acceptance_criteria,attribution_rules,payment_terms,requested_data_fields,materials,legal_documents,scout_enabled,scout_reward_event,scout_reward_amount,scout_reward_currency,scout_terms,scout_requires_approval,status,moderation_notes,approved_at,published_at,created_at,updated_at";
@@ -693,7 +693,7 @@ function dashboardPanelQueries(targetId) {
     "admin-founders": [{ table: "founders", query: `select=${founderColumns}&order=created_at.desc` }],
     "admin-brand-growth": [
       { table: "brand_growth_campaigns", query: "select=id,title,objective,brief,deliverables,start_date,end_date,status,created_by,created_at,updated_at&order=created_at.desc" },
-      { table: "brand_growth_participants", query: "select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,status,created_at,updated_at&order=created_at.desc" }
+      { table: "brand_growth_participants", query: "select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,primary_network,follower_count,collaboration_type,deliverable_count,usage_days,exclusivity_days,quote_min,quote_recommended,quote_max,agreed_amount,currency,quote_status,collaboration_notes,status,created_at,updated_at&order=created_at.desc" }
     ],
     "admin-payment-links": [
       { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` },
@@ -791,7 +791,7 @@ function dashboardPanelQueries(targetId) {
   const athlete = {
     "athlete-growth": [
       { table: "brand_growth_campaigns", query: "select=id,title,objective,brief,deliverables,start_date,end_date,status,created_at&status=eq.active&order=created_at.desc" },
-      { table: "brand_growth_participants", query: "select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,status,created_at,updated_at&order=created_at.desc" }
+      { table: "brand_growth_participants", query: "select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,primary_network,follower_count,collaboration_type,deliverable_count,usage_days,exclusivity_days,quote_min,quote_recommended,quote_max,agreed_amount,currency,quote_status,collaboration_notes,status,created_at,updated_at&order=created_at.desc" }
     ],
     "athlete-scouts": scoutMissionUserQueries,
     "athlete-opportunities": opportunityUserQueries,
@@ -1357,7 +1357,9 @@ function annualAccessPaywall(feature = "sponsor-deck", profile = currentAthlete(
   const founder = isFounderProfile(profile);
   const featureName = feature === "marketplace"
     ? (founder ? "publicar tu perfil en Creadores" : "publicar tu perfil en Mercado de fichajes")
-    : "crear y mostrar tu Sponsor Deck ROIS";
+    : feature === "brand-growth"
+      ? "participar en Impulso creativo y usar el cotizador"
+      : "crear y mostrar tu Sponsor Deck ROIS";
   return `
     <div class="annual-access-lock">
       <p class="eyebrow">Acceso anual ROIS</p>
@@ -1367,6 +1369,7 @@ function annualAccessPaywall(feature = "sponsor-deck", profile = currentAthlete(
       <ul>
         <li>Sponsor Deck estructurado dentro de ROIS.</li>
         <li>Solicitud de publicación en el mercado correspondiente.</li>
+        <li>Impulso creativo y cotizador justo de colaboraciones.</li>
         <li>Doce meses de acceso a estas herramientas comerciales.</li>
       </ul>
       <button class="btn primary" type="button" data-unlock-annual="${escapeAttr(feature)}">${annualAccessStatus(profile) === "pending" ? "Continuar pago anual" : annualAccessStatus(profile) === "expired" ? "Renovar acceso anual" : "Activar acceso anual"}</button>
@@ -1384,7 +1387,10 @@ async function requestAnnualAccess(feature = "sponsor-deck") {
   }
   if (athleteAnnualFeePaid(profile)) {
     if (feature === "marketplace") await requestMarketplacePublication();
-    else {
+    else if (feature === "brand-growth") {
+      renderAthleteBrandGrowth();
+      showDashboardPanel("athlete-growth");
+    } else {
       renderAthleteSponsorDeck();
       showDashboardPanel("athlete-sponsor-deck");
     }
@@ -2198,7 +2204,7 @@ function supabaseApi() {
         company_listing_media: `select=id,listing_id,company_id,storage_path,public_url,original_name,mime_type,sort_order,created_at&order=created_at.desc&limit=${mediumLimit}`,
         marketplace_leads: `select=id,listing_id,seller_company_id,buyer_company_id,requester_profile_id,requester_email,requester_name,requester_company,message,status,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
         brand_growth_campaigns: `select=id,title,objective,brief,deliverables,start_date,end_date,status,created_by,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
-        brand_growth_participants: `select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`
+        brand_growth_participants: `select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,primary_network,follower_count,collaboration_type,deliverable_count,usage_days,exclusivity_days,quote_min,quote_recommended,quote_max,agreed_amount,currency,quote_status,collaboration_notes,status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`
       };
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
       const result = {};
@@ -2256,8 +2262,8 @@ function supabaseApi() {
         return normalizeLoadedData({ profiles, scouts, crm, athletes, founders });
       }
       const profileQuery = `/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`;
-      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,created_at";
-      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,created_at";
+      const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,instagram_followers,tiktok_followers,facebook_followers,linkedin_followers,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,created_at";
+      const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,video_url,instagram_url,tiktok_url,facebook_url,linkedin_url,instagram_followers,tiktok_followers,facebook_followers,linkedin_followers,sponsor_payment_url,sponsor_terms,sponsor_logos,status,visual_status,terms_accepted,scout_code,scout_active,invited_by_scout_code,scout_validation_status,scout_commission_status,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,created_at";
       const ownProfile = roleRequest(profileQuery);
       if (role === "athlete") {
         const [profiles, ownAthletes, terms, notifications, posts, results] = await Promise.all([
@@ -6272,6 +6278,227 @@ function brandGrowthScoreLabel(score) {
   return "Marca en crecimiento";
 }
 
+const brandGrowthFollowerThreshold = 10000;
+const brandGrowthQuoteBases = {
+  story: 500,
+  post: 900,
+  reel: 1800,
+  live: 2500,
+  package: 3200
+};
+
+function brandGrowthAudienceByNetwork(profile = currentAthlete()) {
+  const rows = [
+    { key: "instagram", label: "Instagram", followers: Math.max(0, Number(profile?.instagram_followers || 0)) },
+    { key: "tiktok", label: "TikTok", followers: Math.max(0, Number(profile?.tiktok_followers || 0)) },
+    { key: "facebook", label: "Facebook", followers: Math.max(0, Number(profile?.facebook_followers || 0)) },
+    { key: "linkedin", label: "LinkedIn", followers: Math.max(0, Number(profile?.linkedin_followers || 0)) }
+  ];
+  const legacyAudience = Math.max(0, Number(profile?.audience_size || 0));
+  if (legacyAudience && !rows.some(item => item.followers > 0)) {
+    const preferred = String(profile?.primary_platform || "").toLowerCase();
+    const target = rows.find(item => preferred.includes(item.key)) || rows[0];
+    target.followers = legacyAudience;
+  }
+  return rows.sort((a, b) => b.followers - a.followers);
+}
+
+function brandGrowthPrimaryAudience(profile = currentAthlete()) {
+  return brandGrowthAudienceByNetwork(profile)[0] || { key: "instagram", label: "Instagram", followers: 0 };
+}
+
+function brandGrowthParticipantRole(profile = currentAthlete()) {
+  return brandGrowthPrimaryAudience(profile).followers > brandGrowthFollowerThreshold ? "impulsor" : "crecimiento";
+}
+
+function brandGrowthQuote(input = {}) {
+  const followers = Math.max(0, Number(input.followers || 0));
+  const engagement = Math.max(0, Math.min(100, Number(input.engagement || 0)));
+  const deliverables = Math.max(1, Math.min(10, Number(input.deliverables || 1)));
+  const usageDays = Math.max(0, Number(input.usageDays || 0));
+  const exclusivityDays = Math.max(0, Number(input.exclusivityDays || 0));
+  const base = brandGrowthQuoteBases[input.type] || brandGrowthQuoteBases.reel;
+  const audienceValue = Math.max(500, (followers / 1000) * 100);
+  const engagementFactor = Math.max(0.85, Math.min(1.6, 0.85 + (engagement / 10)));
+  const usageFactor = usageDays >= 90 ? 1.35 : usageDays >= 30 ? 1.15 : 1;
+  const exclusivityFactor = exclusivityDays >= 90 ? 1.4 : exclusivityDays >= 30 ? 1.2 : exclusivityDays > 0 ? 1.1 : 1;
+  const rounded = value => Math.max(0, Math.round(value / 50) * 50);
+  const recommended = rounded((base + audienceValue) * deliverables * engagementFactor * usageFactor * exclusivityFactor);
+  return {
+    min: rounded(recommended * 0.85),
+    recommended,
+    max: rounded(recommended * 1.2)
+  };
+}
+
+function pairedBrandGrowthParticipation(participation) {
+  if (!participation?.campaign_id || !participation?.paired_with_id) return null;
+  return (state.data.brand_growth_participants || []).find(item =>
+    item.campaign_id === participation.campaign_id &&
+    item.profile_id === participation.paired_with_id
+  ) || null;
+}
+
+function brandGrowthQuoteMarkup(participation, profile, counterpart = null) {
+  const audience = brandGrowthPrimaryAudience(profile);
+  const initial = brandGrowthQuote({
+    followers: participation?.follower_count || audience.followers,
+    engagement: profile?.engagement_rate || 0,
+    type: participation?.collaboration_type || "reel",
+    deliverables: participation?.deliverable_count || 1,
+    usageDays: participation?.usage_days || 0,
+    exclusivityDays: participation?.exclusivity_days || 0
+  });
+  const quote = {
+    min: Number(participation?.quote_min || initial.min),
+    recommended: Number(participation?.quote_recommended || initial.recommended),
+    max: Number(participation?.quote_max || initial.max)
+  };
+  return `
+    <form class="brand-growth-quote-form" data-growth-quote-form="${escapeAttr(participation.id)}">
+      <div class="section-minihead">
+        <p class="eyebrow">Cotizador justo</p>
+        <h4>Define un rango para esta colaboracion.</h4>
+        <p>La referencia considera audiencia, engagement, entregables, uso y exclusividad. El acuerdo final lo definen los perfiles.</p>
+      </div>
+      <div class="brand-growth-quote-grid">
+        <label>Formato<select name="collaboration_type">
+          <option value="story" ${participation.collaboration_type === "story" ? "selected" : ""}>Historia</option>
+          <option value="post" ${participation.collaboration_type === "post" ? "selected" : ""}>Publicacion</option>
+          <option value="reel" ${!participation.collaboration_type || participation.collaboration_type === "reel" ? "selected" : ""}>Reel / video corto</option>
+          <option value="live" ${participation.collaboration_type === "live" ? "selected" : ""}>Live / aparicion</option>
+          <option value="package" ${participation.collaboration_type === "package" ? "selected" : ""}>Paquete multiformato</option>
+        </select></label>
+        <label>Entregables<input name="deliverable_count" type="number" min="1" max="10" value="${Number(participation.deliverable_count || 1)}"></label>
+        <label>Uso de contenido (dias)<input name="usage_days" type="number" min="0" max="365" value="${Number(participation.usage_days || 0)}"></label>
+        <label>Exclusividad (dias)<input name="exclusivity_days" type="number" min="0" max="365" value="${Number(participation.exclusivity_days || 0)}"></label>
+      </div>
+      <div class="brand-growth-quote-result" data-growth-quote-result>
+        <span>Minimo sugerido<strong>${money(quote.min)}</strong></span>
+        <span>Precio recomendado<strong>${money(quote.recommended)}</strong></span>
+        <span>Rango superior<strong>${money(quote.max)}</strong></span>
+      </div>
+      <label>Notas de colaboracion<textarea name="collaboration_notes" maxlength="1000" placeholder="Alcance, fechas, revisiones o condiciones acordadas.">${escapeHtml(participation.collaboration_notes || "")}</textarea></label>
+      <button class="btn primary" type="submit">Guardar cotizacion</button>
+      ${counterpart?.quote_status === "accepted"
+        ? `<p class="brand-growth-quote-response success">Cotizacion aceptada por ${escapeHtml(counterpart.name || "el perfil participante")}.</p>`
+        : counterpart?.quote_status === "declined"
+          ? `<p class="brand-growth-quote-response declined">El perfil participante solicito revisar la cotizacion.</p>`
+          : participation.quote_status === "quoted"
+            ? `<p class="brand-growth-quote-response">Cotizacion enviada. Esperando respuesta del perfil participante.</p>`
+            : ""}
+      <p class="brand-growth-no-commission">ROIS no cobra comision por Impulso creativo. Los pagos se acuerdan directamente entre participantes y no son garantizados por ROIS.</p>
+    </form>
+  `;
+}
+
+function brandGrowthReceivedQuoteMarkup(participation, counterpart) {
+  if (!counterpart || counterpart.quote_status !== "quoted") {
+    return `<div class="brand-growth-quote-response">Tu match aun no ha enviado una cotizacion.</div>`;
+  }
+  const response = String(participation.quote_status || "");
+  return `
+    <div class="brand-growth-received-quote">
+      <div class="section-minihead">
+        <p class="eyebrow">Propuesta recibida</p>
+        <h4>${escapeHtml(counterpart.name || "Perfil impulsor")}</h4>
+        <p>${escapeHtml(counterpart.collaboration_notes || "Revisa el rango sugerido y confirma si deseas avanzar.")}</p>
+      </div>
+      <div class="brand-growth-quote-result">
+        <span>Minimo<strong>${money(counterpart.quote_min)}</strong></span>
+        <span>Recomendado<strong>${money(counterpart.quote_recommended)}</strong></span>
+        <span>Maximo<strong>${money(counterpart.quote_max)}</strong></span>
+      </div>
+      ${response === "accepted"
+        ? `<p class="brand-growth-quote-response success">Aceptaste esta cotizacion por ${money(participation.agreed_amount)}.</p>`
+        : response === "declined"
+          ? `<p class="brand-growth-quote-response declined">Solicitaste revisar la cotizacion.</p>`
+          : `<div class="table-actions">
+              <button class="btn primary" type="button" data-growth-quote-response="${escapeAttr(participation.id)}" data-growth-response="accepted">Aceptar precio recomendado</button>
+              <button class="btn" type="button" data-growth-quote-response="${escapeAttr(participation.id)}" data-growth-response="declined">Solicitar ajuste</button>
+            </div>`}
+      <p class="brand-growth-no-commission">ROIS no cobra comision ni procesa este pago. Ambas partes deben acordar condiciones y comprobar el cumplimiento.</p>
+    </div>
+  `;
+}
+
+function updateBrandGrowthQuotePreview(form) {
+  const profile = currentAthlete();
+  const audience = brandGrowthPrimaryAudience(profile);
+  const quote = brandGrowthQuote({
+    followers: audience.followers,
+    engagement: profile?.engagement_rate || 0,
+    type: form.collaboration_type.value,
+    deliverables: form.deliverable_count.value,
+    usageDays: form.usage_days.value,
+    exclusivityDays: form.exclusivity_days.value
+  });
+  const result = form.querySelector("[data-growth-quote-result]");
+  if (result) {
+    result.innerHTML = `
+      <span>Minimo sugerido<strong>${money(quote.min)}</strong></span>
+      <span>Precio recomendado<strong>${money(quote.recommended)}</strong></span>
+      <span>Rango superior<strong>${money(quote.max)}</strong></span>
+    `;
+  }
+  return quote;
+}
+
+async function saveBrandGrowthQuote(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const participationId = form.dataset.growthQuoteForm;
+  const participation = (state.data.brand_growth_participants || []).find(item => item.id === participationId);
+  if (!participation || brandGrowthParticipantRole() !== "impulsor") {
+    notify("Impulso creativo", "Cotizacion no disponible", "El cotizador pagado se habilita para perfiles con mas de 10,000 seguidores en al menos una red.");
+    return;
+  }
+  setSavingState(form, true);
+  try {
+    const quote = updateBrandGrowthQuotePreview(form);
+    await api.update("brand_growth_participants", participationId, {
+      collaboration_type: form.collaboration_type.value,
+      deliverable_count: Number(form.deliverable_count.value || 1),
+      usage_days: Number(form.usage_days.value || 0),
+      exclusivity_days: Number(form.exclusivity_days.value || 0),
+      quote_min: quote.min,
+      quote_recommended: quote.recommended,
+      quote_max: quote.max,
+      currency: "MXN",
+      quote_status: "quoted",
+      collaboration_notes: form.collaboration_notes.value.trim()
+    });
+    notify("Impulso creativo", "Cotizacion guardada", "El rango quedo asociado a esta colaboracion.");
+    renderAthleteBrandGrowth();
+  } catch (error) {
+    notify("Impulso creativo", "No fue posible guardar", humanError(error));
+  } finally {
+    setSavingState(form, false);
+  }
+}
+
+async function respondBrandGrowthQuote(participationId, response) {
+  const participation = (state.data.brand_growth_participants || []).find(item => item.id === participationId);
+  const counterpart = pairedBrandGrowthParticipation(participation);
+  if (!participation || !counterpart || !["accepted", "declined"].includes(response)) return;
+  try {
+    await api.update("brand_growth_participants", participationId, {
+      quote_status: response,
+      agreed_amount: response === "accepted" ? Number(counterpart.quote_recommended || 0) : null
+    });
+    notify(
+      "Impulso creativo",
+      response === "accepted" ? "Cotizacion aceptada" : "Ajuste solicitado",
+      response === "accepted"
+        ? "La colaboracion quedo acordada con el precio recomendado."
+        : "El perfil impulsor podra revisar la propuesta."
+    );
+    renderAthleteBrandGrowth();
+  } catch (error) {
+    notify("Impulso creativo", "No fue posible responder", humanError(error));
+  }
+}
+
 function brandGrowthCampaigns() {
   return [...(state.data.brand_growth_campaigns || [])]
     .filter(item => String(item.status || "").toLowerCase() === "active")
@@ -6292,13 +6519,20 @@ async function joinBrandGrowthCampaign(campaignId) {
   const context = getCurrentProfileContext();
   const profile = currentAthlete();
   if (!context || !profile || context.isVirtual) {
-    notify("Impulso de marca", "Perfil real requerido", "Completa y guarda tu perfil antes de participar.");
+    notify("Impulso creativo", "Perfil real requerido", "Completa y guarda tu perfil antes de participar.");
+    return;
+  }
+  if (!athleteAnnualFeePaid(profile)) {
+    notify("Impulso creativo", "Acceso anual requerido", "Activa tu membresia anual para participar y utilizar el cotizador.");
+    await requestAnnualAccess("brand-growth");
     return;
   }
   if (currentBrandGrowthParticipation(campaignId)) {
-    notify("Impulso de marca", "Participacion registrada", "Ya formas parte de esta campana.");
+    notify("Impulso creativo", "Participacion registrada", "Ya formas parte de esta campana.");
     return;
   }
+  const audience = brandGrowthPrimaryAudience(profile);
+  const role = brandGrowthParticipantRole(profile);
   try {
     await api.insert("brand_growth_participants", {
       campaign_id: campaignId,
@@ -6308,28 +6542,53 @@ async function joinBrandGrowthCampaign(campaignId) {
       email: normalizedAccountEmail(profile.email || profile.contact || state.session?.email),
       name: profile.public_name || profile.name || state.session?.name || "Perfil ROIS",
       positioning_score: brandGrowthProfileScore(profile),
-      participation_type: "pending",
+      participation_type: role,
+      primary_network: audience.key,
+      follower_count: audience.followers,
+      currency: "MXN",
+      quote_status: "not_started",
       status: "joined"
     });
-    notify("Impulso de marca", "Solicitud registrada", "ROIS usara datos reales de posicionamiento para definir una colaboracion equilibrada.");
+    notify("Impulso creativo", "Solicitud registrada", role === "impulsor"
+      ? "Tu perfil puede ofrecer colaboraciones pagadas a perfiles en crecimiento."
+      : "Tu perfil quedo disponible para recibir impulso de una cuenta con mayor alcance.");
     renderAthleteBrandGrowth();
   } catch (error) {
-    notify("Impulso de marca", "No fue posible participar", humanError(error));
+    notify("Impulso creativo", "No fue posible participar", humanError(error));
   }
 }
 
 function renderAthleteBrandGrowth() {
   const profile = currentAthlete();
+  if (!profile) {
+    panel("athlete-growth", "Impulso creativo", "Colaboraciones internas entre perfiles ROIS", `<div class="empty">Completa tu perfil para acceder a este modulo.</div>`);
+    return;
+  }
+  if (!athleteAnnualFeePaid(profile)) {
+    panel("athlete-growth", "Impulso creativo", "Colaboraciones internas entre perfiles ROIS", `
+      <div class="panel-body">${annualAccessPaywall("brand-growth", profile)}</div>
+    `);
+    document.querySelectorAll('[data-dashboard-panel="athlete-growth"] [data-unlock-annual]').forEach(button => {
+      button.addEventListener("click", () => requestAnnualAccess(button.dataset.unlockAnnual));
+    });
+    return;
+  }
   const score = brandGrowthProfileScore(profile);
   const campaigns = brandGrowthCampaigns();
-  const participants = state.data.brand_growth_participants || [];
-  panel("athlete-growth", "Impulso de marca", "Colaboraciones internas para crecer con otros perfiles ROIS", `
+  const audience = brandGrowthPrimaryAudience(profile);
+  const role = brandGrowthParticipantRole(profile);
+  panel("athlete-growth", "Impulso creativo", "Colaboraciones pagadas y crecimiento entre perfiles ROIS", `
     <div class="panel-body">
       <div class="brand-growth-intro">
         <div>
-          <p class="eyebrow">Posicionamiento digital</p>
-          <h3>Crecer en red, con una colaboracion medible.</h3>
-          <p>ROIS conecta perfiles con mayor posicionamiento con perfiles en crecimiento. Cada campana define un objetivo, entregables y una colaboracion equilibrada; nadie obtiene acceso a datos privados.</p>
+          <p class="eyebrow">Impulso creativo</p>
+          <h3>Convierte alcance en ingresos o acelera tu crecimiento.</h3>
+          <p>Los perfiles con mas de 10,000 seguidores en una red pueden cotizar colaboraciones pagadas con perfiles en crecimiento. ROIS facilita el match y no cobra comision por este servicio.</p>
+          <div class="brand-growth-eligibility">
+            <span>Red principal<strong>${escapeHtml(audience.label)}</strong></span>
+            <span>Audiencia registrada<strong>${Number(audience.followers).toLocaleString("es-MX")}</strong></span>
+            <span>Rol actual<strong>${role === "impulsor" ? "Impulsor" : "En crecimiento"}</strong></span>
+          </div>
         </div>
         <div class="brand-growth-score">
           <strong>${score}</strong>
@@ -6342,6 +6601,7 @@ function renderAthleteBrandGrowth() {
       <div class="brand-growth-grid">
         ${campaigns.length ? campaigns.map(campaign => {
           const participation = currentBrandGrowthParticipation(campaign.id);
+          const counterpart = pairedBrandGrowthParticipation(participation);
           return `
             <article class="brand-growth-campaign">
               <p class="eyebrow">${participation ? escapeHtml(participation.status || "registrado") : "Convocatoria abierta"}</p>
@@ -6349,8 +6609,12 @@ function renderAthleteBrandGrowth() {
               <p>${escapeHtml(campaign.objective || campaign.brief || "Colaboracion interna de crecimiento.")}</p>
               ${campaign.deliverables ? `<div class="brand-growth-deliverables"><strong>Entregables</strong><p>${escapeHtml(campaign.deliverables)}</p></div>` : ""}
               ${participation?.paired_with_name ? `<div class="brand-growth-match"><span>Match asignado</span><strong>${escapeHtml(participation.paired_with_name)}</strong></div>` : ""}
+              ${participation && role === "impulsor" ? brandGrowthQuoteMarkup(participation, profile, counterpart) : ""}
+              ${participation && role === "crecimiento" && participation.status === "matched"
+                ? brandGrowthReceivedQuoteMarkup(participation, counterpart)
+                : ""}
               ${participation
-                ? `<span class="pill">${participation.status === "matched" ? "Match confirmado" : "Participando"}</span>`
+                ? `<span class="pill">${participation.status === "matched" ? "Match confirmado" : role === "impulsor" ? "Disponible para cotizar" : "Esperando match"}</span>`
                 : `<button class="btn primary" type="button" data-join-growth="${escapeAttr(campaign.id)}">Quiero participar</button>`}
             </article>
           `;
@@ -6360,6 +6624,19 @@ function renderAthleteBrandGrowth() {
   `);
   document.querySelectorAll('[data-dashboard-panel="athlete-growth"] [data-join-growth]').forEach(button => {
     button.addEventListener("click", () => joinBrandGrowthCampaign(button.dataset.joinGrowth));
+  });
+  document.querySelectorAll('[data-dashboard-panel="athlete-growth"] [data-growth-quote-form]').forEach(form => {
+    form.addEventListener("submit", saveBrandGrowthQuote);
+    form.querySelectorAll("input, select").forEach(field => {
+      field.addEventListener("input", () => updateBrandGrowthQuotePreview(form));
+      field.addEventListener("change", () => updateBrandGrowthQuotePreview(form));
+    });
+  });
+  document.querySelectorAll('[data-dashboard-panel="athlete-growth"] [data-growth-quote-response]').forEach(button => {
+    button.addEventListener("click", () => respondBrandGrowthQuote(
+      button.dataset.growthQuoteResponse,
+      button.dataset.growthResponse
+    ));
   });
 }
 
@@ -6542,6 +6819,16 @@ function renderAthleteProfile() {
         <label>TikTok<input name="tiktok_url" type="url" value="${escapeAttr(athlete.tiktok_url || "")}" placeholder="https://tiktok.com/@usuario"></label>
         <label>Facebook<input name="facebook_url" type="url" value="${escapeAttr(athlete.facebook_url || "")}" placeholder="https://facebook.com/perfil"></label>
         <label>LinkedIn<input name="linkedin_url" type="url" value="${escapeAttr(athlete.linkedin_url || "")}" placeholder="https://linkedin.com/in/perfil"></label>
+        <fieldset class="social-audience-fields" style="grid-column:1/-1">
+          <legend>Audiencia por red</legend>
+          <p class="hint">Registra cifras reales. Tener mas de 10,000 seguidores en al menos una red habilita el rol de impulsor en colaboraciones pagadas.</p>
+          <div>
+            <label>Instagram<input name="instagram_followers" type="number" min="0" step="1" value="${Number(athlete.instagram_followers || 0)}"></label>
+            <label>TikTok<input name="tiktok_followers" type="number" min="0" step="1" value="${Number(athlete.tiktok_followers || 0)}"></label>
+            <label>Facebook<input name="facebook_followers" type="number" min="0" step="1" value="${Number(athlete.facebook_followers || 0)}"></label>
+            <label>LinkedIn<input name="linkedin_followers" type="number" min="0" step="1" value="${Number(athlete.linkedin_followers || 0)}"></label>
+          </div>
+        </fieldset>
         <label style="grid-column:1/-1">Logos de sponsors actuales opcional<input name="sponsor_logo_files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
         <label style="grid-column:1/-1">Nombre de marcas patrocinadoras opcional<textarea name="sponsor_logo_names" placeholder="Una marca por linea, en el mismo orden de los logos."></textarea></label>
         <label class="check-option" style="grid-column:1/-1"><input name="terms_accepted" type="checkbox" ${athlete.terms_accepted ? "checked" : ""}><span>Acepto que la informacion y los medios de este perfil sean revisados y mostrados dentro de ROIS.</span></label>
@@ -9103,10 +9390,10 @@ async function submitBrandGrowthCampaign(event) {
       status: form.status.value,
       created_by: state.session?.authId || state.session?.id || null
     });
-    notify("Impulso de marca", "Campana creada", "La convocatoria ya esta disponible para los perfiles seleccionados.");
+    notify("Impulso creativo", "Campana creada", "La convocatoria ya esta disponible para los perfiles seleccionados.");
     renderAdminBrandGrowth();
   } catch (error) {
-    notify("Impulso de marca", "No fue posible crear la campana", humanError(error));
+    notify("Impulso creativo", "No fue posible crear la campana", humanError(error));
   } finally {
     setSavingState(form, false);
   }
@@ -9114,15 +9401,17 @@ async function submitBrandGrowthCampaign(event) {
 
 async function pairBrandGrowthCampaign(campaignId) {
   const available = campaignParticipants(campaignId).filter(item => item.status === "joined" && !item.paired_with_id);
-  if (available.length < 2) {
-    notify("Impulso de marca", "Participantes insuficientes", "Se necesitan al menos dos perfiles sin match para generar una colaboracion.");
+  const leaders = available.filter(item => Number(item.follower_count || 0) > brandGrowthFollowerThreshold);
+  const growingProfiles = available.filter(item => Number(item.follower_count || 0) <= brandGrowthFollowerThreshold);
+  if (!leaders.length || !growingProfiles.length) {
+    notify("Impulso creativo", "No hay un match compatible", "Se necesita al menos un perfil con mas de 10,000 seguidores y un perfil en crecimiento.");
     return;
   }
   const updates = [];
-  const pairCount = Math.floor(available.length / 2);
+  const pairCount = Math.min(leaders.length, growingProfiles.length);
   for (let index = 0; index < pairCount; index += 1) {
-    const leader = available[index];
-    const growing = available[available.length - 1 - index];
+    const leader = leaders[index];
+    const growing = growingProfiles[index];
     if (!leader || !growing || leader.id === growing.id) continue;
     updates.push(api.update("brand_growth_participants", leader.id, {
       participation_type: "impulsor",
@@ -9139,16 +9428,16 @@ async function pairBrandGrowthCampaign(campaignId) {
   }
   try {
     await Promise.all(updates);
-    notify("Impulso de marca", "Matches generados", `${Math.floor(updates.length / 2)} colaboraciones fueron asignadas usando posicionamiento real.`);
+    notify("Impulso creativo", "Matches generados", `${Math.floor(updates.length / 2)} colaboraciones fueron asignadas por audiencia real.`);
     renderAdminBrandGrowth();
   } catch (error) {
-    notify("Impulso de marca", "No fue posible completar los matches", humanError(error));
+    notify("Impulso creativo", "No fue posible completar los matches", humanError(error));
   }
 }
 
 async function updateBrandGrowthCampaignStatus(campaign, status) {
   await api.update("brand_growth_campaigns", campaign.id, { status });
-  notify("Impulso de marca", "Estado actualizado", `La campana ahora esta ${status}.`);
+  notify("Impulso creativo", "Estado actualizado", `La campana ahora esta ${status}.`);
   renderAdminBrandGrowth();
 }
 
@@ -9157,7 +9446,7 @@ function renderAdminBrandGrowth() {
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const allParticipants = state.data.brand_growth_participants || [];
   const matched = allParticipants.filter(item => item.status === "matched").length;
-  panel("admin-brand-growth", "Impulso de marca", "Campanas internas y matches de posicionamiento digital", `
+  panel("admin-brand-growth", "Impulso creativo", "Colaboraciones pagadas y crecimiento entre perfiles ROIS", `
     <div class="panel-body">
       <div class="scout-metrics">
         <div><span>Campanas activas</span><strong>${campaigns.filter(item => item.status === "active").length}</strong></div>
@@ -9170,7 +9459,7 @@ function renderAdminBrandGrowth() {
       <div class="section-minihead">
         <p class="eyebrow">Nueva campana</p>
         <h3>Define una colaboracion concreta y medible.</h3>
-        <p>El sistema ordena perfiles por posicionamiento y empareja el nivel mas alto con el nivel mas bajo disponible.</p>
+        <p>El sistema vincula perfiles con mas de 10,000 seguidores en una red con perfiles en crecimiento. ROIS no cobra comision por estas colaboraciones.</p>
       </div>
       <form id="brandGrowthCampaignForm" class="form-grid">
         <label>Nombre de campana<input name="title" required maxlength="120" placeholder="Impulso ROIS - Agosto"></label>
@@ -9204,8 +9493,11 @@ function renderAdminBrandGrowth() {
               </div>
               ${participants.length ? `<div class="brand-growth-participant-list">${participants.map(item => `
                 <div>
-                  <span>${escapeHtml(item.name || item.email || "Perfil ROIS")}</span>
-                  <strong>${Number(item.positioning_score || 0)} / 100</strong>
+                  <span>
+                    <strong>${escapeHtml(item.name || item.email || "Perfil ROIS")}</strong>
+                    <small>${escapeHtml(item.primary_network || "red pendiente")} / ${Number(item.follower_count || 0).toLocaleString("es-MX")} seguidores</small>
+                  </span>
+                  <strong>${item.quote_recommended ? money(item.quote_recommended) : "Sin cotizar"}</strong>
                   ${badge(item.participation_type || item.status || "joined")}
                 </div>
               `).join("")}</div>` : `<p class="hint">Aun no hay participantes.</p>`}
@@ -10670,6 +10962,10 @@ async function persistProfileForm(form, options = {}) {
       tiktok_url: value("tiktok_url"),
       facebook_url: value("facebook_url"),
       linkedin_url: value("linkedin_url"),
+      instagram_followers: Math.max(0, Number(value("instagram_followers") || 0)),
+      tiktok_followers: Math.max(0, Number(value("tiktok_followers") || 0)),
+      facebook_followers: Math.max(0, Number(value("facebook_followers") || 0)),
+      linkedin_followers: Math.max(0, Number(value("linkedin_followers") || 0)),
       terms_accepted: Boolean(profileFormField(form, "terms_accepted")?.checked),
       visual_status: "approved"
     };
