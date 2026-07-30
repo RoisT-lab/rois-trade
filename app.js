@@ -2217,10 +2217,14 @@ function supabaseApi() {
       const encodedEmail = encodeURIComponent(email);
       const tokenHeaders = headers(session.token);
       const authId = session.authId || session.id;
-      const roleRequest = path => request(path, { headers: tokenHeaders }).catch(error => {
+      const roleRequest = (path, fallbackRows = []) => request(path, { headers: tokenHeaders }).catch(error => {
         console.warn("[ROIS role data]", path.split("?")[0], humanError(error));
-        return [];
+        return fallbackRows;
       });
+      const cachedOwnRows = table => (state.data?.[table] || []).filter(item =>
+        item.profile_id === authId ||
+        String(item.email || item.contact || "").trim().toLowerCase() === email
+      );
       if (role === "admin") {
         const result = {};
         await Promise.all(dashboardPanelQueries("admin-users").map(async spec => {
@@ -2258,7 +2262,10 @@ function supabaseApi() {
       if (role === "athlete") {
         const [profiles, ownAthletes, terms, notifications, posts, results] = await Promise.all([
           ownProfile,
-          roleRequest(`/rest/v1/athletes?select=${athleteColumns}&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail},contact.eq.${encodedEmail})&limit=2`),
+          roleRequest(
+            `/rest/v1/athletes?select=*&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail},contact.eq.${encodedEmail})&limit=2`,
+            cachedOwnRows("athletes")
+          ),
           roleRequest(`/rest/v1/terms_acceptances?select=id,user_email,user_role,version,status,created_at&user_email=eq.${encodedEmail}&order=created_at.desc&limit=20`),
           roleRequest(`/rest/v1/athlete_notifications?select=id,athlete_email,title,message,category,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=40`),
           roleRequest(`/rest/v1/athlete_posts?select=id,athlete_email,title,caption,image_url,video_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`),
@@ -2285,7 +2292,10 @@ function supabaseApi() {
       if (role === "founder") {
         const [profiles, founders, terms, notifications, posts, results] = await Promise.all([
           ownProfile,
-          roleRequest(`/rest/v1/founders?select=${founderColumns}&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=2`),
+          roleRequest(
+            `/rest/v1/founders?select=*&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=2`,
+            cachedOwnRows("founders")
+          ),
           roleRequest(`/rest/v1/terms_acceptances?select=id,user_email,user_role,version,status,created_at&user_email=eq.${encodedEmail}&order=created_at.desc&limit=20`),
           roleRequest(`/rest/v1/athlete_notifications?select=id,athlete_email,title,message,category,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=40`),
           roleRequest(`/rest/v1/athlete_posts?select=id,athlete_email,title,caption,image_url,video_url,status,created_at&athlete_email=eq.${encodedEmail}&order=created_at.desc&limit=30`),
@@ -2351,10 +2361,10 @@ function supabaseApi() {
         request(`/rest/v1/companies?select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(auth.access_token)
         }),
-        request(`/rest/v1/athletes?select=id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        request(`/rest/v1/athletes?select=*&or=(profile_id.eq.${encodeURIComponent(auth.user.id)},email.eq.${encodeURIComponent(normalizedEmail)},contact.eq.${encodeURIComponent(normalizedEmail)})&limit=2`, {
           headers: headers(auth.access_token)
         }),
-        request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,brand_categories,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,sponsor_payment_url,sponsor_terms,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        request(`/rest/v1/founders?select=*&or=(profile_id.eq.${encodeURIComponent(auth.user.id)},email.eq.${encodeURIComponent(normalizedEmail)})&limit=2`, {
           headers: headers(auth.access_token)
         }),
         request(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password&id=eq.${auth.user.id}&limit=1`, {
@@ -2400,7 +2410,7 @@ function supabaseApi() {
       if (profile.role === "athlete" && !athletes.length) {
         try {
           await this.ensureAthleteAccount(auth, { forceRole: true });
-          athletes = await request(`/rest/v1/athletes?select=id,profile_id,email,contact,name,sport,category,location,ranking,stats,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          athletes = await request(`/rest/v1/athletes?select=*&or=(profile_id.eq.${encodeURIComponent(auth.user.id)},email.eq.${encodeURIComponent(normalizedEmail)},contact.eq.${encodeURIComponent(normalizedEmail)})&limit=2`, {
             headers: headers(auth.access_token)
           });
         } catch (error) {
@@ -2410,7 +2420,7 @@ function supabaseApi() {
       if (profile.role === "founder" && !founders.length) {
         try {
           await this.ensureFounderAccount(auth, { name: profile.name });
-          founders = await request(`/rest/v1/founders?select=id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,brand_categories,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,sponsor_payment_url,sponsor_terms,status,visual_status&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+          founders = await request(`/rest/v1/founders?select=*&or=(profile_id.eq.${encodeURIComponent(auth.user.id)},email.eq.${encodeURIComponent(normalizedEmail)})&limit=2`, {
             headers: headers(auth.access_token)
           });
         } catch (error) {
