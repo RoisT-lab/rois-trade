@@ -2388,8 +2388,10 @@ function supabaseApi() {
       const authRole = String(auth.user.user_metadata?.role || "").toLowerCase();
       let profile = profiles[0] || null;
       if (!profile) {
-        if (authRole === "scout" || authRole === "commercial") {
+        if (authRole === "scout") {
           profile = await this.ensureScoutAccount(auth);
+        } else if (authRole === "commercial") {
+          profile = await this.ensureCommercialAccount(auth);
         } else if (authRole === "founder" || founders.length) {
           profile = await this.ensureFounderAccount(auth);
         } else if (authRole === "athlete") {
@@ -2397,8 +2399,10 @@ function supabaseApi() {
         } else {
           profile = await this.ensureClientAccount(auth);
         }
-      } else if (profile.role === "scout" || profile.role === "commercial") {
+      } else if (profile.role === "scout") {
         profile = await this.ensureScoutAccount(auth, { name: profile.name });
+      } else if (profile.role === "commercial") {
+        profile = await this.ensureCommercialAccount(auth, { name: profile.name });
       } else if (profile.role === "founder" && !founders.length) {
         profile = await this.ensureFounderAccount(auth, { name: profile.name });
       } else if (profile.role === "athlete" && !athletes.length) {
@@ -2463,6 +2467,30 @@ function supabaseApi() {
           athletes,
           founders
         }
+      };
+    },
+    async ensureCommercialAccount(auth, fallback = {}) {
+      const token = auth.access_token || auth.session?.access_token;
+      const normalizedEmail = normalizedAccountEmail(auth.user?.email);
+      if (!token || !normalizedEmail) throw new Error("No fue posible validar la sesion comercial.");
+      const meta = auth.user?.user_metadata || {};
+      const name = String(fallback.name || meta.name || "ROIS Comercial").trim();
+      const profiles = await request(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
+        headers: headers(token)
+      });
+      const profile = profiles[0] || null;
+      if (!profile) {
+        throw new Error("La cuenta existe en acceso, pero falta asignarla como perfil comercial en ROIS.");
+      }
+      if (String(profile.role || "").toLowerCase() !== "commercial") {
+        throw new Error("Este correo no tiene habilitado el acceso al panel comercial.");
+      }
+      return {
+        ...profile,
+        email: normalizedEmail,
+        role: "commercial",
+        name: profile.name || name,
+        must_change_password: !!profile.must_change_password
       };
     },
     async signupCompany({ company, email, contact, interest, password }) {
@@ -2821,8 +2849,10 @@ function supabaseApi() {
       if (!profile) {
         try {
           const authRole = String(user.user_metadata?.role || "").toLowerCase();
-          profile = authRole === "scout" || authRole === "commercial"
+          profile = authRole === "scout"
             ? await this.ensureScoutAccount({ user, access_token: accessToken })
+            : authRole === "commercial"
+              ? await this.ensureCommercialAccount({ user, access_token: accessToken })
             : authRole === "founder"
               ? await this.ensureFounderAccount({ user, access_token: accessToken })
               : authRole === "athlete"
@@ -2832,8 +2862,10 @@ function supabaseApi() {
           profile = {
             id: user.id,
             email: normalizedEmail,
-            role: ["scout", "commercial"].includes(String(user.user_metadata?.role || "").toLowerCase())
+            role: String(user.user_metadata?.role || "").toLowerCase() === "scout"
               ? "scout"
+              : String(user.user_metadata?.role || "").toLowerCase() === "commercial"
+                ? "commercial"
               : user.user_metadata?.role === "founder"
                 ? "founder"
                 : user.user_metadata?.role === "athlete"
@@ -2844,8 +2876,10 @@ function supabaseApi() {
             must_change_password: true
           };
         }
-      } else if (profile.role === "scout" || profile.role === "commercial") {
+      } else if (profile.role === "scout") {
         profile = await this.ensureScoutAccount({ user, access_token: accessToken }, { name: profile.name });
+      } else if (profile.role === "commercial") {
+        profile = await this.ensureCommercialAccount({ user, access_token: accessToken }, { name: profile.name });
       }
       let companies = [];
       try {
@@ -2855,8 +2889,10 @@ function supabaseApi() {
       } catch (error) {
         companies = [];
       }
-      const role = profile.role === "scout" || profile.role === "commercial"
+      const role = profile.role === "scout"
         ? "scout"
+        : profile.role === "commercial"
+          ? "commercial"
         : profile.role === "founder"
           ? "founder"
           : profile.role === "athlete"
