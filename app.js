@@ -619,8 +619,8 @@ function activeDashboardPanelId(view = dashboardViewForRole(state.session?.role)
 }
 
 function dashboardPanelQueries(targetId) {
-  const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,instagram_followers,tiktok_followers,facebook_followers,linkedin_followers,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
-  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,instagram_followers,tiktok_followers,facebook_followers,linkedin_followers,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
+  const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,instagram_followers,tiktok_followers,facebook_followers,linkedin_followers,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
+  const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,instagram_followers,tiktok_followers,facebook_followers,linkedin_followers,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
   const universalProfileColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,email,name,public_name,image_url,bio,city,state_region,country,birth_date,age_range,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,verification_status,scout_code,scout_active,created_at,updated_at";
   const marketplaceUniversalColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,name,public_name,image_url,bio,city,state_region,country,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,visual_status,verification_status,scout_code,scout_active,created_at,updated_at";
   const opportunityColumns = "id,company_id,created_by,title,description,opportunity_type,category,industry,objective,desired_profile,territory,location,modality,starts_at,closes_at,slots,compensation_type,compensation_amount,commission_rate,margin_amount,wholesale_price,suggested_price,minimum_purchase,purchase_required,inventory_available,delivery_method,return_policy,deliverables,acceptance_criteria,attribution_rules,payment_terms,requested_data_fields,materials,legal_documents,scout_enabled,scout_reward_event,scout_reward_amount,scout_reward_currency,scout_terms,scout_requires_approval,status,moderation_notes,approved_at,published_at,created_at,updated_at";
@@ -789,6 +789,9 @@ function dashboardPanelQueries(targetId) {
     "commercial-followup": [{ table: "crm", query: `select=${crmColumns}&order=next_follow_up_at.asc.nullslast,created_at.desc` }]
   };
   const athlete = {
+    "athlete-sponsor-deck": state.session?.role === "founder"
+      ? [{ table: "founders", query: `select=${founderColumns}&email=eq.${encodeURIComponent(normalizedAccountEmail(state.session?.email))}&limit=1`, merge: true }]
+      : [{ table: "athletes", query: `select=${athleteColumns}&or=(email.eq.${encodeURIComponent(normalizedAccountEmail(state.session?.email))},contact.eq.${encodeURIComponent(normalizedAccountEmail(state.session?.email))})&limit=1`, merge: true }],
     "athlete-growth": [
       { table: "brand_growth_campaigns", query: "select=id,title,objective,brief,deliverables,start_date,end_date,status,created_at&status=eq.active&order=created_at.desc" },
       { table: "brand_growth_participants", query: "select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,primary_network,follower_count,collaboration_type,deliverable_count,usage_days,exclusivity_days,quote_min,quote_recommended,quote_max,agreed_amount,currency,quote_status,collaboration_notes,status,created_at,updated_at&order=created_at.desc" }
@@ -846,17 +849,17 @@ async function ensureDashboardPanelData(targetId, options = {}) {
     const pages = await Promise.all(queries.map(async spec => {
       try {
         const rows = await api.loadTablePage(spec.table, spec.query, { offset, limit: pageSize });
-        return { table: spec.table, rows: Array.isArray(rows) ? rows : [], loaded: true };
+        return { table: spec.table, rows: Array.isArray(rows) ? rows : [], loaded: true, merge: spec.merge === true };
       } catch (error) {
         console.warn("[ROIS panel data]", targetId, spec.table, humanError(error));
-        return { table: spec.table, rows: [], loaded: false };
+        return { table: spec.table, rows: [], loaded: false, merge: spec.merge === true };
       }
     }));
     await snapshotPromise;
     pages
       .filter(page => page.loaded)
-      .forEach(({ table, rows }) => {
-        if (offset === 0) replacePageRecords(table, rows);
+      .forEach(({ table, rows, merge }) => {
+        if (offset === 0 && !merge) replacePageRecords(table, rows);
         else mergePageRecords(table, rows);
       });
     const hasMore = pages.some(({ rows, loaded }) => loaded && rows.length === pageSize);
@@ -5528,6 +5531,143 @@ function renderAthletePanel(targetId) {
     "athlete-settings": () => renderAccountSettings("athlete-settings")
   };
   if (map[targetId]) map[targetId]();
+  renderAthleteTutorial(targetId);
+}
+
+function athleteTutorialCatalog(profile = currentAthlete()) {
+  const universal = isFounderProfile(profile);
+  const profileLabel = universal ? "usuario universal" : "deportista";
+  return {
+    "athlete-profile": {
+      title: "Construye un perfil que genere confianza",
+      purpose: `Mantén actualizada la informacion que empresas y otros miembros usan para evaluar tu perfil de ${profileLabel}.`,
+      steps: ["Completa identidad, ubicacion y resumen.", "Agrega redes, evidencia y datos relevantes.", "Guarda y revisa como se presenta tu perfil."],
+      example: universal
+        ? "Ejemplo: explica tus habilidades, audiencia y experiencia para que una marca entienda como puedes colaborar."
+        : "Ejemplo: agrega disciplina, calendario y resultados para que un sponsor entienda tu trayectoria."
+    },
+    "athlete-opportunities": {
+      title: "Encuentra oportunidades compatibles",
+      purpose: "Explora misiones para vender, recomendar, crear contenido o colaborar con empresas.",
+      steps: ["Revisa requisitos y compensacion.", "Confirma que puedes cumplir los entregables.", "Postulate y autoriza solo los datos necesarios."],
+      example: "Ejemplo: participar en una campaña de contenido o recomendar un servicio mediante tu codigo ROIS."
+    },
+    "athlete-applications": {
+      title: "Da seguimiento a tus postulaciones",
+      purpose: "Consulta en que etapa se encuentra cada solicitud enviada a una empresa.",
+      steps: ["Revisa el estado actual.", "Responde si solicitan informacion.", "Continua la ejecucion cuando seas aceptado."],
+      example: "Ejemplo: una empresa puede pedir evidencia adicional antes de aceptar tu participacion."
+    },
+    "athlete-income": {
+      title: "Controla tus ingresos ROIS",
+      purpose: "Consulta comisiones y resultados aprobados sin confundirlos con ingresos garantizados.",
+      steps: ["Identifica la oportunidad.", "Revisa validacion y monto.", "Consulta la fecha estimada o efectiva de pago."],
+      example: "Ejemplo: una referencia validada aparece pendiente hasta que la empresa confirme el resultado."
+    },
+    "athlete-notifications": {
+      title: "Atiende lo importante primero",
+      purpose: "Recibe actualizaciones de perfil, oportunidades, colaboraciones y acciones pendientes.",
+      steps: ["Abre las alertas sin leer.", "Ejecuta la accion solicitada.", "Conserva el historial como referencia."],
+      example: "Ejemplo: ROIS te avisa cuando una empresa solicita informacion o se publica una nueva convocatoria."
+    },
+    "athlete-scouts": {
+      title: "Usa tu codigo Scout",
+      purpose: "Participa en misiones empresariales y registra resultados vinculados a tu codigo global ROIS.",
+      steps: ["Copia tu codigo.", "Entra a una mision Scout compatible.", "Registra prospectos o resultados con consentimiento."],
+      example: "Ejemplo: recomendar una herramienta empresarial y recibir una comision si el resultado es validado."
+    },
+    "athlete-results": {
+      title: universal ? "Documenta evidencia profesional" : "Documenta evidencia competitiva",
+      purpose: "Publica resultados, fotos y reels que fortalezcan tu reputacion ante empresas.",
+      steps: ["Describe el resultado.", "Agrega evidencia clara.", "Publica solo contenido que puedas comprobar."],
+      example: universal
+        ? "Ejemplo: muestra una campaña, proyecto, presentacion o resultado comercial."
+        : "Ejemplo: registra una competencia, marca, podio o avance de entrenamiento."
+    },
+    "athlete-sponsor-deck": {
+      title: "Convierte tu perfil en una propuesta para marcas",
+      purpose: "El Sponsor Deck ROIS organiza tu historia, audiencia, evidencia, beneficios y ventajas comerciales.",
+      steps: ["Completa todos los campos.", "Define hasta 10 beneficios y 10 ventajas.", "Agrega imagenes de valor y guarda tu propuesta."],
+      example: universal
+        ? "Ejemplo: presenta formatos de contenido, audiencia y beneficios para una colaboracion de marca."
+        : "Ejemplo: presenta calendario, resultados y activos que un sponsor puede activar contigo."
+    },
+    "athlete-growth": {
+      title: "Crece o monetiza colaborando",
+      purpose: "Impulso creativo conecta deportistas y usuarios universales para colaboraciones pagadas y crecimiento de marca personal.",
+      steps: ["Registra seguidores reales de tus redes.", "Entra a una convocatoria.", "Cotiza o acepta una colaboracion con condiciones claras."],
+      example: "Ejemplo: un creador con alcance impulsa el contenido de un atleta en crecimiento mediante una colaboracion pagada."
+    },
+    "athlete-settings": {
+      title: "Mantén segura tu cuenta",
+      purpose: "Actualiza datos de acceso y configuracion sin modificar tu propuesta publica.",
+      steps: ["Verifica tu correo.", "Actualiza la contraseña cuando sea necesario.", "Cierra sesion en equipos compartidos."],
+      example: "Ejemplo: cambia tu contraseña si detectas un acceso que no reconoces."
+    }
+  };
+}
+
+function athleteTutorialStorageKey(targetId) {
+  const account = normalizedAccountEmail(state.session?.email) || state.session?.id || "profile";
+  return `rois:profile-guide:${account}:${targetId}`;
+}
+
+function athleteTutorialIsDismissed(targetId) {
+  try {
+    return localStorage.getItem(athleteTutorialStorageKey(targetId)) === "hidden";
+  } catch (error) {
+    return false;
+  }
+}
+
+function setAthleteTutorialDismissed(targetId, dismissed) {
+  try {
+    if (dismissed) localStorage.setItem(athleteTutorialStorageKey(targetId), "hidden");
+    else localStorage.removeItem(athleteTutorialStorageKey(targetId));
+  } catch (error) {
+    console.warn("[ROIS guide] No fue posible guardar la preferencia.", error);
+  }
+}
+
+function renderAthleteTutorial(targetId) {
+  const guide = athleteTutorialCatalog()[targetId];
+  const panelHost = document.querySelector(`[data-dashboard-panel="${targetId}"]`);
+  const panelElement = panelHost?.querySelector(".panel") || panelHost?.firstElementChild;
+  if (!guide || !panelElement) return;
+  panelElement.querySelector("[data-athlete-tutorial]")?.remove();
+  panelElement.querySelector("[data-athlete-tutorial-restore]")?.remove();
+  const panelHead = panelElement.querySelector(".panel-head");
+
+  if (athleteTutorialIsDismissed(targetId)) {
+    (panelHead || panelElement).insertAdjacentHTML(panelHead ? "beforeend" : "afterbegin", `
+      <button class="client-tutorial-restore" type="button" data-athlete-tutorial-restore aria-label="Mostrar guia de esta seccion">Ver guia</button>
+    `);
+    panelElement.querySelector("[data-athlete-tutorial-restore]")?.addEventListener("click", () => {
+      setAthleteTutorialDismissed(targetId, false);
+      renderAthleteTutorial(targetId);
+    });
+    return;
+  }
+
+  (panelHead || panelElement).insertAdjacentHTML(panelHead ? "afterend" : "afterbegin", `
+    <aside class="client-panel-tutorial" data-athlete-tutorial aria-label="Guia de ${escapeAttr(guide.title)}">
+      <button class="client-tutorial-close" type="button" data-athlete-tutorial-close aria-label="Ocultar guia">&times;</button>
+      <div class="client-tutorial-intro">
+        <p class="eyebrow">Guia rapida</p>
+        <h3>${escapeHtml(guide.title)}</h3>
+        <p>${escapeHtml(guide.purpose)}</p>
+      </div>
+      <ol class="client-tutorial-steps">${guide.steps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}</ol>
+      <div class="client-tutorial-example">
+        <span>Ejemplo practico</span>
+        <p>${escapeHtml(guide.example)}</p>
+      </div>
+    </aside>
+  `);
+  panelElement.querySelector("[data-athlete-tutorial-close]")?.addEventListener("click", () => {
+    setAthleteTutorialDismissed(targetId, true);
+    renderAthleteTutorial(targetId);
+  });
 }
 
 function renderAthleteHeader() {
@@ -9408,10 +9548,12 @@ async function pairBrandGrowthCampaign(campaignId) {
     return;
   }
   const updates = [];
-  const pairCount = Math.min(leaders.length, growingProfiles.length);
-  for (let index = 0; index < pairCount; index += 1) {
-    const leader = leaders[index];
-    const growing = growingProfiles[index];
+  const growingPool = [...growingProfiles];
+  for (const leader of leaders) {
+    if (!growingPool.length) break;
+    let matchIndex = growingPool.findIndex(item => item.profile_table !== leader.profile_table);
+    if (matchIndex < 0) matchIndex = 0;
+    const growing = growingPool.splice(matchIndex, 1)[0];
     if (!leader || !growing || leader.id === growing.id) continue;
     updates.push(api.update("brand_growth_participants", leader.id, {
       participation_type: "impulsor",
@@ -9428,7 +9570,7 @@ async function pairBrandGrowthCampaign(campaignId) {
   }
   try {
     await Promise.all(updates);
-    notify("Impulso creativo", "Matches generados", `${Math.floor(updates.length / 2)} colaboraciones fueron asignadas por audiencia real.`);
+    notify("Impulso creativo", "Matches generados", `${Math.floor(updates.length / 2)} colaboraciones fueron asignadas, priorizando cruces entre deportistas y usuarios universales.`);
     renderAdminBrandGrowth();
   } catch (error) {
     notify("Impulso creativo", "No fue posible completar los matches", humanError(error));
