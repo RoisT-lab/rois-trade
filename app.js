@@ -149,6 +149,8 @@ const seed = {
   brand_growth_participants: [],
   user_profiles: [],
   user_social_accounts: [],
+  marketplace_user_profiles: [],
+  marketplace_user_social_accounts: [],
   company_verifications: [],
   company_plan_definitions: [],
   opportunities: [],
@@ -638,6 +640,7 @@ function dashboardPanelQueries(targetId) {
   const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
   const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
   const universalProfileColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,email,name,public_name,image_url,bio,city,state_region,country,birth_date,age_range,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,verification_status,scout_code,scout_active,created_at,updated_at";
+  const marketplaceUniversalColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,name,public_name,image_url,bio,city,state_region,country,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,visual_status,verification_status,scout_code,scout_active,created_at,updated_at";
   const opportunityColumns = "id,company_id,created_by,title,description,opportunity_type,category,industry,objective,desired_profile,territory,location,modality,starts_at,closes_at,slots,compensation_type,compensation_amount,commission_rate,margin_amount,wholesale_price,suggested_price,minimum_purchase,purchase_required,inventory_available,delivery_method,return_policy,deliverables,acceptance_criteria,attribution_rules,payment_terms,requested_data_fields,materials,legal_documents,scout_enabled,scout_reward_event,scout_reward_amount,scout_reward_currency,scout_terms,scout_requires_approval,status,moderation_notes,approved_at,published_at,created_at,updated_at";
   const applicationColumns = "id,opportunity_id,user_profile_id,applicant_profile_id,message,shared_profile_snapshot,status,company_notes,requested_information,submitted_at,decided_at,created_at,updated_at";
   const crmColumns = "id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at";
@@ -655,10 +658,14 @@ function dashboardPanelQueries(targetId) {
       { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at" }
     ],
     "client-marketplace": [
-      { table: "athletes", query: `select=${athleteColumns}&status=eq.approved&order=created_at.desc` }
+      { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` },
+      { table: "marketplace_user_profiles", query: `select=${marketplaceUniversalColumns}&order=created_at.desc` },
+      { table: "marketplace_user_social_accounts", query: "select=id,user_profile_id,platform,url,handle,audience_size,verified,created_at,updated_at&order=created_at.desc" }
     ],
     "client-founders": [
-      { table: "founders", query: `select=${founderColumns}&status=eq.approved&order=created_at.desc` }
+      { table: "founders", query: `select=${founderColumns}&order=created_at.desc` },
+      { table: "marketplace_user_profiles", query: `select=${marketplaceUniversalColumns}&order=created_at.desc` },
+      { table: "marketplace_user_social_accounts", query: "select=id,user_profile_id,platform,url,handle,audience_size,verified,created_at,updated_at&order=created_at.desc" }
     ],
     "client-payments": companyName ? [
       { table: "payments", query: `select=id,concept,amount,company,status,product_key,created_at&company=eq.${encodedCompany}&order=created_at.desc` },
@@ -3346,7 +3353,8 @@ function handleDashboardDelegatedActions(event) {
     const profileId = sponsorButton.dataset.athleteSponsor;
     const athlete = state.data?.athletes?.find(item => item.id === profileId);
     const founder = state.data?.founders?.find(item => item.id === profileId);
-    const profile = athlete || (founder ? founderAsAthleteProfile(founder) : null);
+    const universal = [...clientAthleteRecords(), ...clientFounderRecords()].find(item => item.id === profileId);
+    const profile = athlete || (founder ? founderAsAthleteProfile(founder) : null) || universal;
     if (profile) startAthleteSponsorPayment(profile);
     return;
   }
@@ -3359,7 +3367,12 @@ function handleDashboardDelegatedActions(event) {
       return;
     }
     const founder = state.data?.founders?.find(item => item.id === profileId || item.profile_id === profileId);
-    if (founder) openAthleteProfileView(founderAsAthleteProfile(founder));
+    if (founder) {
+      openAthleteProfileView(founderAsAthleteProfile(founder));
+      return;
+    }
+    const universal = [...clientAthleteRecords(), ...clientFounderRecords()].find(item => item.id === profileId);
+    if (universal) openAthleteProfileView(universal);
     return;
   }
   const deletePostButton = event.target.closest("[data-athlete-delete-post]");
@@ -4160,30 +4173,152 @@ function clientCompanyLogoMarkup(company) {
 }
 
 function clientAthleteRecords() {
-  return (state.data.athletes || [])
+  const universalProfiles = clientUniversalMarketplaceRecords().filter(universalMarketplaceProfileIsAthlete);
+  const universalByLegacyId = new Map(
+    universalProfiles
+      .filter(item => item.legacy_athlete_id)
+      .map(item => [item.legacy_athlete_id, item])
+  );
+  const universalByProfileId = new Map(
+    universalProfiles
+      .filter(item => item.profile_id)
+      .map(item => [item.profile_id, item])
+  );
+  const legacyRecords = (state.data.athletes || [])
     .filter(item => item.id && !item.is_virtual)
-    .filter(item => String(item.status || "").toLowerCase() === "approved")
-    .map(marketplaceProfileRecord);
+    .filter(marketplaceProfileIsVisible)
+    .map(item => {
+      const universal = universalByLegacyId.get(item.id) || universalByProfileId.get(item.profile_id);
+      return marketplaceProfileRecord(mergeMarketplaceProfileData(item, universal));
+    });
+  const legacyIds = new Set(legacyRecords.map(item => item.id));
+  const profileIds = new Set(legacyRecords.map(item => item.profile_id).filter(Boolean));
+  const universalOnly = universalProfiles
+    .filter(item => !legacyIds.has(item.legacy_athlete_id) && !profileIds.has(item.profile_id))
+    .map(universalMarketplaceProfileRecord);
+  return dedupeMarketplaceProfiles([...legacyRecords, ...universalOnly]);
 }
 
 function clientFounderRecords() {
-  const athleteEmails = new Set(
-    (state.data.athletes || [])
-      .filter(item => item.id && !item.is_virtual)
-      .map(item => String(item.email || item.contact || "").trim().toLowerCase())
-      .filter(Boolean)
+  const universalProfiles = clientUniversalMarketplaceRecords().filter(item => !universalMarketplaceProfileIsAthlete(item));
+  const universalByLegacyId = new Map(
+    universalProfiles
+      .filter(item => item.legacy_founder_id)
+      .map(item => [item.legacy_founder_id, item])
   );
-  return (state.data.founders || [])
+  const universalByProfileId = new Map(
+    universalProfiles
+      .filter(item => item.profile_id)
+      .map(item => [item.profile_id, item])
+  );
+  const legacyRecords = (state.data.founders || [])
     .filter(item => item.id && !item.is_virtual)
-    .filter(item => !athleteEmails.has(String(item.email || "").trim().toLowerCase()))
-    .filter(item => String(item.status || "").toLowerCase() === "approved")
-    .map(marketplaceProfileRecord);
+    .filter(marketplaceProfileIsVisible)
+    .map(item => {
+      const universal = universalByLegacyId.get(item.id) || universalByProfileId.get(item.profile_id);
+      return marketplaceProfileRecord(mergeMarketplaceProfileData(item, universal));
+    });
+  const legacyIds = new Set(legacyRecords.map(item => item.id));
+  const profileIds = new Set(legacyRecords.map(item => item.profile_id).filter(Boolean));
+  const universalOnly = universalProfiles
+    .filter(item => !legacyIds.has(item.legacy_founder_id) && !profileIds.has(item.profile_id))
+    .map(universalMarketplaceProfileRecord);
+  return dedupeMarketplaceProfiles([...legacyRecords, ...universalOnly]);
+}
+
+function marketplaceProfileIsVisible(item = {}) {
+  const status = String(item.status || "active").trim().toLowerCase();
+  const visualStatus = String(item.visual_status || "active").trim().toLowerCase();
+  const hiddenStatuses = ["blocked", "deleted", "rejected"];
+  return Boolean(item.id)
+    && !hiddenStatuses.includes(status)
+    && !hiddenStatuses.includes(visualStatus);
+}
+
+function clientUniversalMarketplaceRecords() {
+  return (state.data.marketplace_user_profiles || [])
+    .filter(item => item.id && marketplaceProfileIsVisible(item));
+}
+
+function universalMarketplaceProfileIsAthlete(profile = {}) {
+  const badges = Array.isArray(profile.badges) ? profile.badges : [];
+  const capabilities = Array.isArray(profile.capabilities) ? profile.capabilities : [];
+  const signals = [...badges, ...capabilities].map(value => String(value || "").trim().toLowerCase());
+  if (profile.legacy_athlete_id) return true;
+  if (profile.legacy_founder_id) return false;
+  return signals.some(value => ["athlete", "atleta", "deporte", "deportes", "sports"].includes(value));
+}
+
+function marketplaceUniversalSocialLinks(profile = {}) {
+  const links = {};
+  (state.data.marketplace_user_social_accounts || [])
+    .filter(item => item.user_profile_id === profile.id)
+    .forEach(item => {
+      const platform = String(item.platform || "").trim().toLowerCase();
+      if (["instagram", "tiktok", "facebook", "linkedin"].includes(platform) && item.url) {
+        links[`${platform}_url`] = item.url;
+      }
+    });
+  return links;
+}
+
+function universalMarketplaceProfileRecord(profile = {}) {
+  const athlete = universalMarketplaceProfileIsAthlete(profile);
+  const industries = Array.isArray(profile.industries) ? profile.industries.filter(Boolean) : [];
+  const capabilities = Array.isArray(profile.capabilities) ? profile.capabilities.filter(Boolean) : [];
+  const location = [profile.city, profile.state_region, profile.country].filter(Boolean).join(", ");
+  const socialLinks = marketplaceUniversalSocialLinks(profile);
+  return marketplaceProfileRecord({
+    ...profile,
+    ...socialLinks,
+    id: profile.legacy_athlete_id || profile.legacy_founder_id || profile.id,
+    universal_profile_id: profile.id,
+    name: profile.public_name || profile.name || "Perfil ROIS",
+    public_name: profile.public_name || profile.name || "Perfil ROIS",
+    sport: athlete ? industries.join(", ") || "Perfil deportivo" : undefined,
+    category: athlete ? capabilities.join(", ") || "Perfil universal" : undefined,
+    location: athlete ? location || "Base por definir" : undefined,
+    ranking: profile.audience_size ? `${Number(profile.audience_size).toLocaleString("es-MX")} de audiencia` : "Por documentar",
+    stats: profile.bio || "Perfil universal ROIS en construccion.",
+    industry: athlete ? undefined : industries.join(", ") || "Industria por definir",
+    stage: athlete ? undefined : capabilities.join(", ") || "Capacidades por definir",
+    city: athlete ? undefined : location || "Base por definir",
+    creator_type: athlete ? undefined : "creator",
+    audience_demographics: profile.audience_description || "",
+    profile_type: athlete ? "athlete" : "founder",
+    vertical: athlete ? "athlete" : "founder",
+    visual_status: "approved",
+    is_universal_profile: true
+  });
+}
+
+function mergeMarketplaceProfileData(legacy = {}, universal = null) {
+  if (!universal) return legacy;
+  const normalized = universalMarketplaceProfileRecord(universal);
+  const merged = { ...normalized, ...legacy };
+  [
+    "name", "public_name", "image_url", "stats", "sport", "category", "location",
+    "ranking", "industry", "stage", "city", "instagram_url", "tiktok_url",
+    "facebook_url", "linkedin_url"
+  ].forEach(key => {
+    if (!legacy[key] && normalized[key]) merged[key] = normalized[key];
+  });
+  merged.universal_profile_id = universal.id;
+  return merged;
+}
+
+function dedupeMarketplaceProfiles(records = []) {
+  const seen = new Set();
+  return records.filter(item => {
+    const key = item.profile_id || item.universal_profile_id || item.id;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function marketplaceProfileRecord(item) {
-  const visualStatus = String(item?.visual_status || "").toLowerCase();
-  if (!item?.image_url || visualStatus === "approved") return item;
-  return { ...item, image_url: "", image_path: "" };
+  return item;
 }
 
 function renderClientOverview() {
@@ -4918,7 +5053,7 @@ function renderClientMarketplace() {
         ${athletes.map(athlete => athleteCard(athlete)).join("")}
       </div>
     </div>
-  ` : `<div class="empty">Los athletes aprobados apareceran aqui cuando esten listos para evaluacion empresarial.</div>`);
+  ` : `<div class="empty">Los perfiles deportivos disponibles apareceran aqui con la informacion guardada en sus cuentas.</div>`);
 }
 
 function marketProfileCard(profile, options = {}) {
@@ -4957,7 +5092,7 @@ function renderClientFounders() {
       </div>
       ${founders.length
         ? `<div class="market-profile-grid founder-market-grid">${founders.map(founder => founderMarketCard(founder)).join("")}</div>`
-        : `<div class="empty">Los creadores aprobados apareceran aqui cuando su perfil y metricas esten listos para evaluacion empresarial.</div>`
+        : `<div class="empty">Los perfiles universales disponibles apareceran aqui con la informacion guardada en sus cuentas.</div>`
       }
     </div>
   `);
