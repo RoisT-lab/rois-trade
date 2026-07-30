@@ -1362,6 +1362,8 @@ function annualAccessPaywall(feature = "sponsor-deck", profile = currentAthlete(
     ? (founder ? "publicar tu perfil en Creadores" : "publicar tu perfil en Mercado de fichajes")
     : feature === "brand-growth"
       ? "participar en Impulso creativo y usar el cotizador"
+      : feature === "opportunities"
+        ? "consultar y postularte a oportunidades publicadas por empresas"
       : "crear y mostrar tu Sponsor Deck ROIS";
   return `
     <div class="annual-access-lock">
@@ -1373,6 +1375,7 @@ function annualAccessPaywall(feature = "sponsor-deck", profile = currentAthlete(
         <li>Sponsor Deck estructurado dentro de ROIS.</li>
         <li>Solicitud de publicación en el mercado correspondiente.</li>
         <li>Impulso creativo y cotizador justo de colaboraciones.</li>
+        <li>Acceso y postulación a oportunidades publicadas por empresas.</li>
         <li>Doce meses de acceso a estas herramientas comerciales.</li>
       </ul>
       <button class="btn primary" type="button" data-unlock-annual="${escapeAttr(feature)}">${annualAccessStatus(profile) === "pending" ? "Continuar pago anual" : annualAccessStatus(profile) === "expired" ? "Renovar acceso anual" : "Activar acceso anual"}</button>
@@ -1393,6 +1396,9 @@ async function requestAnnualAccess(feature = "sponsor-deck") {
     else if (feature === "brand-growth") {
       renderAthleteBrandGrowth();
       showDashboardPanel("athlete-growth");
+    } else if (feature === "opportunities") {
+      renderUserOpportunities();
+      showDashboardPanel("athlete-opportunities");
     } else {
       renderAthleteSponsorDeck();
       showDashboardPanel("athlete-sponsor-deck");
@@ -1441,11 +1447,12 @@ async function requestMarketplacePublication() {
     return;
   }
   await saveProfileRecord({
-    marketplace_access_status: "pending_review",
+    marketplace_access_status: "active",
     marketplace_access_requested_at: new Date().toISOString(),
-    visual_status: "pending_review"
+    status: "approved",
+    visual_status: "approved"
   }, context);
-  notify("Publicación", "Solicitud recibida", "ROIS revisará tu perfil antes de publicarlo en el mercado empresarial.");
+  notify("Publicación", "Perfil publicado", "Tu anualidad activa habilitó el perfil para evaluación de empresas.");
   renderAthleteProfile();
 }
 
@@ -8199,6 +8206,12 @@ async function recordMarketplaceEvent(eventName, entityType = "", entityId = nul
 }
 
 async function openOpportunityApplication(opportunity) {
+  const annualProfile = currentAthlete();
+  if (!annualProfile || !athleteAnnualFeePaid(annualProfile)) {
+    notify("Oportunidades", "Acceso anual requerido", "Las oportunidades empresariales forman parte de la anualidad ROIS.");
+    await requestAnnualAccess("opportunities");
+    return;
+  }
   let profile;
   try {
     profile = await ensureUniversalUserProfile();
@@ -8301,6 +8314,8 @@ async function submitOpportunityApplication(event, opportunity, profile) {
 
 function renderUserOpportunities() {
   const opportunities = (state.data?.opportunities || []).filter(item => item.status === "published");
+  const annualProfile = currentAthlete();
+  const hasAnnualAccess = Boolean(annualProfile && athleteAnnualFeePaid(annualProfile));
   panel("athlete-opportunities", "Oportunidades", "Vende, recomienda, crea o colabora", `
     <div class="panel-body">
       <div class="section-minihead">
@@ -8308,6 +8323,7 @@ function renderUserOpportunities() {
         <h3>Encuentra oportunidades compatibles con lo que sabes hacer.</h3>
         <p>Revisa requisitos, compensacion y datos solicitados antes de postularte. ROIS no garantiza ingresos.</p>
       </div>
+      ${!hasAnnualAccess ? annualAccessPaywall("opportunities", annualProfile) : `
       <label class="opportunity-filter">Filtrar por tipo<select data-opportunity-filter>
         <option value="">Todas</option>
         ${Object.entries(opportunityTypeLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}
@@ -8315,7 +8331,10 @@ function renderUserOpportunities() {
       <div class="opportunity-grid" data-opportunity-grid>
         ${opportunities.length ? opportunities.map(item => opportunityCardMarkup(item, { canApply: true })).join("") : `<div class="empty">Las oportunidades aprobadas por ROIS apareceran aqui.</div>`}
       </div>
+      `}
     </div>`);
+  document.querySelector('[data-unlock-annual="opportunities"]')?.addEventListener("click", () => requestAnnualAccess("opportunities"));
+  if (!hasAnnualAccess) return;
   document.querySelector("[data-opportunity-filter]")?.addEventListener("change", event => {
     document.querySelectorAll("[data-opportunity-type]").forEach(card => {
       card.hidden = Boolean(event.target.value) && card.dataset.opportunityType !== event.target.value;
@@ -9463,10 +9482,12 @@ function renderAdminAthletes() {
 
 function athleteAdminActions(athlete) {
   const actions = [
-    button(athleteAnnualFeeRequired(athlete) ? "Ocultar anualidad" : "Solicitar anualidad", () => toggleAthleteAnnualFee(athlete))
+    button(
+      athleteAnnualFeePaid(athlete) ? "Renovar anualidad" : "Aprobar anualidad",
+      () => markAthleteAnnualPaid(athlete, "athletes")
+    )
   ];
   if (sponsorDeckIsReady(athlete)) actions.push(button("Ver Sponsor Deck", () => openSponsorDeckById(athlete.id)));
-  if (!athleteAnnualFeePaid(athlete)) actions.push(button("Marcar pago anual", () => markAthleteAnnualPaid(athlete, "athletes")));
   if (String(athlete.marketplace_access_status || "").toLowerCase() === "pending_review") {
     actions.push(button("Publicar en mercado", () => approveMarketplaceProfile(athlete, "athletes")));
   }
@@ -9493,9 +9514,13 @@ function founderAdminStatus(founder) {
 }
 
 function founderAdminActions(founder) {
-  const actions = [];
+  const actions = [
+    button(
+      athleteAnnualFeePaid(founder) ? "Renovar anualidad" : "Aprobar anualidad",
+      () => markAthleteAnnualPaid(founder, "founders")
+    )
+  ];
   if (sponsorDeckIsReady(founder)) actions.push(button("Ver Sponsor Deck", () => openSponsorDeckById(founder.id)));
-  if (!athleteAnnualFeePaid(founder)) actions.push(button("Marcar pago anual", () => markAthleteAnnualPaid(founder, "founders")));
   if (String(founder.marketplace_access_status || "").toLowerCase() === "pending_review") {
     actions.push(button("Publicar en Creadores", () => approveMarketplaceProfile(founder, "founders")));
   }
@@ -11839,10 +11864,15 @@ async function activateScoutNetwork(athlete) {
 }
 
 async function markAthleteAnnualPaid(athlete, tableName = "athletes") {
-  const marketplaceRequested = ["pending_payment", "pending_review"].includes(String(athlete.marketplace_access_status || "").toLowerCase());
-  const accessStartedAt = new Date();
-  const accessExpiresAt = new Date(accessStartedAt);
+  const now = new Date();
+  const currentExpiration = athlete.annual_access_expires_at ? new Date(athlete.annual_access_expires_at) : null;
+  const renewalBase = currentExpiration && currentExpiration.getTime() > now.getTime() ? currentExpiration : now;
+  const accessStartedAt = athleteAnnualFeePaid(athlete) && athlete.annual_access_started_at
+    ? new Date(athlete.annual_access_started_at)
+    : now;
+  const accessExpiresAt = new Date(renewalBase);
   accessExpiresAt.setFullYear(accessExpiresAt.getFullYear() + 1);
+  const restricted = ["blocked", "deleted", "rejected"].includes(String(athlete.status || "").toLowerCase());
   await api.update(tableName, athlete.id, {
     annual_fee_paid: true,
     annual_payment_status: "paid",
@@ -11850,7 +11880,9 @@ async function markAthleteAnnualPaid(athlete, tableName = "athletes") {
     annual: athleteAnnualFeeAmount,
     annual_access_started_at: accessStartedAt.toISOString(),
     annual_access_expires_at: accessExpiresAt.toISOString(),
-    ...(marketplaceRequested ? { marketplace_access_status: "pending_review" } : {})
+    marketplace_access_status: "active",
+    marketplace_access_requested_at: athlete.marketplace_access_requested_at || now.toISOString(),
+    ...(!restricted ? { status: "approved", visual_status: "approved" } : {})
   });
   const athleteEmail = normalizedAccountEmail(athlete.email || athlete.contact);
   const athleteName = String(athlete.name || "").trim().toLowerCase();
@@ -11869,10 +11901,13 @@ async function markAthleteAnnualPaid(athlete, tableName = "athletes") {
       console.warn("[ROIS annual access] Perfil activado; no se pudo actualizar el log financiero", humanError(error));
     }
   }
-  notify("Acceso anual", "Pago confirmado", marketplaceRequested
-    ? "El acceso anual quedo activo y el perfil paso a revision de publicacion."
-    : "El acceso anual quedo activo por 12 meses.");
+  notify(
+    "Acceso anual",
+    athleteAnnualFeePaid(athlete) ? "Anualidad renovada" : "Anualidad aprobada",
+    "Quedaron activos por 12 meses Sponsor Deck, mercado, Impulso creativo y oportunidades empresariales."
+  );
   renderAdmin();
+  renderClient();
 }
 
 async function approveMarketplaceProfile(profile, tableName) {
