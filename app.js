@@ -464,7 +464,8 @@ function currentCompanyPlan(company = currentCompany()) {
 }
 
 function companyCan(feature, company = currentCompany()) {
-  return currentCompanyPlan(company).features.includes(feature);
+  // Advanced company tools remain open while ROIS builds marketplace activity.
+  return true;
 }
 
 function companyPlanLabel(company = currentCompany()) {
@@ -499,42 +500,6 @@ function companyAdvancedAccessMarkup(company = currentCompany()) {
         <small>Sin cobro autom&aacute;tico al finalizar.</small>
       </div>
     </section>
-  `;
-}
-
-function companyPlanCard(planKey, options = {}) {
-  const plan = companyPlanCatalog[planKey] || companyPlanCatalog.free;
-  const active = currentCompanyPlan().key === plan.key;
-  const features = plan.key === "pro"
-    ? ["25 publicaciones activas", "2 eventos mensuales", "Leads comerciales", "Revisión editorial ROIS"]
-    : ["100 publicaciones activas", "10 eventos mensuales", "Hasta 5 usuarios", "Inventario destacado y analítica"];
-  return `
-    <article class="company-plan-card${active ? " active" : ""}">
-      <div>
-        <p class="eyebrow">Plan ${escapeHtml(plan.name)}</p>
-        <h3>$${plan.price.toLocaleString("es-MX")} <small>MXN + IVA / mes</small></h3>
-        <p>${plan.key === "business" ? "Para portafolios amplios y operación comercial continua." : "Para publicar inventario y activar oportunidades empresariales."}</p>
-      </div>
-      <ul>${features.map(feature => `<li>${escapeHtml(feature)}</li>`).join("")}</ul>
-      ${active
-        ? `<span class="pill">Plan activo</span>`
-        : `<button class="btn${options.primary ? " primary" : ""}" type="button" data-company-plan-request="${plan.key}">Solicitar activación</button>`}
-    </article>
-  `;
-}
-
-function companyPlanGateMarkup(featureLabel) {
-  return `
-    <div class="company-plan-gate">
-      <p class="eyebrow">Funcionalidad PRO</p>
-      <h3>${escapeHtml(featureLabel)}</h3>
-      <p>Activa PRO o Business para publicar inventario corporativo y eventos sujetos a revisión ROIS.</p>
-      <div class="company-plan-grid">
-        ${companyPlanCard("pro", { primary: true })}
-        ${companyPlanCard("business")}
-      </div>
-      <p class="hint">La activación se confirma por administración o mediante la futura verificación de suscripción Stripe. Una solicitud no concede acceso automáticamente.</p>
-    </div>
   `;
 }
 
@@ -3436,11 +3401,6 @@ function handleDashboardDelegatedActions(event) {
     requestPremiumAllianceProduct(premiumRequestButton.dataset.premiumRequest);
     return;
   }
-  const planRequestButton = event.target.closest("[data-company-plan-request]");
-  if (planRequestButton) {
-    requestCompanyPlan(planRequestButton.dataset.companyPlanRequest);
-    return;
-  }
   const listingInterestButton = event.target.closest("[data-company-listing-interest]");
   if (listingInterestButton) {
     requestCompanyListing(listingInterestButton.dataset.companyListingInterest);
@@ -4132,6 +4092,154 @@ function renderClient() {
   renderClientPanel(activePanel);
 }
 
+const clientTutorialCatalog = {
+  "client-overview": {
+    title: "Tu punto de partida",
+    purpose: "Revisa el estado de tu empresa y entra directamente al modulo que necesitas.",
+    steps: ["Confirma que el perfil empresarial este completo.", "Elige si buscas talento, eventos u oportunidades.", "Consulta las alertas y continua la operacion pendiente."],
+    example: "Ejemplo: si preparas una campana deportiva, abre Mercado de fichajes y compara perfiles antes de solicitar patrocinio."
+  },
+  "client-opportunities": {
+    title: "Convierte un objetivo en una oportunidad",
+    purpose: "Publica una mision para encontrar personas que vendan, recomienden, creen contenido o generen prospectos.",
+    steps: ["Define el resultado que necesita tu empresa.", "Explica compensacion, requisitos y evidencia.", "Envia la oportunidad a revision ROIS."],
+    example: "Ejemplo: captar 30 prospectos calificados en Queretaro pagando una comision por cada resultado validado."
+  },
+  "client-applicants": {
+    title: "Selecciona participantes compatibles",
+    purpose: "Revisa las postulaciones recibidas y decide quien puede ejecutar cada oportunidad.",
+    steps: ["Abre la postulacion.", "Compara capacidades, ubicacion y evidencia.", "Acepta, rechaza o solicita informacion adicional."],
+    example: "Ejemplo: elegir tres creadores con audiencia de belleza para probar y documentar un lanzamiento."
+  },
+  "client-scout-network": {
+    title: "Activa distribucion con la red Scout",
+    purpose: "Da seguimiento a usuarios ROIS que participan en tus misiones usando su codigo Scout global.",
+    steps: ["Publica una oportunidad compatible con Scouts.", "Revisa cada participante antes de activarlo.", "Valida resultados y comisiones desde ROIS."],
+    example: "Ejemplo: una pasarela de pagos recompensa referencias empresariales verificadas en distintos paises de LATAM."
+  },
+  "client-results": {
+    title: "Valida resultados antes de pagar",
+    purpose: "Centraliza conversiones, evidencias y avances generados por tus oportunidades.",
+    steps: ["Revisa el resultado enviado.", "Confirma que cumple las reglas de atribucion.", "Aprueba, rechaza o solicita evidencia."],
+    example: "Ejemplo: validar que un prospecto completo una demostracion antes de autorizar la comision."
+  },
+  "client-intelligence": {
+    title: "Lee el mercado sin exponer datos personales",
+    purpose: "Consulta tendencias agregadas de la red para tomar mejores decisiones comerciales.",
+    steps: ["Selecciona el segmento que quieres entender.", "Compara interes, ubicacion y respuesta.", "Usa el hallazgo para mejorar tu siguiente oportunidad."],
+    example: "Ejemplo: detectar en que ciudades hay mayor afinidad por servicios financieros antes de lanzar una campana."
+  },
+  "client-events": {
+    title: "Evalua eventos con contexto comercial",
+    purpose: "Explora eventos aprobados, revisa sus materiales y solicita una conversacion de patrocinio.",
+    steps: ["Abre la ficha del evento.", "Consulta alcance, audiencia y brochure.", "Envia tu interes mediante ROIS."],
+    example: "Ejemplo: comparar audiencia y beneficios de un torneo de golf antes de solicitar una propuesta."
+  },
+  "client-sponsors": {
+    title: "Explora activos corporativos",
+    purpose: "Descubre productos, servicios e inventario publicados por empresas dentro de ROIS.",
+    steps: ["Filtra el tipo de activo.", "Revisa condiciones y disponibilidad.", "Solicita informacion o una propuesta comercial."],
+    example: "Ejemplo: localizar inventario industrial disponible para distribucion en una nueva region."
+  },
+  "client-marketplace": {
+    title: "Encuentra talento deportivo compatible",
+    purpose: "Compara deportistas por disciplina, trayectoria, ubicacion y propuesta para patrocinadores.",
+    steps: ["Abre el perfil.", "Revisa evidencia y Sponsor Deck.", "Solicita patrocinio si existe afinidad."],
+    example: "Ejemplo: una marca de equipamiento evalua atletas con calendario activo y audiencia compatible."
+  },
+  "client-founders": {
+    title: "Encuentra creadores para tu marca",
+    purpose: "Explora perfiles universales, redes, audiencia y beneficios comerciales.",
+    steps: ["Abre el perfil del creador.", "Revisa contenido, redes y propuesta.", "Solicita una colaboracion desde ROIS."],
+    example: "Ejemplo: seleccionar un creador de skincare para producir contenido de lanzamiento y resenas."
+  },
+  "client-register": {
+    title: "Publica un evento sin costo inicial",
+    purpose: "Envia tu evento a revision para presentarlo a empresas interesadas dentro de ROIS.",
+    steps: ["Describe audiencia, alcance y sede.", "Agrega beneficios y tipo de patrocinio.", "Envia el evento para revision editorial."],
+    example: "Ejemplo: publicar un congreso ejecutivo con su brochure y abrir solicitudes de patrocinio."
+  },
+  "client-payments": {
+    title: "Controla operaciones especificas",
+    purpose: "Consulta pagos derivados de acuerdos u operaciones comerciales concretas; no existe una membresia obligatoria.",
+    steps: ["Revisa el concepto y monto.", "Confirma el estado.", "Abre la accion de pago solo cuando corresponda."],
+    example: "Ejemplo: consultar el estado de una activacion comercial acordada y documentada previamente."
+  },
+  "client-settings": {
+    title: "Mantén confiable tu perfil empresarial",
+    purpose: "Actualiza la identidad y los datos con los que tu empresa aparece dentro de ROIS.",
+    steps: ["Confirma nombre y datos de contacto.", "Actualiza la identidad visual.", "Guarda y revisa el perfil publicado."],
+    example: "Ejemplo: mantener actualizado el nombre comercial para que postulantes y aliados reconozcan a tu empresa."
+  }
+};
+
+function clientTutorialStorageKey(targetId) {
+  const account = normalizedAccountEmail(state.session?.email) || state.session?.id || "client";
+  return `rois:client-guide:${account}:${targetId}`;
+}
+
+function clientTutorialIsDismissed(targetId) {
+  try {
+    return localStorage.getItem(clientTutorialStorageKey(targetId)) === "hidden";
+  } catch (error) {
+    return false;
+  }
+}
+
+function setClientTutorialDismissed(targetId, dismissed) {
+  try {
+    if (dismissed) localStorage.setItem(clientTutorialStorageKey(targetId), "hidden");
+    else localStorage.removeItem(clientTutorialStorageKey(targetId));
+  } catch (error) {
+    console.warn("[ROIS guide] No fue posible guardar la preferencia.", error);
+  }
+}
+
+function renderClientTutorial(targetId) {
+  const guide = clientTutorialCatalog[targetId];
+  const panelHost = document.querySelector(`[data-dashboard-panel="${targetId}"]`);
+  const panelElement = panelHost?.querySelector(".panel") || panelHost?.querySelector(".client-ad-home") || panelHost?.firstElementChild;
+  if (!guide || !panelElement) return;
+  panelElement.querySelector("[data-client-tutorial]")?.remove();
+  panelElement.querySelector("[data-client-tutorial-restore]")?.remove();
+  const panelHead = panelElement.querySelector(".panel-head");
+
+  if (clientTutorialIsDismissed(targetId)) {
+    (panelHead || panelElement).insertAdjacentHTML(panelHead ? "beforeend" : "afterbegin", `
+      <button class="client-tutorial-restore" type="button" data-client-tutorial-restore aria-label="Mostrar guia de esta seccion">
+        Ver guia
+      </button>
+    `);
+    panelElement.querySelector("[data-client-tutorial-restore]")?.addEventListener("click", () => {
+      setClientTutorialDismissed(targetId, false);
+      renderClientTutorial(targetId);
+    });
+    return;
+  }
+
+  (panelHead || panelElement).insertAdjacentHTML(panelHead ? "afterend" : "afterbegin", `
+    <aside class="client-panel-tutorial" data-client-tutorial aria-label="Guia de ${escapeAttr(guide.title)}">
+      <button class="client-tutorial-close" type="button" data-client-tutorial-close aria-label="Ocultar guia">&times;</button>
+      <div class="client-tutorial-intro">
+        <p class="eyebrow">Guia rapida</p>
+        <h3>${escapeHtml(guide.title)}</h3>
+        <p>${escapeHtml(guide.purpose)}</p>
+      </div>
+      <ol class="client-tutorial-steps">
+        ${guide.steps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}
+      </ol>
+      <div class="client-tutorial-example">
+        <span>Ejemplo practico</span>
+        <p>${escapeHtml(guide.example)}</p>
+      </div>
+    </aside>
+  `);
+  panelElement.querySelector("[data-client-tutorial-close]")?.addEventListener("click", () => {
+    setClientTutorialDismissed(targetId, true);
+    renderClientTutorial(targetId);
+  });
+}
+
 function renderClientPanel(targetId) {
   const map = {
     "client-overview": renderClientOverview,
@@ -4149,6 +4257,7 @@ function renderClientPanel(targetId) {
     "client-settings": () => renderAccountSettings("client-settings")
   };
   if (map[targetId]) map[targetId]();
+  renderClientTutorial(targetId);
   decoratePanelPagination(targetId);
 }
 
@@ -4378,7 +4487,6 @@ function clientAdvertisingOverviewMarkup() {
 
   return `
     <div class="client-ad-home">
-      ${companyAdvancedAccessMarkup(company)}
       <section class="client-company-card">
         <div class="company-profile-logo">${clientCompanyLogoMarkup(company)}</div>
         <div class="client-company-copy">
@@ -4957,28 +5065,6 @@ async function submitCompanyListing(event) {
   }
 }
 
-async function requestCompanyPlan(planKey) {
-  const company = currentCompany();
-  const plan = companyPlanCatalog[planKey];
-  if (!company || !plan || plan.key === "free") return;
-  try {
-    const duplicate = (state.data.requests || []).some(item => item.type === "Plan empresarial" && item.owner === company.name && item.status === "review" && String(item.details || "").includes(`Plan: ${plan.key}`));
-    if (!duplicate) {
-      await api.insert("requests", {
-        type: "Plan empresarial",
-        title: `Activación ${plan.name}`,
-        owner: company.name,
-        details: `Plan: ${plan.key} | Precio sugerido: $${plan.price.toLocaleString("es-MX")} MXN + IVA / mes | Empresa: ${company.name} | Correo: ${company.contact || state.session.email}`,
-        priority: plan.key === "business" ? "Alta" : "Normal",
-        status: "review"
-      });
-    }
-    notify("Planes ROIS", "Solicitud recibida", `Administración validará la activación del plan ${plan.name}.`);
-  } catch (error) {
-    notify("Planes ROIS", "No fue posible solicitar", humanError(error));
-  }
-}
-
 async function requestCompanyListing(listingId) {
   const listing = (state.data.company_listings || []).find(item => item.id === listingId);
   const buyer = currentCompany();
@@ -5135,26 +5221,8 @@ function renderClientFounders() {
 }
 
 function renderClientRegister() {
-  if (!companyCan("publish_events")) {
-    panel("client-register", "Registrar Evento", "Funcionalidad disponible para empresas PRO y Business", `
-      <div class="panel-body">${companyPlanGateMarkup("Publica eventos empresariales sujetos a revisión ROIS")}</div>
-    `);
-    return;
-  }
   const company = currentCompany();
-  const subscription = currentCompanySubscription(company);
-  const monthlyLimit = Number(subscription?.event_limit_monthly || currentCompanyPlan(company).eventLimitMonthly || 0);
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
-  const usedThisMonth = (state.data.events || []).filter(item => item.company_id === company?.id && new Date(item.created_at || 0) >= monthStart && item.status !== "rejected").length;
-  if (monthlyLimit && usedThisMonth >= monthlyLimit) {
-    panel("client-register", "Registrar Evento", "Límite mensual alcanzado", `
-      <div class="panel-body"><div class="empty">Tu plan permite ${monthlyLimit} eventos por mes. Puedes actualizar a Business o esperar al siguiente periodo.</div></div>
-    `);
-    return;
-  }
-  panel("client-register", "Registrar Evento", "Env\u00edo a revisi\u00f3n", `
+  panel("client-register", "Registrar Evento", "Publicacion sin costo inicial", `
     <div class="panel-body">
       <form id="eventForm" class="form-grid">
         <label>Evento<input name="name" required placeholder="Nombre del evento"></label>
@@ -5166,11 +5234,11 @@ function renderClientRegister() {
         ${eventSuccessFeeSelectMarkup()}
         <div class="registration-note" style="grid-column:1/-1">
           <p class="eyebrow">Modelo de success fee ROIS</p>
-          <p>La publicacion de eventos esta incluida en los limites de tu plan empresarial, sin fee individual adicional. Si ROIS participa en la atraccion, presentacion, desarrollo comercial, negociacion o cierre, podra aplicar un success fee del 5% al 20%.</p>
+          <p>La publicacion de eventos no tiene costo inicial. Si ROIS participa en la atraccion, presentacion, desarrollo comercial, negociacion o cierre, podra aplicar un success fee del 5% al 20%.</p>
           <p class="hint">El success fee aplica unicamente sobre sponsors, patrocinios o ingresos comerciales cerrados mediante presentacion, gestion o intervencion comercial de ROIS. Las condiciones finales podran documentarse en contrato o acuerdo comercial especifico.</p>
         </div>
         <label style="grid-column:1/-1">Imagen del evento<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <p class="hint" style="grid-column:1/-1">El evento queda sujeto a revision interna y consume una publicacion mensual del plan activo. ROIS podra participar bajo success fee sobre patrocinios, sponsors, alianzas o ingresos comerciales generados mediante nuestra gestion.</p>
+        <p class="hint" style="grid-column:1/-1">El evento queda sujeto a revision interna antes de publicarse. No requiere activar PRO o Business ni genera un cobro por registro.</p>
         <button class="btn primary" type="submit">Enviar evento a revision ROIS</button>
       </form>
     </div>
@@ -5197,7 +5265,7 @@ function renderClientRegister() {
       const uploaded = await uploadCompanyEventImage(imageFile, company.id, eventRecord.id);
       await api.update("events", eventRecord.id, { image_url: uploaded.url, image_path: uploaded.path, visual_status: "pending_review" });
     }
-    notify("Eventos", "Evento registrado", "Tu evento quedo enviado a revision ROIS dentro del limite de tu plan. El success fee seleccionado aplicara sobre resultados comerciales generados mediante nuestra intervencion.");
+    notify("Eventos", "Evento registrado", "Tu evento quedo enviado a revision ROIS sin costo inicial. El success fee seleccionado aplicara unicamente sobre resultados comerciales generados mediante nuestra intervencion.");
     renderClient();
   });
 }
@@ -12830,7 +12898,7 @@ async function submitRegistration(event) {
         renderSession();
         renderClient();
         showView("client");
-        notify("Cuenta creada", "Bienvenido a ROIS", "Tu cuenta empresarial ya puede explorar el ecosistema. Activa PRO o Business para publicar inventario corporativo y enviar eventos a revision.");
+        notify("Cuenta creada", "Bienvenido a ROIS", "Tu cuenta empresarial ya puede explorar el ecosistema, publicar oportunidades e inventario y enviar eventos a revision sin costo inicial.");
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }
