@@ -332,6 +332,17 @@ function jwtExpirationMs(token = "") {
   }
 }
 
+function clearDashboardDataCaches() {
+  try {
+    const prefix = `${dataCacheKey}:`;
+    Object.keys(sessionStorage)
+      .filter(key => key.startsWith(prefix))
+      .forEach(key => sessionStorage.removeItem(key));
+  } catch (error) {
+    // Cache cleanup is best effort and must not block account administration.
+  }
+}
+
 async function ensureActiveSession() {
   if (demoMode || !state.session?.token) return state.session;
   const expiresAt = Number(state.session.expiresAt || 0) || jwtExpirationMs(state.session.token);
@@ -568,6 +579,12 @@ function mergePageRecords(table, records = []) {
     byKey.set(key, byKey.has(key) ? { ...byKey.get(key), ...record } : record);
   });
   state.data[table] = [...byKey.values()];
+}
+
+function replacePageRecords(table, records = []) {
+  if (!table || !Array.isArray(records)) return;
+  state.data = normalizeLoadedData(state.data || {});
+  state.data[table] = records;
 }
 
 function resetDashboardPanelState() {
@@ -829,15 +846,20 @@ async function ensureDashboardPanelData(targetId, options = {}) {
     const pages = await Promise.all(queries.map(async spec => {
       try {
         const rows = await api.loadTablePage(spec.table, spec.query, { offset, limit: pageSize });
-        return { table: spec.table, rows: Array.isArray(rows) ? rows : [] };
+        return { table: spec.table, rows: Array.isArray(rows) ? rows : [], loaded: true };
       } catch (error) {
         console.warn("[ROIS panel data]", targetId, spec.table, humanError(error));
-        return { table: spec.table, rows: [] };
+        return { table: spec.table, rows: [], loaded: false };
       }
     }));
     await snapshotPromise;
-    pages.forEach(({ table, rows }) => mergePageRecords(table, rows));
-    const hasMore = pages.some(({ rows }) => rows.length === pageSize);
+    pages
+      .filter(page => page.loaded)
+      .forEach(({ table, rows }) => {
+        if (offset === 0) replacePageRecords(table, rows);
+        else mergePageRecords(table, rows);
+      });
+    const hasMore = pages.some(({ rows, loaded }) => loaded && rows.length === pageSize);
     dashboardPanelLoads.set(targetId, {
       loaded: true,
       loading: false,
@@ -10918,16 +10940,45 @@ async function hardDeleteAccount(account) {
     notify("Usuarios", "Borrado cancelado", "No se realizaron cambios.");
     return;
   }
+  let universalProfiles = [];
+  try {
+    universalProfiles = await api.loadTablePage(
+      "user_profiles",
+      `select=id,profile_id,legacy_athlete_id,legacy_founder_id,email,status,visual_status,deleted_at&email=eq.${encodeURIComponent(email)}`,
+      { offset: 0, limit: 20 }
+    );
+  } catch (error) {
+    console.warn("[ROIS account cleanup] user_profiles", humanError(error));
+  }
+  const deletedAt = new Date().toISOString();
+  await Promise.all((universalProfiles || []).map(profile =>
+    api.update("user_profiles", profile.id, {
+      status: "deleted",
+      visual_status: "deleted",
+      deleted_at: deletedAt
+    }).catch(error => {
+      console.warn("[ROIS account cleanup] universal profile", profile.id, humanError(error));
+      return null;
+    })
+  ));
+  const universalIds = new Set((universalProfiles || []).map(profile => profile.id));
+  state.data.marketplace_user_profiles = (state.data.marketplace_user_profiles || [])
+    .filter(profile => normalizedAccountEmail(profile.email) !== email && !universalIds.has(profile.id));
+  state.data.marketplace_user_social_accounts = (state.data.marketplace_user_social_accounts || [])
+    .filter(social => !universalIds.has(social.user_profile_id));
+
   const removals = [];
   if (account.profile?.id) removals.push(api.remove("profiles", account.profile.id));
   if (account.company?.id) removals.push(api.remove("companies", account.company.id));
   if (account.athlete?.id) removals.push(api.remove("athletes", account.athlete.id));
   if (account.founder?.id) removals.push(api.remove("founders", account.founder.id));
   await Promise.all(removals);
+  clearDashboardDataCaches();
+  resetDashboardPanelState();
   notify(
     "Usuarios",
     "Cuenta eliminada",
-    "La cuenta fue eliminada de profiles, companies, athletes y founders. Los registros financieros y de trazabilidad se conservaron."
+    "La cuenta y su perfil operativo fueron retirados de todos los mercados. Los registros financieros y de trazabilidad se conservaron."
   );
   renderAdmin();
   renderPublic();
