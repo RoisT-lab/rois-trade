@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260729-scout-missions-network";
+const roisBuild = "20260729-company-marketplace-visibility-ui";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = [];
 const athleteAnnualFeeAmount = 2500;
@@ -655,10 +655,10 @@ function dashboardPanelQueries(targetId) {
       { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at" }
     ],
     "client-marketplace": [
-      { table: "athletes", query: `select=${athleteColumns}&status=eq.approved&visual_status=eq.approved&marketplace_access_status=eq.active&order=created_at.desc` }
+      { table: "athletes", query: `select=${athleteColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc` }
     ],
     "client-founders": [
-      { table: "founders", query: `select=${founderColumns}&status=eq.approved&visual_status=eq.approved&marketplace_access_status=eq.active&order=created_at.desc` }
+      { table: "founders", query: `select=${founderColumns}&status=eq.approved&visual_status=eq.approved&order=created_at.desc` }
     ],
     "client-payments": companyName ? [
       { table: "payments", query: `select=id,concept,amount,company,status,product_key,created_at&company=eq.${encodedCompany}&order=created_at.desc` },
@@ -4163,8 +4163,7 @@ function clientAthleteRecords() {
   return (state.data.athletes || [])
     .filter(item => item.id && !item.is_virtual)
     .filter(item => String(item.status || "").toLowerCase() === "approved")
-    .filter(item => String(item.visual_status || "").toLowerCase() === "approved")
-    .filter(item => String(item.marketplace_access_status || "").toLowerCase() === "active");
+    .filter(item => String(item.visual_status || "").toLowerCase() === "approved");
 }
 
 function clientFounderRecords() {
@@ -4177,9 +4176,8 @@ function clientFounderRecords() {
   return (state.data.founders || [])
     .filter(item => item.id && !item.is_virtual)
     .filter(item => !athleteEmails.has(String(item.email || "").trim().toLowerCase()))
-    .filter(item => !["blocked", "deleted", "rejected"].includes(String(item.status || "").toLowerCase()))
-    .filter(item => String(item.visual_status || "").toLowerCase() === "approved")
-    .filter(item => String(item.marketplace_access_status || "").toLowerCase() === "active");
+    .filter(item => String(item.status || "").toLowerCase() === "approved")
+    .filter(item => String(item.visual_status || "").toLowerCase() === "approved");
 }
 
 function renderClientOverview() {
@@ -4725,14 +4723,8 @@ async function submitCompanyListing(event) {
   const form = event.currentTarget;
   const submit = form.querySelector('[type="submit"]');
   const company = currentCompany();
-  if (!company || !companyCan("publish_listings")) {
-    notify("Mercado Corporativo", "Plan requerido", "Activa PRO o Business para publicar inventario empresarial.");
-    return;
-  }
-  const activeCount = (state.data.company_listings || []).filter(item => item.company_id === company.id && ["draft", "pending", "approved"].includes(item.status)).length;
-  const limit = Number(currentCompanySubscription(company)?.listing_limit || currentCompanyPlan(company).listingLimit || 0);
-  if (limit && activeCount >= limit) {
-    notify("Mercado Corporativo", "Límite alcanzado", `Tu plan permite ${limit} publicaciones activas.`);
+  if (!company) {
+    notify("Mercado Corporativo", "Cuenta empresarial requerida", "No encontramos la empresa vinculada a tu sesión.");
     return;
   }
   submit.disabled = true;
@@ -4756,7 +4748,7 @@ async function submitCompanyListing(event) {
       availability: form.availability.value,
       contact_email: company.contact || state.session.email,
       website_url: form.website_url.value.trim(),
-      plan_required: currentCompanyPlan(company).key === "business" ? "business" : "pro",
+      plan_required: "free",
       featured: false,
       status: "pending",
       visual_status: "pending_review"
@@ -4847,19 +4839,12 @@ async function archiveCompanyListing(listingId) {
 function renderClientSponsors() {
   const products = vipProducts();
   const listings = corporateMarketplaceListings();
-  const canPublish = companyCan("publish_listings");
-  const plan = currentCompanyPlan();
   panel("client-sponsors", "Mercado Corporativo", "Productos, servicios, activos y oportunidades entre empresas ROIS", `
     <div class="panel-body corporate-market-intro">
       <div class="section-minihead">
-        <p class="eyebrow">Plan ${escapeHtml(companyPlanLabel())}</p>
+        <p class="eyebrow">Mercado Corporativo ROIS</p>
         <h3>Inventario empresarial con contexto comercial.</h3>
-        <p>Explora ofertas aprobadas por ROIS o incorpora inventario propio con trazabilidad de solicitudes.</p>
-      </div>
-      <div class="corporate-plan-summary">
-        <span>${plan.listingLimit || 0} publicaciones</span>
-        <span>${plan.eventLimitMonthly || 0} eventos / mes</span>
-        <span>${plan.seatsLimit || 1} usuario${plan.seatsLimit > 1 ? "s" : ""}</span>
+        <p>Explora ofertas aprobadas o incorpora inventario propio. Todas las publicaciones quedan sujetas a revisión comercial y visual ROIS.</p>
       </div>
     </div>
     <div class="panel-body">
@@ -4868,7 +4853,7 @@ function renderClientSponsors() {
         : `<div class="empty">El inventario corporativo aprobado aparecerá aquí.</div>`}
     </div>
     <div class="panel-body">
-      ${canPublish ? companyListingFormMarkup() : companyPlanGateMarkup("Publica inventario y eventos en ROIS")}
+      ${companyListingFormMarkup()}
     </div>
     ${products.length ? `
       <div class="panel-body curated-vip-inventory">
@@ -7773,23 +7758,34 @@ function renderClientOpportunities() {
         <label style="grid-column:1/-1">Reglas de atribucion<textarea name="attribution_rules" required placeholder="Como se atribuye una venta, prospecto o resultado."></textarea></label>
         <label style="grid-column:1/-1">Condiciones de pago<textarea name="payment_terms" required placeholder="Plazo, validacion y calendario de pago."></textarea></label>
         <fieldset class="requested-data-fieldset" style="grid-column:1/-1"><legend>Datos que solicitas al postulante</legend>${requestedDataCheckboxes()}</fieldset>
-        <fieldset class="requested-data-fieldset scout-mission-config" style="grid-column:1/-1">
-          <legend>Activar red Scout ROIS</legend>
-          <label class="check-option"><input name="scout_enabled" type="checkbox" data-scout-mission-toggle><span>Permitir que usuarios ROIS participen con su codigo Scout global.</span></label>
-          <div class="form-grid" data-scout-mission-fields hidden>
-            <label>Resultado que genera comision<select name="scout_reward_event">
-              <option value="qualified">Prospecto calificado</option>
-              <option value="meeting">Reunion validada</option>
-              <option value="activated">Cliente activado</option>
-            </select></label>
-            <label>Comision por resultado<input name="scout_reward_amount" type="number" min="0" step="0.01" value="0"></label>
-            <label>Moneda<select name="scout_reward_currency"><option value="MXN">MXN</option><option value="USD">USD</option></select></label>
-            <label class="check-option"><input name="scout_requires_approval" type="checkbox" checked><span>Revisar al usuario antes de activar su participacion.</span></label>
-            <label style="grid-column:1/-1">Terminos de la mision<textarea name="scout_terms" placeholder="Define resultado valido, evidencias, exclusiones, plazo de validacion y calendario de pago."></textarea></label>
+        <fieldset class="scout-mission-fieldset" style="grid-column:1/-1" data-scout-mission-config>
+          <legend>Red Scout ROIS</legend>
+          <label class="scout-mission-toggle">
+            <input name="scout_enabled" type="checkbox" data-scout-mission-toggle>
+            <span>
+              <strong>Activar participación con códigos Scout</strong>
+              <small>Los usuarios ROIS podrán vincular su código global a esta oportunidad.</small>
+            </span>
+          </label>
+          <div class="scout-mission-config-fields" data-scout-mission-fields hidden>
+            <div class="scout-mission-input-grid">
+              <label>Resultado que genera comisión<select name="scout_reward_event">
+                <option value="qualified">Prospecto calificado</option>
+                <option value="meeting">Reunión validada</option>
+                <option value="activated">Cliente activado</option>
+              </select></label>
+              <label>Comisión por resultado<input name="scout_reward_amount" type="number" min="0" step="0.01" value="0"></label>
+              <label>Moneda<select name="scout_reward_currency"><option value="MXN">MXN</option><option value="USD">USD</option></select></label>
+            </div>
+            <label class="scout-mission-approval">
+              <input name="scout_requires_approval" type="checkbox" checked>
+              <span>Revisar al usuario antes de activar su participación.</span>
+            </label>
+            <label class="scout-mission-terms">Términos de la misión<textarea name="scout_terms" placeholder="Define el resultado válido, evidencias, exclusiones, plazo de validación y calendario de pago."></textarea></label>
           </div>
-          <p class="hint">La empresa no crea codigos. Cada participante conserva su codigo global ROIS y queda vinculado a esta mision.</p>
+          <p class="scout-mission-note">La empresa no crea códigos. Cada participante conserva su código Scout global y queda vinculado a esta misión.</p>
         </fieldset>
-        <button class="btn primary" type="submit">Enviar a revision ROIS</button>
+        <button class="btn primary opportunity-submit" type="submit">Enviar a revisión ROIS</button>
       </form>
       <div class="opportunity-company-list">
         <div class="section-minihead"><p class="eyebrow">Publicaciones</p><h3>Oportunidades de tu empresa</h3></div>
