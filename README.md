@@ -1,14 +1,38 @@
 # ROIS
 
+## Red Scout universal
+
+La red Scout utiliza un codigo permanente por perfil universal. Las empresas
+publican misiones dentro de sus oportunidades y administran participantes,
+prospectos, resultados y comisiones sin crear codigos nuevos.
+
+Consulta [SCOUT-MISSIONS-NETWORK.md](./SCOUT-MISSIONS-NETWORK.md) para instalar y
+validar la integracion.
+
 Aplicacion web estatica conectada a Supabase para empresas, athletes, creadores y administracion. La compatibilidad tecnica de creadores conserva el role `founder` y la tabla `founders`.
 
-## Red Scout y CRM de referidos
+## Compatibilidad Scout legacy
 
-El role `scout` abre un dashboard independiente con Inicio, Referidos y Seguimiento. Cada Scout puede crear su cuenta desde el menu principal, recibe un codigo personal y registra exclusivamente deportistas y creadores vinculados a ese codigo. No puede registrar empresas ni consultar pagos, ingresos, prospectos ajenos o controles administrativos.
+El role independiente `scout` y su CRM anterior se conservan unicamente para
+cuentas legacy. No forman parte del flujo principal de crecimiento nuevo y las
+empresas no crean ni asignan codigos desde ese panel.
 
-Ejecuta una vez `supabase-external-scout-network.sql` y vuelve a desplegar `supabase/functions/send-rois-crm-invitation`. La Edge Function reutiliza los secretos seguros de Resend (`RESEND_API_KEY`, `ROIS_EMAIL_FROM` y `ROIS_APP_URL`), valida la propiedad del referido y bloquea invitaciones de empresas desde cuentas Scout. Admin conserva el CRM interno completo y puede registrar empresas.
+La arquitectura vigente utiliza el codigo permanente del perfil universal:
+cualquier usuario registrado puede vincularlo voluntariamente con una mision
+publicada por una empresa. El CRM empresarial `Red Scout` administra esas
+vinculaciones, prospectos, resultados y comisiones. Consulta
+`SCOUT-MISSIONS-NETWORK.md` para el flujo actual.
 
-La migracion convierte cuentas legacy con role `commercial` en Scouts, crea su registro operativo y conserva su historial CRM elegible. Los nuevos Scouts se registran con correo y contrasena; si Supabase exige confirmar el correo, el registro y codigo personal se completan automaticamente en el primer inicio de sesion.
+## Acceso empresarial avanzado por invitacion
+
+Las empresas invitadas desde el CRM interno reciben cinco meses de acceso Business sin costo, tarjeta ni renovacion automatica. El beneficio se vincula al correo del prospecto y comienza cuando la empresa crea su cuenta con ese mismo correo. Si la cuenta ya existe, se activa al procesar la invitacion. Una suscripcion pagada activa se conserva sin cambios.
+
+Ejecuta `supabase-company-advanced-access-5-months.sql` despues de `supabase-company-marketplace-pro-business.sql` y vuelve a desplegar `supabase/functions/send-rois-crm-invitation`. La migracion crea el registro auditable `company_access_grants`, activa el periodo automaticamente y deja la fecha final en `company_subscriptions.current_period_end`.
+
+La migracion anterior de Scouts externos se conserva solo para compatibilidad
+con cuentas existentes. Ya no se crean cuentas Scout independientes: toda
+persona se registra con el perfil universal y recibe un codigo global que puede
+usar voluntariamente en las misiones publicadas por empresas.
 
 La comision Scout es un pago unico de $500 MXN por cada deportista o creador que complete su activacion y sea validado por ROIS. No es una comision mensual. El estado `pending` no genera pago, `approved` identifica una comision por liquidar y `paid` confirma que ese referido ya fue pagado y no puede volver a generar la misma comision. Ejecuta una vez `supabase-scout-one-time-commission.sql` para documentar esta regla e indexar la cola de pagos sin modificar referidos existentes.
 
@@ -50,6 +74,7 @@ Sube estos archivos:
 - `supabase-profile-persistence-storage.sql`
 - `supabase-creators-marketplace-evolution.sql`
 - `supabase-company-marketplace-pro-business.sql`
+- `supabase-company-advanced-access-5-months.sql`
 - `supabase-sponsor-deck-ai-mvp.sql`
 - `supabase-broadcast-notifications.sql`
 - `supabase-commercial-crm-invitations.sql`

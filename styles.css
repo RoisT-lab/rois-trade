@@ -5922,6 +5922,82 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   justify-content: flex-end;
 }
 
+/* Temporary advanced access granted through the internal commercial CRM. */
+.company-access-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 28px;
+  margin: 0 0 28px;
+  padding: clamp(24px, 3vw, 38px);
+  border: 1px solid #24272b;
+  border-radius: 28px;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.06), transparent 42%),
+    #111316;
+  color: #fff;
+}
+
+.company-access-banner h3 {
+  margin: 8px 0 12px;
+  color: #fff;
+  font-size: clamp(24px, 3vw, 38px);
+  line-height: 1.05;
+}
+
+.company-access-banner p {
+  max-width: 760px;
+  margin: 0;
+  color: #bdc3cb;
+  line-height: 1.65;
+}
+
+.company-access-banner .eyebrow {
+  color: #fff;
+}
+
+.company-access-meta {
+  min-width: 210px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.company-access-meta span,
+.company-access-meta small {
+  display: block;
+  color: #aeb5bd;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.company-access-meta span {
+  margin-bottom: 6px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.company-access-meta strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #fff;
+  font-size: 18px;
+}
+
+@media (max-width: 760px) {
+  .company-access-banner {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .company-access-meta {
+    justify-self: start;
+    width: 100%;
+  }
+}
+
 /* ROIS white public experience and independent information pages */
 body[data-active-view="home"] {
   color: #0f0f10 !important;
@@ -6575,6 +6651,141 @@ body[data-active-view="home"] .premium-home-footer {
 
   body[data-active-view="home"] .home-role-market .rois-role-card .btn {
     margin-top: 12px !important;
+  }
+}
+
+/* Universal Scout missions */
+.scout-mission-module {
+  display: grid;
+  gap: 24px;
+  margin-top: 34px;
+  padding-top: 30px;
+  border-top: 1px solid var(--line);
+}
+
+.scout-mission-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.scout-mission-card {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: #fff;
+}
+
+.scout-mission-card h3,
+.scout-mission-card p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.scout-mission-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.scout-mission-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.scout-mission-facts div {
+  min-width: 0;
+  padding: 14px 10px;
+  border-right: 1px solid var(--line);
+}
+
+.scout-mission-facts div:last-child {
+  border-right: 0;
+}
+
+.scout-mission-facts dt {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.scout-mission-facts dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.scout-code-card.compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #f5f6f7;
+}
+
+.scout-code-card.compact span,
+.scout-code-card.compact strong {
+  display: block;
+}
+
+.scout-code-card.compact span {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.scout-code-card.compact strong {
+  font-size: clamp(22px, 3vw, 34px);
+  letter-spacing: .04em;
+}
+
+.scout-lead-form {
+  padding: clamp(20px, 4vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #f8f8f8;
+}
+
+.scout-mission-config > .form-grid {
+  margin-top: 16px;
+}
+
+@media (max-width: 680px) {
+  .scout-mission-grid,
+  .scout-mission-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .scout-mission-facts div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .scout-mission-facts div:last-child {
+    border-bottom: 0;
+  }
+
+  .scout-code-card.compact {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

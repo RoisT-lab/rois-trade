@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260630-entrepreneur-speed-v77";
+const roisBuild = "20260729-scout-missions-network";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = [];
 const athleteAnnualFeeAmount = 2500;
@@ -71,7 +71,16 @@ const companyPlanCatalog = {
     listingLimit: 100,
     eventLimitMonthly: 10,
     seatsLimit: 5,
-    features: ["publish_listings", "publish_events", "featured_listings", "team_seats"]
+    features: [
+      "publish_listings",
+      "publish_events",
+      "featured_listings",
+      "team_seats",
+      "manage_opportunities",
+      "manage_campaigns",
+      "manage_results",
+      "market_intelligence"
+    ]
   }
 };
 
@@ -132,6 +141,7 @@ const seed = {
   athlete_notifications: [],
   terms_acceptances: [],
   company_subscriptions: [],
+  company_access_grants: [],
   company_listings: [],
   company_listing_media: [],
   marketplace_leads: [],
@@ -153,7 +163,10 @@ const seed = {
   privacy_consents: [],
   data_subject_requests: [],
   data_access_logs: [],
-  analytics_events: []
+  analytics_events: [],
+  mission_scouts: [],
+  scout_leads: [],
+  scout_mission_commissions: []
 };
 
 const api = withCachedLoadAll(demoMode ? demoApi() : supabaseApi());
@@ -410,7 +423,11 @@ function currentCompany() {
 }
 
 function isScoutSession() {
-  return ["scout", "commercial"].includes(String(state.session?.role || "").toLowerCase());
+  return String(state.session?.role || "").toLowerCase() === "scout";
+}
+
+function isInternalCommercialSession() {
+  return String(state.session?.role || "").toLowerCase() === "commercial";
 }
 
 function currentScoutRecord() {
@@ -451,7 +468,36 @@ function companyCan(feature, company = currentCompany()) {
 function companyPlanLabel(company = currentCompany()) {
   const plan = currentCompanyPlan(company);
   const subscription = currentCompanySubscription(company);
+  if (companyAdvancedTrialIsActive(subscription)) return "Acceso avanzado";
   return companySubscriptionIsActive(subscription) ? plan.name : companyPlanCatalog.free.name;
+}
+
+function companyAdvancedTrialIsActive(subscription = currentCompanySubscription()) {
+  if (!companySubscriptionIsActive(subscription) || String(subscription.status || "").toLowerCase() !== "trialing") return false;
+  const metadata = subscription.metadata && typeof subscription.metadata === "object" ? subscription.metadata : {};
+  return metadata.grant_type === "advanced_5_months" || metadata.source === "commercial_invitation";
+}
+
+function companyAdvancedAccessMarkup(company = currentCompany()) {
+  const subscription = currentCompanySubscription(company);
+  if (!companyAdvancedTrialIsActive(subscription)) return "";
+  const endDate = subscription.current_period_end
+    ? new Date(subscription.current_period_end).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+    : "fecha por confirmar";
+  return `
+    <section class="company-access-banner">
+      <div>
+        <p class="eyebrow">Acceso avanzado incluido</p>
+        <h3>Cinco meses para construir valor dentro de ROIS.</h3>
+        <p>Tu empresa puede publicar oportunidades e inventario, gestionar postulantes y resultados, explorar talento y consultar inteligencia agregada.</p>
+      </div>
+      <div class="company-access-meta">
+        <span>Vigente hasta</span>
+        <strong>${escapeHtml(endDate)}</strong>
+        <small>Sin cobro autom&aacute;tico al finalizar.</small>
+      </div>
+    </section>
+  `;
 }
 
 function companyPlanCard(planKey, options = {}) {
@@ -591,8 +637,8 @@ function activeDashboardPanelId(view = dashboardViewForRole(state.session?.role)
 function dashboardPanelQueries(targetId) {
   const athleteColumns = "id,profile_id,email,contact,name,sport,category,location,ranking,stats,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
   const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
-  const universalProfileColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,email,name,public_name,image_url,bio,city,state_region,country,birth_date,age_range,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,verification_status,created_at,updated_at";
-  const opportunityColumns = "id,company_id,created_by,title,description,opportunity_type,category,industry,objective,desired_profile,territory,location,modality,starts_at,closes_at,slots,compensation_type,compensation_amount,commission_rate,margin_amount,wholesale_price,suggested_price,minimum_purchase,purchase_required,inventory_available,delivery_method,return_policy,deliverables,acceptance_criteria,attribution_rules,payment_terms,requested_data_fields,materials,legal_documents,status,moderation_notes,approved_at,published_at,created_at,updated_at";
+  const universalProfileColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,email,name,public_name,image_url,bio,city,state_region,country,birth_date,age_range,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,verification_status,scout_code,scout_active,created_at,updated_at";
+  const opportunityColumns = "id,company_id,created_by,title,description,opportunity_type,category,industry,objective,desired_profile,territory,location,modality,starts_at,closes_at,slots,compensation_type,compensation_amount,commission_rate,margin_amount,wholesale_price,suggested_price,minimum_purchase,purchase_required,inventory_available,delivery_method,return_policy,deliverables,acceptance_criteria,attribution_rules,payment_terms,requested_data_fields,materials,legal_documents,scout_enabled,scout_reward_event,scout_reward_amount,scout_reward_currency,scout_terms,scout_requires_approval,status,moderation_notes,approved_at,published_at,created_at,updated_at";
   const applicationColumns = "id,opportunity_id,user_profile_id,applicant_profile_id,message,shared_profile_snapshot,status,company_notes,requested_information,submitted_at,decided_at,created_at,updated_at";
   const crmColumns = "id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at";
   const companyName = currentCompany()?.name || state.session?.name || "";
@@ -606,7 +652,7 @@ function dashboardPanelQueries(targetId) {
     "client-sponsors": [
       { table: "partnerships", query: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" },
       { table: "company_listings", query: "select=id,company_id,profile_id,company_name,listing_type,category,subcategory,title,summary,description,price,currency,price_label,location,inventory_count,availability,contact_email,website_url,primary_image_url,plan_required,featured,featured_until,status,visual_status,expires_at,created_at,updated_at&order=featured.desc,created_at.desc" },
-      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at" }
+      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at" }
     ],
     "client-marketplace": [
       { table: "athletes", query: `select=${athleteColumns}&status=eq.approved&visual_status=eq.approved&marketplace_access_status=eq.active&order=created_at.desc` }
@@ -619,7 +665,7 @@ function dashboardPanelQueries(targetId) {
       { table: "requests", query: `select=id,type,title,owner,details,priority,status,created_at&owner=eq.${encodedCompany}&order=created_at.desc` }
     ] : [],
     "client-register": [
-      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at" },
+      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at" },
       ...(companyId ? [{ table: "events", query: `select=id,company_id,profile_id,name,status,created_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` }] : [])
     ],
     "client-opportunities": [
@@ -630,6 +676,12 @@ function dashboardPanelQueries(targetId) {
     "client-applicants": [
       { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` },
       { table: "opportunity_applications", query: `select=${applicationColumns}&order=created_at.desc` }
+    ],
+    "client-scout-network": [
+      { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` },
+      { table: "mission_scouts", query: "select=id,opportunity_id,company_id,user_profile_id,scout_code,scout_public_name,status,joined_at,approved_at,created_at,updated_at&order=created_at.desc" },
+      { table: "scout_leads", query: "select=id,mission_scout_id,opportunity_id,company_id,scout_user_profile_id,scout_code,prospect_type,prospect_name,prospect_email,prospect_phone,prospect_company,country,city,industry,consent,consent_at,notes,company_notes,economic_value,status,submitted_at,created_at,updated_at&order=created_at.desc" },
+      { table: "scout_mission_commissions", query: "select=id,mission_scout_id,lead_id,opportunity_id,company_id,user_profile_id,scout_code,trigger_type,gross_amount,withholding_amount,net_amount,currency,status,estimated_payment_at,approved_at,paid_at,payment_evidence_url,created_at,updated_at&order=created_at.desc" }
     ],
     "client-results": [
       { table: "participations", query: "select=id,opportunity_id,application_id,user_profile_id,company_id,status,started_at,completed_at,created_at,updated_at&order=created_at.desc" },
@@ -671,7 +723,7 @@ function dashboardPanelQueries(targetId) {
     "admin-partners": [{ table: "partnerships", query: "select=id,name,type,tier,description,image_url,url,visual_status,visual_notes,status,created_at&order=created_at.desc" }],
     "admin-corporate-market": [
       { table: "company_listings", query: "select=id,company_id,profile_id,company_name,listing_type,category,subcategory,title,summary,description,price,currency,price_label,location,inventory_count,availability,contact_email,website_url,primary_image_url,plan_required,featured,featured_until,status,visual_status,visual_notes,expires_at,created_at,updated_at&order=created_at.desc" },
-      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,stripe_customer_id,stripe_subscription_id,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at&order=created_at.desc" },
+      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,stripe_customer_id,stripe_subscription_id,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at&order=created_at.desc" },
       { table: "companies", query: "select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status,created_at&order=created_at.desc" },
       { table: "marketplace_leads", query: "select=id,listing_id,seller_company_id,buyer_company_id,requester_email,requester_name,requester_company,message,status,created_at,updated_at&order=created_at.desc" },
       { table: "requests", query: "select=id,type,title,owner,details,priority,status,created_at&type=eq.Plan%20empresarial&order=created_at.desc" }
@@ -710,7 +762,10 @@ function dashboardPanelQueries(targetId) {
     ],
     "admin-commissions": [
       { table: "commissions", query: "select=id,conversion_id,opportunity_id,user_profile_id,company_id,gross_amount,withholding_amount,net_amount,status,estimated_payment_at,paid_at,payment_evidence_url,created_at,updated_at&order=created_at.desc" },
-      { table: "conversions", query: "select=id,participation_id,opportunity_id,user_profile_id,company_id,conversion_type,economic_value,commission_amount,validation_status,created_at&order=created_at.desc" }
+      { table: "conversions", query: "select=id,participation_id,opportunity_id,user_profile_id,company_id,conversion_type,economic_value,commission_amount,validation_status,created_at&order=created_at.desc" },
+      { table: "mission_scouts", query: "select=id,opportunity_id,company_id,user_profile_id,scout_code,scout_public_name,status,joined_at,approved_at,created_at,updated_at&order=created_at.desc" },
+      { table: "scout_leads", query: "select=id,mission_scout_id,opportunity_id,company_id,scout_user_profile_id,scout_code,prospect_type,prospect_name,prospect_email,prospect_phone,prospect_company,economic_value,status,submitted_at,created_at,updated_at&order=created_at.desc" },
+      { table: "scout_mission_commissions", query: "select=id,mission_scout_id,lead_id,opportunity_id,company_id,user_profile_id,scout_code,trigger_type,gross_amount,withholding_amount,net_amount,currency,status,estimated_payment_at,approved_at,paid_at,payment_evidence_url,created_at,updated_at&order=created_at.desc" }
     ],
     "admin-disputes": [{ table: "disputes", query: "select=id,participation_id,application_id,opened_by,reason,details,evidence,status,resolution,resolved_by,resolved_at,created_at,updated_at&order=created_at.desc" }],
     "admin-privacy": [
@@ -724,12 +779,19 @@ function dashboardPanelQueries(targetId) {
     { table: "opportunities", query: `select=${opportunityColumns}&status=eq.published&order=published_at.desc` },
     { table: "user_profiles", query: `select=${universalProfileColumns}&order=created_at.desc` }
   ];
+  const scoutMissionUserQueries = [
+    ...opportunityUserQueries,
+    { table: "mission_scouts", query: "select=id,opportunity_id,company_id,user_profile_id,scout_code,scout_public_name,status,joined_at,approved_at,created_at,updated_at&order=created_at.desc" },
+    { table: "scout_leads", query: "select=id,mission_scout_id,opportunity_id,company_id,scout_user_profile_id,scout_code,prospect_type,prospect_name,prospect_email,prospect_phone,prospect_company,country,city,industry,consent,consent_at,notes,economic_value,status,submitted_at,created_at,updated_at&order=created_at.desc" },
+    { table: "scout_mission_commissions", query: "select=id,mission_scout_id,lead_id,opportunity_id,company_id,user_profile_id,scout_code,trigger_type,gross_amount,withholding_amount,net_amount,currency,status,estimated_payment_at,approved_at,paid_at,payment_evidence_url,created_at,updated_at&order=created_at.desc" }
+  ];
   const opportunityApplicationQueries = [
     { table: "opportunity_applications", query: `select=${applicationColumns}&order=created_at.desc` },
     { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` }
   ];
   const opportunityIncomeQueries = [
     { table: "commissions", query: "select=id,conversion_id,opportunity_id,user_profile_id,company_id,gross_amount,withholding_amount,net_amount,status,estimated_payment_at,paid_at,payment_evidence_url,created_at,updated_at&order=created_at.desc" },
+    { table: "scout_mission_commissions", query: "select=id,mission_scout_id,lead_id,opportunity_id,company_id,user_profile_id,scout_code,trigger_type,gross_amount,withholding_amount,net_amount,currency,status,estimated_payment_at,approved_at,paid_at,payment_evidence_url,created_at,updated_at&order=created_at.desc" },
     { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` }
   ];
   const commercial = {
@@ -742,6 +804,7 @@ function dashboardPanelQueries(targetId) {
       { table: "brand_growth_campaigns", query: "select=id,title,objective,brief,deliverables,start_date,end_date,status,created_at&status=eq.active&order=created_at.desc" },
       { table: "brand_growth_participants", query: "select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,status,created_at,updated_at&order=created_at.desc" }
     ],
+    "athlete-scouts": scoutMissionUserQueries,
     "athlete-opportunities": opportunityUserQueries,
     "athlete-applications": opportunityApplicationQueries,
     "athlete-income": opportunityIncomeQueries
@@ -1187,7 +1250,7 @@ function scoutCodeKey(value = "") {
 }
 
 function scoutCodeLooksValid(value = "") {
-  return /^ROIS[A-Z0-9]{6}$/.test(scoutCodeKey(value));
+  return /^ROIS[A-Z0-9]{6,8}$/.test(scoutCodeKey(value));
 }
 
 function makeScoutCode(name = "", email = "") {
@@ -1201,6 +1264,16 @@ function makeScoutCode(name = "", email = "") {
 
 function scoutCodeForAthlete(athlete = currentAthlete()) {
   return normalizeScoutCode(athlete?.scout_code || makeScoutCode(athlete?.name || state.session?.name || "ROIS", athlete?.email || state.session?.email || ""));
+}
+
+function currentUniversalScoutCode() {
+  const profile = currentUniversalProfile();
+  const source = currentFounder() || currentAthlete() || currentScoutRecord();
+  return normalizeScoutCode(
+    profile?.scout_code ||
+    source?.scout_code ||
+    makeScoutCode(profile?.public_name || source?.name || state.session?.name || "ROIS", state.session?.email || "")
+  );
 }
 
 function activeScoutAthletes() {
@@ -1779,15 +1852,48 @@ function demoApi() {
     },
     async signupCompany({ company, email, contact, interest, password }) {
       const data = read();
-      if (data.profiles.some(item => item.email.toLowerCase() === email.toLowerCase())) {
+      const normalizedEmail = normalizedAccountEmail(email);
+      if (data.profiles.some(item => item.email.toLowerCase() === normalizedEmail)) {
         throw new Error("Ya existe una cuenta con ese correo.");
       }
       const id = crypto.randomUUID();
-      const profile = { id, email, password, role: "client", name: company, status: "approved", mustChangePassword: false };
+      const profile = { id, email: normalizedEmail, password, role: "client", name: company, status: "approved", mustChangePassword: false };
       data.profiles.unshift(profile);
       const companyId = crypto.randomUUID();
-      data.companies.unshift({ id: companyId, profile_id: id, name: company, contact: email, owner: contact, interest, status: "approved" });
-      data.company_subscriptions.unshift({ id: crypto.randomUUID(), company_id: companyId, profile_id: id, company_name: company, plan: "free", status: "inactive", listing_limit: 0, event_limit_monthly: 0, seats_limit: 1 });
+      data.companies.unshift({ id: companyId, profile_id: id, name: company, contact: normalizedEmail, owner: contact, interest, status: "approved" });
+      const grant = (data.company_access_grants || []).find(item =>
+        normalizedAccountEmail(item.email) === normalizedEmail &&
+        ["pending", "redeemed"].includes(String(item.status || "").toLowerCase())
+      );
+      const trialStartedAt = new Date();
+      const trialEndsAt = new Date(trialStartedAt);
+      trialEndsAt.setMonth(trialEndsAt.getMonth() + Number(grant?.access_months || 5));
+      data.company_subscriptions.unshift(grant
+        ? {
+            id: crypto.randomUUID(),
+            company_id: companyId,
+            profile_id: id,
+            company_name: company,
+            plan: "business",
+            status: "trialing",
+            current_period_start: trialStartedAt.toISOString(),
+            current_period_end: trialEndsAt.toISOString(),
+            listing_limit: companyPlanCatalog.business.listingLimit,
+            event_limit_monthly: companyPlanCatalog.business.eventLimitMonthly,
+            seats_limit: companyPlanCatalog.business.seatsLimit,
+            metadata: { grant_type: "advanced_5_months", source: "commercial_invitation", auto_renew: false }
+          }
+        : { id: crypto.randomUUID(), company_id: companyId, profile_id: id, company_name: company, plan: "free", status: "inactive", listing_limit: 0, event_limit_monthly: 0, seats_limit: 1 });
+      if (grant) {
+        Object.assign(grant, {
+          status: "redeemed",
+          trial_started_at: trialStartedAt.toISOString(),
+          trial_ends_at: trialEndsAt.toISOString(),
+          redeemed_company_id: companyId,
+          redeemed_profile_id: id,
+          updated_at: trialStartedAt.toISOString()
+        });
+      }
       write(data);
       state.data = data;
       return {
@@ -2092,7 +2198,8 @@ function supabaseApi() {
         athlete_deposits: `select=id,athlete_id,athlete_email,athlete_name,month,amount,company,proof_url,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
         athlete_notifications: `select=id,athlete_id,athlete_email,athlete_name,title,message,category,priority,status,email_status,sent_by,read_at,created_at&order=created_at.desc&limit=${mediumLimit}`,
         terms_acceptances: `select=id,user_email,user_role,version,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
-        company_subscriptions: `select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
+        company_subscriptions: `select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
+        company_access_grants: `select=id,email,grant_type,status,access_months,source_crm_id,invited_by,offer_expires_at,trial_started_at,trial_ends_at,redeemed_company_id,redeemed_profile_id,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
         company_listings: `select=id,company_id,profile_id,company_name,listing_type,category,subcategory,title,summary,description,price,currency,price_label,location,inventory_count,availability,contact_email,website_url,primary_image_url,plan_required,featured,featured_until,status,visual_status,visual_notes,expires_at,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
         company_listing_media: `select=id,listing_id,company_id,storage_path,public_url,original_name,mime_type,sort_order,created_at&order=created_at.desc&limit=${mediumLimit}`,
         marketplace_leads: `select=id,listing_id,seller_company_id,buyer_company_id,requester_profile_id,requester_email,requester_name,requester_company,message,status,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
@@ -2127,7 +2234,15 @@ function supabaseApi() {
         }));
         return normalizeLoadedData(result);
       }
-      if (role === "scout" || role === "commercial") {
+      if (role === "commercial") {
+        const [profiles, crm, grants] = await Promise.all([
+          roleRequest(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`),
+          roleRequest("/rest/v1/crm?select=id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=500"),
+          roleRequest("/rest/v1/company_access_grants?select=id,email,grant_type,status,access_months,source_crm_id,invited_by,offer_expires_at,trial_started_at,trial_ends_at,redeemed_company_id,redeemed_profile_id,created_at,updated_at&order=created_at.desc&limit=500")
+        ]);
+        return normalizeLoadedData({ profiles, crm, company_access_grants: grants });
+      }
+      if (role === "scout") {
         const [profiles, scouts, crm] = await Promise.all([
           roleRequest(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`),
           roleRequest(`/rest/v1/scouts?select=id,profile_id,email,name,scout_code,status,commission_per_active_referral,created_at&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`),
@@ -2202,7 +2317,7 @@ function supabaseApi() {
         ownProfile,
         roleRequest(`/rest/v1/companies?select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodedEmail}&limit=1`),
         roleRequest("/rest/v1/news?select=id,title,summary,image_url,status,visual_status,created_at&status=eq.published&order=created_at.desc&limit=12"),
-        roleRequest(`/rest/v1/company_subscriptions?select=id,company_id,profile_id,plan,status,current_period_end,listing_limit,event_limit_monthly,seats_limit,created_at,updated_at&profile_id=eq.${encodeURIComponent(authId)}&limit=1`)
+        roleRequest(`/rest/v1/company_subscriptions?select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at&profile_id=eq.${encodeURIComponent(authId)}&limit=1`)
       ]);
       return { profiles, companies, news, company_subscriptions: subscriptions };
     },
@@ -3559,7 +3674,6 @@ function openRegistrationChoice(context = "profile") {
       <button class="btn primary" type="button" data-registration="company">Empresa</button>
       <button class="btn" type="button" data-registration="athlete">Athlete</button>
       <button class="btn" type="button" data-registration="founder">Creador</button>
-      <button class="btn" type="button" data-registration="scout">Scout</button>
     </div>`
   );
   document.querySelectorAll("#actionModal [data-registration]").forEach(button => {
@@ -3978,6 +4092,7 @@ function renderClientPanel(targetId) {
     "client-founders": renderClientFounders,
     "client-opportunities": renderClientOpportunities,
     "client-applicants": renderClientApplicants,
+    "client-scout-network": renderClientScoutNetwork,
     "client-results": renderClientOpportunityResults,
     "client-intelligence": renderClientIntelligence,
     "client-register": renderClientRegister,
@@ -4088,6 +4203,7 @@ function clientAdvertisingOverviewMarkup() {
 
   return `
     <div class="client-ad-home">
+      ${companyAdvancedAccessMarkup(company)}
       <section class="client-company-card">
         <div class="company-profile-logo">${clientCompanyLogoMarkup(company)}</div>
         <div class="client-company-copy">
@@ -4139,8 +4255,8 @@ function registrationReferralFromUrl() {
     founder: "founder",
     company: "company",
     empresa: "company",
-    scout: "scout",
-    scouts: "scout"
+    scout: "founder",
+    scouts: "founder"
   };
 
   return {
@@ -6240,6 +6356,197 @@ function scoutRulesList(profile = currentAthlete()) {
   `;
 }
 
+function scoutMissionOpportunityRecords() {
+  return (state.data?.opportunities || []).filter(item =>
+    item.scout_enabled === true &&
+    item.status === "published" &&
+    (!item.closes_at || new Date(item.closes_at).getTime() >= Date.now())
+  );
+}
+
+function currentScoutMissionMemberships() {
+  const profileId = currentUniversalProfile()?.id;
+  const code = scoutCodeKey(currentUniversalScoutCode());
+  return (state.data?.mission_scouts || []).filter(item =>
+    (profileId && item.user_profile_id === profileId) ||
+    (code && scoutCodeKey(item.scout_code) === code)
+  );
+}
+
+function scoutMissionName(opportunityId) {
+  return (state.data?.opportunities || []).find(item => item.id === opportunityId)?.title || "Mision comercial";
+}
+
+function scoutMissionUserMarkup() {
+  const profile = currentUniversalProfile();
+  const code = currentUniversalScoutCode();
+  const missions = scoutMissionOpportunityRecords();
+  const memberships = currentScoutMissionMemberships();
+  const membershipIds = new Set(memberships.map(item => item.id));
+  const leads = (state.data?.scout_leads || []).filter(item => membershipIds.has(item.mission_scout_id));
+  const commissions = (state.data?.scout_mission_commissions || []).filter(item =>
+    memberships.some(membership => membership.id === item.mission_scout_id)
+  );
+  const approvedAmount = commissions
+    .filter(item => ["approved", "paid"].includes(item.status))
+    .reduce((sum, item) => sum + Number(item.net_amount || 0), 0);
+  const paidAmount = commissions
+    .filter(item => item.status === "paid")
+    .reduce((sum, item) => sum + Number(item.net_amount || 0), 0);
+  const activeMemberships = memberships.filter(item => item.status === "active");
+  const missionCards = missions.map(opportunity => {
+    const membership = memberships.find(item => item.opportunity_id === opportunity.id);
+    return `
+      <article class="scout-mission-card">
+        <div class="scout-mission-card-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(opportunityCompanyName(opportunity))}</p>
+            <h3>${escapeHtml(opportunity.title || "Mision Scout")}</h3>
+          </div>
+          ${badge(membership?.status || "disponible")}
+        </div>
+        <p>${escapeHtml(opportunity.description || "Consulta los terminos de la mision.")}</p>
+        <dl class="scout-mission-facts">
+          <div><dt>Resultado pagable</dt><dd>${escapeHtml(opportunity.scout_reward_event || "qualified")}</dd></div>
+          <div><dt>Comision</dt><dd>${money(opportunity.scout_reward_amount)} ${escapeHtml(opportunity.scout_reward_currency || "MXN")}</dd></div>
+          <div><dt>Territorio</dt><dd>${escapeHtml(opportunity.territory || opportunity.location || "Abierto")}</dd></div>
+        </dl>
+        <p class="hint">${escapeHtml(opportunity.scout_terms || "La comision depende de validacion empresarial y no esta garantizada.")}</p>
+        ${membership
+          ? `<span class="pill">${membership.status === "active" ? "Mision activa" : "En revision"}</span>`
+          : `<button class="btn" type="button" data-join-scout-mission="${escapeAttr(opportunity.id)}">Unirme con mi codigo</button>`}
+      </article>
+    `;
+  }).join("");
+  const activeOptions = activeMemberships
+    .map(item => `<option value="${escapeAttr(item.id)}">${escapeHtml(scoutMissionName(item.opportunity_id))}</option>`)
+    .join("");
+  const leadRows = leads.map(item => [
+    escapeHtml(scoutMissionName(item.opportunity_id)),
+    escapeHtml(item.prospect_name || "Prospecto"),
+    escapeHtml(item.prospect_company || item.prospect_type || ""),
+    badge(item.status || "submitted"),
+    escapeHtml(readableDate(item.submitted_at || item.created_at))
+  ]);
+  return `
+    <section class="scout-mission-module">
+      <div class="section-minihead">
+        <p class="eyebrow">Misiones de empresas</p>
+        <h3>Tu codigo global conecta resultados con empresas.</h3>
+        <p>ROIS conserva un solo codigo por persona. Las empresas publican misiones y validan prospectos o conversiones; no crean codigos nuevos.</p>
+      </div>
+      <div class="scout-code-card compact">
+        <div><span>Codigo Scout global</span><strong>${escapeHtml(code)}</strong></div>
+        <button class="btn" type="button" data-copy-global-scout>Copiar codigo</button>
+      </div>
+      <div class="scout-metrics">
+        <div><span>Misiones activas</span><strong>${activeMemberships.length}</strong></div>
+        <div><span>Prospectos</span><strong>${leads.length}</strong></div>
+        <div><span>Comision aprobada</span><strong>${money(approvedAmount)}</strong></div>
+        <div><span>Pagado</span><strong>${money(paidAmount)}</strong></div>
+      </div>
+      ${missions.length ? `<div class="scout-mission-grid">${missionCards}</div>` : `<div class="empty">Las nuevas misiones Scout aprobadas apareceran aqui.</div>`}
+      ${profile && activeMemberships.length ? `
+        <form class="form-grid scout-lead-form" data-scout-lead-form>
+          <div class="section-minihead" style="grid-column:1/-1"><p class="eyebrow">Registrar resultado</p><h3>Agrega un prospecto para validacion.</h3></div>
+          <label>Mision<select name="mission_scout_id" required>${activeOptions}</select></label>
+          <label>Tipo<select name="prospect_type"><option value="company">Empresa</option><option value="person">Persona</option></select></label>
+          <label>Nombre<input name="prospect_name" required maxlength="120"></label>
+          <label>Empresa<input name="prospect_company" maxlength="160"></label>
+          <label>Correo<input name="prospect_email" type="email" required></label>
+          <label>Telefono<input name="prospect_phone" maxlength="40"></label>
+          <label>Ciudad<input name="city" maxlength="100"></label>
+          <label>Pais<input name="country" maxlength="100"></label>
+          <label style="grid-column:1/-1">Contexto<textarea name="notes" required placeholder="Relacion, necesidad detectada y siguiente paso sugerido."></textarea></label>
+          <label class="check-option" style="grid-column:1/-1"><input name="consent" type="checkbox" required><span>Confirmo que tengo autorizacion para compartir estos datos con la empresa responsable de la mision.</span></label>
+          <button class="btn primary" type="submit">Enviar a validacion</button>
+        </form>
+      ` : ""}
+      ${leadRows.length ? table(["Mision", "Prospecto", "Organizacion", "Estado", "Fecha"], leadRows) : ""}
+    </section>
+  `;
+}
+
+async function joinScoutMission(opportunityId) {
+  const profile = currentUniversalProfile();
+  const opportunity = (state.data?.opportunities || []).find(item => item.id === opportunityId);
+  const company = currentCompany();
+  if (!profile?.id || !opportunity?.id) {
+    notify("Scouts", "Perfil requerido", "Completa primero tu perfil universal para vincular tu codigo.");
+    return;
+  }
+  if (currentScoutMissionMemberships().some(item => item.opportunity_id === opportunity.id)) return;
+  try {
+    const record = await api.insert("mission_scouts", {
+      opportunity_id: opportunity.id,
+      company_id: opportunity.company_id,
+      user_profile_id: profile.id,
+      scout_code: currentUniversalScoutCode(),
+      scout_public_name: profile.public_name || profile.name || state.session?.name || "Scout ROIS",
+      status: opportunity.scout_requires_approval ? "pending" : "active",
+      joined_at: new Date().toISOString(),
+      approved_at: opportunity.scout_requires_approval ? null : new Date().toISOString()
+    });
+    replaceRecordInState("mission_scouts", record);
+    notify("Scouts", opportunity.scout_requires_approval ? "Solicitud enviada" : "Mision activada", opportunity.scout_requires_approval
+      ? "La empresa revisara tu vinculacion antes de aceptar prospectos."
+      : "Ya puedes registrar prospectos con tu codigo global.");
+    renderAthleteScouts();
+  } catch (error) {
+    notify("Scouts", "No fue posible vincularte", humanError(error));
+  }
+}
+
+async function submitScoutMissionLead(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const membership = currentScoutMissionMemberships().find(item => item.id === form.mission_scout_id.value && item.status === "active");
+  if (!membership) {
+    notify("Scouts", "Mision no disponible", "La vinculacion debe estar activa antes de registrar prospectos.");
+    return;
+  }
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  submit.textContent = "Enviando...";
+  try {
+    const record = await api.insert("scout_leads", {
+      mission_scout_id: membership.id,
+      opportunity_id: membership.opportunity_id,
+      company_id: membership.company_id,
+      scout_user_profile_id: membership.user_profile_id,
+      scout_code: membership.scout_code,
+      prospect_type: form.prospect_type.value,
+      prospect_name: form.prospect_name.value.trim(),
+      prospect_email: normalizedAccountEmail(form.prospect_email.value),
+      prospect_phone: form.prospect_phone.value.trim(),
+      prospect_company: form.prospect_company.value.trim(),
+      country: form.country.value.trim(),
+      city: form.city.value.trim(),
+      consent: form.consent.checked,
+      consent_at: new Date().toISOString(),
+      notes: form.notes.value.trim(),
+      status: "submitted",
+      submitted_at: new Date().toISOString()
+    });
+    replaceRecordInState("scout_leads", record);
+    form.reset();
+    notify("Scouts", "Prospecto registrado", "La empresa ya puede revisar y validar el resultado desde su CRM.");
+    renderAthleteScouts();
+  } catch (error) {
+    notify("Scouts", "No fue posible registrar", humanError(error));
+    submit.disabled = false;
+    submit.textContent = "Enviar a validacion";
+  }
+}
+
+function bindScoutMissionUserEvents() {
+  document.querySelectorAll("[data-join-scout-mission]").forEach(button => {
+    button.addEventListener("click", () => joinScoutMission(button.dataset.joinScoutMission));
+  });
+  document.querySelector("[data-copy-global-scout]")?.addEventListener("click", () => copyScoutCode(currentUniversalScoutCode()));
+  document.querySelector("[data-scout-lead-form]")?.addEventListener("submit", submitScoutMissionLead);
+}
+
 function renderAthleteScouts() {
   const athlete = currentAthlete();
   const copy = verticalCopy(athlete);
@@ -6248,7 +6555,7 @@ function renderAthleteScouts() {
   const referredPlural = "athletes y creadores";
   const talentLabel = "talento deportivo y creativo";
   if (!athlete) {
-    panel("athlete-scouts", copy.scoutsTitle, "Red de invitacion ROIS", `<div class="empty">${copy.profileEmptyText}</div>`);
+    panel("athlete-scouts", "Scouts", "Misiones comerciales y resultados", `<div class="empty">${copy.profileEmptyText}</div>`);
     return;
   }
   const code = scoutCodeForAthlete(athlete);
@@ -6280,13 +6587,19 @@ function renderAthleteScouts() {
         : "$0 MXN"
     ];
   });
-  panel("athlete-scouts", copy.scoutsTitle, copy.scoutsSubtitle, `
+  panel("athlete-scouts", "Scouts", "Misiones comerciales, prospectos y comisiones vinculadas con tu codigo global", `
     <div class="panel-body scout-dashboard">
+      ${scoutMissionUserMarkup()}
+      <section class="scout-policy scout-legacy-history">
+        <p class="eyebrow">Historial de referidos ROIS</p>
+        <h3>Compatibilidad con invitaciones anteriores.</h3>
+        <p>Este bloque conserva tus referidos y comisiones historicas. Las nuevas activaciones comerciales se gestionan desde Misiones de empresas con tu mismo codigo global.</p>
+      </section>
       <div class="scout-code-card">
         <div>
-          <p class="eyebrow">Codigo Scout ROIS</p>
+          <p class="eyebrow">Codigo global · invitaciones anteriores</p>
           <h3>${code}</h3>
-          <p>${athlete.scout_active ? `Tu codigo esta activo para invitar ${referredPlural}.` : `Unete a la red para activar tu codigo y empezar a invitar ${referredPlural}.`}</p>
+          <p>${athlete.scout_active ? "Tu codigo conserva el historial de la red anterior." : "Activa el codigo para consultar y conservar tu historial anterior."}</p>
         </div>
         <div class="scout-actions">
           ${athlete.scout_active
@@ -6305,7 +6618,7 @@ function renderAthleteScouts() {
         <div><span>Pagado acumulado</span><strong>$${(paidCommissionRows.length * scoutCommissionAmount).toLocaleString("es-MX")}</strong></div>
       </div>
       <div class="scout-policy">
-        <p class="eyebrow">Reglas obligatorias</p>
+        <p class="eyebrow">Reglas del programa anterior</p>
         <p>ROIS paga una sola comision de $${scoutCommissionAmount.toLocaleString("es-MX")} MXN por cada referido directo que complete su activacion y sea validado. No es un pago mensual.</p>
         <p>Comparte tu codigo con ${referredPlural}, comunidades y perfiles alineados con el ${talentLabel} que quieres acercar al ecosistema.</p>
         ${scoutRulesList(athlete)}
@@ -6582,6 +6895,7 @@ function renderAdminControlLegacy() {
       </div>
     </div>
   `);
+  bindScoutMissionUserEvents();
 }
 
 function adminCommandMetric(label, value, note = "") {
@@ -7084,7 +7398,9 @@ function universalProfileSeed() {
     can_invoice: false,
     badges: isCreator ? ["creator"] : ["athlete"],
     status: "active",
-    verification_status: "pending"
+    verification_status: "pending",
+    scout_code: scoutCodeForAthlete(source),
+    scout_active: source.scout_active !== false
   };
 }
 
@@ -7114,7 +7430,10 @@ function opportunityCardMarkup(opportunity, options = {}) {
   return `
     <article class="opportunity-card" data-opportunity-type="${escapeAttr(opportunity.opportunity_type || "")}">
       <div class="opportunity-card-head">
-        <span class="pill">${escapeHtml(opportunityTypeLabel(opportunity.opportunity_type))}</span>
+        <div class="opportunity-card-tags">
+          <span class="pill">${escapeHtml(opportunityTypeLabel(opportunity.opportunity_type))}</span>
+          ${opportunity.scout_enabled ? `<span class="pill">Mision Scout</span>` : ""}
+        </div>
         <span class="opportunity-status">${escapeHtml(opportunityStatusLabel(opportunity.status))}</span>
       </div>
       <div>
@@ -7127,6 +7446,7 @@ function opportunityCardMarkup(opportunity, options = {}) {
         <div><dt>Territorio</dt><dd>${escapeHtml(opportunity.territory || opportunity.location || "Abierto")}</dd></div>
         <div><dt>Compensacion</dt><dd>${escapeHtml(opportunityCompensation(opportunity))}</dd></div>
         <div><dt>Cierre</dt><dd>${escapeHtml(deadline)}</dd></div>
+        ${opportunity.scout_enabled ? `<div><dt>Comision Scout</dt><dd>${money(opportunity.scout_reward_amount)}</dd></div>` : ""}
       </dl>
       <div class="opportunity-card-actions">
         ${canApply ? button("Ver y postularme", () => openOpportunityApplication(opportunity)) : ""}
@@ -7333,11 +7653,24 @@ function renderUserApplications() {
 
 function renderUserIncome() {
   const profile = currentUniversalProfile();
-  const commissions = (profile ? state.data?.commissions || [] : []).filter(item => item.user_profile_id === profile.id);
+  const opportunityCommissions = (profile ? state.data?.commissions || [] : [])
+    .filter(item => item.user_profile_id === profile.id)
+    .map(item => ({ ...item, income_source: "Resultado de oportunidad" }));
+  const scoutCommissions = (profile ? state.data?.scout_mission_commissions || [] : [])
+    .filter(item => item.user_profile_id === profile.id)
+    .map(item => ({ ...item, income_source: "Mision Scout" }));
+  const commissions = [...opportunityCommissions, ...scoutCommissions]
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const amountByStatus = status => commissions.filter(item => item.status === status).reduce((sum, item) => sum + Number(item.net_amount || 0), 0);
   const rows = commissions.map(item => {
     const opportunity = (state.data?.opportunities || []).find(row => row.id === item.opportunity_id);
-    return [escapeHtml(opportunity?.title || "Oportunidad"), money(item.net_amount), badge(opportunityStatusLabel(item.status)), escapeHtml(item.estimated_payment_at ? readableDate(item.estimated_payment_at) : "Por definir")];
+    return [
+      escapeHtml(opportunity?.title || "Oportunidad"),
+      escapeHtml(item.income_source),
+      money(item.net_amount),
+      badge(opportunityStatusLabel(item.status)),
+      escapeHtml(item.estimated_payment_at ? readableDate(item.estimated_payment_at) : "Por definir")
+    ];
   });
   panel("athlete-income", "Ingresos", "Comisiones y pagos validados", `
     <div class="panel-body">
@@ -7347,7 +7680,7 @@ function renderUserIncome() {
         <div><span>Pagado</span><strong>${money(amountByStatus("paid"))}</strong></div>
       </div>
       <p class="hint">ROIS no garantiza ingresos. Cada pago depende de las condiciones de la oportunidad, validacion del resultado y obligaciones fiscales aplicables.</p>
-      ${rows.length ? table(["Oportunidad", "Ingreso", "Estado", "Fecha estimada"], rows) : `<div class="empty">Tus comisiones validadas apareceran aqui.</div>`}
+      ${rows.length ? table(["Oportunidad", "Origen", "Ingreso", "Estado", "Fecha estimada"], rows) : `<div class="empty">Tus comisiones validadas apareceran aqui.</div>`}
     </div>`);
 }
 
@@ -7440,6 +7773,22 @@ function renderClientOpportunities() {
         <label style="grid-column:1/-1">Reglas de atribucion<textarea name="attribution_rules" required placeholder="Como se atribuye una venta, prospecto o resultado."></textarea></label>
         <label style="grid-column:1/-1">Condiciones de pago<textarea name="payment_terms" required placeholder="Plazo, validacion y calendario de pago."></textarea></label>
         <fieldset class="requested-data-fieldset" style="grid-column:1/-1"><legend>Datos que solicitas al postulante</legend>${requestedDataCheckboxes()}</fieldset>
+        <fieldset class="requested-data-fieldset scout-mission-config" style="grid-column:1/-1">
+          <legend>Activar red Scout ROIS</legend>
+          <label class="check-option"><input name="scout_enabled" type="checkbox" data-scout-mission-toggle><span>Permitir que usuarios ROIS participen con su codigo Scout global.</span></label>
+          <div class="form-grid" data-scout-mission-fields hidden>
+            <label>Resultado que genera comision<select name="scout_reward_event">
+              <option value="qualified">Prospecto calificado</option>
+              <option value="meeting">Reunion validada</option>
+              <option value="activated">Cliente activado</option>
+            </select></label>
+            <label>Comision por resultado<input name="scout_reward_amount" type="number" min="0" step="0.01" value="0"></label>
+            <label>Moneda<select name="scout_reward_currency"><option value="MXN">MXN</option><option value="USD">USD</option></select></label>
+            <label class="check-option"><input name="scout_requires_approval" type="checkbox" checked><span>Revisar al usuario antes de activar su participacion.</span></label>
+            <label style="grid-column:1/-1">Terminos de la mision<textarea name="scout_terms" placeholder="Define resultado valido, evidencias, exclusiones, plazo de validacion y calendario de pago."></textarea></label>
+          </div>
+          <p class="hint">La empresa no crea codigos. Cada participante conserva su codigo global ROIS y queda vinculado a esta mision.</p>
+        </fieldset>
         <button class="btn primary" type="submit">Enviar a revision ROIS</button>
       </form>
       <div class="opportunity-company-list">
@@ -7449,6 +7798,135 @@ function renderClientOpportunities() {
     </div>`);
   document.querySelector("[data-company-verification]")?.addEventListener("submit", submitCompanyVerification);
   document.querySelector("[data-company-opportunity]")?.addEventListener("submit", submitCompanyOpportunity);
+  const scoutToggle = document.querySelector("[data-scout-mission-toggle]");
+  const scoutFields = document.querySelector("[data-scout-mission-fields]");
+  const syncScoutFields = () => {
+    if (!scoutToggle || !scoutFields) return;
+    scoutFields.hidden = !scoutToggle.checked;
+    scoutFields.querySelectorAll("input,select,textarea").forEach(control => {
+      control.disabled = !scoutToggle.checked;
+    });
+  };
+  scoutToggle?.addEventListener("change", syncScoutFields);
+  syncScoutFields();
+}
+
+function scoutLeadStatusLabel(status = "submitted") {
+  return ({
+    submitted: "Enviado",
+    contacted: "Contactado",
+    qualified: "Calificado",
+    meeting: "Reunion",
+    activated: "Activado",
+    rejected: "Rechazado",
+    duplicate: "Duplicado"
+  })[status] || status;
+}
+
+function nextScoutLeadStatus(status = "submitted") {
+  return ({ submitted: "contacted", contacted: "qualified", qualified: "meeting", meeting: "activated" })[status] || "";
+}
+
+async function updateMissionScoutStatus(membership, status) {
+  try {
+    await api.update("mission_scouts", membership.id, {
+      status,
+      approved_at: status === "active" ? new Date().toISOString() : membership.approved_at || null
+    });
+    notify("Red Scout", status === "active" ? "Participante activado" : "Participacion actualizada", "El CRM ya refleja la decision.");
+    renderClientScoutNetwork();
+  } catch (error) {
+    notify("Red Scout", "No fue posible actualizar", humanError(error));
+  }
+}
+
+async function updateScoutLeadStatus(lead, status) {
+  const companyNotes = ["rejected", "duplicate"].includes(status)
+    ? window.prompt("Motivo o nota interna:", lead.company_notes || "")
+    : lead.company_notes || "";
+  if (["rejected", "duplicate"].includes(status) && companyNotes === null) return;
+  try {
+    await api.update("scout_leads", lead.id, {
+      status,
+      company_notes: companyNotes,
+      updated_at: new Date().toISOString()
+    });
+    notify("Red Scout", "Prospecto actualizado", `El resultado ahora esta como ${scoutLeadStatusLabel(status)}.`);
+    renderClientScoutNetwork();
+  } catch (error) {
+    notify("Red Scout", "No fue posible actualizar", humanError(error));
+  }
+}
+
+function renderClientScoutNetwork() {
+  const company = currentCompany();
+  if (!company?.id) {
+    panel("client-scout-network", "Red Scout", "CRM de distribucion y referidos", `<div class="empty">No encontramos una empresa vinculada a esta sesion.</div>`);
+    return;
+  }
+  const missions = companyOpportunityRecords().filter(item => item.scout_enabled);
+  const memberships = (state.data?.mission_scouts || []).filter(item => item.company_id === company.id);
+  const leads = (state.data?.scout_leads || []).filter(item => item.company_id === company.id);
+  const commissions = (state.data?.scout_mission_commissions || []).filter(item => item.company_id === company.id);
+  const activeScouts = new Set(memberships.filter(item => item.status === "active").map(item => item.user_profile_id)).size;
+  const activatedLeads = leads.filter(item => item.status === "activated").length;
+  const pendingCommission = commissions
+    .filter(item => ["pending", "approved"].includes(item.status))
+    .reduce((sum, item) => sum + Number(item.net_amount || 0), 0);
+  const membershipRows = memberships.map(item => [
+    escapeHtml(scoutMissionName(item.opportunity_id)),
+    escapeHtml(item.scout_public_name || "Usuario ROIS"),
+    escapeHtml(item.scout_code || ""),
+    badge(item.status || "pending"),
+    actionGroup([
+      item.status === "pending" ? button("Activar", () => updateMissionScoutStatus(item, "active")) : "",
+      !["paused", "rejected", "removed"].includes(item.status) ? button("Pausar", () => updateMissionScoutStatus(item, "paused")) : ""
+    ].filter(Boolean))
+  ]);
+  const leadRows = leads.map(item => {
+    const nextStatus = nextScoutLeadStatus(item.status);
+    return [
+      escapeHtml(scoutMissionName(item.opportunity_id)),
+      escapeHtml(item.prospect_name || "Prospecto"),
+      escapeHtml(item.prospect_company || item.prospect_type || ""),
+      escapeHtml(item.scout_code || ""),
+      badge(scoutLeadStatusLabel(item.status)),
+      actionGroup([
+        nextStatus ? button(`Marcar ${scoutLeadStatusLabel(nextStatus)}`, () => updateScoutLeadStatus(item, nextStatus)) : "",
+        !["rejected", "duplicate", "activated"].includes(item.status) ? button("Rechazar", () => updateScoutLeadStatus(item, "rejected")) : ""
+      ].filter(Boolean))
+    ];
+  });
+  const commissionRows = commissions.map(item => [
+    escapeHtml(scoutMissionName(item.opportunity_id)),
+    escapeHtml(item.scout_code || ""),
+    escapeHtml(scoutLeadStatusLabel(item.trigger_type)),
+    money(item.net_amount),
+    badge(item.status || "pending"),
+    escapeHtml(item.estimated_payment_at ? readableDate(item.estimated_payment_at) : "Por definir")
+  ]);
+  panel("client-scout-network", "Red Scout", "Participantes, prospectos y resultados por mision", `
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">CRM Scout empresarial</p>
+        <h3>Distribucion medible con la red universal ROIS.</h3>
+        <p>Los participantes usan su codigo global. Tu empresa revisa, activa y valida resultados; nunca asigna codigos nuevos.</p>
+      </div>
+      <div class="scout-metrics">
+        <div><span>Misiones publicadas</span><strong>${missions.filter(item => item.status === "published").length}</strong></div>
+        <div><span>Scouts activos</span><strong>${activeScouts}</strong></div>
+        <div><span>Prospectos</span><strong>${leads.length}</strong></div>
+        <div><span>Activaciones</span><strong>${activatedLeads}</strong></div>
+        <div><span>Comision por cubrir</span><strong>${money(pendingCommission)}</strong></div>
+      </div>
+      <div class="section-minihead"><p class="eyebrow">Participantes</p><h3>Usuarios vinculados a tus misiones.</h3></div>
+      ${membershipRows.length ? table(["Mision", "Participante", "Codigo global", "Estado", "Accion"], membershipRows) : `<div class="empty">Los usuarios vinculados apareceran aqui.</div>`}
+      <div class="section-minihead"><p class="eyebrow">Pipeline</p><h3>Prospectos registrados con consentimiento.</h3></div>
+      ${leadRows.length ? table(["Mision", "Prospecto", "Organizacion", "Scout", "Estado", "Accion"], leadRows) : `<div class="empty">Aun no hay prospectos en las misiones de tu empresa.</div>`}
+      <div class="section-minihead"><p class="eyebrow">Comisiones</p><h3>Obligaciones generadas por resultados validados.</h3></div>
+      ${commissionRows.length ? table(["Mision", "Scout", "Disparador", "Monto", "Estado", "Pago estimado"], commissionRows) : `<div class="empty">Las comisiones se generan cuando un prospecto alcanza el resultado configurado.</div>`}
+    </div>
+  `);
 }
 
 async function submitCompanyVerification(event) {
@@ -7533,6 +8011,12 @@ async function submitCompanyOpportunity(event) {
       attribution_rules: form.attribution_rules.value.trim(),
       payment_terms: form.payment_terms.value.trim(),
       requested_data_fields: requestedFields,
+      scout_enabled: form.scout_enabled.checked,
+      scout_reward_event: form.scout_enabled.checked ? form.scout_reward_event.value : "qualified",
+      scout_reward_amount: form.scout_enabled.checked ? number("scout_reward_amount") : 0,
+      scout_reward_currency: form.scout_enabled.checked ? form.scout_reward_currency.value : "MXN",
+      scout_terms: form.scout_enabled.checked ? form.scout_terms.value.trim() : "",
+      scout_requires_approval: form.scout_enabled.checked ? form.scout_requires_approval.checked : true,
       status: "in_review"
     });
     recordMarketplaceEvent("opportunity_created", "opportunity", createdOpportunity?.id || null, {
@@ -7697,8 +8181,10 @@ function renderAdminOpportunities() {
   const rows = (state.data?.opportunities || []).map(item => [
     escapeHtml(item.title || "Oportunidad"),
     escapeHtml(opportunityCompanyName(item)),
-    escapeHtml(opportunityTypeLabel(item.opportunity_type)),
-    escapeHtml(opportunityCompensation(item)),
+    escapeHtml(`${opportunityTypeLabel(item.opportunity_type)}${item.scout_enabled ? " · Mision Scout" : ""}`),
+    escapeHtml(item.scout_enabled
+      ? `${opportunityCompensation(item)} · ${money(item.scout_reward_amount)} por ${scoutLeadStatusLabel(item.scout_reward_event)}`
+      : opportunityCompensation(item)),
     badge(opportunityStatusLabel(item.status)),
     actionGroup([
       item.status !== "published" ? button("Publicar", () => moderateOpportunity(item, "published")) : "",
@@ -7717,6 +8203,8 @@ function renderAdminOpportunities() {
 function renderAdminCommissions() {
   const rows = (state.data?.commissions || []).map(item => [
     escapeHtml(item.opportunity_id || "Sin oportunidad"),
+    escapeHtml("Oportunidad"),
+    escapeHtml(item.user_profile_id || "Sin perfil"),
     money(item.gross_amount),
     money(item.net_amount),
     badge(opportunityStatusLabel(item.status)),
@@ -7725,7 +8213,30 @@ function renderAdminCommissions() {
       item.status === "approved" ? button("Marcar pagada", () => updateCommissionStatus(item, "paid")) : ""
     ].filter(Boolean))
   ]);
-  panel("admin-commissions", "Comisiones", "Validacion y control de pagos", `<div class="panel-body">${rows.length ? table(["Oportunidad", "Valor bruto", "Ingreso usuario", "Estado", "Accion"], rows) : `<div class="empty">No hay comisiones registradas.</div>`}</div>`);
+  const scoutRows = (state.data?.scout_mission_commissions || []).map(item => [
+    escapeHtml(scoutMissionName(item.opportunity_id)),
+    escapeHtml("Mision Scout"),
+    escapeHtml(item.scout_code || item.user_profile_id || "Sin perfil"),
+    money(item.gross_amount),
+    money(item.net_amount),
+    badge(opportunityStatusLabel(item.status)),
+    actionGroup([
+      item.status === "pending" ? button("Aprobar", () => updateScoutMissionCommissionStatus(item, "approved")) : "",
+      item.status === "approved" ? button("Marcar pagada", () => updateScoutMissionCommissionStatus(item, "paid")) : ""
+    ].filter(Boolean))
+  ]);
+  const allRows = [...rows, ...scoutRows];
+  const missionCount = (state.data?.mission_scouts || []).length;
+  const leadCount = (state.data?.scout_leads || []).length;
+  panel("admin-commissions", "Comisiones", "Validacion y control de pagos", `
+    <div class="panel-body">
+      <div class="scout-metrics">
+        <div><span>Scouts en misiones</span><strong>${missionCount}</strong></div>
+        <div><span>Prospectos Scout</span><strong>${leadCount}</strong></div>
+        <div><span>Comisiones Scout</span><strong>${scoutRows.length}</strong></div>
+      </div>
+      ${allRows.length ? table(["Oportunidad", "Origen", "Beneficiario", "Valor bruto", "Ingreso usuario", "Estado", "Accion"], allRows) : `<div class="empty">No hay comisiones registradas.</div>`}
+    </div>`);
 }
 
 async function updateCommissionStatus(commission, status) {
@@ -7734,6 +8245,21 @@ async function updateCommissionStatus(commission, status) {
       status,
       paid_at: status === "paid" ? new Date().toISOString() : commission.paid_at || null
     });
+    renderAdminCommissions();
+  } catch (error) {
+    notify("Comisiones", "No fue posible actualizar", humanError(error));
+  }
+}
+
+async function updateScoutMissionCommissionStatus(commission, status) {
+  try {
+    const now = new Date().toISOString();
+    await api.update("scout_mission_commissions", commission.id, {
+      status,
+      approved_at: status === "approved" ? now : commission.approved_at || null,
+      paid_at: status === "paid" ? now : commission.paid_at || null
+    });
+    notify("Comisiones", status === "paid" ? "Comision Scout pagada" : "Comision Scout aprobada", "El usuario vera el estado actualizado en Ingresos.");
     renderAdminCommissions();
   } catch (error) {
     notify("Comisiones", "No fue posible actualizar", humanError(error));
@@ -9078,6 +9604,36 @@ function renderCommercialPanel(targetId) {
 
 function renderCommercialOverview() {
   const records = commercialCrmRecords();
+  if (isInternalCommercialSession()) {
+    const companies = records.filter(item => item.prospect_type === "company");
+    const sent = records.filter(item => item.invitation_status === "sent").length;
+    const retries = records.filter(item => item.invitation_status === "email_error").length;
+    const due = records.filter(crmFollowUpIsPending).length;
+    const granted = (state.data.company_access_grants || []).filter(item =>
+      ["pending", "redeemed"].includes(String(item.status || "").toLowerCase())
+    ).length;
+    const recentRows = crmProspectRows(records.slice(0, 10));
+    panel("commercial-overview", "CRM ROIS", "Prospecci\u00f3n, invitaciones y activaci\u00f3n empresarial", `
+      <div class="panel-body">
+        <div class="section-minihead">
+          <p class="eyebrow">Operaci\u00f3n comercial interna</p>
+          <h3>Convierte prospectos en cuentas que construyen valor dentro de ROIS.</h3>
+          <p>Las empresas invitadas reciben cinco meses de acceso avanzado sin costo, sin tarjeta y sin renovaci\u00f3n autom\u00e1tica.</p>
+        </div>
+        <div class="scout-metrics">
+          <div><span>Prospectos</span><strong>${records.length}</strong></div>
+          <div><span>Empresas</span><strong>${companies.length}</strong></div>
+          <div><span>Invitaciones enviadas</span><strong>${sent}</strong></div>
+          <div><span>Accesos otorgados</span><strong>${granted}</strong></div>
+          <div><span>Seguimientos vencidos</span><strong>${due}</strong></div>
+          <div><span>Correos por reintentar</span><strong>${retries}</strong></div>
+        </div>
+      </div>
+      <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Actividad reciente</p><h3>\u00daltimos prospectos registrados.</h3></div></div>
+      ${recentRows.length ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], recentRows) : `<div class="empty">A\u00fan no hay prospectos registrados.</div>`}
+    `);
+    return;
+  }
   const scout = currentScoutRecord();
   const scoutCode = currentScoutCode();
   const talent = [...(state.data.athletes || []), ...(state.data.founders || [])];
@@ -9121,11 +9677,12 @@ function renderCommercialOverview() {
 
 function renderCommercialProspects() {
   const rows = crmProspectRows();
-  panel("commercial-prospects", "Referidos", "Alta e invitaci\u00f3n de deportistas y creadores", `
-    ${commercialProspectFormMarkup()}
-    ${rows.length ? table(["Referido", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], rows) : `<div class="empty">Registra tu primer referido para iniciar tu red Scout.</div>`}
+  const internalMode = isInternalCommercialSession();
+  panel("commercial-prospects", internalMode ? "Prospectos" : "Referidos", internalMode ? "Alta, invitaci\u00f3n y acceso avanzado empresarial" : "Alta e invitaci\u00f3n de deportistas y creadores", `
+    ${commercialProspectFormMarkup({ admin: internalMode })}
+    ${rows.length ? table([internalMode ? "Prospecto" : "Referido", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], rows) : `<div class="empty">${internalMode ? "Registra el primer prospecto comercial." : "Registra tu primer referido para iniciar tu red Scout."}</div>`}
   `);
-  bindCommercialProspectForm();
+  bindCommercialProspectForm({ admin: internalMode });
 }
 
 function renderCommercialFollowup() {
@@ -10185,7 +10742,7 @@ function crmInvitationEmailEndpoint() {
 }
 
 function renderCrmAfterMutation() {
-  if (isScoutSession()) {
+  if (isScoutSession() || isInternalCommercialSession()) {
     renderCommercialPanel(activeDashboardPanelId("commercial") || "commercial-overview");
   } else if (state.session?.role === "admin") {
     renderAdminCrm();
@@ -10229,8 +10786,12 @@ async function sendCrmInvitation(prospectId, options = {}) {
   }
   const result = await response.json();
   if (result.prospect) replaceRecordInState("crm", result.prospect);
+  if (result.companyAccessGrant) replaceRecordInState("company_access_grants", result.companyAccessGrant);
   if (!options.silent) {
-    notify("CRM", "Invitaci\u00f3n enviada", `El correo para ${prospect.name || prospect.email} fue procesado correctamente.`);
+    const confirmation = prospect.prospect_type === "company"
+      ? "La invitaci\u00f3n fue enviada y el correo qued\u00f3 habilitado para activar cinco meses de acceso avanzado, sin tarjeta ni renovaci\u00f3n autom\u00e1tica."
+      : `El correo para ${prospect.name || prospect.email} fue procesado correctamente.`;
+    notify("CRM", "Invitaci\u00f3n enviada", confirmation);
     renderCrmAfterMutation();
   }
   return result;
@@ -11536,6 +12097,8 @@ function fileToDataUrl(file) {
 }
 
 function openRegistration(type) {
+  // Scout is a capability of the universal profile, not a separate account.
+  if (type === "scout") type = "founder";
   state.registrationType = type;
   const title = type === "company"
     ? "Crear cuenta de empresa"
