@@ -12706,10 +12706,37 @@ body[data-active-view="home"] .premium-final-cta .section-head {
   font-size: clamp(18px, 2vw, 24px);
 }
 
-.notification-card p {
+.notification-card p,
+.notification-message {
   margin: 0;
   color: var(--muted);
   line-height: 1.7;
+}
+
+.notification-message {
+  display: grid;
+  gap: 12px;
+  max-width: 920px;
+}
+
+.notification-message p {
+  margin: 0;
+}
+
+.notification-message ul,
+.notification-message ol {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.notification-message li {
+  padding-left: 3px;
+}
+
+.notification-access-grant[hidden] {
+  display: none !important;
 }
 
 .notification-actions {

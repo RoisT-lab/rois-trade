@@ -1838,9 +1838,34 @@ function demoApi() {
         sent_by: state.session?.email || "admin",
         created_at: new Date().toISOString()
       }));
+      const accessMonths = Math.max(0, Math.min(12, Number(payload.accessMonths || 0)));
+      let accessGrantedCount = 0;
+      if (accessMonths) {
+        const recipientEmails = new Set(recipients.map(item => String(item.email || "").trim().toLowerCase()));
+        ["athletes", "founders"].forEach(table => {
+          (data[table] || []).forEach(record => {
+            const email = String(record.email || record.contact || "").trim().toLowerCase();
+            if (!recipientEmails.has(email)) return;
+            const hasLegacyUnlimitedAccess = Boolean(record.annual_fee_paid || record.annual_payment_status === "paid")
+              && !record.annual_access_expires_at;
+            if (hasLegacyUnlimitedAccess) return;
+            const currentExpiration = record.annual_access_expires_at ? new Date(record.annual_access_expires_at) : null;
+            const base = currentExpiration && currentExpiration.getTime() > Date.now() ? currentExpiration : new Date();
+            const expiration = new Date(base);
+            expiration.setMonth(expiration.getMonth() + accessMonths);
+            record.annual_fee_required = true;
+            record.annual_fee_paid = true;
+            record.annual_payment_status = "granted";
+            record.annual_access_started_at = record.annual_access_started_at || new Date().toISOString();
+            record.annual_access_expires_at = expiration.toISOString();
+            record.marketplace_access_status = "active";
+            accessGrantedCount += 1;
+          });
+        });
+      }
       write(data);
       state.data = data;
-      return { broadcastId, recipientCount: recipients.length };
+      return { broadcastId, recipientCount: recipients.length, accessGrantedCount };
     },
     async validateScoutCode(code) {
       const data = read();
@@ -2148,7 +2173,9 @@ function supabaseApi() {
       });
     },
     async broadcastNotifications(payload = {}) {
-      return request("/rest/v1/rpc/admin_broadcast_notification", {
+      const accessMonths = Math.max(0, Math.min(12, Number(payload.accessMonths || 0)));
+      const rpcName = accessMonths ? "admin_broadcast_notification_with_access" : "admin_broadcast_notification";
+      return request(`/rest/v1/rpc/${rpcName}`, {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({
@@ -2156,7 +2183,8 @@ function supabaseApi() {
           p_title: payload.title,
           p_message: payload.message,
           p_category: payload.category || "sistema",
-          p_priority: payload.priority || "normal"
+          p_priority: payload.priority || "normal",
+          ...(accessMonths ? { p_access_months: accessMonths } : {})
         })
       });
     },
@@ -5840,7 +5868,7 @@ function athleteNotificationCard(item) {
           <span>${readableDate(item.created_at)}</span>
         </div>
         <h3>${escapeHtml(item.title || "Notificacion ROIS")}</h3>
-        <p>${escapeHtml(item.message || "")}</p>
+        <div class="notification-message">${notificationMessageMarkup(item.message)}</div>
       </div>
       <div class="notification-actions">
         ${unread ? button("Marcar leida", () => markAthleteNotificationRead(item.id)) : badge("leida")}
@@ -6110,6 +6138,52 @@ function sponsorDeckBenefitMarkup(value = "", index = 0, label = "Beneficio") {
       <p>${escapeHtml(value)}</p>
     </article>
   `;
+}
+
+function notificationMessageMarkup(message = "") {
+  const lines = String(message || "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\s*\u2022\s*/g, "\n- ")
+    .split("\n");
+  const blocks = [];
+  let paragraph = [];
+  let listType = "";
+  let listItems = [];
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    blocks.push(`<p>${escapeHtml(paragraph.join(" "))}</p>`);
+    paragraph = [];
+  };
+  const flushList = () => {
+    if (!listItems.length) return;
+    blocks.push(`<${listType}>${listItems.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</${listType}>`);
+    listType = "";
+    listItems = [];
+  };
+
+  lines.forEach(rawLine => {
+    const line = rawLine.trim();
+    const bullet = line.match(/^(?:-|\*|\u2022)\s+(.+)$/);
+    const numbered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (bullet || numbered) {
+      flushParagraph();
+      const nextType = numbered ? "ol" : "ul";
+      if (listType && listType !== nextType) flushList();
+      listType = nextType;
+      listItems.push((bullet || numbered)[1]);
+      return;
+    }
+    if (!line) {
+      flushParagraph();
+      flushList();
+      return;
+    }
+    flushList();
+    paragraph.push(line);
+  });
+  flushParagraph();
+  flushList();
+  return blocks.join("") || "<p>Mensaje disponible en ROIS.</p>";
 }
 
 function sponsorDeckMedia(profile, deck = sponsorDeckData(profile) || {}) {
@@ -9838,6 +9912,22 @@ async function submitAthletePaymentLink(event) {
 }
 
 function renderAdminAthleteNotifications() {
+  const launchTitle = "Cinco meses de acceso completo a las nuevas herramientas ROIS";
+  const launchMessage = `Tu perfil ROIS acaba de evolucionar.
+
+Durante los proximos cinco meses tendras acceso sin costo a todas las funcionalidades avanzadas disponibles para atletas:
+- Sponsor Deck ROIS para presentar tu propuesta de valor a empresas.
+- Mercado de fichajes para que las empresas puedan evaluar tu perfil.
+- Evidencia competitiva mediante fotografias y reels.
+- Impulso creativo para participar en colaboraciones entre perfiles ROIS.
+- Oportunidades publicadas por empresas.
+
+Que hacer ahora:
+1. Ingresa a tu cuenta ROIS.
+2. Actualiza tu perfil, redes, resultados y evidencia.
+3. Completa tu Sponsor Deck y revisa las nuevas oportunidades.
+
+El acceso promocional dura cinco meses desde su activacion y no genera cargos automaticos.`;
   const notificationRecipients = [
     ...(state.data.athletes || []).map(item => ({ ...item, recipientLabel: "Atleta" })),
     ...(state.data.founders || []).map(item => ({ ...item, recipientLabel: "Creador" }))
@@ -9866,6 +9956,11 @@ function renderAdminAthleteNotifications() {
         <label>Categoria<select name="category"><option value="sistema">Actualizacion del sistema</option><option value="sponsor">Sponsor</option><option value="pago">Pago</option><option value="contrato">Contrato</option><option value="operacion">Operacion</option><option value="general">General</option></select></label>
         <label>Asunto<input name="title" required placeholder="Nueva actualizacion disponible en ROIS"></label>
         <label style="grid-column:1/-1">Mensaje<textarea name="message" required placeholder="Explica brevemente la actualizacion y la accion que debe realizar el usuario dentro de ROIS."></textarea></label>
+        <label class="check-option notification-access-grant" data-notification-access-grant hidden style="grid-column:1/-1">
+          <input name="grant_advanced_access" type="checkbox" value="true">
+          <span>Otorgar cinco meses de acceso avanzado a cada perfil incluido en este comunicado.</span>
+        </label>
+        <button class="btn" type="button" data-load-athlete-launch-message>Cargar comunicado de acceso por 5 meses</button>
         <div class="notification-audience-summary" data-notification-summary>Se creara una alerta para el perfil seleccionado y se notificara por correo.</div>
         <button class="btn primary" type="submit">Enviar alerta ROIS</button>
       </form>
@@ -9881,6 +9976,9 @@ function renderAdminAthleteNotifications() {
     const recipientSelect = form?.elements?.athlete_email;
     if (recipient) recipient.hidden = collective;
     if (recipientSelect) recipientSelect.required = !collective;
+    const accessGrant = form?.querySelector("[data-notification-access-grant]");
+    if (accessGrant) accessGrant.hidden = !collective;
+    if (!collective && form?.elements?.grant_advanced_access) form.elements.grant_advanced_access.checked = false;
     const labels = { athletes: "todos los atletas", creators: "todos los creadores", all_talent: "todos los atletas y creadores" };
     const summary = form?.querySelector("[data-notification-summary]");
     if (summary) summary.textContent = collective
@@ -9888,6 +9986,16 @@ function renderAdminAthleteNotifications() {
       : "Se creara una alerta para el perfil seleccionado y se notificara por correo.";
   };
   audience?.addEventListener("change", updateAudience);
+  form?.querySelector("[data-load-athlete-launch-message]")?.addEventListener("click", () => {
+    form.elements.audience.value = "athletes";
+    form.elements.title.value = launchTitle;
+    form.elements.message.value = launchMessage;
+    form.elements.category.value = "sistema";
+    form.elements.priority.value = "alta";
+    form.elements.grant_advanced_access.checked = true;
+    updateAudience();
+    form.elements.title.focus();
+  });
   updateAudience();
   form?.addEventListener("submit", submitAdminAthleteNotification);
 }
@@ -11708,10 +11816,12 @@ async function submitAdminAthleteNotification(event) {
         title: form.title.value.trim(),
         message: form.message.value.trim(),
         category: form.category.value,
-        priority: form.priority.value
+        priority: form.priority.value,
+        accessMonths: form.grant_advanced_access?.checked ? 5 : 0
       });
       const broadcastId = result?.broadcastId || result?.broadcast_id;
       const recipientCount = Number(result?.recipientCount ?? result?.recipient_count ?? 0);
+      const accessGrantedCount = Number(result?.accessGrantedCount ?? result?.access_granted_count ?? 0);
       let emailMessage = "Los correos quedaron en cola para procesamiento.";
       if (broadcastId) {
         try {
@@ -11721,7 +11831,8 @@ async function submitAdminAthleteNotification(event) {
           console.warn("[ROIS notifications] La alerta se guardo; el correo sigue pendiente", humanError(error));
         }
       }
-      notify("Notificaciones", "Comunicado colectivo enviado", `${recipientCount} perfiles recibieron la alerta. ${emailMessage}`);
+      const accessMessage = accessGrantedCount ? ` ${accessGrantedCount} perfiles recibieron cinco meses de acceso avanzado.` : "";
+      notify("Notificaciones", "Comunicado colectivo enviado", `${recipientCount} perfiles recibieron la alerta.${accessMessage} ${emailMessage}`);
       form.reset();
       dashboardPanelLoads.delete("admin-athlete-notifications");
       await ensureDashboardPanelData("admin-athlete-notifications", { refresh: true });
