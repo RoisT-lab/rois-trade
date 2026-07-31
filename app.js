@@ -13041,11 +13041,9 @@ function registrationFields(type) {
     return `
       <label>Nombre<input name="name" required placeholder="Nombre del deportista"></label>
       <label>Correo de acceso<input name="email" type="email" required placeholder="correo@deportista.com"></label>
-      <label style="grid-column:1/-1">Codigo de Scout ROIS<input name="scout_code" required placeholder="ROIS-ABC123"></label>
       <div class="registration-note scout-registration-note" style="grid-column:1/-1">
-        <p class="eyebrow">Acceso por invitacion</p>
-        <p>Ningun deportista puede registrarse sin codigo de Scout ROIS. Crear y completar el perfil no tiene costo inicial. El acceso anual de $${athleteAnnualFeeAmount.toLocaleString("es-MX")} MXN se solicita cuando desbloqueas Sponsor Deck o pides publicar tu perfil en Mercado de fichajes.</p>
-        <button class="btn" type="button" data-request-scout-code>No tienes codigo de scout? Solicita uno y te asignamos un Scout ROIS.</button>
+        <p class="eyebrow">Registro abierto</p>
+        <p>Cualquier deportista puede crear su cuenta ROIS sin invitacion y sin codigo Scout. Crear y completar el perfil no tiene costo inicial. Las herramientas comerciales avanzadas se habilitan conforme a las condiciones vigentes de ROIS.</p>
       </div>
       <label>Fecha de nacimiento<input name="birth_date" type="date" required></label>
       <label>Contrasena<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Minimo 8 caracteres"></label>
@@ -13079,10 +13077,9 @@ function registrationFields(type) {
     return `
       <label>Nombre legal<input name="name" required placeholder="Nombre completo"></label>
       <label>Correo<input name="email" type="email" required placeholder="correo@ejemplo.com"></label>
-      <label style="grid-column:1/-1">Codigo de Scout ROIS (opcional)<input name="scout_code" placeholder="ROIS-ABC123"></label>
       <div class="registration-note scout-registration-note" style="grid-column:1/-1">
         <p class="eyebrow">Cuenta universal ROIS</p>
-        <p>El registro es gratuito y no requiere invitacion. Si alguien te compartio su codigo Scout, agregalo para reconocer el referido.</p>
+        <p>El registro es gratuito, abierto al publico y no requiere invitacion ni codigo Scout.</p>
       </div>
       <label>Perfil principal<select name="creator_type" required>${creatorTypeOptionsMarkup("influencer")}</select></label>
       <label>Nombre publico<input name="public_name" required placeholder="Como quieres aparecer en ROIS"></label>
@@ -13361,18 +13358,7 @@ async function submitRegistrationLegacy(event) {
         notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrase\u00f1a para crear tu cuenta de deportista.");
         return;
       }
-      const scoutCode = normalizeScoutCode(form.scout_code.value);
-      if (!scoutCode) {
-        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta deportiva necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
-        form.scout_code.focus();
-        return;
-      }
-      const scoutValidation = await api.validateScoutCode(scoutCode);
-      if (!scoutValidation.valid) {
-        notify("Codigo Scout", "Codigo no valido", `El codigo ${scoutCode} no esta activo para registrar deportistas. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
-        form.scout_code.focus();
-        return;
-      }
+      const scoutCode = "";
       const age = calculateAge(form.birth_date.value);
       if (age === null || age < 0) {
         notify("Registro", "Fecha de nacimiento invÃ¡lida", "Ingresa una fecha de nacimiento vÃ¡lida para continuar.");
@@ -13434,13 +13420,7 @@ async function submitRegistrationLegacy(event) {
         notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrasena para crear tu cuenta de creador.");
         return;
       }
-      const scoutCode = normalizeScoutCode(form.scout_code.value);
-      const scoutValidation = scoutCode ? await api.validateScoutCode(scoutCode) : { valid: true };
-      if (scoutCode && !scoutValidation.valid) {
-        notify("Codigo Scout", "Codigo no valido", `El codigo ${scoutCode} no esta activo para registrar Creadores. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
-        form.scout_code.focus();
-        return;
-      }
+      const scoutCode = "";
       const founderIndustry = form.industry.value.trim() || "Contenido y entretenimiento";
       const founderStage = form.stage.value.trim();
       const founderCity = form.city.value.trim();
@@ -13555,18 +13535,7 @@ async function submitRegistration(event) {
         notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrase\u00f1a para crear tu cuenta de deportista.");
         return;
       }
-      const scoutCode = normalizeScoutCode(form.scout_code.value);
-      if (!scoutCode) {
-        notify("Codigo Scout", "Codigo requerido", "Para crear una cuenta deportiva necesitas ingresar el codigo del Scout ROIS que te invito.", scoutCodeRequestActions());
-        form.scout_code.focus();
-        return;
-      }
-      const scoutValidation = await api.validateScoutCode(scoutCode);
-      if (!scoutValidation.valid) {
-        notify("Codigo Scout", "Codigo no valido", `El codigo ${scoutCode} no esta activo para registrar deportistas. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
-        form.scout_code.focus();
-        return;
-      }
+      const scoutCode = "";
       const age = calculateAge(form.birth_date.value);
       if (age === null || age < 0) {
         notify("Registro", "Fecha de nacimiento inv\u00e1lida", "Ingresa una fecha de nacimiento v\u00e1lida para continuar.");
@@ -13628,13 +13597,7 @@ async function submitRegistration(event) {
         notify("Registro", "Las contrase\u00f1as no coinciden", "Confirma la contrasena para crear tu cuenta de creador.");
         return;
       }
-      const scoutCode = normalizeScoutCode(form.scout_code.value);
-      const scoutValidation = scoutCode ? await api.validateScoutCode(scoutCode) : { valid: true };
-      if (scoutCode && !scoutValidation.valid) {
-        notify("Codigo Scout", "Codigo no valido", `El codigo ${scoutCode} no esta activo para registrar Creadores. Revisa que este escrito correctamente o solicita que ROIS te asigne un Scout.`, scoutCodeRequestActions());
-        form.scout_code.focus();
-        return;
-      }
+      const scoutCode = "";
       const founderIndustry = form.industry.value.trim() || "Contenido y entretenimiento";
       const founderStage = form.stage.value.trim();
       const founderCity = form.city.value.trim();
