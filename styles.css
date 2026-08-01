@@ -6744,9 +6744,16 @@ body[data-active-view="home"] .premium-home-footer {
   background: #737b86;
 }
 
-#commercialView .commercial-table-track,
+#commercialView .commercial-table-track {
+  width: max-content;
+  min-width: 100%;
+  padding-right: 28px;
+  box-sizing: content-box;
+}
+
 #commercialView .commercial-table-scroll .data-table {
-  min-width: 1240px;
+  width: 1472px;
+  min-width: 1472px;
 }
 
 #commercialView .commercial-table-scroll .data-table {
@@ -6762,7 +6769,7 @@ body[data-active-view="home"] .premium-home-footer {
 #commercialView .commercial-table-scroll th:nth-child(4) { width: 112px; }
 #commercialView .commercial-table-scroll th:nth-child(5) { width: 130px; }
 #commercialView .commercial-table-scroll th:nth-child(6) { width: 110px; }
-#commercialView .commercial-table-scroll th:nth-child(7) { width: 388px; }
+#commercialView .commercial-table-scroll th:nth-child(7) { width: 620px; }
 
 #commercialView .commercial-table-scroll th,
 #commercialView .commercial-table-scroll td {
@@ -6811,12 +6818,15 @@ body[data-active-view="home"] .premium-home-footer {
 
 #commercialView .commercial-table-scroll td:last-child {
   overflow: visible;
+  padding-right: 18px;
 }
 
 #commercialView .commercial-table-scroll .table-actions {
   display: flex;
   flex-wrap: nowrap;
   gap: 4px;
+  width: max-content;
+  min-width: max-content;
 }
 
 #commercialView .commercial-table-scroll .table-actions .btn {
