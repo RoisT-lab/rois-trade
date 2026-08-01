@@ -1623,13 +1623,16 @@ async function ensureDashboardHydrated(role = state.session?.role, options = {})
       }
       hydratedRoles.add(role);
       lastHydratedAtByRole.set(role, Date.now());
-      renderSession();
       const view = dashboardViewForRole(role);
-      if (view === "client") renderClient();
-      if (view === "athlete") renderAthlete();
-      if (view === "commercial") renderCommercial();
-      if (view === "admin" && !dashboardPanelHasProtectedDraft(activeDashboardPanelId("admin"))) renderAdmin();
-      optimizeRenderedMedia();
+      const protectedDraft = dashboardPanelHasProtectedDraft(activeDashboardPanelId(view));
+      if (!protectedDraft) {
+        renderSession();
+        if (view === "client") renderClient();
+        if (view === "athlete") renderAthlete();
+        if (view === "commercial") renderCommercial();
+        if (view === "admin") renderAdmin();
+        optimizeRenderedMedia();
+      }
       return true;
     } catch (error) {
       console.warn("[ROIS hydration]", humanError(error));
@@ -1667,9 +1670,10 @@ async function refreshDataInBackground() {
 
 function refreshActiveDashboardIfStale() {
   if (!state.session || document.visibilityState === "hidden") return;
+  const activePanelId = activeDashboardPanelId();
+  if (activePanelId && dashboardPanelHasProtectedDraft(activePanelId)) return;
   if (state.session.role === "admin") {
-    const adminPanelId = activeDashboardPanelId("admin");
-    if (adminPanelId && dashboardPanelHasProtectedDraft(adminPanelId)) return;
+    const adminPanelId = activePanelId || activeDashboardPanelId("admin");
     if (adminPanelId) ensureDashboardPanelData(adminPanelId, { maxAgeMs: dashboardPanelFreshnessMs });
     return;
   }
@@ -6869,7 +6873,7 @@ function competitiveEvidenceFormMarkup(founder = false) {
         <h4>${founder ? "Muestra campañas, presentaciones y contenido real." : "Muestra entrenamientos, competencias y resultados reales."}</h4>
         <p>Publica una foto o un reel. Esta evidencia será visible para empresas cuando abran tu perfil.</p>
       </div>
-      <form id="athletePostForm" class="form-grid">
+      <form id="athletePostForm" class="form-grid" data-preserve-dashboard-draft>
         <label>Título<input name="title" required maxlength="120" placeholder="${founder ? "Campaña o proyecto destacado" : "Competencia o avance destacado"}"></label>
         <label>Foto o reel<input name="media_file" type="file" required accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime"></label>
         <label style="grid-column:1/-1">Descripción<textarea name="caption" required maxlength="1200" placeholder="Explica el contexto, resultado y por qué esta evidencia es relevante para una marca."></textarea></label>
