@@ -2233,7 +2233,7 @@ function supabaseApi() {
         news: `select=id,title,summary,image_url,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${smallLimit}`,
         partnerships: `select=id,name,type,tier,description,image_url,url,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${smallLimit}`,
         site_settings: `select=id,value,created_at&limit=${Math.min(smallLimit, 80)}`,
-        crm: `select=id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
+        crm: `select=id,name,contact_name,email,prospect_type,organization,phone,country,preferred_language,advanced_access_months,advanced_access_status,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
         payments: `select=id,concept,amount,company,status,product_key,created_at&order=created_at.desc&limit=${mediumLimit}`,
         uploads: `select=id,type,status,name,size,image_url,visual_status,visual_notes,created_at&order=created_at.desc&limit=${lightweight ? Math.min(smallLimit, 80) : mediumLimit}`,
         athlete_posts: `select=id,athlete_id,athlete_email,athlete_name,title,caption,video_url,image_url,visual_status,visual_notes,status,created_at&order=created_at.desc&limit=${mediumLimit}`,
@@ -2285,7 +2285,7 @@ function supabaseApi() {
       if (role === "commercial") {
         const [profiles, crm, grants] = await Promise.all([
           roleRequest(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`),
-          roleRequest("/rest/v1/crm?select=id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=500"),
+          roleRequest("/rest/v1/crm?select=id,name,contact_name,email,prospect_type,organization,phone,country,preferred_language,advanced_access_months,advanced_access_status,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=500"),
           roleRequest("/rest/v1/company_access_grants?select=id,email,grant_type,status,access_months,source_crm_id,invited_by,offer_expires_at,trial_started_at,trial_ends_at,redeemed_company_id,redeemed_profile_id,created_at,updated_at&order=created_at.desc&limit=500")
         ]);
         return normalizeLoadedData({ profiles, crm, company_access_grants: grants });
@@ -2294,7 +2294,7 @@ function supabaseApi() {
         const [profiles, scouts, crm] = await Promise.all([
           roleRequest(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`),
           roleRequest(`/rest/v1/scouts?select=id,profile_id,email,name,scout_code,status,commission_per_active_referral,created_at&or=(profile_id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`),
-          roleRequest("/rest/v1/crm?select=id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=250")
+          roleRequest("/rest/v1/crm?select=id,name,contact_name,email,prospect_type,organization,phone,country,preferred_language,advanced_access_months,advanced_access_status,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=250")
         ]);
         const scoutCode = normalizeScoutCode(scouts[0]?.scout_code || "");
         const [athletes, founders] = scoutCode
@@ -3978,7 +3978,9 @@ function renderSession() {
   }
   const panelLabel = state.session.role === "admin"
     ? "Panel admin"
-    : ["scout", "commercial"].includes(state.session.role)
+    : state.session.role === "commercial"
+      ? "Panel comercial"
+      : state.session.role === "scout"
       ? "Panel Scout"
       : state.session.role === "founder"
         ? "Panel creador"
@@ -3986,7 +3988,7 @@ function renderSession() {
           ? "Panel deportista"
           : "Panel cliente";
   area.innerHTML = `
-    <span class="pill">${state.session.role === "admin" ? "Admin" : ["scout", "commercial"].includes(state.session.role) ? "Scout" : state.session.name}</span>
+    <span class="pill">${state.session.role === "admin" ? "Admin" : state.session.role === "commercial" ? "Comercial" : state.session.role === "scout" ? "Scout" : state.session.name}</span>
     <button class="btn subtle" type="button" data-panel-link>${panelLabel}</button>
   `;
   area.querySelector("[data-panel-link]").addEventListener("click", () => showView(dashboardViewForRole(state.session.role)));
@@ -10418,14 +10420,88 @@ function crmProspectActions(item) {
 
 function crmProspectRows(records = commercialCrmRecords()) {
   return records.map(item => [
-    `<strong>${escapeHtml(item.name || item.contact_name || "Prospecto ROIS")}</strong><br><span class="hint">${escapeHtml(item.organization || "")}</span>`,
-    escapeHtml(item.email || "Sin correo"),
+    `<strong>${escapeHtml(item.name || item.contact_name || "Registro ROIS")}</strong><br><span class="hint">${escapeHtml(item.organization || "")}</span>`,
+    `${escapeHtml(item.email || "Sin correo")}<br><span class="hint">${escapeHtml(item.country || "País sin definir")} · ${escapeHtml(crmPreferredLanguageLabel(item.preferred_language))}</span>`,
     badge(crmProspectTypeLabel(item.prospect_type)),
     badge(item.status || "Nuevo"),
     `${badge(crmInvitationStatusLabel(item.invitation_status))}${item.invitation_sent_at ? `<br><span class="hint">${readableDate(item.invitation_sent_at)}</span>` : ""}`,
     item.next_follow_up_at ? readableDate(item.next_follow_up_at) : "Sin fecha",
     crmProspectActions(item)
   ]);
+}
+
+function crmPreferredLanguageLabel(value) {
+  return {
+    auto: "Idioma automático",
+    es: "Español",
+    en: "English",
+    pt: "Português"
+  }[String(value || "auto").toLowerCase()] || "Idioma automático";
+}
+
+function filteredCommercialCrmRecords() {
+  const search = String(document.getElementById("commercialRecordSearch")?.value || "").trim().toLowerCase();
+  const type = String(document.getElementById("commercialRecordType")?.value || "all");
+  const sort = String(document.getElementById("commercialRecordSort")?.value || "newest");
+  const records = commercialCrmRecords().filter(item => {
+    if (type !== "all" && item.prospect_type !== type) return false;
+    if (!search) return true;
+    return [item.name, item.contact_name, item.organization, item.email, item.country]
+      .some(value => String(value || "").toLowerCase().includes(search));
+  });
+  return records.sort((a, b) => {
+    if (sort === "name") return String(a.name || "").localeCompare(String(b.name || ""), "es");
+    if (sort === "type") return String(a.prospect_type || "").localeCompare(String(b.prospect_type || ""), "es");
+    if (sort === "status") return String(a.status || "").localeCompare(String(b.status || ""), "es");
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
+}
+
+function commercialRecordDirectoryMarkup(internalMode) {
+  return `
+    <div class="panel-body">
+      <div class="section-minihead">
+        <p class="eyebrow">Directorio</p>
+        <h3>${internalMode ? "Organiza empresas, creadores y deportistas." : "Organiza tus registros Scout."}</h3>
+      </div>
+      <div class="form-grid">
+        <label>Buscar<input id="commercialRecordSearch" type="search" placeholder="Nombre, correo, empresa o país"></label>
+        <label>Tipo
+          <select id="commercialRecordType">
+            <option value="all">Todos</option>
+            ${internalMode ? `<option value="company">Empresas</option>` : ""}
+            <option value="creator">Creadores</option>
+            <option value="athlete">Deportistas</option>
+          </select>
+        </label>
+        <label>Ordenar
+          <select id="commercialRecordSort">
+            <option value="newest">Más recientes</option>
+            <option value="name">Nombre</option>
+            <option value="type">Tipo de cuenta</option>
+            <option value="status">Etapa</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div id="commercialRecordDirectory"></div>
+  `;
+}
+
+function bindCommercialRecordDirectory(internalMode) {
+  const directory = document.getElementById("commercialRecordDirectory");
+  if (!directory) return;
+  const renderDirectory = () => {
+    const records = filteredCommercialCrmRecords();
+    directory.innerHTML = records.length
+      ? table([internalMode ? "Registro" : "Registro Scout", "Correo / mercado", "Tipo", "Etapa", "Invitación", "Seguimiento", "Acciones"], crmProspectRows(records))
+      : `<div class="empty">No hay registros que coincidan con los filtros.</div>`;
+  };
+  ["commercialRecordSearch", "commercialRecordType", "commercialRecordSort"].forEach(id => {
+    const element = document.getElementById(id);
+    element?.addEventListener(element.tagName === "INPUT" ? "input" : "change", renderDirectory);
+  });
+  renderDirectory();
 }
 
 function commercialProspectFormMarkup(options = {}) {
@@ -10435,9 +10511,9 @@ function commercialProspectFormMarkup(options = {}) {
     <div class="panel-body">
       <div class="section-minihead">
         <p class="eyebrow">Nueva invitaci\u00f3n</p>
-        <h3>${adminMode ? "Registra el prospecto y env\u00eda su acceso a ROIS." : "Invita talento con tu c\u00f3digo Scout."}</h3>
+        <h3>${adminMode ? "Registra una cuenta potencial y envía una invitación personalizada." : "Invita talento con tu código Scout."}</h3>
         <p>${adminMode
-          ? "El CRM interno puede registrar empresas, creadores y deportistas. Para talento debe asignarse un c\u00f3digo Scout activo."
+          ? "Clasifica empresas, creadores y deportistas. ROIS adapta el correo al tipo de perfil y al idioma del país registrado."
           : `Puedes registrar exclusivamente deportistas y creadores. Tu c\u00f3digo ${escapeHtml(scoutCode || "est\u00e1 pendiente")} se asigna autom\u00e1ticamente y cada referido activo validado puede generar comisi\u00f3n.`}</p>
       </div>
       <form id="commercialProspectForm" class="form-grid" data-preserve-dashboard-draft>
@@ -10452,6 +10528,15 @@ function commercialProspectFormMarkup(options = {}) {
         <label>Correo electr\u00f3nico<input name="email" type="email" required placeholder="correo@dominio.com"></label>
         <label>Empresa / organizaci\u00f3n<input name="organization" placeholder="Marca, agencia, academia o equipo"></label>
         <label>Tel\u00e9fono<input name="phone" inputmode="tel" placeholder="+52..."></label>
+        <label>País<input name="country" required placeholder="México, Colombia, Brasil..."></label>
+        <label>Idioma de la invitación
+          <select name="preferred_language" required>
+            <option value="auto">Automático según el país</option>
+            <option value="es">Español</option>
+            <option value="en">English</option>
+            <option value="pt">Português</option>
+          </select>
+        </label>
         <label>Origen
           <select name="source">
             <option value="Prospeccion directa">Prospecci\u00f3n directa</option>
@@ -10462,9 +10547,7 @@ function commercialProspectFormMarkup(options = {}) {
             <option value="Otro">Otro</option>
           </select>
         </label>
-        ${adminMode
-          ? `<label data-commercial-scout-field hidden>C\u00f3digo Scout<input name="scout_code" placeholder="Obligatorio para creador o deportista"></label>`
-          : `<label>C\u00f3digo Scout<input name="scout_code" value="${escapeAttr(scoutCode)}" readonly required></label>`}
+        ${adminMode ? "" : `<label>Código Scout<input name="scout_code" value="${escapeAttr(scoutCode)}" readonly required></label>`}
         <label>Pr\u00f3ximo seguimiento<input name="next_follow_up_at" type="date"></label>
         <label style="grid-column:1/-1">Notas<textarea name="notes" placeholder="Contexto, inter\u00e9s, relaci\u00f3n previa o siguiente acci\u00f3n."></textarea></label>
         <button class="btn primary" type="submit">Guardar y enviar invitaci\u00f3n</button>
@@ -10477,18 +10560,12 @@ function bindCommercialProspectForm(options = {}) {
   const form = document.getElementById("commercialProspectForm");
   if (!form) return;
   const adminMode = options.admin === true;
-  const scoutField = form.querySelector("[data-commercial-scout-field]");
   const scoutInput = form.elements.scout_code;
   const syncScoutRequirement = () => {
-    if (!adminMode) {
+    if (!adminMode && scoutInput) {
       scoutInput.value = currentScoutCode();
       scoutInput.required = true;
-      return;
     }
-    const required = ["creator", "athlete"].includes(form.elements.prospect_type.value);
-    scoutField.hidden = !required;
-    scoutInput.required = required;
-    if (!required) scoutInput.value = "";
   };
   form.elements.prospect_type.addEventListener("change", syncScoutRequirement);
   form.addEventListener("submit", submitCommercialProspect);
@@ -10514,6 +10591,8 @@ function renderCommercialOverview() {
   const records = commercialCrmRecords();
   if (isInternalCommercialSession()) {
     const companies = records.filter(item => item.prospect_type === "company");
+    const creators = records.filter(item => item.prospect_type === "creator");
+    const athletes = records.filter(item => item.prospect_type === "athlete");
     const sent = records.filter(item => item.invitation_status === "sent").length;
     const retries = records.filter(item => item.invitation_status === "email_error").length;
     const due = records.filter(crmFollowUpIsPending).length;
@@ -10525,20 +10604,22 @@ function renderCommercialOverview() {
       <div class="panel-body">
         <div class="section-minihead">
           <p class="eyebrow">Operaci\u00f3n comercial interna</p>
-          <h3>Convierte prospectos en cuentas que construyen valor dentro de ROIS.</h3>
-          <p>Las empresas invitadas reciben cinco meses de acceso avanzado sin costo, sin tarjeta y sin renovaci\u00f3n autom\u00e1tica.</p>
+          <h3>Convierte registros comerciales en cuentas activas dentro de ROIS.</h3>
+          <p>Las invitaciones se personalizan por tipo de cuenta, nombre, país e idioma. Empresas, creadores y deportistas reciben cinco meses de acceso avanzado sin costo, sin tarjeta y sin renovación automática.</p>
         </div>
         <div class="scout-metrics">
-          <div><span>Prospectos</span><strong>${records.length}</strong></div>
+          <div><span>Registros</span><strong>${records.length}</strong></div>
           <div><span>Empresas</span><strong>${companies.length}</strong></div>
+          <div><span>Creadores</span><strong>${creators.length}</strong></div>
+          <div><span>Deportistas</span><strong>${athletes.length}</strong></div>
           <div><span>Invitaciones enviadas</span><strong>${sent}</strong></div>
-          <div><span>Accesos otorgados</span><strong>${granted}</strong></div>
+          <div><span>Accesos empresa</span><strong>${granted}</strong></div>
           <div><span>Seguimientos vencidos</span><strong>${due}</strong></div>
           <div><span>Correos por reintentar</span><strong>${retries}</strong></div>
         </div>
       </div>
-      <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Actividad reciente</p><h3>\u00daltimos prospectos registrados.</h3></div></div>
-      ${recentRows.length ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], recentRows) : `<div class="empty">A\u00fan no hay prospectos registrados.</div>`}
+      <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Actividad reciente</p><h3>Últimos registros comerciales.</h3></div></div>
+      ${recentRows.length ? table(["Registro", "Correo / mercado", "Tipo", "Etapa", "Invitación", "Seguimiento", "Acciones"], recentRows) : `<div class="empty">Aún no hay registros comerciales.</div>`}
     `);
     return;
   }
@@ -10584,13 +10665,13 @@ function renderCommercialOverview() {
 }
 
 function renderCommercialProspects() {
-  const rows = crmProspectRows();
   const internalMode = isInternalCommercialSession();
-  panel("commercial-prospects", internalMode ? "Prospectos" : "Referidos", internalMode ? "Alta, invitaci\u00f3n y acceso avanzado empresarial" : "Alta e invitaci\u00f3n de deportistas y creadores", `
+  panel("commercial-prospects", internalMode ? "Registros" : "Registros Scout", internalMode ? "Alta, organización e invitaciones multidioma" : "Alta e invitación de deportistas y creadores", `
     ${commercialProspectFormMarkup({ admin: internalMode })}
-    ${rows.length ? table([internalMode ? "Prospecto" : "Referido", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], rows) : `<div class="empty">${internalMode ? "Registra el primer prospecto comercial." : "Registra tu primer referido para iniciar tu red Scout."}</div>`}
+    ${commercialRecordDirectoryMarkup(internalMode)}
   `);
   bindCommercialProspectForm({ admin: internalMode });
+  bindCommercialRecordDirectory(internalMode);
 }
 
 function renderCommercialFollowup() {
@@ -10598,8 +10679,9 @@ function renderCommercialFollowup() {
     .filter(item => !["Registrado", "No interesado"].includes(item.status))
     .sort((a, b) => new Date(a.next_follow_up_at || "9999-12-31") - new Date(b.next_follow_up_at || "9999-12-31"));
   const rows = crmProspectRows(records);
-  panel("commercial-followup", "Seguimiento", "Pr\u00f3ximas acciones de tu red Scout", rows.length
-    ? table(["Referido", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], rows)
+  const internalMode = isInternalCommercialSession();
+  panel("commercial-followup", "Seguimiento", internalMode ? "Próximas acciones de la operación comercial" : "Próximas acciones de tu red Scout", rows.length
+    ? table([internalMode ? "Registro" : "Registro Scout", "Correo / mercado", "Tipo", "Etapa", "Invitación", "Seguimiento", "Acciones"], rows)
     : `<div class="empty">No hay seguimientos pendientes.</div>`);
 }
 
@@ -11770,7 +11852,7 @@ async function submitCommercialProspect(event) {
   const name = String(form.name.value || "").trim();
   const scoutCode = scoutMode
     ? currentScoutCode()
-    : normalizeScoutCode(form.scout_code?.value || "");
+    : "";
   if (!["company", "creator", "athlete"].includes(prospectType) || !name || !email) {
     notify("CRM", "Datos incompletos", "Completa tipo, nombre y correo electr\u00f3nico.");
     return;
@@ -11779,7 +11861,7 @@ async function submitCommercialProspect(event) {
     notify("Scouts", "Registro no disponible", "Las cuentas Scout s\u00f3lo pueden invitar deportistas y creadores. El alta de empresas corresponde al equipo interno de ROIS.");
     return;
   }
-  if (["creator", "athlete"].includes(prospectType)) {
+  if (scoutMode && ["creator", "athlete"].includes(prospectType)) {
     if (!scoutCode) {
       notify("CRM", "C\u00f3digo Scout requerido", scoutMode
         ? "No encontramos tu c\u00f3digo personal. Cierra sesi\u00f3n e ingresa nuevamente; si contin\u00faa, solicita revisi\u00f3n a ROIS."
@@ -11805,6 +11887,10 @@ async function submitCommercialProspect(event) {
       prospect_type: prospectType,
       organization: String(form.organization.value || "").trim(),
       phone: String(form.phone.value || "").trim(),
+      country: String(form.country?.value || "").trim(),
+      preferred_language: String(form.preferred_language?.value || "auto").trim(),
+      advanced_access_months: scoutMode ? 0 : 5,
+      advanced_access_status: scoutMode ? "not_offered" : "pending",
       source: String(form.source.value || "Prospeccion directa").trim(),
       notes: String(form.notes.value || "").trim(),
       scout_code: scoutCode || null,
@@ -11822,7 +11908,7 @@ async function submitCommercialProspect(event) {
     if (!prospect?.id) throw new Error("El CRM no devolvi\u00f3 el prospecto guardado.");
     try {
       await sendCrmInvitation(prospect.id, { silent: true });
-      notify("CRM", "Prospecto e invitaci\u00f3n listos", `${name} fue guardado y recibi\u00f3 el correo para crear su cuenta.`);
+      notify("CRM", "Registro e invitación listos", `${name} fue guardado y recibió el correo personalizado para crear su cuenta.`);
     } catch (emailError) {
       const message = humanError(emailError);
       try {
@@ -11834,7 +11920,7 @@ async function submitCommercialProspect(event) {
       } catch (updateError) {
         console.warn("[ROIS CRM invitation state]", humanError(updateError));
       }
-      notify("CRM", "Prospecto guardado", `El registro qued\u00f3 seguro, pero el correo requiere reintento. ${message}`);
+      notify("CRM", "Registro guardado", `El registro quedó seguro, pero el correo requiere reintento. ${message}`);
     }
     form.reset();
     renderCrmAfterMutation();
