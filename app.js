@@ -39,6 +39,7 @@ const dashboardPanelPromises = new Map();
 const dashboardPanelPageSizes = { client: 24, admin: 75 };
 const dashboardPanelFreshnessMs = 30000;
 const profileEvidenceLoadedAt = new Map();
+const competitiveEvidenceDrafts = new Map();
 const profileEvidenceFreshnessMs = 30000;
 let adminGrowthSnapshot = null;
 let adminGrowthSnapshotPromise = null;
@@ -591,6 +592,7 @@ function resetDashboardPanelState() {
   dashboardPanelLoads.clear();
   dashboardPanelPromises.clear();
   profileEvidenceLoadedAt.clear();
+  competitiveEvidenceDrafts.clear();
   adminGrowthSnapshot = null;
   adminGrowthSnapshotPromise = null;
   adminGrowthSnapshotLoadedAt = 0;
@@ -6879,10 +6881,72 @@ function competitiveEvidenceFormMarkup(founder = false) {
         <label style="grid-column:1/-1">Descripción<textarea name="caption" required maxlength="1200" placeholder="Explica el contexto, resultado y por qué esta evidencia es relevante para una marca."></textarea></label>
         <label style="grid-column:1/-1">Portada opcional para reel<input name="thumbnail_file" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <p class="hint" style="grid-column:1/-1">Fotos JPG, PNG o WEBP de hasta 5 MB. Reels MP4, WebM o MOV de hasta 35 MB.</p>
+        <p class="hint" data-evidence-file-status style="grid-column:1/-1" hidden></p>
         <button class="btn primary" type="submit">Publicar evidencia</button>
       </form>
     </section>
   `;
+}
+
+function competitiveEvidenceDraftKey() {
+  return String(state.session?.email || "anonymous").trim().toLowerCase();
+}
+
+function restoreEvidenceFileInput(input, file) {
+  if (!input || !file || typeof DataTransfer === "undefined") return;
+  try {
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+  } catch (error) {
+    console.warn("[ROIS evidence draft] No fue posible restaurar el selector visual.", error);
+  }
+}
+
+function updateCompetitiveEvidenceFileStatus(form, draft = {}) {
+  const status = form?.querySelector("[data-evidence-file-status]");
+  if (!status) return;
+  const fileNames = [
+    draft.mediaFile?.name ? `Archivo listo: ${draft.mediaFile.name}` : "",
+    draft.thumbnailFile?.name ? `Portada lista: ${draft.thumbnailFile.name}` : ""
+  ].filter(Boolean);
+  status.hidden = fileNames.length === 0;
+  status.textContent = fileNames.join(" | ");
+}
+
+function bindCompetitiveEvidenceForm() {
+  document.querySelectorAll('form[id="athletePostForm"]').forEach(form => {
+    if (form.dataset.evidenceDraftBound === "true") return;
+    form.dataset.evidenceDraftBound = "true";
+    const key = competitiveEvidenceDraftKey();
+    const savedDraft = competitiveEvidenceDrafts.get(key) || {};
+    const titleInput = form.elements.namedItem("title");
+    const captionInput = form.elements.namedItem("caption");
+    const mediaInput = form.elements.namedItem("media_file");
+    const thumbnailInput = form.elements.namedItem("thumbnail_file");
+
+    if (titleInput) titleInput.value = savedDraft.title || "";
+    if (captionInput) captionInput.value = savedDraft.caption || "";
+    restoreEvidenceFileInput(mediaInput, savedDraft.mediaFile);
+    restoreEvidenceFileInput(thumbnailInput, savedDraft.thumbnailFile);
+    updateCompetitiveEvidenceFileStatus(form, savedDraft);
+
+    const persistDraft = () => {
+      const previous = competitiveEvidenceDrafts.get(key) || {};
+      const draft = {
+        title: String(titleInput?.value || ""),
+        caption: String(captionInput?.value || ""),
+        mediaFile: mediaInput?.files?.[0] || previous.mediaFile || null,
+        thumbnailFile: thumbnailInput?.files?.[0] || previous.thumbnailFile || null
+      };
+      competitiveEvidenceDrafts.set(key, draft);
+      updateCompetitiveEvidenceFileStatus(form, draft);
+    };
+
+    form.addEventListener("input", persistDraft);
+    form.addEventListener("change", persistDraft);
+    form.addEventListener("submit", submitAthletePost);
+  });
 }
 
 function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), options = {}) {
@@ -7088,7 +7152,7 @@ function renderAthleteProfile() {
     </div>
   `);
   document.getElementById("athleteProfileForm").addEventListener("submit", submitAthleteProfile);
-  document.getElementById("athletePostForm")?.addEventListener("submit", submitAthletePost);
+  bindCompetitiveEvidenceForm();
   document.querySelectorAll("[data-athlete-profile-tab]").forEach(button => {
     button.addEventListener("click", () => activateAthleteProfileTab(button.dataset.athleteProfileTab));
   });
@@ -7436,7 +7500,7 @@ function renderAthleteReels() {
       ${posts.length ? `<div class="athlete-own-reels">${posts.map(post => athleteOwnReelCard(post)).join("")}</div>` : `<div class="empty">Aun no has publicado contenido.</div>`}
     </div>
   `);
-  document.getElementById("athletePostForm").addEventListener("submit", submitAthletePost);
+  bindCompetitiveEvidenceForm();
 }
 
 function recordWithinDays(record, days) {
@@ -11352,12 +11416,14 @@ async function submitAthleteResult(event) {
 async function submitAthletePost(event) {
   event.preventDefault();
   const form = event.currentTarget;
+  const draftKey = competitiveEvidenceDraftKey();
+  const savedDraft = competitiveEvidenceDrafts.get(draftKey) || {};
   const context = getCurrentProfileContext();
   const athlete = currentAthlete();
-  const title = String(form.elements.namedItem("title")?.value || "").trim();
-  const caption = String(form.elements.namedItem("caption")?.value || "").trim();
-  const mediaFile = form.elements.namedItem("media_file")?.files?.[0];
-  const thumbnailFile = form.elements.namedItem("thumbnail_file")?.files?.[0];
+  const title = String(form.elements.namedItem("title")?.value || savedDraft.title || "").trim();
+  const caption = String(form.elements.namedItem("caption")?.value || savedDraft.caption || "").trim();
+  const mediaFile = form.elements.namedItem("media_file")?.files?.[0] || savedDraft.mediaFile;
+  const thumbnailFile = form.elements.namedItem("thumbnail_file")?.files?.[0] || savedDraft.thumbnailFile;
   if (!context || !athlete) {
     notify("Evidencia", "Perfil no encontrado", "No encontramos el registro real de tu perfil.");
     return;
@@ -11384,6 +11450,7 @@ async function submitAthletePost(event) {
       visual_status: "approved"
     });
     profileEvidenceLoadedAt.set(context.email, Date.now());
+    competitiveEvidenceDrafts.delete(draftKey);
     form.reset();
     renderAthleteProfile();
     notify("Evidencia", "Publicacion visible", "Tu evidencia ya esta disponible para las empresas que abran tu perfil.");
