@@ -3407,7 +3407,40 @@ function bindGlobalEvents() {
   document.getElementById("passwordForm").addEventListener("submit", submitPasswordChange);
   document.getElementById("registrationForm").addEventListener("submit", submitRegistration);
   document.getElementById("eventSponsorForm")?.addEventListener("submit", submitEventSponsorshipRequest);
+  initializeCommercialSidebar();
   document.addEventListener("click", handleDashboardDelegatedActions);
+}
+
+function setCommercialSidebarCollapsed(collapsed) {
+  const view = document.getElementById("commercialView");
+  const toggle = view?.querySelector("[data-commercial-sidebar-toggle]");
+  if (!view || !toggle) return;
+  view.classList.toggle("commercial-sidebar-collapsed", collapsed);
+  toggle.setAttribute("aria-expanded", String(!collapsed));
+  toggle.setAttribute("aria-label", collapsed ? "Desplegar menú comercial" : "Contraer menú comercial");
+  const label = toggle.querySelector("strong");
+  if (label) label.textContent = collapsed ? "Desplegar menú" : "Contraer menú";
+}
+
+function initializeCommercialSidebar() {
+  const toggle = document.querySelector("[data-commercial-sidebar-toggle]");
+  if (!toggle) return;
+  let collapsed = false;
+  try {
+    collapsed = localStorage.getItem("rois-commercial-sidebar-collapsed") === "true";
+  } catch (error) {
+    console.warn("ROIS could not restore the commercial sidebar preference.", error);
+  }
+  setCommercialSidebarCollapsed(collapsed);
+  toggle.addEventListener("click", () => {
+    const nextCollapsed = !document.getElementById("commercialView")?.classList.contains("commercial-sidebar-collapsed");
+    setCommercialSidebarCollapsed(nextCollapsed);
+    try {
+      localStorage.setItem("rois-commercial-sidebar-collapsed", String(nextCollapsed));
+    } catch (error) {
+      console.warn("ROIS could not save the commercial sidebar preference.", error);
+    }
+  });
 }
 
 function handleDashboardDelegatedActions(event) {
@@ -10430,6 +10463,15 @@ function crmProspectRows(records = commercialCrmRecords()) {
   ]);
 }
 
+function commercialCrmTable(headers, rows) {
+  return `
+    <div class="commercial-table-scroll" role="region" aria-label="Registros comerciales" tabindex="0">
+      <div class="commercial-table-track">${table(headers, rows)}</div>
+    </div>
+    <p class="commercial-scroll-hint">Desliza horizontalmente para consultar todas las columnas.</p>
+  `;
+}
+
 function crmPreferredLanguageLabel(value) {
   return {
     auto: "Idioma automático",
@@ -10494,7 +10536,7 @@ function bindCommercialRecordDirectory(internalMode) {
   const renderDirectory = () => {
     const records = filteredCommercialCrmRecords();
     directory.innerHTML = records.length
-      ? table([internalMode ? "Registro" : "Registro Scout", "Correo / mercado", "Tipo", "Etapa", "Invitación", "Seguimiento", "Acciones"], crmProspectRows(records))
+      ? commercialCrmTable([internalMode ? "Registro" : "Registro Scout", "Correo / mercado", "Tipo", "Etapa", "Invitación", "Seguimiento", "Acciones"], crmProspectRows(records))
       : `<div class="empty">No hay registros que coincidan con los filtros.</div>`;
   };
   ["commercialRecordSearch", "commercialRecordType", "commercialRecordSort"].forEach(id => {
@@ -10619,7 +10661,7 @@ function renderCommercialOverview() {
         </div>
       </div>
       <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Actividad reciente</p><h3>Últimos registros comerciales.</h3></div></div>
-      ${recentRows.length ? table(["Registro", "Correo / mercado", "Tipo", "Etapa", "Invitación", "Seguimiento", "Acciones"], recentRows) : `<div class="empty">Aún no hay registros comerciales.</div>`}
+      ${recentRows.length ? commercialCrmTable(["Registro", "Correo / mercado", "Tipo", "Etapa", "Invitación", "Seguimiento", "Acciones"], recentRows) : `<div class="empty">Aún no hay registros comerciales.</div>`}
     `);
     return;
   }
@@ -10656,7 +10698,7 @@ function renderCommercialOverview() {
     <div class="panel-body"><p class="hint">Cada referido activado y validado genera un solo pago de $${commission.toLocaleString("es-MX")} MXN. La comisi\u00f3n no es mensual.</p></div>
     ${retries || due ? `<div class="panel-body"><p class="hint">${retries} invitaciones requieren reintento y ${due} seguimientos est\u00e1n vencidos.</p></div>` : ""}
     <div class="panel-body"><div class="section-minihead"><p class="eyebrow">Actividad reciente</p><h3>\u00daltimos referidos registrados.</h3></div></div>
-    ${recentRows.length ? table(["Referido", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], recentRows) : `<div class="empty">A\u00fan no has registrado referidos.</div>`}
+    ${recentRows.length ? commercialCrmTable(["Referido", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], recentRows) : `<div class="empty">A\u00fan no has registrado referidos.</div>`}
   `);
   document.querySelector("[data-copy-external-scout-code]")?.addEventListener("click", async () => {
     await navigator.clipboard.writeText(scoutCode);
@@ -10681,7 +10723,7 @@ function renderCommercialFollowup() {
   const rows = crmProspectRows(records);
   const internalMode = isInternalCommercialSession();
   panel("commercial-followup", "Seguimiento", internalMode ? "Próximas acciones de la operación comercial" : "Próximas acciones de tu red Scout", rows.length
-    ? table([internalMode ? "Registro" : "Registro Scout", "Correo / mercado", "Tipo", "Etapa", "Invitación", "Seguimiento", "Acciones"], rows)
+    ? commercialCrmTable([internalMode ? "Registro" : "Registro Scout", "Correo / mercado", "Tipo", "Etapa", "Invitación", "Seguimiento", "Acciones"], rows)
     : `<div class="empty">No hay seguimientos pendientes.</div>`);
 }
 

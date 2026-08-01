@@ -6654,6 +6654,205 @@ body[data-active-view="home"] .premium-home-footer {
   }
 }
 
+/* Commercial CRM: compact, spreadsheet-like records and collapsible navigation. */
+#commercialView {
+  transition: grid-template-columns 0.22s ease;
+}
+
+#commercialView .commercial-sidebar-toggle {
+  width: calc(100% - 28px);
+  min-height: 38px;
+  margin: 18px 14px 12px;
+  padding: 7px 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: #2d3540;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+#commercialView .commercial-sidebar-toggle span {
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 0.8;
+  transition: transform 0.22s ease;
+}
+
+#commercialView.commercial-sidebar-collapsed {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+#commercialView.commercial-sidebar-collapsed .sidebar {
+  padding-inline: 0;
+}
+
+#commercialView.commercial-sidebar-collapsed .side-nav {
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#commercialView.commercial-sidebar-collapsed .commercial-sidebar-toggle {
+  width: 42px;
+  margin-inline: auto;
+  padding-inline: 6px;
+}
+
+#commercialView.commercial-sidebar-collapsed .commercial-sidebar-toggle strong {
+  display: none;
+}
+
+#commercialView.commercial-sidebar-collapsed .commercial-sidebar-toggle span {
+  transform: rotate(180deg);
+}
+
+#commercialView .commercial-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  max-height: min(66vh, 680px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: auto;
+  scrollbar-color: #737b86 #e8ebee;
+  border-block: 1px solid var(--line);
+  background: #fff;
+}
+
+#commercialView .commercial-table-scroll::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+#commercialView .commercial-table-scroll::-webkit-scrollbar-track {
+  background: #e8ebee;
+}
+
+#commercialView .commercial-table-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid #e8ebee;
+  border-radius: 999px;
+  background: #737b86;
+}
+
+#commercialView .commercial-table-track,
+#commercialView .commercial-table-scroll .data-table {
+  min-width: 1240px;
+}
+
+#commercialView .commercial-table-scroll .data-table {
+  width: 100%;
+  table-layout: fixed;
+  border: 0;
+  border-radius: 0;
+}
+
+#commercialView .commercial-table-scroll th:nth-child(1) { width: 150px; }
+#commercialView .commercial-table-scroll th:nth-child(2) { width: 250px; }
+#commercialView .commercial-table-scroll th:nth-child(3) { width: 100px; }
+#commercialView .commercial-table-scroll th:nth-child(4) { width: 112px; }
+#commercialView .commercial-table-scroll th:nth-child(5) { width: 130px; }
+#commercialView .commercial-table-scroll th:nth-child(6) { width: 110px; }
+#commercialView .commercial-table-scroll th:nth-child(7) { width: 388px; }
+
+#commercialView .commercial-table-scroll th,
+#commercialView .commercial-table-scroll td {
+  height: 42px;
+  padding: 6px 9px;
+  overflow: hidden;
+  color: #20252b;
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+#commercialView .commercial-table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f1f3f5;
+  color: #616b77;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+#commercialView .commercial-table-scroll tbody tr:hover {
+  background: #f7f8f9;
+}
+
+#commercialView .commercial-table-scroll td br {
+  display: none;
+}
+
+#commercialView .commercial-table-scroll td .hint {
+  display: inline;
+  margin-left: 6px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+#commercialView .commercial-table-scroll .pill {
+  min-height: 22px;
+  padding: 3px 7px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+#commercialView .commercial-table-scroll td:last-child {
+  overflow: visible;
+}
+
+#commercialView .commercial-table-scroll .table-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+#commercialView .commercial-table-scroll .table-actions .btn {
+  min-height: 27px;
+  padding: 5px 7px;
+  border-radius: 8px;
+  font-size: 8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+#commercialView .commercial-scroll-hint {
+  margin: 8px 24px 0;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  #commercialView .commercial-sidebar-toggle {
+    display: none;
+  }
+
+  #commercialView.commercial-sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  #commercialView.commercial-sidebar-collapsed .side-nav {
+    width: auto;
+    overflow: visible;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+}
+
 /* Contextual company dashboard guides */
 .client-panel-tutorial {
   position: relative;
