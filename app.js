@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260801-client-language-switch-visible";
+const roisBuild = "20260801-dashboard-english-complete";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = [];
 const athleteAnnualFeeAmount = 2500;
@@ -267,7 +267,10 @@ const dashboardEnglishPatterns = [
   [/^Hace (\d+) días?$/i, "$1 days ago"],
   [/^Hace (\d+) horas?$/i, "$1 hours ago"],
   [/^Hace (\d+) minutos?$/i, "$1 minutes ago"],
-  [/^Hace unos segundos$/i, "A few seconds ago"]
+  [/^Hace unos segundos$/i, "A few seconds ago"],
+  [/^(\d+)%\s+COMPLETO$/i, "$1% COMPLETE"],
+  [/^HASTA\s+(\d+)\s+SPONSORS$/i, "UP TO $1 SPONSORS"],
+  [/^(.+):\s*talento deportivo con valor para marcas$/i, "$1: athletic talent with value for brands"]
 ];
 
 // Keep interface copy deterministic and local. User-authored profile and campaign
@@ -445,13 +448,62 @@ const dashboardEnglishPhrases = [
   ["Cierra sesion en equipos compartidos.", "Sign out on shared devices."],
   ["Guia rapida", "Quick guide"],
   ["Ejemplo practico", "Practical example"],
-  ["Ver guia", "View guide"]
+  ["Ver guia", "View guide"],
+  ["Perfil empresarial", "Company profile"],
+  ["Cuenta empresarial habilitada para explorar el Mercado Corporativo, athletes, creadores, eventos privados y oportunidades administradas por ROIS.", "Company account enabled to explore the Corporate Marketplace, athletes, creators, private events, and opportunities managed by ROIS."],
+  ["Explorar Mercado Corporativo", "Explore Corporate Marketplace"],
+  ["Ver Mercado de fichajes", "View Talent Marketplace"],
+  ["Ver creadores", "View creators"],
+  ["Editar perfil", "Edit profile"],
+  ["Actualizaciones publicadas por administracion.", "Updates published by administration."],
+  ["Mensajes, aperturas de inventario, alianzas y oportunidades que requieren atencion empresarial.", "Messages, inventory openings, partnerships, and opportunities that require business attention."],
+  ["Nota ROIS", "ROIS Brief"],
+  ["Empresas que patrocinan founders construyen futuro", "Companies that sponsor founders build the future"],
+  ["Patrocinar a un founder ROIS no es sólo una acción de visibilidad. Es una forma de participar en la construcción de nuevas empresas, nuevas relaciones comerciales y nuevas oportunidades de mercado. ROIS conecta empresas con founders que buscan estructurar su propuesta, fortalecer su narrativa, documentar avances y acceder a respaldos comerciales sin diluir su sociedad en etapas prematuras. Para las empresas, esto representa exposición estratégica, acceso temprano a talento emprendedor, posicionamiento en innovación y participación directa en el crecimiento económico de México y del mundo. Para los founders, representa validación, capital operativo, reputación y relaciones que pueden acelerar su desarrollo. Impulsar founders es impulsar la economía que viene.", "Sponsoring a ROIS founder is more than a visibility initiative. It is a way to participate in building new companies, new business relationships, and new market opportunities. ROIS connects companies with founders who seek to structure their value proposition, strengthen their narrative, document progress, and access business support without diluting their ownership at an early stage. For companies, this means strategic exposure, early access to entrepreneurial talent, innovation positioning, and direct participation in the economic growth of Mexico and the world. For founders, it means validation, operating capital, reputation, and relationships that can accelerate their development. Supporting founders means supporting the economy of the future."],
+  ["Publicacion y distribucion comercial", "Opportunity publishing and distribution"],
+  ["Ejemplo: captar 30 prospectos calificados en Queretaro pagando una comision por cada resultado validado.", "Example: generate 30 qualified leads in Queretaro, paying a commission for each validated result."],
+  ["Empresa", "Company"],
+  ["Activa personas para vender, recomendar, crear o colaborar.", "Activate people to sell, recommend, create, or collaborate."],
+  ["Toda oportunidad pasa por revision ROIS antes de publicarse. No se permiten promesas de ingreso, reclutamiento multinivel ni compras ocultas.", "Every opportunity is reviewed by ROIS before publication. Income promises, multilevel recruitment, and undisclosed purchases are not allowed."],
+  ["Gimnasia olimpica", "Olympic gymnastics"],
+  ["Alto rendimiento", "High performance"],
+  ["Golf competitivo", "Competitive golf"],
+  ["Atleta fundador ROIS", "ROIS founding athlete"],
+  ["Queretaro, Mexico", "Queretaro, Mexico"],
+  ["Solicitar fichaje", "Request sponsorship"],
+  ["Ver Sponsor Deck", "View Sponsor Deck"],
+  ["Soy gimnasta olímpico de alto rendimiento con experiencia en competencias nacionales e internacionales. A lo largo de mi trayectoria he demostrado disciplina, constancia y compromiso con la excelencia deportiva. En el Campeonato Nacional 2026 obtuve el subcampeonato nacional en las pruebas de piso y salto, un logro que refleja años de preparación y dedicación. Mi objetivo es seguir desarrollándome para competir al más alto nivel, representar a México en competencias internacionales de mayor prestigio y continuar construyendo una carrera deportiva de excelencia. Busco establecer alianzas con marcas que compartan los valores del esfuerzo, la perseverancia y la superación, representándolas con profesionalismo tanto dentro como fuera del área de competencia.", "I am a high-performance Olympic gymnast with experience in national and international competitions. Throughout my career, I have demonstrated discipline, consistency, and a commitment to athletic excellence. At the 2026 National Championship, I earned national runner-up honors in floor exercise and vault, an achievement that reflects years of preparation and dedication. My goal is to continue developing to compete at the highest level, represent Mexico at the most prestigious international competitions, and keep building a career defined by athletic excellence. I seek partnerships with brands that share the values of effort, perseverance, and continuous improvement, representing them professionally both inside and outside the field of competition."],
+  ["Atleta de golf en desarrollo competitivo, enfocado en construir una carrera deportiva con disciplina, estructura profesional y visión de alto rendimiento. Mi perfil dentro de ROIS busca conectar mi preparación deportiva con marcas, empresas y patrocinadores interesados en respaldar talento con alto potencial, presencia ejecutiva y proyección dentro del ecosistema deportivo premium. Actualmente me encuentro en etapa de entrenamiento, posicionamiento y preparación para torneos, con el objetivo de documentar avances, generar visibilidad para patrocinadores y construir una carrera competitiva sostenible.", "Competitive golfer in development, focused on building an athletic career with discipline, professional structure, and a high-performance vision. My ROIS profile seeks to connect my athletic preparation with brands, companies, and sponsors interested in supporting high-potential talent with an executive presence and strong visibility within the premium sports ecosystem. I am currently in a stage of training, positioning, and tournament preparation, with the goal of documenting progress, generating sponsor visibility, and building a sustainable competitive career."],
+  ["Completo", "Complete"],
+  ["Hasta 10 sponsors", "Up to 10 sponsors"]
 ];
+
+function dashboardTranslationKey(value) {
+  return String(value || "")
+    .replace(/\u00c3\u00a1/g, "a")
+    .replace(/\u00c3\u00a9/g, "e")
+    .replace(/\u00c3\u00ad/g, "i")
+    .replace(/\u00c3\u00b3/g, "o")
+    .replace(/\u00c3\u00ba|\u00c3\u00bc/g, "u")
+    .replace(/\u00c3\u00b1/g, "n")
+    .replace(/\u00c3\u0081/g, "A")
+    .replace(/\u00c3\u0089/g, "E")
+    .replace(/\u00c3\u008d/g, "I")
+    .replace(/\u00c3\u0093/g, "O")
+    .replace(/\u00c3\u009a/g, "U")
+    .replace(/\u00c3\u0091/g, "N")
+    .replace(/\u00c2\u00bf|\u00c2\u00a1/g, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
 
 const dashboardEnglishPhraseMap = new Map(dashboardEnglishPhrases);
 const dashboardEnglishNormalizedText = new Map(
   [...dashboardEnglishText.entries(), ...dashboardEnglishPhrases].map(([source, translation]) => [
-    String(source).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(),
+    dashboardTranslationKey(source),
     translation
   ])
 );
@@ -526,7 +578,7 @@ function translatedDashboardDate(value) {
   };
   const match = String(value || "").trim().match(/^(\d{1,2})(?:\s+de)?\s+([a-záéíóú]+)(?:\s+de)?\s+(\d{4})$/i);
   if (!match) return "";
-  const month = months[match[2].normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()];
+  const month = months[dashboardTranslationKey(match[2])];
   return month ? `${month} ${Number(match[1])}, ${match[3]}` : "";
 }
 
@@ -541,20 +593,50 @@ function translatedDashboardValue(value, language = state.dashboardLanguage) {
   if (exact) return `${leading}${exact}${trailing}`;
   const phrase = dashboardEnglishPhraseMap.get(core);
   if (phrase) return `${leading}${phrase}${trailing}`;
-  const normalized = core.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const normalized = dashboardTranslationKey(core);
   const normalizedMatch = dashboardEnglishNormalizedText.get(normalized);
   if (normalizedMatch) return `${leading}${normalizedMatch}${trailing}`;
+  if (core.includes(" / ")) {
+    const sourceParts = core.split(/\s*\/\s*/);
+    const translatedParts = sourceParts.map(part => {
+      const normalizedPart = dashboardTranslationKey(part);
+      return dashboardEnglishNormalizedText.get(normalizedPart) || part;
+    });
+    if (translatedParts.some((part, index) => part !== sourceParts[index])) {
+      return `${leading}${translatedParts.join(" / ")}${trailing}`;
+    }
+  }
   const translatedDate = translatedDashboardDate(core);
   if (translatedDate) return `${leading}${translatedDate}${trailing}`;
   for (const [pattern, replacement] of dashboardEnglishPatterns) {
     if (pattern.test(core)) return `${leading}${core.replace(pattern, replacement)}${trailing}`;
   }
+
+  // Rendered paragraphs often combine several translated sentences in one text node.
+  // Translate each known sentence without requiring the complete node to match.
+  const segments = core.split(/(?<=[.!?])\s+|\n+/);
+  let segmentChanged = false;
+  const translatedSegments = segments.map(segment => {
+    const translated = dashboardEnglishNormalizedText.get(dashboardTranslationKey(segment));
+    if (!translated) return segment;
+    segmentChanged = true;
+    return translated;
+  });
+  if (segmentChanged) return `${leading}${translatedSegments.join(" ")}${trailing}`;
+
   return stringValue;
 }
 
 function translateDashboardTextNode(node) {
   if (!node?.parentElement || !dashboardTranslationScope(node.parentElement)) return;
-  if (!dashboardOriginalText.has(node)) dashboardOriginalText.set(node, node.nodeValue || "");
+  const current = node.nodeValue || "";
+  if (!dashboardOriginalText.has(node)) {
+    dashboardOriginalText.set(node, current);
+  } else if (state.dashboardLanguage === "en") {
+    const stored = dashboardOriginalText.get(node);
+    const renderedEnglish = translatedDashboardValue(stored, "en");
+    if (current !== stored && current !== renderedEnglish) dashboardOriginalText.set(node, current);
+  }
   const source = dashboardOriginalText.get(node);
   const next = translatedDashboardValue(source);
   if (node.nodeValue !== next) node.nodeValue = next;
@@ -563,6 +645,7 @@ function translateDashboardTextNode(node) {
 function translateDashboardAttributes(element) {
   if (!dashboardTranslationScope(element)) return;
   const names = ["placeholder", "aria-label", "title"];
+  if (element.matches?.('input[type="button"], input[type="submit"], input[type="reset"]')) names.push("value");
   let originals = dashboardOriginalAttributes.get(element);
   if (!originals) {
     originals = {};
@@ -570,7 +653,13 @@ function translateDashboardAttributes(element) {
   }
   names.forEach(name => {
     if (!element.hasAttribute(name)) return;
-    if (!(name in originals)) originals[name] = element.getAttribute(name);
+    const current = element.getAttribute(name);
+    if (!(name in originals)) {
+      originals[name] = current;
+    } else if (state.dashboardLanguage === "en") {
+      const renderedEnglish = translatedDashboardValue(originals[name], "en");
+      if (current !== originals[name] && current !== renderedEnglish) originals[name] = current;
+    }
     const next = translatedDashboardValue(originals[name]);
     if (element.getAttribute(name) !== next) element.setAttribute(name, next);
   });
