@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260729-athlete-marketplace-visibility-recovery";
+const roisBuild = "20260801-dashboard-bilingual-en";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = [];
 const athleteAnnualFeeAmount = 2500;
@@ -19,13 +19,602 @@ const profileImageFallback = "./assets/rois-logo.png";
 const runtimeCacheRowsPerTable = 120;
 const sponsorDeckFunctionName = "generate-sponsor-deck";
 const roisIAEnabled = config.roisIAEnabled === true;
+const dashboardLanguageStorageKey = "rois_dashboard_language_v1";
 
 const state = {
   session: readSession(),
   pendingSession: null,
   registrationType: null,
-  data: null
+  data: null,
+  dashboardLanguage: readDashboardLanguagePreference()
 };
+
+const dashboardOriginalText = new WeakMap();
+const dashboardOriginalAttributes = new WeakMap();
+let dashboardLanguageObserver = null;
+let dashboardTranslationScheduled = false;
+
+const dashboardEnglishText = new Map(Object.entries({
+  "Inicio": "Home",
+  "Resumen": "Overview",
+  "Perfil": "Profile",
+  "Perfil deportivo": "Athlete profile",
+  "Perfil de creador": "Creator profile",
+  "Panel deportista": "Athlete dashboard",
+  "Panel creador": "Creator dashboard",
+  "Panel cliente": "Company dashboard",
+  "Panel comercial": "Commercial dashboard",
+  "Administracion": "Administration",
+  "Administración": "Administration",
+  "Empresa aprobada": "Approved company",
+  "Operación comercial ROIS": "ROIS commercial operations",
+  "Operación interna": "Internal operations",
+  "Cerrar sesión": "Sign out",
+  "Cerrar sesion": "Sign out",
+  "Menú": "Menu",
+  "Menu": "Menu",
+  "Contraer menú": "Collapse menu",
+  "Desplegar menú": "Expand menu",
+  "Comercial": "Commercial",
+  "Registros": "Records",
+  "Seguimiento": "Follow-up",
+  "Oportunidades": "Opportunities",
+  "Mis postulaciones": "My applications",
+  "Postulantes": "Applicants",
+  "Red Scout": "Scout Network",
+  "Scouts": "Scouts",
+  "Resultados": "Results",
+  "Inteligencia": "Intelligence",
+  "Eventos": "Events",
+  "Mercado Corporativo": "Corporate Marketplace",
+  "Mercado de fichajes": "Talent Marketplace",
+  "Creadores": "Creators",
+  "Deportistas": "Athletes",
+  "Atletas": "Athletes",
+  "Registrar Evento": "Submit Event",
+  "Registrar evento": "Submit event",
+  "Pagos": "Payments",
+  "Ingresos": "Earnings",
+  "Configuración": "Settings",
+  "Configuracion": "Settings",
+  "Ajustes": "Settings",
+  "Notificaciones": "Notifications",
+  "Sponsor Deck ROIS": "ROIS Sponsor Deck",
+  "Impulso creativo": "Creative Boost",
+  "Privacidad": "Privacy",
+  "Planes": "Plans",
+  "Estadísticas": "Analytics",
+  "Estadisticas": "Analytics",
+  "Usuarios": "Users",
+  "Comisiones": "Commissions",
+  "Disputas": "Disputes",
+  "Enlaces de pago": "Payment links",
+  "Noticias": "News",
+  "Centro VIP": "VIP Center",
+  "Control": "Control",
+  "Dirección": "Management",
+  "Direccion": "Management",
+  "Red": "Network",
+  "Contenido": "Content",
+  "Sistema": "System",
+  "Cuenta": "Account",
+  "Estado": "Status",
+  "Acciones": "Actions",
+  "Acción": "Action",
+  "Fecha": "Date",
+  "Nombre": "Name",
+  "Correo": "Email",
+  "Correo electrónico": "Email",
+  "Correo electronico": "Email",
+  "Contraseña": "Password",
+  "Contrasena": "Password",
+  "Categoría": "Category",
+  "Categoria": "Category",
+  "Industria": "Industry",
+  "Ubicación": "Location",
+  "Ubicacion": "Location",
+  "Ciudad": "City",
+  "País": "Country",
+  "Pais": "Country",
+  "Idioma": "Language",
+  "Descripción": "Description",
+  "Descripcion": "Description",
+  "Objetivo": "Objective",
+  "Audiencia": "Audience",
+  "Experiencia": "Experience",
+  "Habilidades": "Skills",
+  "Intereses": "Interests",
+  "Disponibilidad": "Availability",
+  "Modalidad": "Format",
+  "Compensación": "Compensation",
+  "Compensacion": "Compensation",
+  "Comisión": "Commission",
+  "Comision": "Commission",
+  "Monto": "Amount",
+  "Total": "Total",
+  "Pendiente": "Pending",
+  "Pendientes": "Pending",
+  "Aprobado": "Approved",
+  "Aprobada": "Approved",
+  "Aprobados": "Approved",
+  "Aprobadas": "Approved",
+  "Rechazado": "Rejected",
+  "Rechazada": "Rejected",
+  "Publicado": "Published",
+  "Publicada": "Published",
+  "Borrador": "Draft",
+  "En revisión": "Under review",
+  "En revision": "Under review",
+  "En ejecución": "In progress",
+  "En ejecucion": "In progress",
+  "Completado": "Completed",
+  "Completada": "Completed",
+  "Cancelado": "Cancelled",
+  "Cancelada": "Cancelled",
+  "Pagado": "Paid",
+  "Pagada": "Paid",
+  "Activo": "Active",
+  "Activa": "Active",
+  "Inactivo": "Inactive",
+  "Inactiva": "Inactive",
+  "Bloqueado": "Blocked",
+  "Eliminado": "Deleted",
+  "Ver perfil": "View profile",
+  "Ver guía": "View guide",
+  "Ver guia": "View guide",
+  "Editar perfil": "Edit profile",
+  "Guardar": "Save",
+  "Guardando...": "Saving...",
+  "Actualizar": "Update",
+  "Actualizar datos": "Refresh data",
+  "Continuar": "Continue",
+  "Cancelar": "Cancel",
+  "Cerrar": "Close",
+  "Abrir": "Open",
+  "Ver": "View",
+  "Enviar": "Send",
+  "Publicar": "Publish",
+  "Eliminar": "Delete",
+  "Aprobar": "Approve",
+  "Rechazar": "Reject",
+  "Solicitar": "Request",
+  "Solicitar patrocinio": "Request sponsorship",
+  "Solicitar colaboración": "Request collaboration",
+  "Solicitar colaboracion": "Request collaboration",
+  "Ver redes sociales": "View social media",
+  "Descargar propuesta para sponsors": "View sponsor proposal",
+  "Enviar a revisión ROIS": "Submit for ROIS review",
+  "Enviar a revision ROIS": "Submit for ROIS review",
+  "Crear oportunidad": "Create opportunity",
+  "Nueva oportunidad": "New opportunity",
+  "Nueva invitación": "New invitation",
+  "Nueva invitacion": "New invitation",
+  "Reenviar invitación": "Resend invitation",
+  "Reenviar invitacion": "Resend invitation",
+  "Marcar contactado": "Mark contacted",
+  "Marcar interesado": "Mark interested",
+  "Marcar registrado": "Mark registered",
+  "Sin registros": "No records",
+  "Sin resultados": "No results",
+  "Sin información": "No information",
+  "Sin informacion": "No information",
+  "Aún no hay información disponible.": "No information is available yet.",
+  "Aun no hay informacion disponible.": "No information is available yet.",
+  "Próximamente": "Coming soon",
+  "Proximamente": "Coming soon",
+  "Perfil activo": "Active profile",
+  "Por documentar": "Not provided",
+  "Por definir": "To be defined",
+  "Sin proveedor": "No provider",
+  "Todos": "All",
+  "Todas": "All",
+  "Empresa": "Company",
+  "Empresas": "Companies",
+  "Creador": "Creator",
+  "Deportista": "Athlete",
+  "Athlete": "Athlete",
+  "Founder": "Creator",
+  "Normal": "Normal",
+  "Sistema": "System",
+  "Leída": "Read",
+  "Leida": "Read",
+  "No leída": "Unread",
+  "No leida": "Unread",
+  "Título": "Title",
+  "Titulo": "Title",
+  "Resumen": "Summary",
+  "Notas": "Notes",
+  "Archivo": "File",
+  "Imagen": "Image",
+  "Redes sociales": "Social media",
+  "Publicaciones": "Posts",
+  "Patrocinadores": "Sponsors",
+  "Beneficios": "Benefits",
+  "Ventajas": "Advantages",
+  "Términos": "Terms",
+  "Terminos": "Terms",
+  "Evidencia": "Evidence",
+  "Guardar cambios": "Save changes",
+  "Crear cuenta": "Create account",
+  "Entrar": "Sign in",
+  "Salir": "Sign out",
+  "Anterior": "Previous",
+  "Siguiente": "Next",
+  "Cargar más": "Load more",
+  "Cargar mas": "Load more",
+  "Copiar código": "Copy code",
+  "Copiar codigo": "Copy code",
+  "Código Scout ROIS": "ROIS Scout code",
+  "Codigo Scout ROIS": "ROIS Scout code",
+  "Mis ingresos": "My earnings",
+  "Saldo pendiente": "Pending balance",
+  "Saldo pagado": "Paid balance",
+  "Historial": "History",
+  "Mis oportunidades": "My opportunities",
+  "Mis resultados": "My results"
+}));
+
+const dashboardEnglishPatterns = [
+  [/^Aún no hay (.+)\.$/i, "No $1 yet."],
+  [/^Aun no hay (.+)\.$/i, "No $1 yet."],
+  [/^No hay (.+) disponibles\.$/i, "No $1 are available."],
+  [/^Los (.+) aparecerán aquí cuando (.+)\.$/i, "$1 will appear here when $2."],
+  [/^Las (.+) aparecerán aquí cuando (.+)\.$/i, "$1 will appear here when $2."],
+  [/^Mostrando (\d+) de (\d+)$/i, "Showing $1 of $2"],
+  [/^(\d+) perfiles?$/i, "$1 profiles"],
+  [/^(\d+) resultados?$/i, "$1 results"],
+  [/^(\d+) notificaciones?$/i, "$1 notifications"],
+  [/^Hace (\d+) días?$/i, "$1 days ago"],
+  [/^Hace (\d+) horas?$/i, "$1 hours ago"],
+  [/^Hace (\d+) minutos?$/i, "$1 minutes ago"],
+  [/^Hace unos segundos$/i, "A few seconds ago"]
+];
+
+// Keep interface copy deterministic and local. User-authored profile and campaign
+// content is intentionally not passed through an external translation service.
+const dashboardEnglishAccentedText = {
+  "Administración": "Administration",
+  "Operación comercial ROIS": "ROIS commercial operations",
+  "Operación interna": "Internal operations",
+  "Cerrar sesión": "Sign out",
+  "Menú": "Menu",
+  "Contraer menú": "Collapse menu",
+  "Desplegar menú": "Expand menu",
+  "Configuración": "Settings",
+  "Estadísticas": "Analytics",
+  "Dirección": "Management",
+  "Acción": "Action",
+  "Correo electrónico": "Email",
+  "Contraseña": "Password",
+  "Categoría": "Category",
+  "Ubicación": "Location",
+  "País": "Country",
+  "Descripción": "Description",
+  "Compensación": "Compensation",
+  "Comisión": "Commission",
+  "En revisión": "Under review",
+  "En ejecución": "In progress",
+  "Ver guía": "View guide",
+  "Solicitar colaboración": "Request collaboration",
+  "Enviar a revisión ROIS": "Submit for ROIS review",
+  "Nueva invitación": "New invitation",
+  "Reenviar invitación": "Resend invitation",
+  "Sin información": "No information",
+  "Aún no hay información disponible.": "No information is available yet.",
+  "Próximamente": "Coming soon",
+  "Leída": "Read",
+  "No leída": "Unread",
+  "Título": "Title",
+  "Términos": "Terms",
+  "Cargar más": "Load more",
+  "Copiar código": "Copy code",
+  "Código Scout ROIS": "ROIS Scout code",
+  "Guía rápida": "Quick guide",
+  "Ejemplo práctico": "Practical example",
+  "Mostrar guía de esta sección": "Show guide for this section",
+  "Ocultar guía": "Hide guide",
+  "Publicación": "Post",
+  "Publicación ROIS": "ROIS post",
+  "Información solicitada": "Information requested",
+  "Postulación enviada": "Application submitted",
+  "Resultado enviado": "Result submitted",
+  "Resultado validado": "Result validated",
+  "Comisión pendiente": "Commission pending",
+  "Comisión pagada": "Commission paid",
+  "Fecha estimada de pago": "Estimated payment date",
+  "Fecha efectiva de pago": "Payment date",
+  "Términos de la misión": "Mission terms",
+  "Revisión ROIS": "ROIS review",
+  "Revisión visual": "Visual review",
+  "Información adicional": "Additional information",
+  "Más información": "More information"
+};
+Object.entries(dashboardEnglishAccentedText).forEach(([source, translation]) => {
+  dashboardEnglishText.set(source, translation);
+});
+
+const dashboardEnglishPhrases = [
+  ["Tu punto de partida", "Your starting point"],
+  ["Revisa el estado de tu empresa y entra directamente al modulo que necesitas.", "Review your company's status and go directly to the module you need."],
+  ["Confirma que el perfil empresarial este completo.", "Confirm that the company profile is complete."],
+  ["Elige si buscas talento, eventos u oportunidades.", "Choose whether you are looking for talent, events, or opportunities."],
+  ["Consulta las alertas y continua la operacion pendiente.", "Review alerts and continue the pending operation."],
+  ["Convierte un objetivo en una oportunidad", "Turn an objective into an opportunity"],
+  ["Publica una mision para encontrar personas que vendan, recomienden, creen contenido o generen prospectos.", "Publish a mission to find people who sell, recommend, create content, or generate leads."],
+  ["Define el resultado que necesita tu empresa.", "Define the result your company needs."],
+  ["Explica compensacion, requisitos y evidencia.", "Explain compensation, requirements, and evidence."],
+  ["Envia la oportunidad a revision ROIS.", "Submit the opportunity for ROIS review."],
+  ["Selecciona participantes compatibles", "Select compatible participants"],
+  ["Revisa las postulaciones recibidas y decide quien puede ejecutar cada oportunidad.", "Review received applications and decide who can execute each opportunity."],
+  ["Abre la postulacion.", "Open the application."],
+  ["Compara capacidades, ubicacion y evidencia.", "Compare skills, location, and evidence."],
+  ["Acepta, rechaza o solicita informacion adicional.", "Accept, reject, or request additional information."],
+  ["Activa distribucion con la red Scout", "Activate distribution with the Scout Network"],
+  ["Da seguimiento a usuarios ROIS que participan en tus misiones usando su codigo Scout global.", "Track ROIS users participating in your missions with their global Scout code."],
+  ["Publica una oportunidad compatible con Scouts.", "Publish a Scout-compatible opportunity."],
+  ["Revisa cada participante antes de activarlo.", "Review each participant before activating them."],
+  ["Valida resultados y comisiones desde ROIS.", "Validate results and commissions in ROIS."],
+  ["Valida resultados antes de pagar", "Validate results before paying"],
+  ["Centraliza conversiones, evidencias y avances generados por tus oportunidades.", "Centralize conversions, evidence, and progress generated by your opportunities."],
+  ["Revisa el resultado enviado.", "Review the submitted result."],
+  ["Confirma que cumple las reglas de atribucion.", "Confirm that it meets the attribution rules."],
+  ["Aprueba, rechaza o solicita evidencia.", "Approve, reject, or request evidence."],
+  ["Lee el mercado sin exponer datos personales", "Understand the market without exposing personal data"],
+  ["Consulta tendencias agregadas de la red para tomar mejores decisiones comerciales.", "Review aggregated network trends to make better business decisions."],
+  ["Selecciona el segmento que quieres entender.", "Select the segment you want to understand."],
+  ["Compara interes, ubicacion y respuesta.", "Compare interest, location, and response."],
+  ["Usa el hallazgo para mejorar tu siguiente oportunidad.", "Use the insight to improve your next opportunity."],
+  ["Evalua eventos con contexto comercial", "Evaluate events with business context"],
+  ["Explora eventos aprobados, revisa sus materiales y solicita una conversacion de patrocinio.", "Explore approved events, review their materials, and request a sponsorship conversation."],
+  ["Abre la ficha del evento.", "Open the event profile."],
+  ["Consulta alcance, audiencia y brochure.", "Review reach, audience, and brochure."],
+  ["Envia tu interes mediante ROIS.", "Submit your interest through ROIS."],
+  ["Explora activos corporativos", "Explore corporate assets"],
+  ["Descubre productos, servicios e inventario publicados por empresas dentro de ROIS.", "Discover products, services, and inventory published by companies in ROIS."],
+  ["Filtra el tipo de activo.", "Filter by asset type."],
+  ["Revisa condiciones y disponibilidad.", "Review terms and availability."],
+  ["Solicita informacion o una propuesta comercial.", "Request information or a business proposal."],
+  ["Encuentra talento deportivo compatible", "Find compatible athletic talent"],
+  ["Compara deportistas por disciplina, trayectoria, ubicacion y propuesta para patrocinadores.", "Compare athletes by discipline, track record, location, and sponsor proposal."],
+  ["Revisa evidencia y Sponsor Deck.", "Review evidence and the Sponsor Deck."],
+  ["Solicita patrocinio si existe afinidad.", "Request sponsorship when there is a good fit."],
+  ["Encuentra creadores para tu marca", "Find creators for your brand"],
+  ["Explora perfiles universales, redes, audiencia y beneficios comerciales.", "Explore universal profiles, social networks, audiences, and business benefits."],
+  ["Abre el perfil del creador.", "Open the creator profile."],
+  ["Revisa contenido, redes y propuesta.", "Review content, social networks, and proposal."],
+  ["Solicita una colaboracion desde ROIS.", "Request a collaboration through ROIS."],
+  ["Publica un evento sin costo inicial", "Publish an event with no upfront cost"],
+  ["Envia tu evento a revision para presentarlo a empresas interesadas dentro de ROIS.", "Submit your event for review so it can be presented to interested companies in ROIS."],
+  ["Describe audiencia, alcance y sede.", "Describe the audience, reach, and venue."],
+  ["Agrega beneficios y tipo de patrocinio.", "Add benefits and sponsorship type."],
+  ["Envia el evento para revision editorial.", "Submit the event for editorial review."],
+  ["Controla operaciones especificas", "Manage specific operations"],
+  ["Consulta pagos derivados de acuerdos u operaciones comerciales concretas; no existe una membresia obligatoria.", "Review payments from specific agreements or business operations; there is no mandatory membership."],
+  ["Revisa el concepto y monto.", "Review the concept and amount."],
+  ["Confirma el estado.", "Confirm the status."],
+  ["Abre la accion de pago solo cuando corresponda.", "Open the payment action only when applicable."],
+  ["Construye un perfil que genere confianza", "Build a profile that inspires trust"],
+  ["Completa identidad, ubicacion y resumen.", "Complete your identity, location, and summary."],
+  ["Agrega redes, evidencia y datos relevantes.", "Add social networks, evidence, and relevant information."],
+  ["Guarda y revisa como se presenta tu perfil.", "Save and review how your profile is presented."],
+  ["Encuentra oportunidades compatibles", "Find compatible opportunities"],
+  ["Explora misiones para vender, recomendar, crear contenido o colaborar con empresas.", "Explore missions to sell, recommend, create content, or collaborate with companies."],
+  ["Revisa requisitos y compensacion.", "Review requirements and compensation."],
+  ["Confirma que puedes cumplir los entregables.", "Confirm that you can complete the deliverables."],
+  ["Postulate y autoriza solo los datos necesarios.", "Apply and authorize only the necessary data."],
+  ["Da seguimiento a tus postulaciones", "Track your applications"],
+  ["Consulta en que etapa se encuentra cada solicitud enviada a una empresa.", "Review the current stage of every application sent to a company."],
+  ["Revisa el estado actual.", "Review the current status."],
+  ["Responde si solicitan informacion.", "Respond if information is requested."],
+  ["Continua la ejecucion cuando seas aceptado.", "Continue execution once you are accepted."],
+  ["Controla tus ingresos ROIS", "Manage your ROIS earnings"],
+  ["Consulta comisiones y resultados aprobados sin confundirlos con ingresos garantizados.", "Review commissions and approved results without treating them as guaranteed income."],
+  ["Identifica la oportunidad.", "Identify the opportunity."],
+  ["Revisa validacion y monto.", "Review validation and amount."],
+  ["Consulta la fecha estimada o efectiva de pago.", "Review the estimated or actual payment date."],
+  ["Atiende lo importante primero", "Handle what matters first"],
+  ["Recibe actualizaciones de perfil, oportunidades, colaboraciones y acciones pendientes.", "Receive profile, opportunity, collaboration, and pending-action updates."],
+  ["Abre las alertas sin leer.", "Open unread alerts."],
+  ["Ejecuta la accion solicitada.", "Complete the requested action."],
+  ["Conserva el historial como referencia.", "Keep the history for reference."],
+  ["Usa tu codigo Scout", "Use your Scout code"],
+  ["Participa en misiones empresariales y registra resultados vinculados a tu codigo global ROIS.", "Join company missions and record results linked to your global ROIS code."],
+  ["Copia tu codigo.", "Copy your code."],
+  ["Entra a una mision Scout compatible.", "Join a compatible Scout mission."],
+  ["Registra prospectos o resultados con consentimiento.", "Record leads or results with consent."],
+  ["Documenta evidencia profesional", "Document professional evidence"],
+  ["Documenta evidencia competitiva", "Document competitive evidence"],
+  ["Publica resultados, fotos y reels que fortalezcan tu reputacion ante empresas.", "Publish results, photos, and reels that strengthen your reputation with companies."],
+  ["Describe el resultado.", "Describe the result."],
+  ["Agrega evidencia clara.", "Add clear evidence."],
+  ["Publica solo contenido que puedas comprobar.", "Publish only content you can verify."],
+  ["Convierte tu perfil en una propuesta para marcas", "Turn your profile into a brand proposal"],
+  ["El Sponsor Deck ROIS organiza tu historia, audiencia, evidencia, beneficios y ventajas comerciales.", "The ROIS Sponsor Deck organizes your story, audience, evidence, benefits, and business advantages."],
+  ["Completa todos los campos.", "Complete all fields."],
+  ["Define hasta 10 beneficios y 10 ventajas.", "Define up to 10 benefits and 10 advantages."],
+  ["Agrega imagenes de valor y guarda tu propuesta.", "Add valuable images and save your proposal."],
+  ["Crece o monetiza colaborando", "Grow or monetize through collaboration"],
+  ["Impulso creativo conecta deportistas y usuarios universales para colaboraciones pagadas y crecimiento de marca personal.", "Creative Boost connects athletes and universal users for paid collaborations and personal brand growth."],
+  ["Registra seguidores reales de tus redes.", "Record your real social media follower counts."],
+  ["Entra a una convocatoria.", "Join an open call."],
+  ["Cotiza o acepta una colaboracion con condiciones claras.", "Quote or accept a collaboration with clear terms."],
+  ["Mantén segura tu cuenta", "Keep your account secure"],
+  ["Actualiza datos de acceso y configuracion sin modificar tu propuesta publica.", "Update access and settings without changing your public proposal."],
+  ["Verifica tu correo.", "Verify your email."],
+  ["Actualiza la contraseña cuando sea necesario.", "Update your password when necessary."],
+  ["Cierra sesion en equipos compartidos.", "Sign out on shared devices."],
+  ["Guia rapida", "Quick guide"],
+  ["Ejemplo practico", "Practical example"],
+  ["Ver guia", "View guide"]
+];
+
+const dashboardEnglishPhraseMap = new Map(dashboardEnglishPhrases);
+const dashboardEnglishNormalizedText = new Map(
+  [...dashboardEnglishText.entries(), ...dashboardEnglishPhrases].map(([source, translation]) => [
+    String(source).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(),
+    translation
+  ])
+);
+
+function readDashboardLanguagePreference() {
+  try {
+    const stored = localStorage.getItem(dashboardLanguageStorageKey);
+    if (["es", "en"].includes(stored)) return stored;
+  } catch (error) {
+    console.warn("ROIS could not restore the dashboard language preference.", error);
+  }
+  return String(navigator.language || "es").toLowerCase().startsWith("en") ? "en" : "es";
+}
+
+function dashboardLanguageControlMarkup() {
+  const language = state.dashboardLanguage === "en" ? "en" : "es";
+  return `
+    <div class="dashboard-language-control" data-dashboard-language-control data-no-translate aria-label="Language selector">
+      <span>Idioma / Language</span>
+      <div role="group" aria-label="Idioma / Language">
+        <button type="button" data-dashboard-language-option="es" class="${language === "es" ? "active" : ""}" aria-pressed="${language === "es"}">ES</button>
+        <button type="button" data-dashboard-language-option="en" class="${language === "en" ? "active" : ""}" aria-pressed="${language === "en"}">EN</button>
+      </div>
+    </div>`;
+}
+
+function ensureDashboardLanguageControls() {
+  document.querySelectorAll(".view.dashboard .workspace-head").forEach(head => {
+    let control = head.querySelector("[data-dashboard-language-control]");
+    if (!control) {
+      head.insertAdjacentHTML("beforeend", dashboardLanguageControlMarkup());
+      control = head.querySelector("[data-dashboard-language-control]");
+    }
+    control.querySelectorAll("[data-dashboard-language-option]").forEach(button => {
+      const active = button.dataset.dashboardLanguageOption === state.dashboardLanguage;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  });
+}
+
+function dashboardTranslationScope(element) {
+  if (!element?.closest) return false;
+  if (element.closest("[data-no-translate], script, style, code, pre")) return false;
+  return Boolean(element.closest(".view.dashboard, .modal.active"));
+}
+
+function translatedDashboardDate(value) {
+  const months = {
+    ene: "Jan", enero: "January", feb: "Feb", febrero: "February",
+    mar: "Mar", marzo: "March", abr: "Apr", abril: "April",
+    may: "May", mayo: "May", jun: "Jun", junio: "June",
+    jul: "Jul", julio: "July", ago: "Aug", agosto: "August",
+    sep: "Sep", sept: "Sep", septiembre: "September",
+    oct: "Oct", octubre: "October", nov: "Nov", noviembre: "November",
+    dic: "Dec", diciembre: "December"
+  };
+  const match = String(value || "").trim().match(/^(\d{1,2})(?:\s+de)?\s+([a-záéíóú]+)(?:\s+de)?\s+(\d{4})$/i);
+  if (!match) return "";
+  const month = months[match[2].normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()];
+  return month ? `${month} ${Number(match[1])}, ${match[3]}` : "";
+}
+
+function translatedDashboardValue(value, language = state.dashboardLanguage) {
+  if (language !== "en") return value;
+  const stringValue = String(value || "");
+  const leading = stringValue.match(/^\s*/)?.[0] || "";
+  const trailing = stringValue.match(/\s*$/)?.[0] || "";
+  const core = stringValue.trim();
+  if (!core) return stringValue;
+  const exact = dashboardEnglishText.get(core);
+  if (exact) return `${leading}${exact}${trailing}`;
+  const phrase = dashboardEnglishPhraseMap.get(core);
+  if (phrase) return `${leading}${phrase}${trailing}`;
+  const normalized = core.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const normalizedMatch = dashboardEnglishNormalizedText.get(normalized);
+  if (normalizedMatch) return `${leading}${normalizedMatch}${trailing}`;
+  const translatedDate = translatedDashboardDate(core);
+  if (translatedDate) return `${leading}${translatedDate}${trailing}`;
+  for (const [pattern, replacement] of dashboardEnglishPatterns) {
+    if (pattern.test(core)) return `${leading}${core.replace(pattern, replacement)}${trailing}`;
+  }
+  return stringValue;
+}
+
+function translateDashboardTextNode(node) {
+  if (!node?.parentElement || !dashboardTranslationScope(node.parentElement)) return;
+  if (!dashboardOriginalText.has(node)) dashboardOriginalText.set(node, node.nodeValue || "");
+  const source = dashboardOriginalText.get(node);
+  const next = translatedDashboardValue(source);
+  if (node.nodeValue !== next) node.nodeValue = next;
+}
+
+function translateDashboardAttributes(element) {
+  if (!dashboardTranslationScope(element)) return;
+  const names = ["placeholder", "aria-label", "title"];
+  let originals = dashboardOriginalAttributes.get(element);
+  if (!originals) {
+    originals = {};
+    dashboardOriginalAttributes.set(element, originals);
+  }
+  names.forEach(name => {
+    if (!element.hasAttribute(name)) return;
+    if (!(name in originals)) originals[name] = element.getAttribute(name);
+    const next = translatedDashboardValue(originals[name]);
+    if (element.getAttribute(name) !== next) element.setAttribute(name, next);
+  });
+}
+
+function translateDashboardTree(root = document) {
+  ensureDashboardLanguageControls();
+  const scopes = root === document
+    ? Array.from(document.querySelectorAll(".view.dashboard, .modal.active"))
+    : root.matches?.(".view.dashboard, .modal.active")
+      ? [root]
+      : Array.from(root.querySelectorAll?.(".view.dashboard, .modal.active") || []);
+  if (root !== document && root.nodeType === Node.ELEMENT_NODE && dashboardTranslationScope(root)) scopes.push(root);
+  [...new Set(scopes)].forEach(scope => {
+    translateDashboardAttributes(scope);
+    scope.querySelectorAll("*").forEach(translateDashboardAttributes);
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+      translateDashboardTextNode(node);
+      node = walker.nextNode();
+    }
+  });
+  document.body.dataset.dashboardLanguage = state.dashboardLanguage;
+  if (document.body.dataset.activeView !== "home") document.documentElement.lang = state.dashboardLanguage;
+}
+
+function scheduleDashboardTranslation() {
+  if (dashboardTranslationScheduled) return;
+  dashboardTranslationScheduled = true;
+  requestAnimationFrame(() => {
+    dashboardTranslationScheduled = false;
+    translateDashboardTree(document);
+  });
+}
+
+function setDashboardLanguage(language) {
+  const normalized = language === "en" ? "en" : "es";
+  state.dashboardLanguage = normalized;
+  try {
+    localStorage.setItem(dashboardLanguageStorageKey, normalized);
+  } catch (error) {
+    console.warn("ROIS could not save the dashboard language preference.", error);
+  }
+  translateDashboardTree(document);
+}
+
+function initializeDashboardLanguage() {
+  ensureDashboardLanguageControls();
+  if (!dashboardLanguageObserver) {
+    dashboardLanguageObserver = new MutationObserver(scheduleDashboardTranslation);
+    dashboardLanguageObserver.observe(document.getElementById("app") || document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+  translateDashboardTree(document);
+}
 
 let coverCarouselTimers = [];
 const coverCacheKey = "rois_cover_cache_v1";
@@ -1585,6 +2174,7 @@ async function init() {
   applyBranding();
   handleMissingImages();
   bindGlobalEvents();
+  initializeDashboardLanguage();
   bindDashboardFreshnessEvents();
   renderPublic();
   renderSession();
@@ -3444,6 +4034,11 @@ function initializeCommercialSidebar() {
 }
 
 function handleDashboardDelegatedActions(event) {
+  const languageButton = event.target.closest("[data-dashboard-language-option]");
+  if (languageButton) {
+    setDashboardLanguage(languageButton.dataset.dashboardLanguageOption);
+    return;
+  }
   const eventSponsorButton = event.target.closest("[data-event-sponsor]");
   if (eventSponsorButton) {
     openEventSponsorshipForm(eventSponsorButton.dataset.eventSponsor);
@@ -3535,6 +4130,7 @@ function handleDashboardDelegatedActions(event) {
 
 function showView(name) {
   document.body.dataset.activeView = name;
+  document.documentElement.lang = name === "home" ? "es" : state.dashboardLanguage;
   document.querySelectorAll("[data-view]").forEach(view => view.classList.toggle("active", view.dataset.view === name));
   if (name === "client") {
     renderClient();
@@ -3555,6 +4151,7 @@ function showView(name) {
     });
   }
   optimizeRenderedMedia();
+  scheduleDashboardTranslation();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -3567,6 +4164,7 @@ function showDashboardPanel(targetId) {
   nav.querySelectorAll("[data-dashboard-target]").forEach(button => button.classList.toggle("active", button.dataset.dashboardTarget === targetId));
   renderDashboardPanelById(targetId);
   optimizeRenderedMedia(targetPanel);
+  scheduleDashboardTranslation();
   closeMobileDashboardMenus();
   const role = workspace.dataset.dashboard === "athlete"
     ? (state.session?.role === "founder" ? "founder" : "athlete")
@@ -3590,6 +4188,7 @@ function renderDashboardPanelById(targetId) {
   if (targetId.startsWith("commercial-")) renderCommercialPanel(targetId);
   if (targetId.startsWith("admin-")) renderAdminPanel(targetId);
   decoratePanelPagination(targetId);
+  scheduleDashboardTranslation();
 }
 
 function openMobileDashboardMenu(type) {
@@ -3784,6 +4383,7 @@ function notify(kicker, title, text, actions = "") {
   document.getElementById("actionText").textContent = text;
   document.getElementById("actionActions").innerHTML = actions;
   document.getElementById("actionModal").classList.add("active");
+  scheduleDashboardTranslation();
 }
 
 function openRegistrationChoice(context = "profile") {
@@ -4025,6 +4625,7 @@ function renderSession() {
     <button class="btn subtle" type="button" data-panel-link>${panelLabel}</button>
   `;
   area.querySelector("[data-panel-link]").addEventListener("click", () => showView(dashboardViewForRole(state.session.role)));
+  scheduleDashboardTranslation();
 }
 
 function renderPublic() {
@@ -5892,10 +6493,10 @@ function athleteNotificationsFor(email = state.session?.email || "") {
 }
 
 function readableDate(value) {
-  if (!value) return "Fecha pendiente";
+  if (!value) return state.dashboardLanguage === "en" ? "Date pending" : "Fecha pendiente";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
+  return date.toLocaleDateString(state.dashboardLanguage === "en" ? "en-US" : "es-MX", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function athleteNotificationCard(item) {
