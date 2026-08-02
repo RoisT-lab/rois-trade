@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260801-dashboard-bilingual-en";
+const roisBuild = "20260801-client-language-switch-visible";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = [];
 const athleteAnnualFeeAmount = 2500;
@@ -479,11 +479,26 @@ function dashboardLanguageControlMarkup() {
 }
 
 function ensureDashboardLanguageControls() {
-  document.querySelectorAll(".view.dashboard .workspace-head").forEach(head => {
-    let control = head.querySelector("[data-dashboard-language-control]");
+  const hosts = [...document.querySelectorAll(".view.dashboard:not(#clientView) .workspace-head")];
+  const clientWorkspace = document.querySelector("#clientView .workspace");
+
+  if (clientWorkspace) {
+    let clientHost = clientWorkspace.querySelector("[data-dashboard-language-host]");
+    if (!clientHost) {
+      clientWorkspace.insertAdjacentHTML(
+        "afterbegin",
+        `<div class="dashboard-language-host" data-dashboard-language-host data-no-translate></div>`
+      );
+      clientHost = clientWorkspace.querySelector("[data-dashboard-language-host]");
+    }
+    hosts.push(clientHost);
+  }
+
+  hosts.filter(Boolean).forEach(host => {
+    let control = host.querySelector("[data-dashboard-language-control]");
     if (!control) {
-      head.insertAdjacentHTML("beforeend", dashboardLanguageControlMarkup());
-      control = head.querySelector("[data-dashboard-language-control]");
+      host.insertAdjacentHTML("beforeend", dashboardLanguageControlMarkup());
+      control = host.querySelector("[data-dashboard-language-control]");
     }
     control.querySelectorAll("[data-dashboard-language-option]").forEach(button => {
       const active = button.dataset.dashboardLanguageOption === state.dashboardLanguage;

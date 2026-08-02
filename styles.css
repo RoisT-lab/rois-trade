@@ -6710,7 +6710,22 @@ body[data-active-view="home"] .premium-home-footer {
   box-shadow: 0 4px 12px rgba(17, 19, 23, 0.16);
 }
 
+#clientView .dashboard-language-host {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0 0 16px;
+  position: relative;
+  z-index: 8;
+}
+
 @media (max-width: 760px) {
+  #clientView .dashboard-language-host {
+    margin-bottom: 12px;
+  }
+
   .dashboard-language-control {
     width: 100%;
     justify-content: space-between;
