@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260801-dashboard-english-complete";
+const roisBuild = "20260801-dashboard-spanish-only";
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = [];
 const athleteAnnualFeeAmount = 2500;
@@ -2278,7 +2278,6 @@ async function init() {
   applyBranding();
   handleMissingImages();
   bindGlobalEvents();
-  initializeDashboardLanguage();
   bindDashboardFreshnessEvents();
   renderPublic();
   renderSession();
@@ -4138,11 +4137,6 @@ function initializeCommercialSidebar() {
 }
 
 function handleDashboardDelegatedActions(event) {
-  const languageButton = event.target.closest("[data-dashboard-language-option]");
-  if (languageButton) {
-    setDashboardLanguage(languageButton.dataset.dashboardLanguageOption);
-    return;
-  }
   const eventSponsorButton = event.target.closest("[data-event-sponsor]");
   if (eventSponsorButton) {
     openEventSponsorshipForm(eventSponsorButton.dataset.eventSponsor);
@@ -4234,7 +4228,7 @@ function handleDashboardDelegatedActions(event) {
 
 function showView(name) {
   document.body.dataset.activeView = name;
-  document.documentElement.lang = name === "home" ? "es" : state.dashboardLanguage;
+  document.documentElement.lang = "es";
   document.querySelectorAll("[data-view]").forEach(view => view.classList.toggle("active", view.dataset.view === name));
   if (name === "client") {
     renderClient();
@@ -4255,7 +4249,6 @@ function showView(name) {
     });
   }
   optimizeRenderedMedia();
-  scheduleDashboardTranslation();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -4268,7 +4261,6 @@ function showDashboardPanel(targetId) {
   nav.querySelectorAll("[data-dashboard-target]").forEach(button => button.classList.toggle("active", button.dataset.dashboardTarget === targetId));
   renderDashboardPanelById(targetId);
   optimizeRenderedMedia(targetPanel);
-  scheduleDashboardTranslation();
   closeMobileDashboardMenus();
   const role = workspace.dataset.dashboard === "athlete"
     ? (state.session?.role === "founder" ? "founder" : "athlete")
@@ -4292,7 +4284,6 @@ function renderDashboardPanelById(targetId) {
   if (targetId.startsWith("commercial-")) renderCommercialPanel(targetId);
   if (targetId.startsWith("admin-")) renderAdminPanel(targetId);
   decoratePanelPagination(targetId);
-  scheduleDashboardTranslation();
 }
 
 function openMobileDashboardMenu(type) {
@@ -4487,7 +4478,6 @@ function notify(kicker, title, text, actions = "") {
   document.getElementById("actionText").textContent = text;
   document.getElementById("actionActions").innerHTML = actions;
   document.getElementById("actionModal").classList.add("active");
-  scheduleDashboardTranslation();
 }
 
 function openRegistrationChoice(context = "profile") {
@@ -4729,7 +4719,6 @@ function renderSession() {
     <button class="btn subtle" type="button" data-panel-link>${panelLabel}</button>
   `;
   area.querySelector("[data-panel-link]").addEventListener("click", () => showView(dashboardViewForRole(state.session.role)));
-  scheduleDashboardTranslation();
 }
 
 function renderPublic() {
@@ -6597,10 +6586,10 @@ function athleteNotificationsFor(email = state.session?.email || "") {
 }
 
 function readableDate(value) {
-  if (!value) return state.dashboardLanguage === "en" ? "Date pending" : "Fecha pendiente";
+  if (!value) return "Fecha pendiente";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(state.dashboardLanguage === "en" ? "en-US" : "es-MX", { day: "2-digit", month: "short", year: "numeric" });
+  return date.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function athleteNotificationCard(item) {
