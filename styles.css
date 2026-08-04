@@ -5922,6 +5922,141 @@ h3 { font-size: 17px; font-weight: 680; line-height: 1.36; }
   justify-content: flex-end;
 }
 
+/* Sponsor Deck: independent sponsorship levels */
+.sponsorship-levels-editor,
+.admin-sponsorship-levels,
+.company-sponsorship-levels {
+  margin-top: 32px;
+}
+
+.sponsorship-level-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+}
+
+.sponsorship-level-form .full {
+  grid-column: 1 / -1;
+}
+
+.sponsorship-level-live-breakdown,
+.sponsorship-level-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.sponsorship-level-live-breakdown > div,
+.sponsorship-level-breakdown > div {
+  min-width: 0;
+  padding: 16px;
+  border-right: 1px solid var(--line);
+}
+
+.sponsorship-level-live-breakdown > div:last-child,
+.sponsorship-level-breakdown > div:last-child {
+  border-right: 0;
+}
+
+.sponsorship-level-live-breakdown span,
+.sponsorship-level-breakdown span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.sponsorship-level-live-breakdown strong,
+.sponsorship-level-breakdown strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.sponsorship-level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.sponsorship-level-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: #fff;
+}
+
+.sponsorship-level-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sponsorship-level-card h3,
+.sponsorship-level-card p {
+  overflow-wrap: anywhere;
+}
+
+.sponsorship-level-price {
+  margin: 0;
+  font-size: clamp(26px, 3vw, 40px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sponsorship-level-benefits {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.sponsorship-level-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.sponsorship-level-actions .btn {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .sponsorship-level-form,
+  .sponsorship-level-live-breakdown,
+  .sponsorship-level-breakdown {
+    grid-template-columns: 1fr;
+  }
+
+  .sponsorship-level-live-breakdown > div,
+  .sponsorship-level-breakdown > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sponsorship-level-live-breakdown > div:last-child,
+  .sponsorship-level-breakdown > div:last-child {
+    border-bottom: 0;
+  }
+}
+
 /* Temporary advanced access granted through the internal commercial CRM. */
 .company-access-banner {
   display: grid;

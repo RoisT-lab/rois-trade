@@ -1,5 +1,7 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260801-dashboard-spanish-only";
+const roisBuild = "20260803-sponsorship-levels-local";
+const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
+const roisSponsorshipFeeRate = 0.3;
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = [];
 const athleteAnnualFeeAmount = 2500;
@@ -6939,6 +6941,306 @@ function sponsorDeckMediaMarkup(profile, deck) {
   </section>`;
 }
 
+function sponsorshipLevelAmounts(value) {
+  const grossAmount = Math.max(0, Math.round((Number(value) || 0) * 100) / 100);
+  const roisFee = Math.round(grossAmount * roisSponsorshipFeeRate * 100) / 100;
+  const athleteNet = Math.round((grossAmount - roisFee) * 100) / 100;
+  return { grossAmount, roisFee, athleteNet };
+}
+
+function sponsorshipLevelProfileId(profile = {}) {
+  return String(profile.profile_id || profile.id || "");
+}
+
+function readStoredSponsorshipLevels() {
+  try {
+    const rows = JSON.parse(localStorage.getItem(sponsorshipLevelsStorageKey) || "[]");
+    return Array.isArray(rows) ? rows : [];
+  } catch (error) {
+    console.warn("[ROIS sponsorship levels] Local data could not be read.", error);
+    return [];
+  }
+}
+
+function sponsorshipLevels() {
+  if (!state.data) state.data = {};
+  if (!Array.isArray(state.data.sponsorship_levels)) {
+    state.data.sponsorship_levels = readStoredSponsorshipLevels();
+  }
+  return state.data.sponsorship_levels;
+}
+
+function writeSponsorshipLevels(rows = []) {
+  const records = Array.isArray(rows) ? rows : [];
+  if (!state.data) state.data = {};
+  state.data.sponsorship_levels = records;
+  localStorage.setItem(sponsorshipLevelsStorageKey, JSON.stringify(records));
+  return records;
+}
+
+function createSponsorshipLevelId() {
+  return globalThis.crypto?.randomUUID?.()
+    || `sponsorship-level-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function sponsorshipLevelBenefits(value) {
+  const values = Array.isArray(value) ? value : String(value || "").split(/\r?\n/);
+  return values.map(item => String(item || "").trim()).filter(Boolean).slice(0, 10);
+}
+
+function validSponsorshipPaymentLink(value) {
+  return /^https?:\/\//i.test(String(value || "").trim());
+}
+
+function normalizedSponsorshipLevel(level = {}) {
+  const amounts = sponsorshipLevelAmounts(level.gross_amount);
+  return {
+    ...level,
+    gross_amount: amounts.grossAmount,
+    rois_fee: amounts.roisFee,
+    athlete_net: amounts.athleteNet,
+    benefits: sponsorshipLevelBenefits(level.benefits)
+  };
+}
+
+function sponsorshipLevelsForProfile(profile = {}, visibleOnly = false) {
+  const profileId = sponsorshipLevelProfileId(profile);
+  return sponsorshipLevels()
+    .map(normalizedSponsorshipLevel)
+    .filter(level => String(level.profile_id || "") === profileId)
+    .filter(level => !visibleOnly || (
+      level.review_status === "approved"
+      && level.is_published === true
+      && validSponsorshipPaymentLink(level.payment_link)
+    ))
+    .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+}
+
+function persistSponsorshipLevel(level) {
+  const record = normalizedSponsorshipLevel(level);
+  const rows = [...sponsorshipLevels()];
+  const index = rows.findIndex(item => String(item.id) === String(record.id));
+  if (index >= 0) rows[index] = record;
+  else rows.push(record);
+  writeSponsorshipLevels(rows);
+  return record;
+}
+
+function removeSponsorshipLevel(id, profileId) {
+  writeSponsorshipLevels(sponsorshipLevels().filter(level => !(
+    String(level.id) === String(id)
+    && String(level.profile_id) === String(profileId)
+  )));
+}
+
+function sponsorshipLevelStatusLabel(status) {
+  return ({ pending_review: "Pendiente de revision", approved: "Aprobado", rejected: "Rechazado" })[status]
+    || "Pendiente de revision";
+}
+
+function sponsorshipLevelBreakdownMarkup(level) {
+  const record = normalizedSponsorshipLevel(level);
+  return `
+    <div class="sponsorship-level-breakdown">
+      <div><span>Monto bruto</span><strong>${money(record.gross_amount)}</strong></div>
+      <div><span>Tarifa ROIS 30%</span><strong>${money(record.rois_fee)}</strong></div>
+      <div><span>Neto deportista 70%</span><strong>${money(record.athlete_net)}</strong></div>
+    </div>
+  `;
+}
+
+function athleteSponsorshipLevelsEditorMarkup(profile) {
+  const levels = sponsorshipLevelsForProfile(profile);
+  return `
+    <section class="sponsorship-levels-editor">
+      <div class="section-minihead">
+        <p class="eyebrow">Niveles de patrocinio</p>
+        <h3>Construye propuestas independientes para empresas.</h3>
+        <p>Cada cambio vuelve a revision y retira temporalmente el nivel del mercado.</p>
+      </div>
+      <form id="sponsorshipLevelForm" class="form-grid sponsorship-level-form">
+        <input type="hidden" name="level_id">
+        <label>Nombre del nivel<input name="name" required maxlength="80" placeholder="Patrocinador principal"></label>
+        <label>Monto bruto MXN<input name="gross_amount" required type="number" min="1" step="0.01" placeholder="50000"></label>
+        <label style="grid-column:1/-1">Descripcion<textarea name="description" required maxlength="900" placeholder="Alcance, temporalidad y objetivo comercial."></textarea></label>
+        <label style="grid-column:1/-1">Beneficios<textarea name="benefits" required placeholder="Un beneficio por linea. Maximo 10."></textarea></label>
+        <div class="sponsorship-level-live-breakdown" style="grid-column:1/-1">
+          <div><span>Monto bruto</span><strong data-level-gross>${money(0)}</strong></div>
+          <div><span>ROIS 30%</span><strong data-level-fee>${money(0)}</strong></div>
+          <div><span>Deportista 70%</span><strong data-level-net>${money(0)}</strong></div>
+        </div>
+        <button class="btn primary" type="submit">Enviar nivel a revision</button>
+        <button class="btn" type="button" data-cancel-sponsorship-level hidden>Cancelar edicion</button>
+      </form>
+      ${levels.length ? `<div class="sponsorship-level-grid">${levels.map(level => `
+        <article class="sponsorship-level-card">
+          <div class="sponsorship-level-card-head">
+            <div><p class="eyebrow">${escapeHtml(sponsorshipLevelStatusLabel(level.review_status))}</p><h4>${escapeHtml(level.name)}</h4></div>
+            <span class="pill">${level.is_published ? "Publicado" : "No publicado"}</span>
+          </div>
+          <p>${escapeHtml(level.description)}</p>
+          ${sponsorshipLevelBreakdownMarkup(level)}
+          ${level.admin_comments ? `<p class="hint"><strong>Administracion:</strong> ${escapeHtml(level.admin_comments)}</p>` : ""}
+          <div class="sponsorship-level-actions">
+            <button class="btn" type="button" data-edit-sponsorship-level="${escapeAttr(level.id)}">Editar</button>
+            <button class="btn" type="button" data-delete-sponsorship-level="${escapeAttr(level.id)}">Eliminar</button>
+          </div>
+        </article>
+      `).join("")}</div>` : `<div class="empty">Aun no has creado niveles de patrocinio.</div>`}
+    </section>
+  `;
+}
+
+function resetSponsorshipLevelForm(form) {
+  form.reset();
+  form.elements.level_id.value = "";
+  form.querySelector("[data-cancel-sponsorship-level]").hidden = true;
+  form.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function bindAthleteSponsorshipLevelEditor(profile) {
+  const form = document.getElementById("sponsorshipLevelForm");
+  if (!form) return;
+  form.addEventListener("input", () => {
+    const amounts = sponsorshipLevelAmounts(form.elements.gross_amount.value);
+    form.querySelector("[data-level-gross]").textContent = money(amounts.grossAmount);
+    form.querySelector("[data-level-fee]").textContent = money(amounts.roisFee);
+    form.querySelector("[data-level-net]").textContent = money(amounts.athleteNet);
+  });
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const profileId = sponsorshipLevelProfileId(profile);
+    const levelId = String(form.elements.level_id.value || "");
+    const existing = sponsorshipLevels().find(level => (
+      String(level.id) === levelId && String(level.profile_id) === profileId
+    ));
+    const grossAmount = Number(form.elements.gross_amount.value || 0);
+    const benefits = sponsorshipLevelBenefits(form.elements.benefits.value);
+    if (!profileId || !form.elements.name.value.trim() || !form.elements.description.value.trim() || grossAmount <= 0 || !benefits.length) {
+      notify("Nivel incompleto", "Revisa la informacion", "Completa nombre, descripcion, monto y al menos un beneficio.");
+      return;
+    }
+    const now = new Date().toISOString();
+    persistSponsorshipLevel({
+      ...(existing || {}),
+      id: existing?.id || createSponsorshipLevelId(),
+      profile_id: profileId,
+      name: form.elements.name.value.trim(),
+      description: form.elements.description.value.trim(),
+      benefits,
+      gross_amount: grossAmount,
+      review_status: "pending_review",
+      admin_comments: existing?.admin_comments || "",
+      payment_link: existing?.payment_link || "",
+      is_published: false,
+      approved_at: null,
+      created_at: existing?.created_at || now,
+      updated_at: now
+    });
+    renderAthleteSponsorDeck();
+    notify("Nivel guardado", "En revision", "El nivel quedo pendiente y no sera visible para empresas hasta su aprobacion y publicacion.");
+  });
+  form.querySelector("[data-cancel-sponsorship-level]")?.addEventListener("click", () => resetSponsorshipLevelForm(form));
+  document.querySelectorAll("[data-edit-sponsorship-level]").forEach(button => button.addEventListener("click", () => {
+    const level = sponsorshipLevelsForProfile(profile).find(item => String(item.id) === String(button.dataset.editSponsorshipLevel));
+    if (!level) return;
+    form.elements.level_id.value = level.id;
+    form.elements.name.value = level.name || "";
+    form.elements.description.value = level.description || "";
+    form.elements.benefits.value = sponsorshipLevelBenefits(level.benefits).join("\n");
+    form.elements.gross_amount.value = level.gross_amount || "";
+    form.querySelector("[data-cancel-sponsorship-level]").hidden = false;
+    form.dispatchEvent(new Event("input", { bubbles: true }));
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+  document.querySelectorAll("[data-delete-sponsorship-level]").forEach(button => button.addEventListener("click", () => {
+    if (!confirm("Eliminar este nivel de patrocinio?")) return;
+    removeSponsorshipLevel(button.dataset.deleteSponsorshipLevel, sponsorshipLevelProfileId(profile));
+    renderAthleteSponsorDeck();
+  }));
+}
+
+function companySponsorshipLevelsMarkup(profile) {
+  const levels = sponsorshipLevelsForProfile(profile, true);
+  if (!levels.length) return "";
+  return `
+    <section class="company-sponsorship-levels">
+      <div class="section-minihead"><p class="eyebrow">Niveles disponibles</p><h3>Opciones de patrocinio aprobadas por ROIS.</h3></div>
+      <div class="sponsorship-level-grid">${levels.map(level => `
+        <article class="sponsorship-level-card company-level-card">
+          <h4>${escapeHtml(level.name)}</h4>
+          <p>${escapeHtml(level.description)}</p>
+          <strong class="sponsorship-level-price">${money(level.gross_amount)}</strong>
+          <ul>${sponsorshipLevelBenefits(level.benefits).map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+          <a class="btn primary" href="${escapeAttr(level.payment_link)}" target="_blank" rel="noopener noreferrer">Activar patrocinio</a>
+        </article>
+      `).join("")}</div>
+    </section>
+  `;
+}
+
+function adminSponsorshipProfile(level) {
+  return [...(state.data.athletes || []), ...(state.data.founders || [])].find(profile => (
+    sponsorshipLevelProfileId(profile) === String(level.profile_id || "")
+  ));
+}
+
+function adminSponsorshipLevelsMarkup() {
+  const levels = sponsorshipLevels().map(normalizedSponsorshipLevel);
+  return `
+    <section class="admin-sponsorship-levels">
+      <div class="section-minihead"><p class="eyebrow">Niveles de patrocinio</p><h3>Revision, enlace y publicacion.</h3></div>
+      ${levels.length ? `<div class="sponsorship-level-grid">${levels.map(level => {
+        const profile = adminSponsorshipProfile(level);
+        return `
+          <form class="sponsorship-level-card admin-sponsorship-level-card" data-admin-sponsorship-level="${escapeAttr(level.id)}">
+            <p class="eyebrow">${escapeHtml(profile?.name || "Perfil sin resolver")}</p>
+            <h4>${escapeHtml(level.name || "Nivel")}</h4>
+            <p>${escapeHtml(level.description || "")}</p>
+            ${sponsorshipLevelBreakdownMarkup(level)}
+            <label>Estado<select name="review_status">
+              <option value="pending_review" ${level.review_status === "pending_review" ? "selected" : ""}>Pendiente</option>
+              <option value="approved" ${level.review_status === "approved" ? "selected" : ""}>Aprobado</option>
+              <option value="rejected" ${level.review_status === "rejected" ? "selected" : ""}>Rechazado</option>
+            </select></label>
+            <label>Observaciones<textarea name="admin_comments">${escapeHtml(level.admin_comments || "")}</textarea></label>
+            <label>Enlace de pago<input name="payment_link" type="url" value="${escapeAttr(level.payment_link || "")}" placeholder="https://..."></label>
+            <label class="checkbox-line"><input name="is_published" type="checkbox" ${level.is_published ? "checked" : ""}> Publicar para empresas</label>
+            <button class="btn primary" type="submit">Guardar revision</button>
+          </form>
+        `;
+      }).join("")}</div>` : `<div class="empty">No hay niveles enviados a revision.</div>`}
+    </section>
+  `;
+}
+
+function bindAdminSponsorshipLevels() {
+  document.querySelectorAll("[data-admin-sponsorship-level]").forEach(form => form.addEventListener("submit", event => {
+    event.preventDefault();
+    const level = sponsorshipLevels().find(item => String(item.id) === String(form.dataset.adminSponsorshipLevel));
+    if (!level) return;
+    const reviewStatus = form.elements.review_status.value;
+    const paymentLink = form.elements.payment_link.value.trim();
+    const wantsPublished = form.elements.is_published.checked;
+    if (wantsPublished && (reviewStatus !== "approved" || !validSponsorshipPaymentLink(paymentLink))) {
+      notify("No se puede publicar", "Revision incompleta", "El nivel debe estar aprobado y tener un enlace de pago http(s) valido.");
+      return;
+    }
+    const now = new Date().toISOString();
+    persistSponsorshipLevel({
+      ...level,
+      review_status: reviewStatus,
+      admin_comments: form.elements.admin_comments.value.trim(),
+      payment_link: paymentLink,
+      is_published: wantsPublished && reviewStatus === "approved" && validSponsorshipPaymentLink(paymentLink),
+      approved_at: reviewStatus === "approved" ? (level.approved_at || now) : null,
+      updated_at: now
+    });
+    renderAdminPaymentLinks();
+    notify("Nivel actualizado", "Control administrativo", "La revision y publicacion quedaron guardadas localmente.");
+  }));
+}
+
 function sponsorDeckMarkup(profile, options = {}) {
   const deck = sponsorDeckData(profile);
   if (!deck) return `<div class="empty">Este perfil aun no ha generado su Sponsor Deck ROIS.</div>`;
@@ -6989,6 +7291,7 @@ function sponsorDeckMarkup(profile, options = {}) {
         <div class="sponsor-deck-list-heading"><p class="eyebrow">Ventajas competitivas</p><h3>Razones para elegir este perfil frente a otras opciones.</h3></div>
         <div class="sponsor-deck-benefits">${advantages.map((value, index) => sponsorDeckBenefitMarkup(value, index, "Ventaja")).join("") || `<div class="empty">Las ventajas competitivas estan en preparacion.</div>`}</div>
       </section>
+      ${state.session?.role === "client" ? companySponsorshipLevelsMarkup(profile) : ""}
       ${state.session?.role === "client" ? `<div class="sponsor-deck-request-action"><button class="btn primary" type="button" data-athlete-sponsor="${escapeAttr(profile.id)}">Solicitar evaluacion a ROIS</button></div>` : ""}
     </article>
   `;
@@ -7108,9 +7411,11 @@ function renderAthleteSponsorDeck() {
         <div class="sponsor-deck-managed-contact"><span>Contacto comercial</span><strong>Gestionado exclusivamente por ROIS</strong><p>Las empresas no reciben correos, telefonos ni datos de contacto directo del perfil.</p></div>
         <button class="btn primary" type="submit">${deck ? "Actualizar propuesta ROIS" : "Generar propuesta ROIS"}</button>
       </form>
+      ${athleteSponsorshipLevelsEditorMarkup(profile)}
     </div>
   `);
   document.getElementById("sponsorDeckForm")?.addEventListener("submit", submitSponsorDeck);
+  bindAthleteSponsorshipLevelEditor(profile);
 }
 
 async function sponsorDeckMediaFromForm(form, context, currentDeck = {}) {
@@ -10638,10 +10943,12 @@ function renderAdminPaymentLinks() {
         <p class="hint">En Stripe crea un producto recurrente mensual con la informacion sugerida. Despues pega aqui el link de pago; ese mismo link se abrira desde el boton Patrocinar en el dashboard de empresas.</p>
       </div>
       ${profiles.length ? `<div class="payment-link-grid">${profiles.map(athletePaymentLinkCard).join("")}</div>` : `<div class="empty">Aun no hay athletes o creadores registrados.</div>`}
+      ${adminSponsorshipLevelsMarkup()}
     </div>
   `);
   document.querySelectorAll("[data-profile-payment-form]").forEach(form => form.addEventListener("submit", submitAthletePaymentLink));
   document.querySelectorAll("[data-copy-payment-info]").forEach(button => button.addEventListener("click", () => copyAthletePaymentInfo(button.dataset.copyPaymentInfo)));
+  bindAdminSponsorshipLevels();
 }
 
 function athletePaymentLinkCard(athlete) {
