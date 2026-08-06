@@ -1,7 +1,8 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260803-sponsorship-levels-local";
+const roisBuild = "20260805-creative-payments-30";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
+const ROIS_CREATIVE_FEE_RATE = 0.30;
 const roisLegalEntity = "IntelliQuant S.A.P.I. de C.V.";
 const athleteAnnualExemptEmails = [];
 const athleteAnnualFeeAmount = 2500;
@@ -843,6 +844,7 @@ const seed = {
   marketplace_leads: [],
   brand_growth_campaigns: [],
   brand_growth_participants: [],
+  creative_payment_operations: [],
   user_profiles: [],
   user_social_accounts: [],
   marketplace_user_profiles: [],
@@ -1389,7 +1391,8 @@ function dashboardPanelQueries(targetId) {
     "admin-athletes": [{ table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` }],
     "admin-founders": [{ table: "founders", query: `select=${founderColumns}&order=created_at.desc` }],
     "admin-brand-growth": [
-      { table: "brand_growth_campaigns", query: "select=id,title,objective,brief,deliverables,start_date,end_date,status,created_by,created_at,updated_at&order=created_at.desc" },
+      { table: "brand_growth_campaigns", query: "select=id,company_id,title,objective,brief,deliverables,start_date,end_date,status,created_by,created_at,updated_at&order=created_at.desc" },
+      { table: "companies", query: "select=id,profile_id,name,contact,status,created_at&order=name.asc" },
       { table: "brand_growth_participants", query: "select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,primary_network,follower_count,collaboration_type,deliverable_count,usage_days,exclusivity_days,quote_min,quote_recommended,quote_max,agreed_amount,currency,quote_status,collaboration_notes,status,created_at,updated_at&order=created_at.desc" }
     ],
     "admin-payment-links": [
@@ -1490,7 +1493,7 @@ function dashboardPanelQueries(targetId) {
       ? [{ table: "founders", query: `select=${founderColumns}&email=eq.${encodeURIComponent(normalizedAccountEmail(state.session?.email))}&limit=1`, merge: true }]
       : [{ table: "athletes", query: `select=${athleteColumns}&or=(email.eq.${encodeURIComponent(normalizedAccountEmail(state.session?.email))},contact.eq.${encodeURIComponent(normalizedAccountEmail(state.session?.email))})&limit=1`, merge: true }],
     "athlete-growth": [
-      { table: "brand_growth_campaigns", query: "select=id,title,objective,brief,deliverables,start_date,end_date,status,created_at&status=eq.active&order=created_at.desc" },
+      { table: "brand_growth_campaigns", query: "select=id,company_id,title,objective,brief,deliverables,start_date,end_date,status,created_at&status=eq.active&order=created_at.desc" },
       { table: "brand_growth_participants", query: "select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,primary_network,follower_count,collaboration_type,deliverable_count,usage_days,exclusivity_days,quote_min,quote_recommended,quote_max,agreed_amount,currency,quote_status,collaboration_notes,status,created_at,updated_at&order=created_at.desc" }
     ],
     "athlete-scouts": scoutMissionUserQueries,
@@ -1521,7 +1524,9 @@ async function ensureDashboardPanelData(targetId, options = {}) {
     return true;
   }
   const queries = dashboardPanelQueries(targetId);
-  if (!queries.length || !api.loadTablePage) return false;
+  const loadsCreativePayments = ["admin-brand-growth", "athlete-growth", "client-payments"].includes(targetId)
+    && typeof api.loadCreativePaymentOperations === "function";
+  if ((!queries.length && !loadsCreativePayments) || !api.loadTablePage) return false;
   const existing = dashboardPanelLoads.get(targetId) || {
     loaded: false,
     loading: false,
@@ -1543,6 +1548,12 @@ async function ensureDashboardPanelData(targetId, options = {}) {
     const snapshotPromise = targetId === "admin-control"
       ? loadAdminGrowthSnapshot({ force: refresh })
       : Promise.resolve(null);
+    const creativePaymentsPromise = loadsCreativePayments
+      ? api.loadCreativePaymentOperations().catch(error => {
+          console.warn("[ROIS creative payments]", humanError(error));
+          return [];
+        })
+      : Promise.resolve(null);
     const pages = await Promise.all(queries.map(async spec => {
       try {
         const rows = await api.loadTablePage(spec.table, spec.query, { offset, limit: pageSize });
@@ -1552,6 +1563,7 @@ async function ensureDashboardPanelData(targetId, options = {}) {
         return { table: spec.table, rows: [], loaded: false, merge: spec.merge === true };
       }
     }));
+    const creativePayments = await creativePaymentsPromise;
     await snapshotPromise;
     pages
       .filter(page => page.loaded)
@@ -1559,6 +1571,7 @@ async function ensureDashboardPanelData(targetId, options = {}) {
         if (offset === 0 && !merge) replacePageRecords(table, rows);
         else mergePageRecords(table, rows);
       });
+    if (Array.isArray(creativePayments)) replacePageRecords("creative_payment_operations", creativePayments);
     const hasMore = pages.some(({ rows, loaded }) => loaded && rows.length === pageSize);
     dashboardPanelLoads.set(targetId, {
       loaded: true,
@@ -2031,10 +2044,20 @@ function athleteProfileCompleteForScout(athlete) {
   );
 }
 
+function hasAdvancedAccess(profile = {}) {
+  const now = Date.now();
+  const expirationValue = profile.advanced_access_expires_at || profile.annual_access_expires_at;
+  const expiration = expirationValue ? new Date(expirationValue).getTime() : 0;
+  const hasFutureExpiration = Number.isFinite(expiration) && expiration > now;
+  const status = String(profile.advanced_access_status || profile.annual_payment_status || "").toLowerCase();
+  const activeStatus = ["trial", "trialing", "active", "granted"].includes(status);
+  const paidStatus = status === "paid" || profile.annual_fee_paid === true;
+  if (expirationValue) return hasFutureExpiration;
+  return activeStatus || paidStatus;
+}
+
 function athleteAnnualFeePaid(athlete) {
-  if (!athlete?.annual_fee_paid && athlete?.annual_payment_status !== "paid") return false;
-  if (!athlete?.annual_access_expires_at) return true;
-  return new Date(athlete.annual_access_expires_at).getTime() > Date.now();
+  return hasAdvancedAccess(athlete);
 }
 
 function athleteAnnualAccessExpired(athlete) {
@@ -2512,6 +2535,64 @@ function demoApi() {
     async loadAdminGrowthSnapshot() {
       return adminGrowthSnapshotFromState();
     },
+    async loadCreativePaymentOperations() {
+      return Array.isArray(state.data?.creative_payment_operations) ? state.data.creative_payment_operations : [];
+    },
+    async createCreativePaymentOperation(participantRecordId) {
+      const existing = state.data?.creative_payment_operations?.find(item => item.participant_record_id === participantRecordId);
+      if (existing) return existing.id;
+      const acceptance = state.data?.brand_growth_participants?.find(item => item.id === participantRecordId);
+      const campaign = state.data?.brand_growth_campaigns?.find(item => item.id === acceptance?.campaign_id);
+      const payee = state.data?.brand_growth_participants?.find(item => (
+        item.campaign_id === acceptance?.campaign_id
+        && item.profile_id === acceptance?.paired_with_id
+        && item.paired_with_id === acceptance?.profile_id
+        && item.quote_status === "quoted"
+      ));
+      if (!acceptance || acceptance.quote_status !== "accepted" || Number(acceptance.agreed_amount || 0) <= 0 || !campaign || !payee) {
+        throw new Error("La cotizacion no tiene una aceptacion valida.");
+      }
+      const amounts = creativePaymentAmounts(acceptance.agreed_amount);
+      const operation = {
+        id: crypto.randomUUID(),
+        participant_record_id: acceptance.id,
+        campaign_id: campaign.id,
+        profile_id: payee.profile_id,
+        company_id: campaign.company_id || null,
+        campaign_title: campaign.title,
+        company_name: state.data?.companies?.find(item => item.id === campaign.company_id)?.name || null,
+        participant_name: payee.name,
+        profile_table: payee.profile_table,
+        gross_amount: amounts.grossAmount,
+        rois_fee_rate: ROIS_CREATIVE_FEE_RATE,
+        rois_fee_amount: amounts.roisFeeAmount,
+        participant_net_amount: amounts.participantNetAmount,
+        currency: acceptance.currency || "MXN",
+        payment_status: "pending_link",
+        payment_link_saved: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      if (!Array.isArray(state.data.creative_payment_operations)) state.data.creative_payment_operations = [];
+      state.data.creative_payment_operations.unshift(operation);
+      return operation.id;
+    },
+    async adminUpdateCreativePaymentOperation(payload = {}) {
+      const operation = state.data?.creative_payment_operations?.find(item => item.id === payload.operationId);
+      if (!operation || state.session?.role !== "admin") throw new Error("Solo Administracion puede modificar operaciones de pago.");
+      if (payload.paymentStatus === "payment_enabled" && !validCreativePaymentLink(payload.paymentLink)) {
+        throw new Error("Se requiere un enlace HTTPS valido para habilitar el pago.");
+      }
+      if (payload.paymentLink && !validCreativePaymentLink(payload.paymentLink)) throw new Error("El enlace debe usar HTTPS.");
+      operation.payment_link = String(payload.paymentLink || "").trim() || null;
+      operation.payment_link_saved = Boolean(operation.payment_link);
+      operation.payment_status = payload.paymentStatus;
+      operation.admin_notes = String(payload.adminNotes || "").trim() || null;
+      operation.payment_enabled_at = payload.paymentStatus === "payment_enabled" ? (operation.payment_enabled_at || new Date().toISOString()) : operation.payment_enabled_at;
+      operation.paid_at = payload.paymentStatus === "paid" ? (operation.paid_at || new Date().toISOString()) : operation.paid_at;
+      operation.updated_at = new Date().toISOString();
+      return operation.id;
+    },
     async broadcastNotifications(payload = {}) {
       const data = read();
       const audience = payload.audience || "all_talent";
@@ -2873,6 +2954,32 @@ function supabaseApi() {
         body: "{}"
       });
     },
+    async loadCreativePaymentOperations() {
+      return request("/rest/v1/rpc/list_creative_payment_operations", {
+        method: "POST",
+        headers: headers(),
+        body: "{}"
+      });
+    },
+    async createCreativePaymentOperation(participantRecordId) {
+      return request("/rest/v1/rpc/create_creative_payment_operation", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ p_participant_record_id: participantRecordId })
+      });
+    },
+    async adminUpdateCreativePaymentOperation(payload = {}) {
+      return request("/rest/v1/rpc/admin_update_creative_payment_operation", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          p_operation_id: payload.operationId,
+          p_payment_link: String(payload.paymentLink || "").trim() || null,
+          p_payment_status: payload.paymentStatus,
+          p_admin_notes: String(payload.adminNotes || "").trim() || null
+        })
+      });
+    },
     async broadcastNotifications(payload = {}) {
       const accessMonths = Math.max(0, Math.min(12, Number(payload.accessMonths || 0)));
       const rpcName = accessMonths ? "admin_broadcast_notification_with_access" : "admin_broadcast_notification";
@@ -2942,7 +3049,7 @@ function supabaseApi() {
         company_listings: `select=id,company_id,profile_id,company_name,listing_type,category,subcategory,title,summary,description,price,currency,price_label,location,inventory_count,availability,contact_email,website_url,primary_image_url,plan_required,featured,featured_until,status,visual_status,visual_notes,expires_at,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`,
         company_listing_media: `select=id,listing_id,company_id,storage_path,public_url,original_name,mime_type,sort_order,created_at&order=created_at.desc&limit=${mediumLimit}`,
         marketplace_leads: `select=id,listing_id,seller_company_id,buyer_company_id,requester_profile_id,requester_email,requester_name,requester_company,message,status,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
-        brand_growth_campaigns: `select=id,title,objective,brief,deliverables,start_date,end_date,status,created_by,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
+        brand_growth_campaigns: `select=id,company_id,title,objective,brief,deliverables,start_date,end_date,status,created_by,created_at,updated_at&order=created_at.desc&limit=${mediumLimit}`,
         brand_growth_participants: `select=id,campaign_id,profile_id,profile_record_id,profile_table,email,name,positioning_score,participation_type,paired_with_id,paired_with_name,primary_network,follower_count,collaboration_type,deliverable_count,usage_days,exclusivity_days,quote_min,quote_recommended,quote_max,agreed_amount,currency,quote_status,collaboration_notes,status,created_at,updated_at&order=created_at.desc&limit=${mainLimit}`
       };
       const fallback = normalizeLoadedData(state.data || readDataCache() || {});
@@ -6091,9 +6198,21 @@ function renderClientPayments() {
     badge(payment.status),
     payment.status === "paid" ? "Pagado" : button("Pagar con Stripe", () => payClientPayment(payment.id))
   ]);
-  panel("client-payments", "Pagos", "Operaciones y compromisos comerciales ROIS", rows.length ? table(["Concepto", "Monto", "Estado", "Acci\u00f3n"], rows) : `
+  const creativeOperations = state.data.creative_payment_operations || [];
+  panel("client-payments", "Pagos", "Operaciones y compromisos comerciales ROIS", `
+    ${rows.length ? table(["Concepto", "Monto", "Estado", "Acci\u00f3n"], rows) : `
+      <div class="panel-body"><div class="empty">No hay otros pagos empresariales registrados.</div></div>
+    `}
     <div class="panel-body">
-      <div class="empty">No hay pagos registrados todav\u00eda. Aqui apareceran operaciones comerciales especificas que requieran seguimiento.</div>
+      <div class="section-minihead"><p class="eyebrow">Operaciones de Impulso Creativo</p><h3>Cotizaciones aceptadas vinculadas a tu empresa.</h3></div>
+      ${creativeOperations.length ? `<div class="creative-payment-grid">${creativeOperations.map(operation => `
+        <article class="creative-payment-card">
+          <div class="creative-payment-card-head"><div><p class="eyebrow">${escapeHtml(operation.campaign_title || "Impulso creativo")}</p><h4>${escapeHtml(operation.participant_name || "Participante ROIS")}</h4></div>${badge(creativePaymentStatusLabel(operation.payment_status))}</div>
+          <div class="creative-payment-company-amount"><span>Monto aceptado</span><strong>${money(operation.gross_amount)} ${escapeHtml(operation.currency || "MXN")}</strong></div>
+          <p class="hint">Actualizacion: ${escapeHtml(formatDate(operation.updated_at || operation.created_at))}${operation.paid_at ? ` · Pago confirmado: ${escapeHtml(formatDate(operation.paid_at))}` : ""}</p>
+          ${creativePaymentLinkMarkup(operation, true)}
+        </article>
+      `).join("")}</div>` : `<div class="empty">No hay operaciones de Impulso creativo vinculadas a esta empresa.</div>`}
     </div>
   `);
 }
@@ -7540,6 +7659,63 @@ function brandGrowthScoreLabel(score) {
 }
 
 const brandGrowthFollowerThreshold = 10000;
+
+function creativePaymentAmounts(value) {
+  const grossAmount = Math.round(Math.max(0, Number(value) || 0) * 100) / 100;
+  const roisFeeAmount = Math.round(grossAmount * ROIS_CREATIVE_FEE_RATE * 100) / 100;
+  const participantNetAmount = Math.round((grossAmount - roisFeeAmount) * 100) / 100;
+  return { grossAmount, roisFeeAmount, participantNetAmount };
+}
+
+function validCreativePaymentLink(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    return url.protocol === "https:" && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function creativePaymentStatusLabel(status) {
+  return ({
+    pending_link: "Enlace pendiente",
+    payment_enabled: "Pago habilitado",
+    paid: "Pagado",
+    cancelled: "Cancelado",
+    disputed: "En disputa"
+  })[String(status || "").toLowerCase()] || "Enlace pendiente";
+}
+
+function creativePaymentLinkMarkup(operation, companyView = false) {
+  const status = String(operation?.payment_status || "pending_link").toLowerCase();
+  if (status === "paid") return `<p class="creative-payment-message success">Pago registrado.</p>`;
+  if (status === "payment_enabled" && validCreativePaymentLink(operation?.payment_link)) {
+    return `<a class="btn primary" href="${escapeAttr(operation.payment_link)}" target="_blank" rel="noopener noreferrer">Abrir enlace de pago</a>`;
+  }
+  if (!companyView && operation?.payment_link_saved) return `<p class="creative-payment-message">Enlace de pago en revision.</p>`;
+  return `<p class="creative-payment-message">Enlace de pago pendiente de configuracion administrativa.</p>`;
+}
+
+function participantCreativePaymentMarkup() {
+  const operations = state.data.creative_payment_operations || [];
+  if (!operations.length) return "";
+  return `
+    <section class="creative-payment-section">
+      <div class="section-minihead"><p class="eyebrow">Pagos de Impulso creativo</p><h3>Operaciones aceptadas y reparto economico.</h3></div>
+      <div class="creative-payment-grid">${operations.map(operation => `
+        <article class="creative-payment-card">
+          <div class="creative-payment-card-head"><div><p class="eyebrow">${escapeHtml(operation.company_name || "ROIS")}</p><h4>${escapeHtml(operation.campaign_title || "Impulso creativo")}</h4></div>${badge(creativePaymentStatusLabel(operation.payment_status))}</div>
+          <div class="creative-payment-breakdown">
+            <div><span>Monto bruto</span><strong>${money(operation.gross_amount)}</strong></div>
+            <div><span>Comision ROIS 30%</span><strong>${money(operation.rois_fee_amount)}</strong></div>
+            <div><span>Neto participante 70%</span><strong>${money(operation.participant_net_amount)}</strong></div>
+          </div>
+          <p class="hint">${escapeHtml(operation.currency || "MXN")} · Actualizado ${escapeHtml(formatDate(operation.updated_at || operation.created_at))}</p>
+          ${creativePaymentLinkMarkup(operation)}
+        </article>
+      `).join("")}</div>
+    </section>`;
+}
 const brandGrowthQuoteBases = {
   story: 500,
   post: 900,
@@ -7648,7 +7824,7 @@ function brandGrowthQuoteMarkup(participation, profile, counterpart = null) {
           : participation.quote_status === "quoted"
             ? `<p class="brand-growth-quote-response">Cotizacion enviada. Esperando respuesta del perfil participante.</p>`
             : ""}
-      <p class="brand-growth-no-commission">ROIS no cobra comision por Impulso creativo. Los pagos se acuerdan directamente entre participantes y no son garantizados por ROIS.</p>
+      <p class="brand-growth-no-commission">Al aceptar, ROIS genera una operacion: 30% de comision ROIS y 70% neto para el participante.</p>
     </form>
   `;
 }
@@ -7678,7 +7854,7 @@ function brandGrowthReceivedQuoteMarkup(participation, counterpart) {
               <button class="btn primary" type="button" data-growth-quote-response="${escapeAttr(participation.id)}" data-growth-response="accepted">Aceptar precio recomendado</button>
               <button class="btn" type="button" data-growth-quote-response="${escapeAttr(participation.id)}" data-growth-response="declined">Solicitar ajuste</button>
             </div>`}
-      <p class="brand-growth-no-commission">ROIS no cobra comision ni procesa este pago. Ambas partes deben acordar condiciones y comprobar el cumplimiento.</p>
+      <p class="brand-growth-no-commission">La aceptacion genera una operacion administrada por ROIS con reparto fijo: 30% ROIS y 70% neto para el participante.</p>
     </div>
   `;
 }
@@ -7747,11 +7923,16 @@ async function respondBrandGrowthQuote(participationId, response) {
       quote_status: response,
       agreed_amount: response === "accepted" ? Number(counterpart.quote_recommended || 0) : null
     });
+    if (response === "accepted") {
+      await api.createCreativePaymentOperation(participationId);
+      const operations = await api.loadCreativePaymentOperations();
+      if (Array.isArray(operations)) replacePageRecords("creative_payment_operations", operations);
+    }
     notify(
       "Impulso creativo",
       response === "accepted" ? "Cotizacion aceptada" : "Ajuste solicitado",
       response === "accepted"
-        ? "La colaboracion quedo acordada con el precio recomendado."
+        ? "La colaboracion quedo acordada y se genero una sola operacion con reparto 30% ROIS / 70% participante."
         : "El perfil impulsor podra revisar la propuesta."
     );
     renderAthleteBrandGrowth();
@@ -7882,6 +8063,7 @@ function renderAthleteBrandGrowth() {
         }).join("") : `<div class="empty">Las proximas campanas internas apareceran aqui cuando ROIS abra una convocatoria.</div>`}
       </div>
     </div>
+    <div class="panel-body">${participantCreativePaymentMarkup() || `<div class="empty">Las operaciones de pago apareceran aqui cuando una cotizacion sea aceptada.</div>`}</div>
   `);
   document.querySelectorAll('[data-dashboard-panel="athlete-growth"] [data-join-growth]').forEach(button => {
     button.addEventListener("click", () => joinBrandGrowthCampaign(button.dataset.joinGrowth));
@@ -10722,6 +10904,7 @@ async function submitBrandGrowthCampaign(event) {
   setSavingState(form, true);
   try {
     await api.insert("brand_growth_campaigns", {
+      company_id: form.company_id.value || null,
       title: form.title.value.trim(),
       objective: form.objective.value.trim(),
       brief: form.brief.value.trim(),
@@ -10738,6 +10921,78 @@ async function submitBrandGrowthCampaign(event) {
   } finally {
     setSavingState(form, false);
   }
+}
+
+async function submitCreativePaymentOperation(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const paymentLink = form.elements.payment_link.value.trim();
+  const paymentStatus = form.elements.payment_status.value;
+  if (paymentLink && !validCreativePaymentLink(paymentLink)) {
+    notify("Operacion de pago", "Enlace no valido", "Usa una URL completa con protocolo HTTPS.");
+    return;
+  }
+  if (paymentStatus === "payment_enabled" && !validCreativePaymentLink(paymentLink)) {
+    notify("Operacion de pago", "Falta enlace HTTPS", "No se puede habilitar el pago sin un enlace HTTPS valido.");
+    return;
+  }
+  setSavingState(form, true);
+  try {
+    await api.adminUpdateCreativePaymentOperation({
+      operationId: form.dataset.creativePaymentOperation,
+      paymentLink,
+      paymentStatus,
+      adminNotes: form.elements.admin_notes.value
+    });
+    const operations = await api.loadCreativePaymentOperations();
+    if (Array.isArray(operations)) replacePageRecords("creative_payment_operations", operations);
+    notify("Operacion de pago", "Cambios guardados", "El estado y el enlace quedaron actualizados por Administracion.");
+    renderAdminBrandGrowth();
+  } catch (error) {
+    notify("Operacion de pago", "No fue posible guardar", humanError(error));
+  } finally {
+    setSavingState(form, false);
+  }
+}
+
+function adminCreativePaymentOperationsMarkup() {
+  const operations = state.data.creative_payment_operations || [];
+  return `
+    <div class="section-minihead">
+      <p class="eyebrow">Operaciones de Impulso Creativo</p>
+      <h3>Pago y reparto economico de cotizaciones aceptadas.</h3>
+      <p>La cotizacion original permanece bloqueada. El bruto se reparte automaticamente: 30% ROIS y 70% participante.</p>
+    </div>
+    ${operations.length ? `<div class="creative-payment-grid">${operations.map(operation => `
+      <form class="creative-payment-card creative-payment-admin-card" data-creative-payment-operation="${escapeAttr(operation.id)}">
+        <div class="creative-payment-card-head">
+          <div><p class="eyebrow">${escapeHtml(operation.company_name || "Sin empresa vinculada")}</p><h4>${escapeHtml(operation.campaign_title || "Impulso creativo")}</h4></div>
+          ${badge(creativePaymentStatusLabel(operation.payment_status))}
+        </div>
+        <dl class="creative-payment-meta">
+          <div><dt>Participante</dt><dd>${escapeHtml(operation.participant_name || "Perfil ROIS")}</dd></div>
+          <div><dt>Tipo</dt><dd>${escapeHtml(operation.profile_table || "perfil")}</dd></div>
+          <div><dt>Cotizacion</dt><dd>${escapeHtml(operation.participant_record_id || "")}</dd></div>
+          <div><dt>Moneda</dt><dd>${escapeHtml(operation.currency || "MXN")}</dd></div>
+        </dl>
+        <div class="creative-payment-breakdown">
+          <div><span>Bruto aceptado</span><strong>${money(operation.gross_amount)}</strong></div>
+          <div><span>ROIS 30%</span><strong>${money(operation.rois_fee_amount)}</strong></div>
+          <div><span>Participante 70%</span><strong>${money(operation.participant_net_amount)}</strong></div>
+        </div>
+        <label>Enlace HTTPS<input name="payment_link" type="url" inputmode="url" value="${escapeAttr(operation.payment_link || "")}" placeholder="https://..."></label>
+        <label>Estado<select name="payment_status">
+          <option value="pending_link" ${operation.payment_status === "pending_link" ? "selected" : ""}>Pendiente / deshabilitado</option>
+          <option value="payment_enabled" ${operation.payment_status === "payment_enabled" ? "selected" : ""}>Pago habilitado</option>
+          <option value="paid" ${operation.payment_status === "paid" ? "selected" : ""}>Pagado</option>
+          <option value="cancelled" ${operation.payment_status === "cancelled" ? "selected" : ""}>Cancelado</option>
+          <option value="disputed" ${operation.payment_status === "disputed" ? "selected" : ""}>En disputa</option>
+        </select></label>
+        <label>Notas internas<textarea name="admin_notes" maxlength="2000">${escapeHtml(operation.admin_notes || "")}</textarea></label>
+        <p class="hint">Creada ${escapeHtml(formatDate(operation.created_at))} · Actualizada ${escapeHtml(formatDate(operation.updated_at))}${operation.paid_at ? ` · Pagada ${escapeHtml(formatDate(operation.paid_at))}` : ""}</p>
+        <button class="btn primary" type="submit">Guardar operacion</button>
+      </form>
+    `).join("")}</div>` : `<div class="empty">No hay cotizaciones aceptadas con operacion de pago.</div>`}`;
 }
 
 async function pairBrandGrowthCampaign(campaignId) {
@@ -10802,11 +11057,12 @@ function renderAdminBrandGrowth() {
       <div class="section-minihead">
         <p class="eyebrow">Nueva campana</p>
         <h3>Define una colaboracion concreta y medible.</h3>
-        <p>El sistema vincula perfiles con mas de 10,000 seguidores en una red con perfiles en crecimiento. ROIS no cobra comision por estas colaboraciones.</p>
+        <p>El sistema vincula perfiles con mas de 10,000 seguidores en una red con perfiles en crecimiento. Las cotizaciones aceptadas generan una operacion con 30% ROIS y 70% neto para el participante.</p>
       </div>
       <form id="brandGrowthCampaignForm" class="form-grid">
         <label>Nombre de campana<input name="title" required maxlength="120" placeholder="Impulso ROIS - Agosto"></label>
         <label>Estado<select name="status"><option value="active">Activa</option><option value="draft">Borrador</option></select></label>
+        <label>Empresa vinculada<select name="company_id"><option value="">Sin empresa</option>${(state.data.companies || []).map(company => `<option value="${escapeAttr(company.id)}">${escapeHtml(company.name || company.contact || "Empresa")}</option>`).join("")}</select></label>
         <label style="grid-column:1/-1">Objetivo<input name="objective" required maxlength="240" placeholder="Aumentar alcance y descubrimiento de perfiles participantes."></label>
         <label style="grid-column:1/-1">Brief<textarea name="brief" required placeholder="Describe la dinamica, canales y criterio de colaboracion."></textarea></label>
         <label style="grid-column:1/-1">Entregables<textarea name="deliverables" required placeholder="Ejemplo: 1 reel colaborativo, 3 historias cruzadas y reporte de resultados."></textarea></label>
@@ -10826,6 +11082,7 @@ function renderAdminBrandGrowth() {
                 <div>
                   <p class="eyebrow">${escapeHtml(campaign.status || "draft")}</p>
                   <h3>${escapeHtml(campaign.title || "Campana ROIS")}</h3>
+                  ${campaign.company_id ? `<small>${escapeHtml((state.data.companies || []).find(company => company.id === campaign.company_id)?.name || "Empresa vinculada")}</small>` : ""}
                 </div>
                 ${badge(`${participants.length} participantes`)}
               </div>
@@ -10855,8 +11112,10 @@ function renderAdminBrandGrowth() {
         }).join("") : `<div class="empty">Crea la primera campana interna de crecimiento ROIS.</div>`}
       </div>
     </div>
+    <div class="panel-body">${adminCreativePaymentOperationsMarkup()}</div>
   `);
   document.getElementById("brandGrowthCampaignForm")?.addEventListener("submit", submitBrandGrowthCampaign);
+  document.querySelectorAll("[data-creative-payment-operation]").forEach(form => form.addEventListener("submit", submitCreativePaymentOperation));
 }
 
 function renderAdminFounders() {

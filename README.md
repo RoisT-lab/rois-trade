@@ -52,9 +52,9 @@ Ejecuta `supabase-broadcast-notifications.sql` y despliega la funcion `supabase/
 
 Athletes y creadores cuentan con un constructor de Sponsor Deck dentro de su dashboard. El deck guarda narrativa, audiencia, evidencia, afinidad con marcas, entregables, beneficios y puntuacion de completitud en su registro real. Las empresas pueden abrirlo desde Mercado de fichajes, Creadores o el perfil completo.
 
-El Sponsor Deck ROIS es la unica propuesta comercial activa. Los dashboards ya no permiten cargar ni descargar propuestas PDF externas ni imprimir el deck. Los PDF historicos y sus metadatos se conservan para auditoria y migracion, pero no se muestran ni se modifican desde la aplicacion.
+El Sponsor Deck ROIS es una herramienta avanzada independiente para narrativa, posicionamiento, audiencia, evidencia, afinidad y materiales comerciales. No es la fuente de verdad del ticket mensual basico, los diez espacios de patrocinio, los niveles avanzados ni sus enlaces de pago. Los PDF historicos y sus metadatos se conservan para auditoria y migracion.
 
-Cada deck usa un solo ticket mensual por patrocinador, permite un maximo de 10 sponsors y presenta beneficios verificables en lugar de paquetes escalonados. Athlete y Creador pueden agregar dos imagenes comerciales para calendario, competiciones, eventos o evidencia; estos medios se guardan en `profile-media/{role}/{profile_id}/sponsor-deck/` y sus metadatos viven dentro del JSON del deck.
+El ticket mensual basico y su limite de 10 patrocinadores siguen disponibles por separado. Los niveles avanzados conservan nombres, montos, beneficios, revision y enlaces propios. Athlete y Creador pueden agregar dos imagenes comerciales al Sponsor Deck; estos medios se guardan en `profile-media/{role}/{profile_id}/sponsor-deck/` y sus metadatos viven dentro del JSON del deck.
 
 Ejecuta primero `supabase-sponsor-deck-ai-mvp.sql`. El modulo usa actualmente el generador guiado local, sin consumo de API. ROIS IA queda preparada como una mejora futura y se activa con `ROIS_CONFIG.roisIAEnabled: true` cuando exista presupuesto API. La Edge Function opcional permanece en `supabase/functions/generate-sponsor-deck`; nunca coloques `OPENAI_API_KEY` en archivos del frontend.
 
@@ -319,8 +319,11 @@ El modulo compartido de Athletes y Creadores permite colaboraciones internas con
 - un perfil con 10,000 seguidores o menos participa como perfil `en crecimiento`;
 - el cotizador usa audiencia, engagement, formato, entregables, uso de contenido y exclusividad;
 - el perfil en crecimiento puede aceptar el precio recomendado o solicitar un ajuste;
-- ROIS no cobra comision por este servicio y no garantiza pagos;
-- el acceso requiere que la membresia anual del perfil este activa;
+- una aceptacion valida genera una sola operacion de pago separada de la cotizacion;
+- el monto aceptado se reparte de forma invariable: 30% para ROIS y 70% neto para el participante;
+- el acceso avanzado reconoce los cinco meses gratuitos vigentes y la anualidad activa;
 - Admin solo empareja un impulsor con un perfil en crecimiento.
 
-Ejecuta `supabase-creative-impulse-collaborations.sql` una sola vez despues de `supabase-annual-access-brand-growth.sql`. La migracion agrega columnas de audiencia y cotizacion, conserva todas las campanas y perfiles existentes, y permite a cada participante actualizar solamente su propia cotizacion.
+Ejecuta `supabase-creative-impulse-collaborations.sql` despues de `supabase-annual-access-brand-growth.sql` y luego `supabase-creative-payment-operations.sql`. La nueva migracion es aditiva e idempotente: crea `creative_payment_operations`, agrega el vinculo empresarial opcional a campanas, centraliza el calculo 30/70, crea la operacion mediante RPC/trigger y expone lectura por rol sin permitir escritura financiera desde el navegador.
+
+Administracion gestiona las operaciones dentro del panel existente de Impulso creativo. Participantes consultan bruto, comision, neto, estado y enlace habilitado; las empresas vinculadas consultan participante, campana, bruto, estado, enlace y confirmacion de pago. Solo los RPC administrativos pueden modificar enlace, estado y notas.
