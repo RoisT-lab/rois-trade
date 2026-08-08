@@ -19266,3 +19266,24 @@ body[data-active-view="commercial"] .topbar {
     grid-template-columns: 1fr;
   }
 }
+
+/* Keep long opportunity details and application fields reachable on every viewport. */
+.opportunity-modal .opportunity-modal-card {
+  width: min(820px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+  .opportunity-modal {
+    padding: 10px;
+  }
+
+  .opportunity-modal .opportunity-modal-card {
+    max-height: calc(100dvh - 20px);
+  }
+}
