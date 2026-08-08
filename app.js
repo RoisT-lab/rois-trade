@@ -736,6 +736,7 @@ const dashboardPanelPageSizes = { client: 24, admin: 75 };
 const dashboardPanelFreshnessMs = 30000;
 const profileEvidenceLoadedAt = new Map();
 const competitiveEvidenceDrafts = new Map();
+const dashboardFormDrafts = new Map();
 const profileEvidenceFreshnessMs = 30000;
 let adminGrowthSnapshot = null;
 let adminGrowthSnapshotPromise = null;
@@ -1648,6 +1649,87 @@ function dashboardPanelHasProtectedDraft(targetId) {
   const panel = document.querySelector(`[data-dashboard-panel="${targetId}"]`);
   if (!panel?.classList.contains("active")) return false;
   return [...panel.querySelectorAll("form[data-preserve-dashboard-draft]")].some(dashboardFormHasDraft);
+}
+
+function dashboardDraftFormKey(form, index = 0) {
+  const panelId = form?.closest("[data-dashboard-panel]")?.dataset.dashboardPanel || "dashboard";
+  const account = normalizedAccountEmail(state.session?.email) || state.session?.authId || state.session?.id || "session";
+  const formId = form?.dataset.dashboardDraftKey || form?.id || `form-${index}`;
+  return `${account}:${panelId}:${formId}`;
+}
+
+function dashboardFormDraftSnapshot(form) {
+  const controls = [...form.elements].filter(control => (
+    control?.name
+    && !control.disabled
+    && !["submit", "button", "password"].includes(control.type)
+  ));
+  const ordinalByName = new Map();
+  return controls.map(control => {
+    const ordinal = ordinalByName.get(control.name) || 0;
+    ordinalByName.set(control.name, ordinal + 1);
+    return {
+      name: control.name,
+      ordinal,
+      type: control.type,
+      value: control.value,
+      checked: Boolean(control.checked),
+      files: control.type === "file" ? [...(control.files || [])] : []
+    };
+  });
+}
+
+function captureDashboardPanelDraft(targetId) {
+  if (!targetId) return;
+  const panel = document.querySelector(`[data-dashboard-panel="${targetId}"]`);
+  if (!panel) return;
+  [...panel.querySelectorAll("form[data-preserve-dashboard-draft]")].forEach((form, index) => {
+    const key = dashboardDraftFormKey(form, index);
+    if (dashboardFormHasDraft(form)) dashboardFormDrafts.set(key, dashboardFormDraftSnapshot(form));
+    else dashboardFormDrafts.delete(key);
+  });
+}
+
+function restoreDashboardPanelDraft(targetId) {
+  if (!targetId) return;
+  const panel = document.querySelector(`[data-dashboard-panel="${targetId}"]`);
+  if (!panel) return;
+  [...panel.querySelectorAll("form[data-preserve-dashboard-draft]")].forEach((form, index) => {
+    const draft = dashboardFormDrafts.get(dashboardDraftFormKey(form, index));
+    if (!Array.isArray(draft)) return;
+    const controlsByName = new Map();
+    [...form.elements].forEach(control => {
+      if (!control?.name) return;
+      const controls = controlsByName.get(control.name) || [];
+      controls.push(control);
+      controlsByName.set(control.name, controls);
+    });
+    draft.forEach(field => {
+      const control = controlsByName.get(field.name)?.[field.ordinal];
+      if (!control || control.disabled) return;
+      if (control.type === "checkbox" || control.type === "radio") {
+        control.checked = field.checked;
+      } else if (control.type === "file") {
+        if (!field.files?.length || typeof DataTransfer !== "function") return;
+        try {
+          const transfer = new DataTransfer();
+          field.files.forEach(file => transfer.items.add(file));
+          control.files = transfer.files;
+        } catch (error) {
+          console.warn("[ROIS dashboard draft] No fue posible restaurar el archivo seleccionado.", error);
+        }
+      } else {
+        control.value = field.value;
+      }
+      control.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
+}
+
+function clearDashboardFormDraft(form) {
+  if (!form) return;
+  const forms = [...(form.closest("[data-dashboard-panel]")?.querySelectorAll("form[data-preserve-dashboard-draft]") || [])];
+  dashboardFormDrafts.delete(dashboardDraftFormKey(form, Math.max(0, forms.indexOf(form))));
 }
 
 function removeRecordFromState(table, id) {
@@ -4365,6 +4447,8 @@ function showDashboardPanel(targetId) {
   const targetPanel = document.querySelector(`[data-dashboard-panel="${targetId}"]`);
   if (!targetPanel) return;
   const workspace = targetPanel.closest("[data-dashboard]");
+  const currentPanelId = workspace.querySelector("[data-dashboard-panel].active")?.dataset.dashboardPanel;
+  if (currentPanelId) captureDashboardPanelDraft(currentPanelId);
   const nav = document.querySelector(`[data-dashboard-nav="${workspace.dataset.dashboard}"]`);
   workspace.querySelectorAll("[data-dashboard-panel]").forEach(panel => panel.classList.toggle("active", panel === targetPanel));
   nav.querySelectorAll("[data-dashboard-target]").forEach(button => button.classList.toggle("active", button.dataset.dashboardTarget === targetId));
@@ -4433,6 +4517,7 @@ async function submitLogin(event) {
       return;
     }
     state.session = session;
+    dashboardFormDrafts.clear();
     hydratedRoles.clear();
     lastHydratedAtByRole.clear();
     resetDashboardPanelState();
@@ -4534,6 +4619,7 @@ async function submitCompanyProfile(event) {
     await api.update("companies", company.id, patch);
     state.session = { ...state.session, name: patch.name };
     saveSession(state.session);
+    clearDashboardFormDraft(form);
     renderSession();
     renderClient();
     notify("Empresa", "Perfil actualizado", logoFile ? "El logotipo y la informaci\u00f3n de tu empresa quedaron guardados." : "La informaci\u00f3n de tu empresa qued\u00f3 guardada.");
@@ -4545,6 +4631,7 @@ async function submitCompanyProfile(event) {
 function logout() {
   const activeCacheKey = dataCacheStorageKey(state.session);
   state.session = null;
+  dashboardFormDrafts.clear();
   hydratedRoles.clear();
   lastHydratedAtByRole.clear();
   dashboardHydrationPromise = null;
@@ -5161,6 +5248,7 @@ function renderClientTutorial(targetId) {
 }
 
 function renderClientPanel(targetId) {
+  captureDashboardPanelDraft(targetId);
   const map = {
     "client-overview": renderClientOverview,
     "client-events": renderClientEvents,
@@ -5177,6 +5265,7 @@ function renderClientPanel(targetId) {
     "client-settings": () => renderAccountSettings("client-settings")
   };
   if (map[targetId]) map[targetId]();
+  restoreDashboardPanelDraft(targetId);
   renderClientTutorial(targetId);
   decoratePanelPagination(targetId);
 }
@@ -5853,7 +5942,7 @@ function companyListingFormMarkup() {
         <h3>Incorpora un activo al Mercado Corporativo.</h3>
         <p>Productos, servicios, activos y oportunidades se publican después de revisión comercial y visual ROIS.</p>
       </div>
-      <form id="companyListingForm" class="form-grid">
+      <form id="companyListingForm" class="form-grid" data-preserve-dashboard-draft data-dashboard-draft-key="company-listing">
         <label>Tipo<select name="listing_type" required><option value="product">Producto</option><option value="service">Servicio</option><option value="asset">Activo</option><option value="opportunity">Oportunidad</option></select></label>
         <label>Categoría<input name="category" required placeholder="Tecnología, movilidad, hospitalidad..."></label>
         <label style="grid-column:1/-1">Título<input name="title" required maxlength="120" placeholder="Nombre comercial de la oferta"></label>
@@ -5974,6 +6063,7 @@ async function submitCompanyListing(event) {
     });
     listing = updated || { ...listing, primary_image_url: uploaded.url, primary_image_path: uploaded.path };
     replaceRecordInState("company_listings", listing);
+    clearDashboardFormDraft(form);
     notify("Mercado Corporativo", "Publicación recibida", "El activo quedó pendiente de revisión comercial y visual ROIS.");
     renderClientSponsors();
   } catch (error) {
@@ -6144,7 +6234,7 @@ function renderClientRegister() {
   const company = currentCompany();
   panel("client-register", "Registrar Evento", "Publicacion sin costo inicial", `
     <div class="panel-body">
-      <form id="eventForm" class="form-grid">
+      <form id="eventForm" class="form-grid" data-preserve-dashboard-draft data-dashboard-draft-key="company-event">
         <label>Evento<input name="name" required placeholder="Nombre del evento"></label>
         <label>Sede<input name="venue" required placeholder="Sede o ciudad"></label>
         <label>Categor\u00eda<input name="category" required placeholder="Ejecutivo, sponsor, membresia, networking"></label>
@@ -6185,6 +6275,7 @@ function renderClientRegister() {
       const uploaded = await uploadCompanyEventImage(imageFile, company.id, eventRecord.id);
       await api.update("events", eventRecord.id, { image_url: uploaded.url, image_path: uploaded.path, visual_status: "pending_review" });
     }
+    clearDashboardFormDraft(form);
     notify("Eventos", "Evento registrado", "Tu evento quedo enviado a revision ROIS sin costo inicial. El success fee seleccionado aplicara unicamente sobre resultados comerciales generados mediante nuestra intervencion.");
     renderClient();
   });
@@ -6318,7 +6409,7 @@ function renderAccountSettings(panelId) {
             <h3>Identidad visible en tu sesi\u00f3n</h3>
             <p class="hint">Sube un logotipo institucional en PNG, JPG o WEBP. Se guardar\u00e1 en tu cuenta y ser\u00e1 visible en tu dashboard al iniciar sesi\u00f3n desde cualquier dispositivo.</p>
           </div>
-          <form class="form-grid company-profile-form" data-company-profile>
+          <form class="form-grid company-profile-form" data-company-profile data-preserve-dashboard-draft data-dashboard-draft-key="company-profile">
             <div class="company-logo-preview ${company.logo_url ? "" : "image-fallback"}">
               ${company.logo_url ? safeProfileImageMarkup(company.logo_url, company.name || "Empresa") : `<div class="company-logo-empty">Logo</div>`}
               <span>${company.logo_url ? "Logo actual" : "Logo pendiente"}</span>
@@ -9794,7 +9885,7 @@ function renderClientOpportunities() {
         <p>Toda oportunidad pasa por revision ROIS antes de publicarse. No se permiten promesas de ingreso, reclutamiento multinivel ni compras ocultas.</p>
       </div>
       ${verification !== "approved" ? `
-        <form class="form-grid company-verification-form" data-company-verification>
+        <form class="form-grid company-verification-form" data-company-verification data-preserve-dashboard-draft data-dashboard-draft-key="company-verification">
           <div class="section-minihead" style="grid-column:1/-1">
             <p class="eyebrow">Verificacion empresarial</p>
             <h3>Identifica a la organizacion responsable.</h3>
@@ -9808,7 +9899,7 @@ function renderClientOpportunities() {
           <button class="btn" type="submit">Solicitar verificacion</button>
         </form>
       ` : ""}
-      <form class="form-grid opportunity-company-form" data-company-opportunity>
+      <form class="form-grid opportunity-company-form" data-company-opportunity data-preserve-dashboard-draft data-dashboard-draft-key="company-opportunity">
         <label>Titulo<input name="title" required maxlength="120" placeholder="Ej. Crea contenido para nuestro lanzamiento"></label>
         <label>Tipo<select name="opportunity_type" required>${Object.entries(opportunityTypeLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}</select></label>
         <label>Categoria<input name="category" required placeholder="Belleza, tecnologia, alimentos..."></label>
@@ -10031,6 +10122,7 @@ async function submitCompanyVerification(event) {
     } else {
       await api.insert("company_verifications", record);
     }
+    clearDashboardFormDraft(form);
     notify("Empresa", "Verificacion solicitada", "ROIS revisara la identidad corporativa antes de publicar oportunidades y habilitar postulantes.");
     renderClientOpportunities();
   } catch (error) {
@@ -10100,6 +10192,7 @@ async function submitCompanyOpportunity(event) {
       opportunity_type: form.opportunity_type.value
     });
     form.reset();
+    clearDashboardFormDraft(form);
     notify("Oportunidades", "Enviada a revision", companyVerificationStatus() === "approved"
       ? "ROIS revisara condiciones, compensacion y cumplimiento antes de publicarla."
       : "La oportunidad fue guardada. Antes de publicarla, ROIS tambien debe completar la verificacion de tu empresa.");
