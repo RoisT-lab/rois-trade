@@ -6500,6 +6500,7 @@ function renderAthlete() {
 }
 
 function renderAthletePanel(targetId) {
+  captureDashboardPanelDraft(targetId);
   const map = {
     "athlete-profile": renderAthleteProfile,
     "athlete-notifications": renderAthleteNotifications,
@@ -6513,6 +6514,7 @@ function renderAthletePanel(targetId) {
     "athlete-settings": () => renderAccountSettings("athlete-settings")
   };
   if (map[targetId]) map[targetId]();
+  restoreDashboardPanelDraft(targetId);
   renderAthleteTutorial(targetId);
 }
 
@@ -7598,7 +7600,7 @@ function renderAthleteSponsorDeck() {
         <div><span>Capacidad</span><strong>${Math.min(10, Number(profile.max_sponsors || 10))} sponsors / mes</strong></div>
       </div>
       ${deck ? sponsorDeckMarkup(profile) : ""}
-      <form id="sponsorDeckForm" class="form-grid sponsor-deck-form">
+      <form id="sponsorDeckForm" class="form-grid sponsor-deck-form" data-preserve-dashboard-draft data-dashboard-draft-key="sponsor-deck">
         <label style="grid-column:1/-1">Objetivo comercial<textarea name="objective" required placeholder="Que quieres lograr con una marca en los proximos 6 a 12 meses.">${escapeHtml(deck?.commercialObjective || "")}</textarea></label>
         <label style="grid-column:1/-1">Por que eres diferente<textarea name="differentiator" required placeholder="Tu historia, ventaja, comunidad, disciplina, estilo o posicionamiento unico.">${escapeHtml(deck?.positioning || profile.stats || "")}</textarea></label>
         <label style="grid-column:1/-1">Audiencia y comunidad<textarea name="audience" required placeholder="Quienes te siguen, ubicacion, intereses y datos relevantes.">${escapeHtml(deck?.audience || defaultAudience)}</textarea></label>
@@ -7697,6 +7699,7 @@ async function submitSponsorDeck(event) {
       sponsor_deck_score: score,
       sponsor_deck_updated_at: new Date().toISOString()
     }, context);
+    clearDashboardFormDraft(form);
     refreshProfileViews(context.role, updated);
     renderAthleteSponsorDeck();
     notify("Sponsor Deck ROIS", roisIAUsed ? "Propuesta mejorada con ROIS IA" : "Propuesta ROIS guardada", roisIAUsed
