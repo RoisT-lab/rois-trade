@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260902-company-command-center-v1";
+const roisBuild = "20260903-sponsor-deck-viewer-v2";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -36,6 +36,7 @@ const dashboardOriginalText = new WeakMap();
 const dashboardOriginalAttributes = new WeakMap();
 let dashboardLanguageObserver = null;
 let dashboardTranslationScheduled = false;
+let sponsorDeckViewerReturnFocus = null;
 
 const dashboardEnglishText = new Map(Object.entries({
   "Inicio": "Home",
@@ -97,6 +98,42 @@ const dashboardEnglishText = new Map(Object.entries({
   "Ajustes": "Settings",
   "Notificaciones": "Notifications",
   "Sponsor Deck ROIS": "ROIS Sponsor Deck",
+  "Sponsor Deck": "Sponsor Deck",
+  "Volver": "Back",
+  "Patrocinio": "Sponsorship",
+  "Propuesta de patrocinio": "Sponsorship proposal",
+  "Propuesta de patrocinio mensual": "Monthly sponsorship proposal",
+  "Ventajas competitivas": "Competitive advantages",
+  "Narrativa y objetivo": "Narrative and objective",
+  "Perfil comercial": "Commercial profile",
+  "Beneficios para patrocinadores": "Sponsor benefits",
+  "Ticket mensual": "Monthly fee",
+  "Capacidad máxima": "Maximum capacity",
+  "Capacidad maxima": "Maximum capacity",
+  "Solicitar activación con ROIS": "Request activation with ROIS",
+  "Solicitar activacion con ROIS": "Request activation with ROIS",
+  "Solicitar activación": "Request activation",
+  "Solicitar activacion": "Request activation",
+  "Activar": "Activate",
+  "Dossier comercial privado": "Private commercial dossier",
+  "01 · Dossier comercial privado": "01 · Private commercial dossier",
+  "02 · Narrativa y objetivo": "02 · Narrative and objective",
+  "03 · Perfil comercial": "03 · Commercial profile",
+  "04 · Propuesta de patrocinio": "04 · Sponsorship proposal",
+  "05 · Beneficios para patrocinadores": "05 · Sponsor benefits",
+  "06 · Ventajas competitivas": "06 · Competitive advantages",
+  "07 · Activación comercial": "07 · Commercial activation",
+  "Activación comercial": "Commercial activation",
+  "Activacion comercial": "Commercial activation",
+  "Niveles disponibles": "Available tiers",
+  "Activar patrocinio": "Activate sponsorship",
+  "Información en proceso de estructuración por ROIS.": "Information is being structured by ROIS.",
+  "Informacion en proceso de estructuracion por ROIS.": "Information is being structured by ROIS.",
+  "Este apartado aún no ha sido completado.": "This section has not been completed yet.",
+  "Este apartado aun no ha sido completado.": "This section has not been completed yet.",
+  "Evidencia visual": "Visual evidence",
+  "Afinidad de marca": "Brand affinity",
+  "Entregables": "Deliverables",
   "Impulso creativo": "Creative Boost",
   "Privacidad": "Privacy",
   "Planes": "Plans",
@@ -456,6 +493,11 @@ const dashboardEnglishPatterns = [
   [/^(\d+) prospectos? necesita(?:n)? seguimiento\.$/i, "$1 prospects require follow-up."],
   [/^(\d+)%\s+COMPLETO$/i, "$1% COMPLETE"],
   [/^HASTA\s+(\d+)\s+SPONSORS$/i, "UP TO $1 SPONSORS"],
+  [/^Beneficio\s+(\d{2})$/i, "Benefit $1"],
+  [/^Ventaja\s+(\d{2})$/i, "Advantage $1"],
+  [/^Sponsor Deck ROIS · Creador$/i, "ROIS Sponsor Deck · Creator"],
+  [/^Sponsor Deck ROIS · Atleta$/i, "ROIS Sponsor Deck · Athlete"],
+  [/^Sponsor Deck ROIS · Athlete$/i, "ROIS Sponsor Deck · Athlete"],
   [/^(.+):\s*talento deportivo con valor para marcas$/i, "$1: athletic talent with value for brands"]
 ];
 
@@ -523,6 +565,13 @@ Object.entries(dashboardEnglishAccentedText).forEach(([source, translation]) => 
 });
 
 const dashboardEnglishPhrases = [
+  ["Activos para evaluar afinidad y capacidad de ejecución.", "Assets to evaluate fit and execution capacity."],
+  ["Estructura económica para activar una relación comercial.", "Commercial structure for activating a business relationship."],
+  ["Valor comercial disponible para las marcas.", "Commercial value available to brands."],
+  ["Diferenciadores relevantes para una decisión comercial.", "Relevant differentiators for a commercial decision."],
+  ["Solicita a ROIS activar la relación comercial.", "Ask ROIS to activate the business relationship."],
+  ["Opciones de patrocinio aprobadas por ROIS.", "Sponsorship options approved by ROIS."],
+  ["Calendario, competiciones, eventos y activos de patrocinio.", "Calendar, competitions, events, and sponsorship assets."],
   ["Visión general de oportunidades y relaciones comerciales.", "Overview of commercial opportunities and relationships."],
   ["Cada oportunidad necesita contexto, responsable y siguiente acción.", "Every opportunity needs context, an owner, and a next action."],
   ["Gobierna cada oportunidad desde un solo lugar", "Manage every opportunity from one place"],
@@ -4626,6 +4675,14 @@ function bindGlobalEvents() {
   closeMobileDashboardMenus();
   window.addEventListener("resize", syncClientMobileMenuAccessibility);
   document.addEventListener("keydown", event => {
+    const sponsorDeckModal = document.getElementById("actionModal");
+    if (sponsorDeckModal?.classList.contains("active") && sponsorDeckModal.classList.contains("sponsor-deck-modal")) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeModals();
+      }
+      return;
+    }
     const clientView = document.getElementById("clientView");
     if (!clientView?.classList.contains("nav-open")) return;
     if (event.key === "Escape") {
@@ -4672,6 +4729,12 @@ function initializeCommercialSidebar() {
 }
 
 function handleDashboardDelegatedActions(event) {
+  const sponsorDeckBackButton = event.target.closest("[data-sponsor-deck-back]");
+  if (sponsorDeckBackButton) {
+    event.preventDefault();
+    closeModals();
+    return;
+  }
   const languageButton = event.target.closest("[data-dashboard-language-option]");
   if (languageButton) {
     setDashboardLanguage(languageButton.dataset.dashboardLanguageOption);
@@ -4708,6 +4771,9 @@ function handleDashboardDelegatedActions(event) {
   }
   const sponsorButton = event.target.closest("[data-athlete-sponsor]");
   if (sponsorButton) {
+    if (sponsorButton.closest(".sponsor-deck-modal")) {
+      closeModals({ restoreSponsorDeckFocus: false });
+    }
     const profileId = sponsorButton.dataset.athleteSponsor;
     const athlete = state.data?.athletes?.find(item => item.id === profileId);
     const founder = state.data?.founders?.find(item => item.id === profileId);
@@ -5083,12 +5149,23 @@ function openLogin() {
   document.getElementById("loginModal").classList.add("active");
 }
 
-function closeModals() {
+function closeModals(options = {}) {
+  const sponsorDeckWasOpen = document.getElementById("actionModal")?.classList.contains("sponsor-deck-modal");
   document.querySelectorAll(".modal").forEach(modal => {
     modal.classList.remove("active");
     modal.classList.remove("profile-modal");
     modal.classList.remove("sponsor-deck-modal");
+    modal.setAttribute("aria-hidden", "true");
   });
+  if (sponsorDeckWasOpen) {
+    document.documentElement.classList.remove("sponsor-deck-viewer-open");
+    document.body.classList.remove("sponsor-deck-viewer-open");
+  }
+  document.getElementById("actionModal")?.removeAttribute("data-sponsor-deck-origin");
+  if (sponsorDeckWasOpen && options.restoreSponsorDeckFocus !== false && sponsorDeckViewerReturnFocus?.isConnected) {
+    requestAnimationFrame(() => sponsorDeckViewerReturnFocus?.focus({ preventScroll: true }));
+  }
+  sponsorDeckViewerReturnFocus = null;
 }
 
 function closeModalFromButton(event) {
@@ -5108,7 +5185,9 @@ function notify(kicker, title, text, actions = "") {
   document.getElementById("actionTitle").textContent = title;
   document.getElementById("actionText").textContent = text;
   document.getElementById("actionActions").innerHTML = actions;
-  document.getElementById("actionModal").classList.add("active");
+  const modal = document.getElementById("actionModal");
+  modal.classList.add("active");
+  modal.setAttribute("aria-hidden", "false");
 }
 
 function openRegistrationChoice(context = "profile") {
@@ -8231,11 +8310,61 @@ async function requestSponsorDeckAI(payload) {
   return result.deck;
 }
 
+function sponsorDeckDisplayText(value = "") {
+  const text = String(value ?? "").trim();
+  return ["undefined", "null"].includes(text.toLowerCase()) ? "" : text;
+}
+
+function sponsorDeckPositiveNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function sponsorDeckCompactEmpty(message = "Información en proceso de estructuración por ROIS.") {
+  return `<p class="sponsor-deck-empty">${escapeHtml(message)}</p>`;
+}
+
+function sponsorDeckAuthoredParagraph(value, emptyMessage = "Este apartado aún no ha sido completado.") {
+  const text = sponsorDeckDisplayText(value);
+  return text
+    ? `<p data-no-translate>${escapeHtml(text)}</p>`
+    : sponsorDeckCompactEmpty(emptyMessage);
+}
+
+function sponsorDeckListMarkup(value, emptyMessage = "Información en proceso de estructuración por ROIS.") {
+  const items = sponsorDeckList(value).map(sponsorDeckDisplayText).filter(Boolean);
+  return items.length
+    ? `<ul>${items.map(item => `<li><span data-no-translate>${escapeHtml(item)}</span></li>`).join("")}</ul>`
+    : sponsorDeckCompactEmpty(emptyMessage);
+}
+
+function sponsorDeckProfileMeta(profile = {}, founder = false) {
+  const values = founder
+    ? [profile.industry, profile.stage, profile.primary_platform, profile.city]
+    : [profile.sport, profile.category, profile.location];
+  return [...new Set(values.map(sponsorDeckDisplayText).filter(Boolean))]
+    .slice(0, 3)
+    .map(value => `<span data-no-translate>${escapeHtml(value)}</span>`)
+    .join("");
+}
+
+function sponsorDeckProfileModuleMarkup(index, label, value, options = {}) {
+  const content = options.list
+    ? sponsorDeckListMarkup(value, options.emptyMessage)
+    : sponsorDeckAuthoredParagraph(value, options.emptyMessage);
+  return `
+    <article class="sponsor-deck-profile-module">
+      <div class="sponsor-deck-module-heading"><span aria-hidden="true">${String(index).padStart(2, "0")}</span><p class="eyebrow">${escapeHtml(label)}</p></div>
+      ${content}
+    </article>
+  `;
+}
+
 function sponsorDeckBenefitMarkup(value = "", index = 0, label = "Beneficio") {
   return `
     <article class="sponsor-deck-benefit">
       <p class="eyebrow">${escapeHtml(label)} ${String(index + 1).padStart(2, "0")}</p>
-      <p>${escapeHtml(value)}</p>
+      <p data-no-translate>${escapeHtml(value)}</p>
     </article>
   `;
 }
@@ -8299,7 +8428,7 @@ function sponsorDeckMediaMarkup(profile, deck) {
     <div class="sponsor-deck-media-heading"><p class="eyebrow">Evidencia visual</p><h3>Calendario, competiciones, eventos y activos de patrocinio.</h3></div>
     <div class="sponsor-deck-media-grid">${media.map((item, index) => `<figure>
       ${safeProfileImageMarkup(item.url, item.caption || `Evidencia ${index + 1}`)}
-      <figcaption>${escapeHtml(item.caption || `Activo comercial ${index + 1}`)}</figcaption>
+      <figcaption data-no-translate>${escapeHtml(item.caption || `Activo comercial ${index + 1}`)}</figcaption>
     </figure>`).join("")}</div>
   </section>`;
 }
@@ -8531,10 +8660,10 @@ function companySponsorshipLevelsMarkup(profile) {
       <div class="section-minihead"><p class="eyebrow">Niveles disponibles</p><h3>Opciones de patrocinio aprobadas por ROIS.</h3></div>
       <div class="sponsorship-level-grid">${levels.map(level => `
         <article class="sponsorship-level-card company-level-card">
-          <h4>${escapeHtml(level.name)}</h4>
-          <p>${escapeHtml(level.description)}</p>
+          <h4 data-no-translate>${escapeHtml(level.name)}</h4>
+          <p data-no-translate>${escapeHtml(level.description)}</p>
           <strong class="sponsorship-level-price">${money(level.gross_amount)}</strong>
-          <ul>${sponsorshipLevelBenefits(level.benefits).map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+          <ul>${sponsorshipLevelBenefits(level.benefits).map(item => `<li><span data-no-translate>${escapeHtml(item)}</span></li>`).join("")}</ul>
           <a class="btn primary" href="${escapeAttr(level.payment_link)}" target="_blank" rel="noopener noreferrer">Activar patrocinio</a>
         </article>
       `).join("")}</div>
@@ -8606,56 +8735,93 @@ function bindAdminSponsorshipLevels() {
 
 function sponsorDeckMarkup(profile, options = {}) {
   const deck = sponsorDeckData(profile);
-  if (!deck) return `<div class="empty">Este perfil aun no ha generado su Sponsor Deck ROIS.</div>`;
+  if (!deck) return `<div class="sponsor-deck-empty">Este perfil aun no ha generado su Sponsor Deck ROIS.</div>`;
   const founder = isFounderProfile(profile);
-  const score = Number(profile.sponsor_deck_score || 0);
-  const monthlyTicket = Number(deck.monthlyTicket || profile.monthly || 5000);
-  const maxSponsors = Math.min(10, Number(deck.maxSponsors || profile.max_sponsors || 10));
+  const profileName = sponsorDeckDisplayText(profile.name || profile.public_name);
+  const headline = sponsorDeckDisplayText(deck.headline) || profileName;
+  const positioning = sponsorDeckDisplayText(deck.positioning || profile.stats);
+  const objective = sponsorDeckDisplayText(deck.commercialObjective);
+  const profileStory = sponsorDeckDisplayText(profile.stats);
+  const story = sponsorDeckDisplayText(deck.story) || (profileStory !== positioning ? profileStory : "");
+  const scoreValue = profile.sponsor_deck_score;
+  const scoreNumber = scoreValue === null || scoreValue === undefined || scoreValue === "" ? null : Number(scoreValue);
+  const score = Number.isFinite(scoreNumber) ? Math.min(100, Math.max(0, Math.round(scoreNumber))) : null;
+  const monthlyTicket = sponsorDeckPositiveNumber(deck.monthlyTicket ?? profile.monthly);
+  const capacityValue = sponsorDeckPositiveNumber(deck.maxSponsors ?? profile.max_sponsors);
+  const maxSponsors = capacityValue ? Math.min(10, Math.round(capacityValue)) : null;
   const benefits = sponsorDeckList(deck.benefits || deck.deliverables).slice(0, 10);
   const advantages = sponsorDeckList(deck.advantages).slice(0, 10);
+  const profileMeta = sponsorDeckProfileMeta(profile, founder);
+  const viewer = Boolean(options.viewer);
+  const companyViewer = viewer && state.session?.role === "client";
+  const viewerName = profileName
+    ? `<strong data-no-translate>${escapeHtml(profileName)}</strong>`
+    : "<strong>Perfil comercial</strong>";
+  const headlineMarkup = headline
+    ? `<h1 data-no-translate>${escapeHtml(headline)}</h1>`
+    : "<h1>Perfil comercial</h1>";
+  const nameMarkup = profileName && headline !== profileName
+    ? `<p class="sponsor-deck-profile-name" data-no-translate>${escapeHtml(profileName)}</p>`
+    : "";
   return `
-    <article class="sponsor-deck-preview ${options.compact ? "compact" : ""}">
+    <article class="sponsor-deck-preview sponsor-deck-viewer-v2 ${options.compact ? "compact" : ""}">
+      ${viewer ? `<nav class="sponsor-deck-viewer-header" aria-label="Sponsor Deck">
+        <button class="sponsor-deck-viewer-back" type="button" data-sponsor-deck-back aria-label="Volver">
+          <span aria-hidden="true">←</span><span class="sponsor-deck-back-label">Volver</span>
+        </button>
+        <p class="sponsor-deck-viewer-title"><span>Sponsor Deck</span>${viewerName}</p>
+        ${companyViewer ? `<button class="btn primary sponsor-deck-header-cta" type="button" data-athlete-sponsor="${escapeAttr(profile.id)}"><span class="sponsor-deck-cta-long">Solicitar activación</span><span class="sponsor-deck-cta-short">Activar</span></button>` : `<span class="sponsor-deck-viewer-spacer" aria-hidden="true"></span>`}
+      </nav>` : ""}
       <header class="sponsor-deck-cover">
         <div class="sponsor-deck-brand">
-          <img src="./assets/rois-logo.png" alt="ROIS">
-          <span>Private sponsorship management</span>
+          <img src="./assets/rois-logo.png" alt="ROIS TRADE">
+          <span>01 · Dossier comercial privado</span>
         </div>
         <div class="sponsor-deck-portrait">${safeProfileImageMarkup(profile.image_url, profile.name || "Perfil ROIS")}</div>
         <div class="sponsor-deck-cover-copy">
-          <p class="eyebrow">Sponsor Deck ROIS · ${founder ? "Creador" : "Athlete"}</p>
-          <h2>${escapeHtml(deck.headline || profile.name || "Talento ROIS")}</h2>
-          <p>${escapeHtml(deck.positioning || profile.stats || "Propuesta comercial en desarrollo.")}</p>
-          <div class="row-meta"><span class="pill">${score}% completo</span><span class="pill">Hasta ${maxSponsors} sponsors</span></div>
+          <p class="eyebrow">Sponsor Deck ROIS · ${founder ? "Creador" : "Atleta"}</p>
+          ${nameMarkup}
+          ${headlineMarkup}
+          ${positioning ? `<p class="sponsor-deck-positioning" data-no-translate>${escapeHtml(positioning)}</p>` : sponsorDeckCompactEmpty()}
+          ${profileMeta ? `<div class="sponsor-deck-profile-meta">${profileMeta}</div>` : ""}
+          ${(score !== null || maxSponsors) ? `<div class="sponsor-deck-hero-signals">
+            ${score !== null ? `<div class="sponsor-deck-completion" role="progressbar" aria-label="Sponsor Deck" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${score}"><span>${score}% completo</span><i aria-hidden="true"><b style="width:${score}%"></b></i></div>` : ""}
+            ${maxSponsors ? `<span class="sponsor-deck-capacity">Hasta ${maxSponsors} sponsors</span>` : ""}
+          </div>` : ""}
         </div>
       </header>
-      <div class="sponsor-deck-section sponsor-deck-story">
-        <p class="eyebrow">Narrativa y objetivo</p>
-        <h3>${escapeHtml(deck.commercialObjective || "Construir una alianza medible con marcas.")}</h3>
-        <p>${escapeHtml(deck.story || profile.stats || "Historia profesional por documentar.")}</p>
-      </div>
-      <div class="sponsor-deck-columns">
-        <section><p class="eyebrow">Audiencia</p><p>${escapeHtml(deck.audience || "Audiencia por documentar.")}</p></section>
-        <section><p class="eyebrow">Evidencia</p><ul>${sponsorDeckList(deck.proofPoints).map(value => `<li>${escapeHtml(value)}</li>`).join("") || "<li>Resultados por documentar.</li>"}</ul></section>
-        <section><p class="eyebrow">Afinidad de marca</p><ul>${sponsorDeckList(deck.brandFit).map(value => `<li>${escapeHtml(value)}</li>`).join("") || "<li>Categorias por definir.</li>"}</ul></section>
-        <section><p class="eyebrow">Entregables</p><ul>${sponsorDeckList(deck.deliverables).map(value => `<li>${escapeHtml(value)}</li>`).join("") || "<li>Entregables por definir.</li>"}</ul></section>
-      </div>
+      <section class="sponsor-deck-section sponsor-deck-story">
+        <p class="eyebrow">02 · Narrativa y objetivo</p>
+        ${objective ? `<h2 data-no-translate>${escapeHtml(objective)}</h2>` : ""}
+        ${story ? `<p data-no-translate>${escapeHtml(story)}</p>` : sponsorDeckCompactEmpty()}
+      </section>
+      <section class="sponsor-deck-section sponsor-deck-commercial-profile">
+        <div class="sponsor-deck-section-heading"><p class="eyebrow">03 · Perfil comercial</p><h2>Activos para evaluar afinidad y capacidad de ejecución.</h2></div>
+        <div class="sponsor-deck-profile-grid">
+          ${sponsorDeckProfileModuleMarkup(1, "Audiencia", deck.audience)}
+          ${sponsorDeckProfileModuleMarkup(2, "Evidencia", deck.proofPoints, { list: true })}
+          ${sponsorDeckProfileModuleMarkup(3, "Afinidad de marca", deck.brandFit, { list: true })}
+          ${sponsorDeckProfileModuleMarkup(4, "Entregables", deck.deliverables, { list: true })}
+        </div>
+      </section>
       ${sponsorDeckMediaMarkup(profile, deck)}
       <section class="sponsor-deck-commercial-model">
-        <p class="eyebrow">Propuesta de patrocinio mensual</p>
-        <h3>Beneficios y ventajas para construir una relacion de valor.</h3>
-        <p>El ticket mensual es el mismo para cada patrocinador. La metodologia comercial ROIS organiza los activos que este perfil puede aportar y nuestro equipo valida alcance, derechos, calendario y condiciones.</p>
-        <div class="sponsor-deck-offer-summary"><div><span>Ticket mensual</span><strong>$${monthlyTicket.toLocaleString("es-MX")} MXN</strong></div><div><span>Capacidad maxima</span><strong>${maxSponsors} sponsors</strong></div></div>
+        <div class="sponsor-deck-section-heading"><p class="eyebrow">04 · Propuesta de patrocinio</p><h2>Estructura económica para activar una relación comercial.</h2></div>
+        <div class="sponsor-deck-offer-summary">
+          <div><span>Ticket mensual</span>${monthlyTicket ? `<strong data-no-translate>$${monthlyTicket.toLocaleString("es-MX")} MXN</strong>` : sponsorDeckCompactEmpty("Este apartado aún no ha sido completado.")}</div>
+          <div><span>Capacidad máxima</span>${maxSponsors ? `<strong data-no-translate>${maxSponsors} sponsors</strong>` : sponsorDeckCompactEmpty("Este apartado aún no ha sido completado.")}</div>
+        </div>
       </section>
       <section class="sponsor-deck-list-section">
-        <div class="sponsor-deck-list-heading"><p class="eyebrow">Beneficios para patrocinadores</p><h3>Resultados y activos que recibe cada marca.</h3></div>
-        <div class="sponsor-deck-benefits">${benefits.map((value, index) => sponsorDeckBenefitMarkup(value, index, "Beneficio")).join("") || `<div class="empty">Los beneficios para patrocinadores estan en preparacion.</div>`}</div>
+        <div class="sponsor-deck-list-heading"><p class="eyebrow">05 · Beneficios para patrocinadores</p><h2>Valor comercial disponible para las marcas.</h2></div>
+        <div class="sponsor-deck-benefits">${benefits.map((value, index) => sponsorDeckBenefitMarkup(value, index, "Beneficio")).join("") || sponsorDeckCompactEmpty()}</div>
       </section>
       <section class="sponsor-deck-list-section sponsor-deck-advantages-section">
-        <div class="sponsor-deck-list-heading"><p class="eyebrow">Ventajas competitivas</p><h3>Razones para elegir este perfil frente a otras opciones.</h3></div>
-        <div class="sponsor-deck-benefits">${advantages.map((value, index) => sponsorDeckBenefitMarkup(value, index, "Ventaja")).join("") || `<div class="empty">Las ventajas competitivas estan en preparacion.</div>`}</div>
+        <div class="sponsor-deck-list-heading"><p class="eyebrow">06 · Ventajas competitivas</p><h2>Diferenciadores relevantes para una decisión comercial.</h2></div>
+        <div class="sponsor-deck-benefits">${advantages.map((value, index) => sponsorDeckBenefitMarkup(value, index, "Ventaja")).join("") || sponsorDeckCompactEmpty()}</div>
       </section>
       ${state.session?.role === "client" ? companySponsorshipLevelsMarkup(profile) : ""}
-      ${state.session?.role === "client" ? `<div class="sponsor-deck-request-action"><button class="btn primary" type="button" data-athlete-sponsor="${escapeAttr(profile.id)}">Solicitar evaluacion a ROIS</button></div>` : ""}
+      ${state.session?.role === "client" ? `<section class="sponsor-deck-request-action"><div><p class="eyebrow">07 · Activación comercial</p><h2>Solicita a ROIS activar la relación comercial.</h2></div><button class="btn primary" type="button" data-athlete-sponsor="${escapeAttr(profile.id)}">Solicitar activación con ROIS</button></section>` : ""}
     </article>
   `;
 }
@@ -8694,20 +8860,31 @@ async function loadSponsorDeckProfile(profileId) {
 }
 
 async function openSponsorDeckById(profileId) {
+  const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const originTarget = document.querySelector('#clientView [data-dashboard-panel].active')?.dataset.dashboardPanel || "";
   const profile = await loadSponsorDeckProfile(profileId);
   if (!profile || !sponsorDeckData(profile)) {
     notify("Sponsor Deck ROIS", "Deck no disponible", "No fue posible cargar esta propuesta comercial. Intenta nuevamente.");
     return;
   }
-  openSponsorDeckView(profile);
+  openSponsorDeckView(profile, { returnFocus, originTarget });
 }
 
-function openSponsorDeckView(profile) {
+function openSponsorDeckView(profile, options = {}) {
   if (!profile) return;
-  notify("Sponsor Deck ROIS", profile.name || "Perfil comercial", "", sponsorDeckMarkup(profile));
+  sponsorDeckViewerReturnFocus = options.returnFocus || null;
+  notify("Sponsor Deck ROIS", profile.name || "Perfil comercial", "", sponsorDeckMarkup(profile, {
+    viewer: true,
+    originTarget: options.originTarget || ""
+  }));
   const modal = document.getElementById("actionModal");
   modal.dataset.profileRecordId = String(profile.id || "");
+  modal.dataset.sponsorDeckOrigin = options.originTarget || "";
   modal.classList.add("profile-modal", "sponsor-deck-modal");
+  document.documentElement.classList.add("sponsor-deck-viewer-open");
+  document.body.classList.add("sponsor-deck-viewer-open");
+  modal.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => modal.querySelector("[data-sponsor-deck-back]")?.focus({ preventScroll: true }));
 }
 
 function sponsorDeckButton(profile, label = "Ver Sponsor Deck") {
