@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260903-sponsor-deck-viewer-v2";
+const roisBuild = "20260903-company-talent-profile-v2";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -106,6 +106,30 @@ const dashboardEnglishText = new Map(Object.entries({
   "Ventajas competitivas": "Competitive advantages",
   "Narrativa y objetivo": "Narrative and objective",
   "Perfil comercial": "Commercial profile",
+  "Ficha comercial ROIS": "ROIS commercial profile",
+  "Evaluación comercial": "Commercial evaluation",
+  "Evaluacion comercial": "Commercial evaluation",
+  "Capacidad comercial": "Commercial capacity",
+  "Espacios disponibles": "Available slots",
+  "Sponsors actuales": "Current sponsors",
+  "Inversión mensual": "Monthly investment",
+  "Inversion mensual": "Monthly investment",
+  "Afinidad comercial": "Commercial fit",
+  "Evidencia y logros": "Evidence and achievements",
+  "Completitud comercial": "Commercial completeness",
+  "Perfil validado": "Verified profile",
+  "Perfil activo": "Active profile",
+  "Estado por confirmar": "Status to be confirmed",
+  "Contenido y resultados": "Content and results",
+  "Evidencia visible": "Visible evidence",
+  "Atleta": "Athlete",
+  "publicaciones": "posts",
+  "resultados": "results",
+  "audiencia": "audience",
+  "engagement": "engagement",
+  "registrados": "recorded",
+  "por sponsor": "per sponsor",
+  "por definir": "to be defined",
   "Beneficios para patrocinadores": "Sponsor benefits",
   "Ticket mensual": "Monthly fee",
   "Capacidad máxima": "Maximum capacity",
@@ -495,6 +519,7 @@ const dashboardEnglishPatterns = [
   [/^HASTA\s+(\d+)\s+SPONSORS$/i, "UP TO $1 SPONSORS"],
   [/^Beneficio\s+(\d{2})$/i, "Benefit $1"],
   [/^Ventaja\s+(\d{2})$/i, "Advantage $1"],
+  [/^de\s+(\d+)$/i, "of $1"],
   [/^Sponsor Deck ROIS · Creador$/i, "ROIS Sponsor Deck · Creator"],
   [/^Sponsor Deck ROIS · Atleta$/i, "ROIS Sponsor Deck · Athlete"],
   [/^Sponsor Deck ROIS · Athlete$/i, "ROIS Sponsor Deck · Athlete"],
@@ -565,6 +590,11 @@ Object.entries(dashboardEnglishAccentedText).forEach(([source, translation]) => 
 });
 
 const dashboardEnglishPhrases = [
+  ["Información clave para evaluar afinidad, capacidad y potencial de activación.", "Key information for evaluating fit, capacity, and activation potential."],
+  ["Disponibilidad para nuevas alianzas, patrocinios y colaboraciones.", "Availability for new partnerships, sponsorships, and collaborations."],
+  ["Este perfil aún no ha publicado contenido.", "This profile has not published content yet."],
+  ["Aún no se han registrado resultados visibles para evaluación empresarial.", "No visible results have been recorded for company evaluation yet."],
+  ["Información comercial en proceso de estructuración por ROIS.", "Commercial information is being structured by ROIS."],
   ["Activos para evaluar afinidad y capacidad de ejecución.", "Assets to evaluate fit and execution capacity."],
   ["Estructura económica para activar una relación comercial.", "Commercial structure for activating a business relationship."],
   ["Valor comercial disponible para las marcas.", "Commercial value available to brands."],
@@ -9587,6 +9617,107 @@ function bindCompetitiveEvidenceForm() {
   });
 }
 
+function companyTalentProfileModuleMarkup(label, value, options = {}) {
+  const items = options.list ? sponsorDeckList(value).map(sponsorDeckDisplayText).filter(Boolean) : [];
+  const text = options.list ? "" : sponsorDeckDisplayText(value);
+  const content = items.length
+    ? `<ul>${items.slice(0, 6).map(item => `<li><span data-no-translate>${escapeHtml(item)}</span></li>`).join("")}</ul>`
+    : text
+      ? `<p data-no-translate>${escapeHtml(text)}</p>`
+      : `<p class="company-talent-empty">Información comercial en proceso de estructuración por ROIS.</p>`;
+  return `
+    <article class="company-talent-module">
+      <p class="eyebrow">${escapeHtml(label)}</p>
+      ${content}
+    </article>
+  `;
+}
+
+function companyTalentProfileData(athlete, posts = [], results = [], logos = []) {
+  const founder = isFounderProfile(athlete);
+  const deck = sponsorDeckData(athlete) || {};
+  const requirements = athleteRequirementStatus(athlete);
+  const rawDeckScore = Number(athlete.sponsor_deck_score);
+  const completion = Number.isFinite(rawDeckScore) && athlete.sponsor_deck_score !== "" && athlete.sponsor_deck_score !== null
+    ? Math.min(100, Math.max(0, Math.round(rawDeckScore)))
+    : Math.round((requirements.completed / Math.max(1, requirements.total)) * 100);
+  const maxSponsorsValue = Number(athlete.max_sponsors);
+  const maxSponsors = Number.isFinite(maxSponsorsValue) && maxSponsorsValue > 0
+    ? Math.min(10, Math.round(maxSponsorsValue))
+    : null;
+  const occupiedSponsors = maxSponsors === null ? logos.length : Math.min(maxSponsors, logos.length);
+  const availableSponsors = maxSponsors === null ? null : Math.max(0, maxSponsors - occupiedSponsors);
+  const monthlyValue = Number(athlete.monthly);
+  const monthlyTicket = Number.isFinite(monthlyValue) && monthlyValue > 0 ? monthlyValue : null;
+  const rawStatus = String(athlete.status || athlete.visual_status || athlete.marketplace_access_status || "").toLowerCase();
+  const statusLabel = athlete.status === "approved" || athlete.visual_status === "approved"
+    ? "Perfil validado"
+    : ["active", "published", "enabled"].includes(rawStatus)
+      ? "Perfil activo"
+      : rawStatus
+        ? "En revisión"
+        : "";
+  const audienceFallback = founder && Number(athlete.audience_size || 0) > 0
+    ? `${Number(athlete.audience_size).toLocaleString("es-MX")} personas${athlete.primary_platform ? ` · ${athlete.primary_platform}` : ""}`
+    : athlete.audience_description || "";
+  const locationParts = [athlete.location || athlete.city, athlete.country]
+    .map(sponsorDeckDisplayText)
+    .filter((value, index, values) => value && values.indexOf(value) === index);
+  return {
+    founder,
+    category: sponsorDeckDisplayText(founder ? athlete.industry || athlete.category : athlete.sport || athlete.category),
+    role: founder ? "Creador" : "Atleta",
+    location: locationParts.join(", "),
+    statusLabel,
+    completion,
+    audience: deck.audience || audienceFallback,
+    brandFit: deck.brandFit || athlete.brand_categories || athlete.content_categories,
+    evidence: deck.proofPoints || athlete.past_collaborations || athlete.ranking,
+    deliverables: deck.deliverables || athlete.deliverables,
+    maxSponsors,
+    occupiedSponsors,
+    availableSponsors,
+    monthlyTicket,
+    postsCount: posts.length,
+    resultsCount: results.length
+  };
+}
+
+function companyTalentProfileEvaluationMarkup(profile, logos = []) {
+  const capacityMarkup = profile.maxSponsors === null
+    ? `<p class="company-talent-empty">Información comercial en proceso de estructuración por ROIS.</p>`
+    : `
+      <div class="company-talent-capacity-metrics">
+        <div><span>Espacios disponibles</span><strong>${profile.availableSponsors}</strong><small>de ${profile.maxSponsors}</small></div>
+        <div><span>Sponsors actuales</span><strong>${profile.occupiedSponsors}</strong><small>registrados</small></div>
+        <div><span>Inversión mensual</span><strong>${profile.monthlyTicket ? money(profile.monthlyTicket) : "—"}</strong><small>${profile.monthlyTicket ? "por sponsor" : "por definir"}</small></div>
+      </div>
+      <div class="company-talent-slot-strip">
+        ${athleteSponsorBubbleStrip(logos, { limit: profile.maxSponsors, emptyLabel: "Disponible", compact: true })}
+      </div>
+    `;
+  return `
+    <section class="company-talent-evaluation" aria-label="Evaluación comercial">
+      <div class="company-talent-section-heading">
+        <div><p class="eyebrow">Evaluación comercial</p><h4>Información clave para evaluar afinidad, capacidad y potencial de activación.</h4></div>
+        <span>${profile.completion}% completo</span>
+      </div>
+      <div class="company-talent-module-grid">
+        ${companyTalentProfileModuleMarkup("Audiencia", profile.audience)}
+        ${companyTalentProfileModuleMarkup("Afinidad comercial", profile.brandFit, { list: true })}
+        ${companyTalentProfileModuleMarkup("Evidencia y logros", profile.evidence, { list: true })}
+        ${companyTalentProfileModuleMarkup("Entregables", profile.deliverables, { list: true })}
+      </div>
+    </section>
+    <section class="company-talent-capacity" aria-label="Capacidad comercial">
+      <div class="company-talent-section-heading">
+        <div><p class="eyebrow">Capacidad comercial</p><h4>Disponibilidad para nuevas alianzas, patrocinios y colaboraciones.</h4></div>
+      </div>
+      ${capacityMarkup}
+    </section>
+  `;
+}
+
 function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), options = {}) {
   const readOnly = Boolean(options.readOnly);
   const companyView = Boolean(options.companyView);
@@ -9600,6 +9731,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
     .slice(0, 12);
   const email = athlete.email || state.session?.email || "";
   const results = state.data.athlete_results.filter(item => item.athlete_email === email);
+  const companyProfile = companyView ? companyTalentProfileData(athlete, posts, results, logos) : null;
   const profilePhoto = athlete.image_url
     ? safeProfileImageMarkup(athlete.image_url, athlete.name || "Perfil ROIS")
     : `<span>${profileInitials(athlete.name)}</span>`;
@@ -9612,33 +9744,49 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
   const summaryFallback = founder
     ? "Perfil de creador en construccion. Documenta audiencia, engagement, contenido y resultados para presentar una propuesta atractiva a marcas."
     : "Perfil deportivo en construccion. Sube tu plan de trabajo, resultados y publicaciones para presentar una propuesta atractiva a patrocinadores.";
-  const postsEmptyText = readOnly ? "Este perfil aun no ha publicado contenido." : copy.postsEmptyText;
-  const resultsEmptyText = founder
-    ? "Tus resultados de contenido y campanas apareceran aqui. Sube evidencia para fortalecer la confianza de las marcas."
-    : "Tus resultados documentados apareceran aqui. Sube evidencia mensual para construir confianza con patrocinadores.";
+  const postsEmptyText = readOnly ? "Este perfil aún no ha publicado contenido." : copy.postsEmptyText;
+  const resultsEmptyText = readOnly
+    ? "Aún no se han registrado resultados visibles para evaluación empresarial."
+    : founder
+      ? "Tus resultados de contenido y campanas apareceran aqui. Sube evidencia para fortalecer la confianza de las marcas."
+      : "Tus resultados documentados apareceran aqui. Sube evidencia mensual para construir confianza con patrocinadores.";
   const videoCtaLabel = founder ? "Ver portafolio" : "Ver plan deportivo";
   const videoPendingLabel = founder ? "Portafolio pendiente" : "Plan deportivo pendiente";
   return `
-    <section class="athlete-profile-hero athlete-social-profile">
+    <section class="athlete-profile-hero athlete-social-profile ${companyView ? "company-profile-card-v2" : ""}">
       <div class="athlete-social-header">
         <div class="athlete-social-avatar">
           ${profilePhoto}
         </div>
         <div class="athlete-social-bio">
+          ${companyView ? `<p class="company-talent-eyebrow">Ficha comercial ROIS</p>` : ""}
           <div class="athlete-social-name">
-            <h3>${escapeHtml(athlete.name || copy.profileDefaultName)}</h3>
-            ${badge(athlete.status === "approved" ? "perfil activo" : "en revision")}
+            <h3 data-no-translate>${escapeHtml(athlete.name || copy.profileDefaultName)}</h3>
+            ${badge(companyView ? companyProfile.statusLabel || "Estado por confirmar" : athlete.status === "approved" ? "perfil activo" : "en revision")}
           </div>
           <div class="athlete-social-stats">
             <div><strong>${posts.length}</strong><span>publicaciones</span></div>
             <div><strong>${founder ? creatorAudienceLabel(athlete) : sponsorHighlights.length}</strong><span>${founder ? "audiencia" : "sponsors"}</span></div>
             <div><strong>${founder ? creatorEngagementLabel(athlete) : results.length}</strong><span>${founder ? "engagement" : "resultados"}</span></div>
           </div>
-          <p><strong>${escapeHtml(primaryValue)}</strong> / ${escapeHtml(secondaryValue)} / ${escapeHtml(locationValue)}</p>
-          <p>${escapeHtml(athlete.stats || summaryFallback)}</p>
+          ${companyView ? `
+            <div class="company-talent-meta">
+              ${companyProfile.category ? `<span data-no-translate>${escapeHtml(companyProfile.category)}</span>` : ""}
+              <span>${escapeHtml(companyProfile.role)}</span>
+              ${companyProfile.location ? `<span data-no-translate>${escapeHtml(companyProfile.location)}</span>` : ""}
+            </div>
+            <p class="company-talent-summary" data-no-translate>${escapeHtml(athlete.stats || summaryFallback)}</p>
+            <div class="company-talent-completion" role="progressbar" aria-label="Completitud comercial" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${companyProfile.completion}">
+              <div><span>Completitud comercial</span><strong>${companyProfile.completion}%</strong></div>
+              <i aria-hidden="true"><b style="width:${companyProfile.completion}%"></b></i>
+            </div>
+          ` : `
+            <p><strong>${escapeHtml(primaryValue)}</strong> / ${escapeHtml(secondaryValue)} / ${escapeHtml(locationValue)}</p>
+            <p>${escapeHtml(athlete.stats || summaryFallback)}</p>
+          `}
           <div class="athlete-social-actions">
             ${readOnly ? `
-              ${athleteSponsorCta(athlete, "Solicitar fichaje")}
+              ${athleteSponsorCta(athlete, founder ? "Solicitar activación con ROIS" : "Solicitar fichaje")}
               ${sponsorDeckButton(athlete)}
                ${profileSocialLinksMarkup(athlete)}
             ` : `
@@ -9656,10 +9804,13 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
         </div>
       </div>
 
-      <div class="athlete-social-highlights">
-        ${athleteSponsorBubbleStrip(sponsorHighlights, { limit: 10, emptyLabel: "Disponible" })}
-      </div>
+      ${companyView ? companyTalentProfileEvaluationMarkup(companyProfile, sponsorHighlights) : `
+        <div class="athlete-social-highlights">
+          ${athleteSponsorBubbleStrip(sponsorHighlights, { limit: 10, emptyLabel: "Disponible" })}
+        </div>
+      `}
 
+      ${companyView ? `<div class="company-profile-content-head"><p class="eyebrow">Evidencia visible</p><h4>Contenido y resultados</h4></div>` : ""}
       <div class="athlete-social-tabs">
         <button class="active" type="button" data-athlete-profile-tab="posts">Publicaciones</button>
         <button type="button" data-athlete-profile-tab="results">Resultados</button>
@@ -9679,7 +9830,7 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
           <div class="athlete-social-grid reels-only">
             ${posts.map(post => athleteSocialPostTile(post, athlete, { canDelete: !readOnly })).join("")}
           </div>
-        ` : `<div class="empty athlete-social-empty">${readOnly ? "Este perfil aun no ha publicado contenido." : "Aun no has publicado contenido. Sube avances, videos o evidencia desde archivos para fortalecer tu perfil."}</div>`}
+        ` : `<div class="empty athlete-social-empty">${readOnly ? "Este perfil aún no ha publicado contenido." : "Aun no has publicado contenido. Sube avances, videos o evidencia desde archivos para fortalecer tu perfil."}</div>`}
       </div>
 
       <div class="athlete-social-tab-content" data-athlete-tab-panel="results">

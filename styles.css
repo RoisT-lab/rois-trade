@@ -21339,3 +21339,687 @@ body[data-active-view="commercial"] .topbar {
     max-height: calc(100dvh - 20px);
   }
 }
+
+/* ROIS TRADE — Company Talent Profile V2 */
+html:has(body[data-active-view="client"] .modal.profile-modal.active:not(.sponsor-deck-modal)),
+body:has(.modal.profile-modal.active:not(.sponsor-deck-modal)) {
+  overflow: hidden;
+}
+
+body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) {
+  align-items: flex-start;
+  padding: 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(79, 124, 255, 0.13), transparent 34%),
+    rgba(2, 4, 7, 0.94);
+  backdrop-filter: blur(18px);
+}
+
+body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) .modal-card {
+  width: min(1240px, calc(100vw - 48px));
+  max-height: none;
+  margin: 0 auto 24px;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid rgba(176, 190, 210, 0.24);
+  border-radius: 26px;
+  background: #070b11;
+  color: #f4f6f8;
+  box-shadow: 0 36px 120px rgba(0, 0, 0, 0.72);
+}
+
+body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) #actionKicker,
+body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) #actionTitle,
+body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) #actionText,
+body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) #actionActions + .btn {
+  display: none;
+}
+
+body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) #actionActions {
+  display: block;
+  margin: 0;
+}
+
+body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) .modal-close {
+  top: 18px;
+  right: 18px;
+  z-index: 12;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(176, 190, 210, 0.24);
+  border-radius: 50%;
+  background: rgba(7, 11, 17, 0.82);
+  color: #f4f6f8;
+  backdrop-filter: blur(14px);
+}
+
+body[data-active-view="client"] .company-athlete-profile {
+  --talent-bg: #070b11;
+  --talent-panel: #0c131d;
+  --talent-panel-elevated: #111a26;
+  --talent-text: #f4f6f8;
+  --talent-muted: #9ba7b7;
+  --talent-line: rgba(176, 190, 210, 0.16);
+  --talent-line-strong: rgba(176, 190, 210, 0.28);
+  --talent-blue: #5f86ff;
+  --talent-gold: #c9a66b;
+  margin: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: var(--talent-bg);
+  color: var(--talent-text);
+}
+
+body[data-active-view="client"] .company-athlete-profile *,
+body[data-active-view="client"] .company-athlete-profile *::before,
+body[data-active-view="client"] .company-athlete-profile *::after {
+  box-sizing: border-box;
+}
+
+body[data-active-view="client"] .company-athlete-profile .company-profile-card-v2 {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(rgba(176, 190, 210, 0.022) 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(90deg, rgba(176, 190, 210, 0.022) 1px, transparent 1px) 0 0 / 64px 64px,
+    var(--talent-bg);
+  box-shadow: none;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-header {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: center;
+  padding: clamp(38px, 5vw, 64px);
+  border-bottom: 1px solid var(--talent-line);
+  background:
+    radial-gradient(circle at 88% 4%, rgba(79, 124, 255, 0.18), transparent 34%),
+    linear-gradient(145deg, #05080d, #0b121c 62%, #06090e);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-avatar {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--talent-line-strong);
+  border-radius: 18px;
+  background: var(--talent-panel);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.48);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-avatar img,
+body[data-active-view="client"] .company-athlete-profile .athlete-social-avatar > span {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: #090d13;
+  color: var(--talent-text);
+  object-fit: cover;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-bio {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+
+body[data-active-view="client"] .company-talent-eyebrow,
+body[data-active-view="client"] .company-athlete-profile .eyebrow {
+  margin: 0;
+  color: var(--talent-gold);
+  font-size: 10px;
+  font-weight: 820;
+  letter-spacing: 0.2em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-name {
+  align-items: center;
+  gap: 14px;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-name h3 {
+  max-width: 15ch;
+  margin: 0;
+  color: var(--talent-text);
+  font-size: clamp(40px, 5vw, 68px);
+  font-weight: 560;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+  overflow-wrap: anywhere;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-name .pill {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(63, 201, 138, 0.34);
+  background: rgba(63, 201, 138, 0.1);
+  color: #77dfae;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-stats div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 13px 15px;
+  border: 1px solid var(--talent-line);
+  border-radius: 12px;
+  background: rgba(17, 26, 38, 0.66);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-stats strong {
+  color: var(--talent-text);
+  font-size: 20px;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-stats span {
+  color: var(--talent-muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body[data-active-view="client"] .company-talent-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body[data-active-view="client"] .company-talent-meta span {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 11px;
+  border: 1px solid var(--talent-line);
+  border-radius: 999px;
+  background: rgba(17, 26, 38, 0.58);
+  color: #c7d0dc;
+  font-size: 11px;
+}
+
+body[data-active-view="client"] .company-athlete-profile .company-talent-summary {
+  max-width: 68ch;
+  margin: 0;
+  color: #c0cad6;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+body[data-active-view="client"] .company-talent-completion {
+  max-width: 520px;
+  display: grid;
+  gap: 8px;
+}
+
+body[data-active-view="client"] .company-talent-completion > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+body[data-active-view="client"] .company-talent-completion span,
+body[data-active-view="client"] .company-talent-completion strong {
+  color: var(--talent-text);
+  font-size: 11px;
+  font-weight: 820;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+body[data-active-view="client"] .company-talent-completion > i {
+  height: 3px;
+  display: block;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(176, 190, 210, 0.14);
+}
+
+body[data-active-view="client"] .company-talent-completion > i > b {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--talent-blue), #8ca8ff);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-actions {
+  display: flex;
+  grid-template-columns: none;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-actions .btn,
+body[data-active-view="client"] .company-athlete-profile .athlete-social-actions .market-social-links > summary {
+  min-height: 44px;
+  border: 1px solid var(--talent-line-strong);
+  border-radius: 999px;
+  background: rgba(17, 26, 38, 0.72);
+  color: var(--talent-text);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-actions > .btn:first-child {
+  border-color: var(--talent-blue);
+  background: var(--talent-blue);
+  color: #fff;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-actions .btn:hover,
+body[data-active-view="client"] .company-athlete-profile .athlete-social-actions .market-social-links > summary:hover {
+  border-color: rgba(95, 134, 255, 0.74);
+  background: rgba(95, 134, 255, 0.14);
+}
+
+body[data-active-view="client"] .company-athlete-profile .market-social-menu {
+  border-color: var(--talent-line-strong);
+  background: var(--talent-panel-elevated);
+  color: var(--talent-text);
+}
+
+body[data-active-view="client"] .company-athlete-profile .market-social-menu a {
+  color: var(--talent-text);
+}
+
+body[data-active-view="client"] :where(.company-talent-evaluation, .company-talent-capacity) {
+  padding: clamp(32px, 4vw, 52px);
+  border-bottom: 1px solid var(--talent-line);
+}
+
+body[data-active-view="client"] .company-talent-evaluation {
+  background: #09101a;
+}
+
+body[data-active-view="client"] .company-talent-capacity {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(201, 166, 107, 0.1), transparent 28%),
+    var(--talent-panel);
+}
+
+body[data-active-view="client"] .company-talent-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+body[data-active-view="client"] .company-talent-section-heading > div {
+  display: grid;
+  gap: 9px;
+}
+
+body[data-active-view="client"] .company-talent-section-heading h4,
+body[data-active-view="client"] .company-profile-content-head h4 {
+  max-width: 28ch;
+  margin: 0;
+  color: var(--talent-text);
+  font-size: clamp(24px, 2.5vw, 36px);
+  font-weight: 540;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+body[data-active-view="client"] .company-talent-section-heading > span {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border: 1px solid var(--talent-line);
+  border-radius: 999px;
+  color: var(--talent-muted);
+  font-size: 11px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+body[data-active-view="client"] .company-talent-module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+body[data-active-view="client"] .company-talent-module {
+  min-width: 0;
+  min-height: 150px;
+  padding: 22px;
+  border: 1px solid var(--talent-line);
+  border-radius: 15px;
+  background: var(--talent-panel-elevated);
+}
+
+body[data-active-view="client"] .company-talent-module > p:not(.eyebrow),
+body[data-active-view="client"] .company-talent-module li {
+  color: #c0cad6;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+body[data-active-view="client"] .company-talent-module > p:not(.eyebrow) {
+  margin: 15px 0 0;
+}
+
+body[data-active-view="client"] .company-talent-module ul {
+  display: grid;
+  gap: 7px;
+  margin: 15px 0 0;
+  padding-left: 18px;
+}
+
+body[data-active-view="client"] .company-talent-empty {
+  min-height: 0;
+  margin: 15px 0 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--talent-line-strong);
+  border-radius: 10px;
+  background: rgba(176, 190, 210, 0.035);
+  color: var(--talent-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+body[data-active-view="client"] .company-talent-capacity-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+body[data-active-view="client"] .company-talent-capacity-metrics > div {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid var(--talent-line);
+  border-radius: 14px;
+  background: rgba(17, 26, 38, 0.72);
+}
+
+body[data-active-view="client"] .company-talent-capacity-metrics span,
+body[data-active-view="client"] .company-talent-capacity-metrics small {
+  color: var(--talent-muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body[data-active-view="client"] .company-talent-capacity-metrics strong {
+  color: var(--talent-text);
+  font-size: clamp(24px, 3vw, 38px);
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+body[data-active-view="client"] .company-talent-slot-strip {
+  margin-top: 14px;
+  padding: 14px 16px 8px;
+  overflow-x: auto;
+  border: 1px solid var(--talent-line);
+  border-radius: 14px;
+  background: rgba(5, 8, 13, 0.52);
+  scrollbar-width: thin;
+}
+
+body[data-active-view="client"] .company-talent-slot-strip .sponsor-bubble-strip {
+  width: max-content;
+  min-width: 100%;
+  flex-wrap: nowrap;
+  gap: 9px;
+}
+
+body[data-active-view="client"] .company-talent-slot-strip .sponsor-bubble {
+  width: 56px;
+}
+
+body[data-active-view="client"] .company-talent-slot-strip .sponsor-bubble span {
+  width: 44px;
+  height: 44px;
+  border-color: var(--talent-line-strong);
+  background: rgba(17, 26, 38, 0.8);
+  color: var(--talent-muted);
+  box-shadow: none;
+}
+
+body[data-active-view="client"] .company-talent-slot-strip .sponsor-bubble figcaption {
+  max-width: 56px;
+  color: var(--talent-muted);
+  font-size: 7px;
+}
+
+body[data-active-view="client"] .company-profile-content-head {
+  display: grid;
+  gap: 8px;
+  padding: clamp(28px, 4vw, 44px) clamp(32px, 4vw, 52px) 20px;
+  background: var(--talent-bg);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-tabs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 clamp(32px, 4vw, 52px);
+  padding: 5px;
+  overflow: visible;
+  border: 1px solid var(--talent-line);
+  border-radius: 14px;
+  background: var(--talent-panel);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-tabs button {
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--talent-muted);
+  box-shadow: none;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-tabs button:hover,
+body[data-active-view="client"] .company-athlete-profile .athlete-social-tabs button:focus-visible {
+  border-color: var(--talent-line-strong);
+  color: var(--talent-text);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-tabs button.active {
+  border-color: rgba(95, 134, 255, 0.48);
+  background: rgba(95, 134, 255, 0.13);
+  color: var(--talent-text);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-tab-content {
+  margin: 0;
+  padding: 20px clamp(32px, 4vw, 52px) clamp(34px, 4vw, 52px);
+  background: var(--talent-bg);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-empty {
+  min-height: 132px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  border: 1px dashed var(--talent-line-strong);
+  border-radius: 14px;
+  background: var(--talent-panel);
+  color: var(--talent-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-tile {
+  border: 1px solid var(--talent-line);
+  border-radius: 14px;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-info-grid {
+  gap: 10px;
+  padding: 0;
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-info-card {
+  border-color: var(--talent-line);
+  border-radius: 14px;
+  background: var(--talent-panel-elevated);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-info-card h4 {
+  color: var(--talent-text);
+}
+
+body[data-active-view="client"] .company-athlete-profile .athlete-social-info-card p {
+  color: var(--talent-muted);
+}
+
+body[data-active-view="client"] .company-athlete-profile :where(button, a, summary):focus-visible,
+body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) .modal-close:focus-visible {
+  outline: 3px solid rgba(95, 134, 255, 0.78);
+  outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-header {
+    grid-template-columns: minmax(210px, 0.7fr) minmax(0, 1.3fr);
+    gap: 28px;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-name h3 {
+    font-size: clamp(36px, 6vw, 52px);
+  }
+}
+
+@media (max-width: 700px) {
+  body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) {
+    padding: 0;
+  }
+
+  body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) .modal-card {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  body[data-active-view="client"] .modal.profile-modal:not(.sponsor-deck-modal) .modal-close {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-header {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 62px 16px 28px;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-avatar {
+    max-width: none;
+    max-height: 480px;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-name h3 {
+    max-width: 100%;
+    font-size: clamp(38px, 12vw, 52px);
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-name .pill {
+    display: inline-flex;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-stats {
+    gap: 6px;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-stats div {
+    padding: 11px 9px;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-actions .btn,
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-actions .market-social-links,
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-actions .market-social-links > summary {
+    width: 100%;
+  }
+
+  body[data-active-view="client"] :where(.company-talent-evaluation, .company-talent-capacity) {
+    padding: 28px 16px;
+  }
+
+  body[data-active-view="client"] .company-talent-section-heading {
+    display: grid;
+    gap: 14px;
+  }
+
+  body[data-active-view="client"] .company-talent-section-heading > span {
+    width: max-content;
+  }
+
+  body[data-active-view="client"] .company-talent-module-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-active-view="client"] .company-talent-module {
+    min-height: 0;
+  }
+
+  body[data-active-view="client"] .company-talent-capacity-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-active-view="client"] .company-talent-capacity-metrics > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  body[data-active-view="client"] .company-profile-content-head {
+    padding: 28px 16px 18px;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-tabs {
+    margin: 0 16px;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-tab-content {
+    padding: 16px 16px 30px;
+  }
+
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-grid,
+  body[data-active-view="client"] .company-athlete-profile .athlete-social-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-active-view="client"] .company-athlete-profile *,
+  body[data-active-view="client"] .company-athlete-profile *::before,
+  body[data-active-view="client"] .company-athlete-profile *::after {
+    scroll-behavior: auto;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+  }
+}
