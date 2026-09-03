@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260805-creative-payments-30";
+const roisBuild = "20260902-company-command-center-v1";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -39,7 +39,21 @@ let dashboardTranslationScheduled = false;
 
 const dashboardEnglishText = new Map(Object.entries({
   "Inicio": "Home",
+  "Territorio": "Territory",
+  "Condición comercial": "Commercial terms",
+  "Alcance y posicionamiento": "Reach and positioning",
+  "Patrocinio y participación empresarial": "Sponsorship and company participation",
+  "Documento comercial": "Business document",
+  "· Pago confirmado:": "· Payment confirmed:",
   "Resumen": "Overview",
+  "Resumen ejecutivo": "Executive overview",
+  "Centro de mando": "Command center",
+  "Ejecución comercial": "Commercial execution",
+  "Ejecucion comercial": "Commercial execution",
+  "Exploración estratégica": "Strategic exploration",
+  "Exploracion estrategica": "Strategic exploration",
+  "Operación y cuenta": "Operations and account",
+  "Operacion y cuenta": "Operations and account",
   "Perfil": "Profile",
   "Perfil deportivo": "Athlete profile",
   "Perfil de creador": "Creator profile",
@@ -141,6 +155,7 @@ const dashboardEnglishText = new Map(Object.entries({
   "Aprobada": "Approved",
   "Aprobados": "Approved",
   "Aprobadas": "Approved",
+  "Aceptada": "Accepted",
   "Rechazado": "Rejected",
   "Rechazada": "Rejected",
   "Publicado": "Published",
@@ -190,6 +205,18 @@ const dashboardEnglishText = new Map(Object.entries({
   "Enviar a revision ROIS": "Submit for ROIS review",
   "Crear oportunidad": "Create opportunity",
   "Nueva oportunidad": "New opportunity",
+  "Revisar postulantes": "Review applicants",
+  "Promover oportunidad": "Promote opportunity",
+  "Dar seguimiento": "Follow up",
+  "Validar resultado": "Validate result",
+  "Revisar pago": "Review payment",
+  "Consultar revision": "Check review",
+  "Abrir oportunidades": "Open opportunities",
+  "Abrir Red Scout": "Open Scout Network",
+  "Ver pagos": "View payments",
+  "Revisar oportunidades": "Review opportunities",
+  "Explorar eventos": "Explore events",
+  "Ver resultados": "View results",
   "Nueva invitación": "New invitation",
   "Nueva invitacion": "New invitation",
   "Reenviar invitación": "Resend invitation",
@@ -254,7 +281,131 @@ const dashboardEnglishText = new Map(Object.entries({
   "Saldo pagado": "Paid balance",
   "Historial": "History",
   "Mis oportunidades": "My opportunities",
-  "Mis resultados": "My results"
+  "Mis resultados": "My results",
+  "Oportunidades activas": "Active opportunities",
+  "Postulantes por revisar": "Applicants to review",
+  "Prospectos registrados": "Registered prospects",
+  "Valor validado": "Validated value",
+  "Scouts activos": "Active Scouts",
+  "Participaciones activas": "Active participations",
+  "Resultados enviados": "Submitted results",
+  "Resultados validados": "Validated results",
+  "Comisiones pendientes": "Pending commissions",
+  "Comisiones de oportunidad pendientes": "Pending opportunity commissions",
+  "Comisiones Scout pendientes": "Pending Scout commissions",
+  "Comisiones de oportunidades": "Opportunity commissions",
+  "Concepto": "Concept",
+  "Pagar con Stripe": "Pay with Stripe",
+  "Pago ROIS": "ROIS payment",
+  "Participante ROIS": "ROIS participant",
+  "Usuario ROIS": "ROIS user",
+  "Prospecto": "Prospect",
+  "Mision comercial": "Business mission",
+  "Perfil autorizado": "Authorized profile",
+  "Sin datos adicionales": "No additional data",
+  "Empresa ROIS": "ROIS company",
+  "Corporativo": "Corporate",
+  "Oferta corporativa": "Corporate offer",
+  "Cotización privada": "Private quote",
+  "Por confirmar": "To be confirmed",
+  "Monto aceptado": "Accepted amount",
+  "Actualización:": "Updated:",
+  "Pago confirmado:": "Payment confirmed:",
+  "Pago iniciado": "Payment started",
+  "Enlace pendiente": "Link pending",
+  "En disputa": "Disputed",
+  "Abrir enlace de pago": "Open payment link",
+  "Participaciones": "Participations",
+  "Conversiones": "Conversions",
+  "Validadas": "Validated",
+  "Validada": "Validated",
+  "Validado": "Validated",
+  "Enviado": "Submitted",
+  "Contactado": "Contacted",
+  "Calificado": "Qualified",
+  "Reunion": "Meeting",
+  "Activado": "Activated",
+  "Duplicado": "Duplicate",
+  "Pausada": "Paused",
+  "Retirada": "Removed",
+  "Valor bruto": "Gross value",
+  "Valor neto": "Net value",
+  "Pipeline por etapa": "Pipeline by stage",
+  "Mapa de oportunidades": "Opportunity Map",
+  "Oportunidades recientes": "Recent opportunities",
+  "Actividad reciente": "Recent activity",
+  "Requiere tu atención": "Requires your attention",
+  "Requiere tu atencion": "Requires your attention",
+  "Acciones rápidas": "Quick actions",
+  "Acciones rapidas": "Quick actions",
+  "Publicadas": "Published",
+  "Con postulantes": "With applicants",
+  "Perfil completo": "Complete profile",
+  "Perfil incompleto": "Incomplete profile",
+  "Última actualización": "Last updated",
+  "Ultima actualizacion": "Last updated",
+  "Siguiente acción": "Next action",
+  "Siguiente accion": "Next action",
+  "Actualización": "Updated",
+  "Actualizacion": "Updated",
+  "Actividad": "Activity",
+  "Oportunidad": "Opportunity",
+  "Tipo": "Type",
+  "Inteligencia comercial": "Commercial intelligence",
+  "Navegación empresarial": "Company navigation",
+  "Navegacion empresarial": "Company navigation",
+  "Indicadores ejecutivos": "Executive indicators",
+  "Cuenta y módulos empresariales": "Company account and modules",
+  "Cuenta y modulos empresariales": "Company account and modules",
+  "Interés principal": "Primary interest",
+  "Interes principal": "Primary interest",
+  "Aprobación": "Approval",
+  "Aprobacion": "Approval",
+  "No disponible": "Unavailable",
+  "Acceso protegido": "Protected access",
+  "Fecha pendiente": "Date pending",
+  "Consultar estado": "Check status",
+  "Territorios con actividad": "Territories with activity",
+  "Actividad por segmento": "Activity by segment",
+  "Total de registros": "Total records",
+  "Registros": "Records",
+  "Acción": "Action",
+  "Accion": "Action",
+  "Revisión": "Review",
+  "Revision": "Review",
+  "Atención": "Attention",
+  "Atencion": "Attention",
+  "Cargar más registros": "Load more records",
+  "Cargar mas registros": "Load more records",
+  "Oportunidad creada": "Opportunity created",
+  "Oportunidad publicada": "Opportunity published",
+  "Postulación recibida": "Application received",
+  "Postulacion recibida": "Application received",
+  "Postulante aceptado": "Applicant accepted",
+  "Scout vinculado": "Scout linked",
+  "Prospecto registrado": "Prospect registered",
+  "Pago registrado": "Payment recorded",
+  "Pago habilitado": "Payment enabled",
+  "Evento registrado": "Event submitted",
+  "Reintentar": "Retry",
+  "Cargando": "Loading",
+  "Cargando...": "Loading...",
+  "Navegación móvil cliente": "Company mobile navigation",
+  "Abrir menú": "Open menu",
+  "Abrir menú de cliente": "Open company menu",
+  "Cerrar menú": "Close menu",
+  "Oportunidad ROIS": "ROIS opportunity",
+  "Misión Scout": "Scout mission",
+  "Mision Scout": "Scout mission",
+  "Impulso creativo": "Creative Boost",
+  "Evento ROIS": "ROIS event",
+  "Cerrada": "Closed",
+  "Vencida": "Expired",
+  "Vende y gana": "Sell and earn",
+  "Recomienda y gana": "Refer and earn",
+  "Crea y cobra": "Create and earn",
+  "Colabora": "Collaborate",
+  "Por definir": "To be defined"
 }));
 
 const dashboardEnglishPatterns = [
@@ -267,10 +418,42 @@ const dashboardEnglishPatterns = [
   [/^(\d+) perfiles?$/i, "$1 profiles"],
   [/^(\d+) resultados?$/i, "$1 results"],
   [/^(\d+) notificaciones?$/i, "$1 notifications"],
+  [/^Hace 1 día$/i, "1 day ago"],
+  [/^Hace 1 hora$/i, "1 hour ago"],
+  [/^Hace 1 minuto$/i, "1 minute ago"],
   [/^Hace (\d+) días?$/i, "$1 days ago"],
   [/^Hace (\d+) horas?$/i, "$1 hours ago"],
   [/^Hace (\d+) minutos?$/i, "$1 minutes ago"],
   [/^Hace unos segundos$/i, "A few seconds ago"],
+  [/^1 postulante$/i, "1 applicant"],
+  [/^(\d+) postulantes$/i, "$1 applicants"],
+  [/^1 participaci[oó]n$/i, "1 participation"],
+  [/^(\d+) participaciones$/i, "$1 participations"],
+  [/^1 resultado$/i, "1 result"],
+  [/^(\d+) resultados$/i, "$1 results"],
+  [/^1 postulaci[oó]n requiere revisi[oó]n\.$/i, "1 application requires review."],
+  [/^1 resultado requiere atenci[oó]n\.$/i, "1 result requires attention."],
+  [/^1 oportunidad cierra durante los pr[oó]ximos siete d[ií]as\.$/i, "1 opportunity closes within the next seven days."],
+  [/^1 comisi[oó]n requiere seguimiento\.$/i, "1 commission requires follow-up."],
+  [/^1 operaci[oó]n espera configuraci[oó]n administrativa\.$/i, "1 operation awaits administrative setup."],
+  [/^1 prospecto necesita seguimiento\.$/i, "1 prospect requires follow-up."],
+  [/^Abrir oportunidad (.+)$/i, "Open opportunity $1"],
+  [/^Total de registros:\s*(\d+)$/i, "Total records: $1"],
+  [/^Fuentes no disponibles:\s*(.+)\.$/i, "Unavailable sources: $1."],
+  [/^Se alcanz[oó] el l[ií]mite de (\d+) registros en:\s*(.+)\. Puede haber m[aá]s registros disponibles\.$/i, "The $1-record loading limit was reached in: $2. More records may be available."],
+  [/^Los conteos marcados con \+ son l[ií]mites inferiores confirmados\.$/i, "Counts marked with + are confirmed lower bounds."],
+  [/^Perfil incompleto · (\d+)%$/i, "Incomplete profile · $1%"],
+  [/^(\d+) postulantes · (\d+) participaciones · (\d+) resultados$/i, "$1 applicants · $2 participations · $3 results"],
+  [/^(\d+) de (\d+) datos comerciales disponibles\.$/i, "$1 of $2 business details available."],
+  [/^(\d+) postulaci[oó]n(?:es)? requiere(?:n)? revisi[oó]n\.$/i, "$1 applications require review."],
+  [/^(\d+) resultados? requiere(?:n)? atenci[oó]n\.$/i, "$1 results require attention."],
+  [/^(\d+) oportunidad(?:es)? cierra(?:n)? durante los pr[oó]ximos siete d[ií]as\.$/i, "$1 opportunities close within the next seven days."],
+  [/^(\d+) comisi[oó]n(?:es)? requiere(?:n)? seguimiento\.$/i, "$1 commissions require follow-up."],
+  [/^(\d+) operaci[oó]n(?:es)? espera(?:n)? configuraci[oó]n administrativa\.$/i, "$1 operations await administrative setup."],
+  [/^Se alcanz[oó] el l[ií]mite de (\d+) registros en:\s*(.+)\. Puede haber m[aá]s registros disponibles\. Los conteos marcados con \+ son l[ií]mites inferiores confirmados\.$/i, "The $1-record loading limit was reached in: $2. More records may be available. Counts marked with + are confirmed lower bounds."],
+  [/^Vista parcial: puede haber m[aá]s registros disponibles\. Los conteos visibles representan un m[ií]nimo confirmado\.$/i, "Partial view: more records may be available. Visible counts are a confirmed minimum."],
+  [/^No se encontraron registros en el tramo cargado\.$/i, "No records were found in the loaded range."],
+  [/^(\d+) prospectos? necesita(?:n)? seguimiento\.$/i, "$1 prospects require follow-up."],
   [/^(\d+)%\s+COMPLETO$/i, "$1% COMPLETE"],
   [/^HASTA\s+(\d+)\s+SPONSORS$/i, "UP TO $1 SPONSORS"],
   [/^(.+):\s*talento deportivo con valor para marcas$/i, "$1: athletic talent with value for brands"]
@@ -340,6 +523,86 @@ Object.entries(dashboardEnglishAccentedText).forEach(([source, translation]) => 
 });
 
 const dashboardEnglishPhrases = [
+  ["Visión general de oportunidades y relaciones comerciales.", "Overview of commercial opportunities and relationships."],
+  ["Cada oportunidad necesita contexto, responsable y siguiente acción.", "Every opportunity needs context, an owner, and a next action."],
+  ["Gobierna cada oportunidad desde un solo lugar", "Manage every opportunity from one place"],
+  ["Usa el resumen ejecutivo para identificar actividad, atender alertas y ejecutar la siguiente accion comercial.", "Use the executive overview to identify activity, address alerts, and execute the next business action."],
+  ["Revisa los indicadores y la concentracion de actividad.", "Review the indicators and where activity is concentrated."],
+  ["Ubica cada oportunidad dentro del pipeline operativo.", "Locate each opportunity in the operating pipeline."],
+  ["Atiende alertas y continua desde el modulo relacionado.", "Address alerts and continue in the related module."],
+  ["Ejemplo: si existen postulantes pendientes, abre Postulantes, registra tu decision y continua el seguimiento desde Resultados.", "Example: if applicants are awaiting a decision, open Applicants, record your decision, and continue the follow-up from Results."],
+  ["Inteligencia de mercado", "Market intelligence"],
+  ["Territorios y segmentos detectados en oportunidades y prospectos reales.", "Territories and segments detected from real opportunities and prospects."],
+  ["Trazabilidad", "Traceability"],
+  ["Ciclo operativo real de oportunidades dentro de ROIS.", "The real operating cycle of opportunities within ROIS."],
+  ["Ejecucion", "Execution"],
+  ["Estado, actividad y siguiente accion de cada relacion comercial.", "Status, activity, and next action for every business relationship."],
+  ["Seguimiento", "Follow-up"],
+  ["Siguiente accion", "Next action"],
+  ["Accesos directos", "Direct access"],
+  ["Define y envia una iniciativa a revision.", "Define and submit an initiative for review."],
+  ["Decide quien puede ejecutar tus oportunidades.", "Decide who can execute your opportunities."],
+  ["Consulta eventos con contexto comercial.", "Review events with business context."],
+  ["Explora activos y oportunidades empresariales.", "Explore business assets and opportunities."],
+  ["Revisa talento deportivo disponible.", "Review available athletic talent."],
+  ["Consulta participaciones y valor validado.", "Review participations and validated value."],
+  ["Cargando informacion real de tu empresa...", "Loading your company's real data..."],
+  ["Sincronizando datos", "Synchronizing data"],
+  ["Fuente no disponible", "Source unavailable"],
+  ["Suma parcial no mostrada", "Partial sum not shown"],
+  ["Minimo confirmado", "Confirmed minimum"],
+  ["Datos de tu empresa", "Your company's data"],
+  ["Publicadas o en ejecucion", "Published or in progress"],
+  ["Decisiones pendientes", "Pending decisions"],
+  ["Red Scout empresarial", "Company Scout Network"],
+  ["Resultados economicos validados", "Validated economic results"],
+  ["No pudimos cargar esta informacion.", "We could not load this information."],
+  ["No pudimos vincular esta sesión con una empresa.", "We could not link this session to a company."],
+  ["Recarga la plataforma o contacta a ROIS para revisar la relación de tu cuenta empresarial.", "Reload the platform or contact ROIS to review your company account connection."],
+  ["Compromisos derivados de resultados comerciales registrados.", "Commitments derived from recorded commercial results."],
+  ["No hay comisiones de oportunidades vinculadas a esta empresa.", "There are no opportunity commissions linked to this company."],
+  ["Operaciones y compromisos comerciales ROIS", "ROIS commercial operations and commitments"],
+  ["No hay otros pagos empresariales registrados.", "There are no other company payments recorded."],
+  ["Operaciones de Impulso Creativo", "Creative Boost operations"],
+  ["Cotizaciones aceptadas vinculadas a tu empresa.", "Accepted quotes linked to your company."],
+  ["No hay operaciones de Impulso creativo vinculadas a esta empresa.", "There are no Creative Boost operations linked to this company."],
+  ["Información disponible para empresas ROIS.", "Information available to ROIS companies."],
+  ["Pago registrado.", "Payment recorded."],
+  ["Enlace de pago en revision.", "Payment link under review."],
+  ["Enlace de pago pendiente de configuracion administrativa.", "Payment link awaiting administrative setup."],
+  ["Actividad y conversiones verificadas", "Verified activity and conversions"],
+  ["La captura detallada de resultados se habilita al iniciar una participacion aceptada. ROIS mantiene validacion y auditoria.", "Detailed result tracking becomes available when an accepted participation begins. ROIS maintains validation and auditability."],
+  ["Cargando operaciones empresariales...", "Loading company operations..."],
+  ["No pudimos cargar las operaciones empresariales.", "We could not load the company operations."],
+  ["Vuelve a intentar para consultar pagos y compromisos actualizados.", "Try again to view updated payments and commitments."],
+  ["Vista parcial: puede haber más operaciones disponibles.", "Partial view: more operations may be available."],
+  ["Vista parcial: existen mas registros disponibles. Los conteos visibles representan un minimo confirmado.", "Partial view: more records are available. Visible counts represent a confirmed minimum."],
+  ["Aun no existe actividad suficiente para construir el pipeline.", "There is not enough activity to build the pipeline yet."],
+  ["Las etapas apareceran al publicar oportunidades y recibir participacion.", "Stages will appear as opportunities are published and participation is received."],
+  ["La actividad aparecera cuando tu empresa publique, reciba respuestas o valide resultados.", "Activity will appear when your company publishes, receives responses, or validates results."],
+  ["Perfil empresarial incompleto", "Incomplete company profile"],
+  ["Verificacion empresarial pendiente", "Company verification pending"],
+  ["Completa o consulta la revision necesaria para publicar y revisar postulantes.", "Complete or check the review required to publish and review applicants."],
+  ["No existen oportunidades activas", "There are no active opportunities"],
+  ["Publica una iniciativa para comenzar a recibir actividad comercial.", "Publish an initiative to begin receiving business activity."],
+  ["Postulantes pendientes de decision", "Applicants awaiting a decision"],
+  ["Resultados pendientes de validacion", "Results awaiting validation"],
+  ["Oportunidades proximas a cerrar", "Opportunities closing soon"],
+  ["Enlace de pago pendiente", "Payment link pending"],
+  ["Prospectos sin resultado registrado", "Prospects without a recorded result"],
+  ["Sin actividad registrada", "No activity recorded"],
+  ["Interes principal", "Primary interest"],
+  ["Aprobacion", "Approval"],
+  ["Tu mapa de oportunidades se construirá conforme publiques iniciativas y recibas actividad.", "Your opportunity map will develop as you publish initiatives and receive activity."],
+  ["No pudimos cargar el resumen ejecutivo completo.", "We could not load the complete executive overview."],
+  ["Vista ejecutiva parcial.", "Partial executive view."],
+  ["Vuelve a intentar para consultar datos actualizados de tu empresa.", "Try again to view your company's latest data."],
+  ["Aún no hay oportunidades recientes.", "There are no recent opportunities yet."],
+  ["Aún no hay actividad comercial registrada.", "There is no recorded commercial activity yet."],
+  ["No hay alertas pendientes.", "There are no pending alerts."],
+  ["Tu operación se encuentra al día con la información disponible.", "Your operation is up to date based on the available information."],
+  ["Crear la primera oportunidad", "Create the first opportunity"],
+  ["Visión general", "Overview"],
   ["Tu punto de partida", "Your starting point"],
   ["Revisa el estado de tu empresa y entra directamente al modulo que necesitas.", "Review your company's status and go directly to the module you need."],
   ["Confirma que el perfil empresarial este completo.", "Confirm that the company profile is complete."],
@@ -538,13 +801,16 @@ function ensureDashboardLanguageControls() {
   const clientWorkspace = document.querySelector("#clientView .workspace");
 
   if (clientWorkspace) {
+    const clientLanguageParent = clientWorkspace.querySelector(".client-workspace-actions") || clientWorkspace;
     let clientHost = clientWorkspace.querySelector("[data-dashboard-language-host]");
     if (!clientHost) {
-      clientWorkspace.insertAdjacentHTML(
+      clientLanguageParent.insertAdjacentHTML(
         "afterbegin",
         `<div class="dashboard-language-host" data-dashboard-language-host data-no-translate></div>`
       );
       clientHost = clientWorkspace.querySelector("[data-dashboard-language-host]");
+    } else if (clientHost.parentElement !== clientLanguageParent) {
+      clientLanguageParent.prepend(clientHost);
     }
     hosts.push(clientHost);
   }
@@ -742,6 +1008,7 @@ let adminGrowthSnapshot = null;
 let adminGrowthSnapshotPromise = null;
 let adminGrowthSnapshotLoadedAt = 0;
 let adminControlRealtimeTimer = null;
+let clientMobileMenuTrigger = null;
 
 const companyPlanCatalog = {
   free: {
@@ -1330,14 +1597,29 @@ function dashboardPanelQueries(targetId) {
   const companyId = currentCompany()?.id || "";
   const encodedCompany = encodeURIComponent(companyName);
   const encodedCompanyId = encodeURIComponent(companyId);
+  const companyListingVisibilityQuery = companyId
+    ? `&or=(company_id.eq.${encodedCompanyId},and(status.eq.approved,visual_status.eq.approved))`
+    : "&status=eq.approved&visual_status=eq.approved";
   const client = {
+    "client-overview": companyId ? [
+      { table: "opportunities", query: `select=${opportunityColumns}&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "opportunity_applications", query: `select=${applicationColumns},opportunities!inner(company_id)&opportunities.company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "company_verifications", query: `select=id,company_id,legal_name,tax_id,representative_name,corporate_email,website,billing_data,document_paths,status,reviewed_by,reviewed_at,notes,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "participations", query: `select=id,opportunity_id,application_id,user_profile_id,company_id,status,started_at,completed_at,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "conversions", query: `select=id,participation_id,opportunity_id,user_profile_id,company_id,conversion_type,economic_value,commission_amount,evidence,validation_status,estimated_payment_at,validated_at,validated_by,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "commissions", query: `select=id,conversion_id,opportunity_id,user_profile_id,company_id,gross_amount,withholding_amount,net_amount,status,estimated_payment_at,paid_at,payment_evidence_url,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "mission_scouts", query: `select=id,opportunity_id,company_id,user_profile_id,scout_code,scout_public_name,status,joined_at,approved_at,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "scout_leads", query: `select=id,mission_scout_id,opportunity_id,company_id,scout_user_profile_id,scout_code,prospect_type,prospect_name,prospect_company,country,city,industry,economic_value,status,submitted_at,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "scout_mission_commissions", query: `select=id,mission_scout_id,lead_id,opportunity_id,company_id,user_profile_id,scout_code,trigger_type,gross_amount,withholding_amount,net_amount,currency,status,estimated_payment_at,approved_at,paid_at,payment_evidence_url,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "events", query: `select=id,company_id,profile_id,name,category,venue,date,status,visual_status,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` }
+    ] : [],
     "client-events": [
       { table: "events", query: "select=id,name,category,venue,date,image_url,brochure_url,brochure_name,event_scope,sponsor_levels,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" }
     ],
     "client-sponsors": [
       { table: "partnerships", query: "select=id,name,type,tier,description,image_url,url,status,visual_status,created_at&status=eq.approved&visual_status=eq.approved&order=created_at.desc" },
-      { table: "company_listings", query: "select=id,company_id,profile_id,company_name,listing_type,category,subcategory,title,summary,description,price,currency,price_label,location,inventory_count,availability,contact_email,website_url,primary_image_url,plan_required,featured,featured_until,status,visual_status,expires_at,created_at,updated_at&order=featured.desc,created_at.desc" },
-      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at" }
+      { table: "company_listings", query: `select=id,company_id,profile_id,company_name,listing_type,category,subcategory,title,summary,description,price,currency,price_label,location,inventory_count,availability,contact_email,website_url,primary_image_url,plan_required,featured,featured_until,status,visual_status,expires_at,created_at,updated_at${companyListingVisibilityQuery}&order=featured.desc,created_at.desc` },
+      ...(companyId ? [{ table: "company_subscriptions", query: `select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at&company_id=eq.${encodedCompanyId}` }] : [])
     ],
     "client-marketplace": [
       { table: "athletes", query: `select=${athleteColumns}&order=created_at.desc` },
@@ -1349,38 +1631,41 @@ function dashboardPanelQueries(targetId) {
       { table: "marketplace_user_profiles", query: `select=${marketplaceUniversalColumns}&order=created_at.desc` },
       { table: "marketplace_user_social_accounts", query: "select=id,user_profile_id,platform,url,handle,audience_size,verified,created_at,updated_at&order=created_at.desc" }
     ],
-    "client-payments": companyName ? [
+    "client-payments": companyId && companyName ? [
       { table: "payments", query: `select=id,concept,amount,company,status,product_key,created_at&company=eq.${encodedCompany}&order=created_at.desc` },
-      { table: "requests", query: `select=id,type,title,owner,details,priority,status,created_at&owner=eq.${encodedCompany}&order=created_at.desc` }
+      ...(companyId ? [
+        { table: "opportunities", query: `select=${opportunityColumns}&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+        { table: "commissions", query: `select=id,conversion_id,opportunity_id,user_profile_id,company_id,gross_amount,withholding_amount,net_amount,status,estimated_payment_at,paid_at,payment_evidence_url,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` }
+      ] : [])
     ] : [],
-    "client-register": [
-      { table: "company_subscriptions", query: "select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at" },
-      ...(companyId ? [{ table: "events", query: `select=id,company_id,profile_id,name,status,created_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` }] : [])
-    ],
-    "client-opportunities": [
-      { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` },
-      { table: "company_verifications", query: "select=id,company_id,legal_name,tax_id,representative_name,corporate_email,website,billing_data,document_paths,status,reviewed_by,reviewed_at,notes,created_at,updated_at&order=created_at.desc" },
+    "client-register": companyId ? [
+      { table: "company_subscriptions", query: `select=id,company_id,profile_id,plan,status,current_period_start,current_period_end,listing_limit,event_limit_monthly,seats_limit,metadata,created_at,updated_at&company_id=eq.${encodedCompanyId}` },
+      { table: "events", query: `select=id,company_id,profile_id,name,status,created_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` }
+    ] : [],
+    "client-opportunities": companyId ? [
+      { table: "opportunities", query: `select=${opportunityColumns}&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "company_verifications", query: `select=id,company_id,legal_name,tax_id,representative_name,corporate_email,website,billing_data,document_paths,status,reviewed_by,reviewed_at,notes,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
       { table: "company_plan_definitions", query: "select=id,plan_key,name,description,monthly_price,transaction_fee_rate,active_opportunity_limit,features,status,created_at,updated_at&status=eq.active&order=monthly_price.asc" }
-    ],
-    "client-applicants": [
-      { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` },
-      { table: "opportunity_applications", query: `select=${applicationColumns}&order=created_at.desc` }
-    ],
-    "client-scout-network": [
-      { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` },
-      { table: "mission_scouts", query: "select=id,opportunity_id,company_id,user_profile_id,scout_code,scout_public_name,status,joined_at,approved_at,created_at,updated_at&order=created_at.desc" },
-      { table: "scout_leads", query: "select=id,mission_scout_id,opportunity_id,company_id,scout_user_profile_id,scout_code,prospect_type,prospect_name,prospect_email,prospect_phone,prospect_company,country,city,industry,consent,consent_at,notes,company_notes,economic_value,status,submitted_at,created_at,updated_at&order=created_at.desc" },
-      { table: "scout_mission_commissions", query: "select=id,mission_scout_id,lead_id,opportunity_id,company_id,user_profile_id,scout_code,trigger_type,gross_amount,withholding_amount,net_amount,currency,status,estimated_payment_at,approved_at,paid_at,payment_evidence_url,created_at,updated_at&order=created_at.desc" }
-    ],
-    "client-results": [
-      { table: "participations", query: "select=id,opportunity_id,application_id,user_profile_id,company_id,status,started_at,completed_at,created_at,updated_at&order=created_at.desc" },
-      { table: "conversions", query: "select=id,participation_id,opportunity_id,user_profile_id,company_id,conversion_type,economic_value,commission_amount,evidence,validation_status,estimated_payment_at,validated_at,validated_by,created_at,updated_at&order=created_at.desc" }
-    ],
-    "client-intelligence": [
-      { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` },
-      { table: "opportunity_applications", query: `select=${applicationColumns}&order=created_at.desc` },
-      { table: "conversions", query: "select=id,opportunity_id,company_id,conversion_type,economic_value,commission_amount,validation_status,created_at&order=created_at.desc" }
-    ]
+    ] : [],
+    "client-applicants": companyId ? [
+      { table: "opportunities", query: `select=${opportunityColumns}&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "opportunity_applications", query: `select=${applicationColumns},opportunities!inner(company_id)&opportunities.company_id=eq.${encodedCompanyId}&order=created_at.desc` }
+    ] : [],
+    "client-scout-network": companyId ? [
+      { table: "opportunities", query: `select=${opportunityColumns}&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "mission_scouts", query: `select=id,opportunity_id,company_id,user_profile_id,scout_code,scout_public_name,status,joined_at,approved_at,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "scout_leads", query: `select=id,mission_scout_id,opportunity_id,company_id,scout_user_profile_id,scout_code,prospect_type,prospect_name,prospect_email,prospect_phone,prospect_company,country,city,industry,consent,consent_at,notes,company_notes,economic_value,status,submitted_at,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "scout_mission_commissions", query: `select=id,mission_scout_id,lead_id,opportunity_id,company_id,user_profile_id,scout_code,trigger_type,gross_amount,withholding_amount,net_amount,currency,status,estimated_payment_at,approved_at,paid_at,payment_evidence_url,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` }
+    ] : [],
+    "client-results": companyId ? [
+      { table: "participations", query: `select=id,opportunity_id,application_id,user_profile_id,company_id,status,started_at,completed_at,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "conversions", query: `select=id,participation_id,opportunity_id,user_profile_id,company_id,conversion_type,economic_value,commission_amount,evidence,validation_status,estimated_payment_at,validated_at,validated_by,created_at,updated_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` }
+    ] : [],
+    "client-intelligence": companyId ? [
+      { table: "opportunities", query: `select=${opportunityColumns}&company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "opportunity_applications", query: `select=${applicationColumns},opportunities!inner(company_id)&opportunities.company_id=eq.${encodedCompanyId}&order=created_at.desc` },
+      { table: "conversions", query: `select=id,opportunity_id,company_id,conversion_type,economic_value,commission_amount,validation_status,created_at&company_id=eq.${encodedCompanyId}&order=created_at.desc` }
+    ] : []
   };
   const admin = {
     "admin-users": [
@@ -1506,9 +1791,29 @@ function dashboardPanelQueries(targetId) {
 }
 
 function dashboardPanelPageSize(targetId) {
+  if (targetId === "client-overview") return 250;
   return targetId.startsWith("admin-") || targetId.startsWith("commercial-")
     ? dashboardPanelPageSizes.admin
     : dashboardPanelPageSizes.client;
+}
+
+function clientPanelDataTables(targetId) {
+  const tables = dashboardPanelQueries(targetId).map(item => item.table);
+  if (["client-overview", "client-payments"].includes(targetId)) {
+    tables.push("creative_payment_operations");
+  }
+  return new Set(tables);
+}
+
+function invalidateClientPanelLoadsForTables(sourceTargetId, tables = []) {
+  if (!sourceTargetId.startsWith("client-") || !tables.length) return;
+  const changedTables = new Set(tables);
+  dashboardPanelLoads.forEach((load, targetId) => {
+    if (targetId === sourceTargetId || !targetId.startsWith("client-") || load?.loading) return;
+    const sharesSource = [...clientPanelDataTables(targetId)].some(table => changedTables.has(table));
+    if (!sharesSource) return;
+    dashboardPanelLoads.set(targetId, { ...load, lastLoadedAt: 0, invalidated: true });
+  });
 }
 
 async function ensureDashboardPanelData(targetId, options = {}) {
@@ -1525,7 +1830,7 @@ async function ensureDashboardPanelData(targetId, options = {}) {
     return true;
   }
   const queries = dashboardPanelQueries(targetId);
-  const loadsCreativePayments = ["admin-brand-growth", "athlete-growth", "client-payments"].includes(targetId)
+  const loadsCreativePayments = ["admin-brand-growth", "athlete-growth", "client-payments", "client-overview"].includes(targetId)
     && typeof api.loadCreativePaymentOperations === "function";
   if ((!queries.length && !loadsCreativePayments) || !api.loadTablePage) return false;
   const existing = dashboardPanelLoads.get(targetId) || {
@@ -1542,7 +1847,7 @@ async function ensureDashboardPanelData(targetId, options = {}) {
   if (loadMore && !existing.hasMore) return true;
   const pageSize = dashboardPanelPageSize(targetId);
   const offset = loadMore ? existing.offset : 0;
-  const status = { ...existing, loading: true };
+  const status = { ...existing, loading: true, failedTables: [], truncatedTables: [] };
   dashboardPanelLoads.set(targetId, status);
   decoratePanelPagination(targetId);
   const promise = (async () => {
@@ -1550,9 +1855,12 @@ async function ensureDashboardPanelData(targetId, options = {}) {
       ? loadAdminGrowthSnapshot({ force: refresh })
       : Promise.resolve(null);
     const creativePaymentsPromise = loadsCreativePayments
-      ? api.loadCreativePaymentOperations().catch(error => {
+      ? api.loadCreativePaymentOperations().then(rows => ({
+          rows: Array.isArray(rows) ? rows : [],
+          loaded: true
+        })).catch(error => {
           console.warn("[ROIS creative payments]", humanError(error));
-          return [];
+          return { rows: [], loaded: false };
         })
       : Promise.resolve(null);
     const pages = await Promise.all(queries.map(async spec => {
@@ -1564,23 +1872,46 @@ async function ensureDashboardPanelData(targetId, options = {}) {
         return { table: spec.table, rows: [], loaded: false, merge: spec.merge === true };
       }
     }));
-    const creativePayments = await creativePaymentsPromise;
+    const creativePaymentsPage = await creativePaymentsPromise;
     await snapshotPromise;
+    const activeClientTarget = targetId.startsWith("client-") ? activeDashboardPanelId("client") : "";
+    if (activeClientTarget && activeClientTarget !== targetId) {
+      dashboardPanelLoads.set(targetId, {
+        ...existing,
+        loaded: false,
+        loading: false,
+        offset: 0,
+        lastLoadedAt: 0,
+        invalidated: true
+      });
+      return false;
+    }
     pages
       .filter(page => page.loaded)
       .forEach(({ table, rows, merge }) => {
         if (offset === 0 && !merge) replacePageRecords(table, rows);
         else mergePageRecords(table, rows);
       });
-    if (Array.isArray(creativePayments)) replacePageRecords("creative_payment_operations", creativePayments);
+    if (creativePaymentsPage?.loaded) replacePageRecords("creative_payment_operations", creativePaymentsPage.rows);
     const hasMore = pages.some(({ rows, loaded }) => loaded && rows.length === pageSize);
+    const loadedTables = pages.filter(page => page.loaded).map(page => page.table);
+    const failedTables = pages.filter(page => !page.loaded).map(page => page.table);
+    if (creativePaymentsPage?.loaded) loadedTables.push("creative_payment_operations");
+    if (creativePaymentsPage && !creativePaymentsPage.loaded) failedTables.push("creative_payment_operations");
+    const truncatedTables = pages
+      .filter(({ rows, loaded }) => loaded && rows.length === pageSize)
+      .map(page => page.table);
     dashboardPanelLoads.set(targetId, {
       loaded: true,
       loading: false,
       offset: offset + pageSize,
       hasMore,
+      loadedTables,
+      failedTables,
+      truncatedTables,
       lastLoadedAt: Date.now()
     });
+    invalidateClientPanelLoadsForTables(targetId, loadedTables);
     state.dataSignature = runtimeDataSignature(state.data);
     writeDataCache(state.data);
     if (targetId.startsWith("client-")) renderClientKpis();
@@ -4282,7 +4613,7 @@ function bindGlobalEvents() {
   document.querySelectorAll("[data-open-login]").forEach(button => button.addEventListener("click", openLogin));
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModalFromButton));
   document.querySelectorAll("[data-dashboard-target]").forEach(button => button.addEventListener("click", () => showDashboardPanel(button.dataset.dashboardTarget)));
-  document.querySelectorAll("[data-mobile-menu]").forEach(button => button.addEventListener("click", () => openMobileDashboardMenu(button.dataset.mobileMenu)));
+  document.querySelectorAll("[data-mobile-menu]").forEach(button => button.addEventListener("click", () => openMobileDashboardMenu(button.dataset.mobileMenu, button)));
   document.querySelectorAll("[data-close-mobile-menu]").forEach(button => button.addEventListener("click", closeMobileDashboardMenus));
   document.querySelectorAll("[data-registration]").forEach(button => button.addEventListener("click", () => openRegistration(button.dataset.registration)));
   document.querySelector("[data-open-recovery]").addEventListener("click", toggleRecoveryForm);
@@ -4292,6 +4623,19 @@ function bindGlobalEvents() {
   document.getElementById("registrationForm").addEventListener("submit", submitRegistration);
   document.getElementById("eventSponsorForm")?.addEventListener("submit", submitEventSponsorshipRequest);
   initializeCommercialSidebar();
+  closeMobileDashboardMenus();
+  window.addEventListener("resize", syncClientMobileMenuAccessibility);
+  document.addEventListener("keydown", event => {
+    const clientView = document.getElementById("clientView");
+    if (!clientView?.classList.contains("nav-open")) return;
+    if (event.key === "Escape") {
+      closeMobileDashboardMenus();
+      return;
+    }
+    if (event.key === "Tab" && window.matchMedia("(max-width: 900px)").matches) {
+      trapClientMobileMenuFocus(event);
+    }
+  });
   document.addEventListener("click", handleDashboardDelegatedActions);
 }
 
@@ -4328,9 +4672,23 @@ function initializeCommercialSidebar() {
 }
 
 function handleDashboardDelegatedActions(event) {
+  const languageButton = event.target.closest("[data-dashboard-language-option]");
+  if (languageButton) {
+    setDashboardLanguage(languageButton.dataset.dashboardLanguageOption);
+    return;
+  }
   const eventSponsorButton = event.target.closest("[data-event-sponsor]");
   if (eventSponsorButton) {
     openEventSponsorshipForm(eventSponsorButton.dataset.eventSponsor);
+    return;
+  }
+  const refreshPanelButton = event.target.closest("[data-refresh-dashboard-panel]");
+  if (refreshPanelButton) {
+    const targetId = refreshPanelButton.dataset.refreshDashboardPanel;
+    refreshPanelButton.disabled = true;
+    ensureDashboardPanelData(targetId, { refresh: true }).finally(() => {
+      if (refreshPanelButton.isConnected) refreshPanelButton.disabled = false;
+    });
     return;
   }
   const loadMoreButton = event.target.closest("[data-load-more-panel]");
@@ -4451,7 +4809,12 @@ function showDashboardPanel(targetId) {
   if (currentPanelId) captureDashboardPanelDraft(currentPanelId);
   const nav = document.querySelector(`[data-dashboard-nav="${workspace.dataset.dashboard}"]`);
   workspace.querySelectorAll("[data-dashboard-panel]").forEach(panel => panel.classList.toggle("active", panel === targetPanel));
-  nav.querySelectorAll("[data-dashboard-target]").forEach(button => button.classList.toggle("active", button.dataset.dashboardTarget === targetId));
+  nav.querySelectorAll("[data-dashboard-target]").forEach(button => {
+    const active = button.dataset.dashboardTarget === targetId;
+    button.classList.toggle("active", active);
+    if (active) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
   renderDashboardPanelById(targetId);
   optimizeRenderedMedia(targetPanel);
   closeMobileDashboardMenus();
@@ -4479,8 +4842,58 @@ function renderDashboardPanelById(targetId) {
   decoratePanelPagination(targetId);
 }
 
-function openMobileDashboardMenu(type) {
-  closeMobileDashboardMenus();
+function syncClientMobileMenuAccessibility() {
+  const view = document.getElementById("clientView");
+  const sidebar = document.getElementById("clientSidebar");
+  if (!view || !sidebar) return;
+  const mobile = window.matchMedia("(max-width: 900px)").matches;
+  const menuOpen = mobile && view.classList.contains("nav-open");
+  const hidden = mobile && !menuOpen;
+  sidebar.toggleAttribute("inert", hidden);
+  if (hidden) sidebar.setAttribute("aria-hidden", "true");
+  else sidebar.removeAttribute("aria-hidden");
+  setClientMobileMenuBackgroundAccessibility(menuOpen);
+}
+
+function setClientMobileMenuBackgroundAccessibility(hidden) {
+  const view = document.getElementById("clientView");
+  if (!view) return;
+  view.querySelectorAll(":scope > .workspace, :scope > .mobile-appbar, :scope > .mobile-dash-toggle").forEach(element => {
+    element.toggleAttribute("inert", hidden);
+    if (hidden) element.setAttribute("aria-hidden", "true");
+    else element.removeAttribute("aria-hidden");
+  });
+}
+
+function clientMobileMenuFocusableElements() {
+  const sidebar = document.getElementById("clientSidebar");
+  if (!sidebar) return [];
+  return [...sidebar.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+    .filter(element => !element.hidden && element.getClientRects().length > 0);
+}
+
+function trapClientMobileMenuFocus(event) {
+  const focusable = clientMobileMenuFocusableElements();
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+  if (!document.getElementById("clientSidebar")?.contains(active)) {
+    event.preventDefault();
+    first.focus();
+    return;
+  }
+  if (event.shiftKey && active === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+function openMobileDashboardMenu(type, trigger = null) {
+  closeMobileDashboardMenus({ restoreFocus: false });
   const viewName = type === "admin"
     ? "admin"
     : type === "commercial"
@@ -4490,10 +4903,32 @@ function openMobileDashboardMenu(type) {
         : "client";
   const view = document.querySelector(`[data-view="${viewName}"]`);
   view?.classList.add("nav-open");
+  if (viewName === "client") clientMobileMenuTrigger = trigger;
+  document.querySelectorAll(`[data-mobile-menu="${viewName}"]`).forEach(button => button.setAttribute("aria-expanded", "true"));
+  view?.querySelectorAll(".mobile-nav-backdrop").forEach(backdrop => {
+    backdrop.hidden = false;
+    backdrop.setAttribute("aria-hidden", "false");
+  });
+  syncClientMobileMenuAccessibility();
+  if (viewName === "client") requestAnimationFrame(() => view?.querySelector(".mobile-menu-close")?.focus());
 }
 
-function closeMobileDashboardMenus() {
+function closeMobileDashboardMenus(options = {}) {
+  const restoreFocus = options?.restoreFocus !== false;
+  const returnFocus = clientMobileMenuTrigger;
+  const shouldRestoreFocus = restoreFocus
+    && returnFocus?.isConnected
+    && window.matchMedia("(max-width: 900px)").matches;
+  setClientMobileMenuBackgroundAccessibility(false);
+  if (shouldRestoreFocus) returnFocus.focus({ preventScroll: true });
   document.querySelectorAll(".dashboard.nav-open").forEach(view => view.classList.remove("nav-open"));
+  document.querySelectorAll("[data-mobile-menu]").forEach(button => button.setAttribute("aria-expanded", "false"));
+  document.querySelectorAll(".mobile-nav-backdrop").forEach(backdrop => {
+    backdrop.hidden = true;
+    backdrop.setAttribute("aria-hidden", "true");
+  });
+  syncClientMobileMenuAccessibility();
+  clientMobileMenuTrigger = null;
 }
 
 async function submitLogin(event) {
@@ -5093,18 +5528,19 @@ function clearCoverCarousels() {
 }
 
 function renderClient() {
-  renderClientHeader();
-  renderClientKpis();
   const activePanel = activeDashboardPanelId("client") || "client-overview";
+  const clientView = document.getElementById("clientView");
+  if (clientView) clientView.dataset.clientPanel = activePanel;
   renderClientPanel(activePanel);
+  initializeDashboardLanguage();
 }
 
 const clientTutorialCatalog = {
   "client-overview": {
-    title: "Tu punto de partida",
-    purpose: "Revisa el estado de tu empresa y entra directamente al modulo que necesitas.",
-    steps: ["Confirma que el perfil empresarial este completo.", "Elige si buscas talento, eventos u oportunidades.", "Consulta las alertas y continua la operacion pendiente."],
-    example: "Ejemplo: si preparas una campana deportiva, abre Mercado de fichajes y compara perfiles antes de solicitar patrocinio."
+    title: "Gobierna cada oportunidad desde un solo lugar",
+    purpose: "Usa el resumen ejecutivo para identificar actividad, atender alertas y ejecutar la siguiente accion comercial.",
+    steps: ["Revisa los indicadores y la concentracion de actividad.", "Ubica cada oportunidad dentro del pipeline operativo.", "Atiende alertas y continua desde el modulo relacionado."],
+    example: "Ejemplo: si existen postulantes pendientes, abre Postulantes, registra tu decision y continua el seguimiento desde Resultados."
   },
   "client-opportunities": {
     title: "Convierte un objetivo en una oportunidad",
@@ -5249,6 +5685,14 @@ function renderClientTutorial(targetId) {
 
 function renderClientPanel(targetId) {
   captureDashboardPanelDraft(targetId);
+  const clientView = document.getElementById("clientView");
+  if (clientView) clientView.dataset.clientPanel = targetId;
+  document.querySelectorAll('[data-dashboard-nav="client"] [data-dashboard-target]').forEach(buttonElement => {
+    if (buttonElement.dataset.dashboardTarget === targetId) buttonElement.setAttribute("aria-current", "page");
+    else buttonElement.removeAttribute("aria-current");
+  });
+  renderClientHeader();
+  renderClientKpis();
   const map = {
     "client-overview": renderClientOverview,
     "client-events": renderClientEvents,
@@ -5475,6 +5919,374 @@ function marketplaceProfileRecord(item) {
   return item;
 }
 
+const clientActiveOpportunityStatuses = new Set(["published", "approved", "active", "in_progress"]);
+const clientClosedOpportunityStatuses = new Set(["rejected", "cancelled", "closed", "completed", "expired"]);
+const clientPipelineExcludedOpportunityStatuses = new Set(["rejected", "cancelled", "closed", "expired"]);
+const clientActionTerminalOpportunityStatuses = new Set(["rejected", "cancelled", "closed", "expired"]);
+const clientActiveParticipationStatuses = new Set(["accepted", "active", "in_progress"]);
+const clientPendingCommissionStatuses = new Set(["pending", "approved"]);
+
+function uniqueClientRecords(records = []) {
+  const seen = new Set();
+  return records.filter((record, index) => {
+    const key = record?.id || `${record?.opportunity_id || "record"}:${record?.created_at || index}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function clientFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function clientExecutiveCollections(company = currentCompany(), data = state.data || {}) {
+  const companyId = company?.id;
+  const empty = {
+    opportunities: [], applications: [], participations: [], conversions: [], commissions: [],
+    missionScouts: [], scoutLeads: [], scoutCommissions: [], verifications: [], events: [],
+    creativePayments: []
+  };
+  if (!companyId) return empty;
+
+  const opportunities = uniqueClientRecords((data.opportunities || []).filter(item => item.company_id === companyId));
+  const opportunityIds = new Set(opportunities.map(item => item.id).filter(Boolean));
+  const belongsToOwnedOpportunity = item => opportunityIds.has(item.opportunity_id)
+    && (!item.company_id || item.company_id === companyId);
+
+  return {
+    opportunities,
+    applications: uniqueClientRecords((data.opportunity_applications || []).filter(item => opportunityIds.has(item.opportunity_id))),
+    participations: uniqueClientRecords((data.participations || []).filter(belongsToOwnedOpportunity)),
+    conversions: uniqueClientRecords((data.conversions || []).filter(belongsToOwnedOpportunity)),
+    commissions: uniqueClientRecords((data.commissions || []).filter(belongsToOwnedOpportunity)),
+    missionScouts: uniqueClientRecords((data.mission_scouts || []).filter(item => item.company_id === companyId)),
+    scoutLeads: uniqueClientRecords((data.scout_leads || []).filter(item => item.company_id === companyId)),
+    scoutCommissions: uniqueClientRecords((data.scout_mission_commissions || []).filter(item => item.company_id === companyId)),
+    verifications: uniqueClientRecords((data.company_verifications || []).filter(item => item.company_id === companyId)),
+    events: uniqueClientRecords((data.events || []).filter(item => item.company_id === companyId)),
+    creativePayments: uniqueClientRecords((data.creative_payment_operations || []).filter(item => item.company_id === companyId))
+  };
+}
+
+function clientPanelTableState(targetId, tables = []) {
+  if (!currentCompany()?.id) return hydratedRoles.has("client") ? "error" : "loading";
+  const status = dashboardPanelLoads.get(targetId);
+  if (!status?.loaded || status.loading || status.invalidated) return "loading";
+  if (tables.some(table => (status.failedTables || []).includes(table))) return "error";
+  if (tables.some(table => (status.truncatedTables || []).includes(table))) return "truncated";
+  return "ready";
+}
+
+function clientExecutiveTableState(tables = []) {
+  return clientPanelTableState("client-overview", tables);
+}
+
+function buildClientExecutiveMetrics(company = currentCompany(), data = state.data || {}) {
+  const records = clientExecutiveCollections(company, data);
+  const activeOpportunities = records.opportunities.filter(item => clientActiveOpportunityStatuses.has(String(item.status || "").toLowerCase()));
+  const activeOpportunityIds = new Set(activeOpportunities.map(item => item.id).filter(Boolean));
+  const pendingApplications = records.applications.filter(item =>
+    activeOpportunityIds.has(item.opportunity_id)
+    && String(item.status || "").toLowerCase() === "submitted"
+  );
+  const activeParticipations = records.participations.filter(item => clientActiveParticipationStatuses.has(String(item.status || "").toLowerCase()));
+  const validatedResults = records.conversions.filter(item => String(item.validation_status || "").toLowerCase() === "validated");
+  const activeScouts = new Set(records.missionScouts
+    .filter(item => String(item.status || "").toLowerCase() === "active")
+    .map(item => item.user_profile_id || item.scout_code)
+    .filter(Boolean));
+  const pendingCommissions = [
+    ...records.commissions.map(item => ({ ...item, source: "opportunity" })),
+    ...records.scoutCommissions.map(item => ({ ...item, source: "scout" }))
+  ].filter(item => clientPendingCommissionStatuses.has(String(item.status || "").toLowerCase()));
+
+  return {
+    records,
+    activeOpportunities: activeOpportunities.length,
+    pendingApplicants: pendingApplications.length,
+    registeredProspects: records.scoutLeads.length,
+    validatedValue: validatedResults.reduce((sum, item) => sum + clientFiniteNumber(item.economic_value), 0),
+    activeScouts: activeScouts.size,
+    activeParticipations: activeParticipations.length,
+    submittedResults: records.conversions.length,
+    validatedResults: validatedResults.length,
+    pendingCommissions: pendingCommissions.length,
+    pendingCommissionAmount: pendingCommissions.reduce((sum, item) => sum + clientFiniteNumber(item.net_amount), 0)
+  };
+}
+
+function buildClientOpportunityPipeline(company = currentCompany(), data = state.data || {}) {
+  const records = clientExecutiveCollections(company, data);
+  const stages = [
+    { key: "published", label: "Publicadas", count: 0 },
+    { key: "applicants", label: "Con postulantes", count: 0 },
+    { key: "participations", label: "Participaciones activas", count: 0 },
+    { key: "submitted", label: "Resultados enviados", count: 0 },
+    { key: "validated", label: "Resultados validados", count: 0 }
+  ];
+  const stageByKey = new Map(stages.map(stage => [stage.key, stage]));
+
+  records.opportunities.forEach(opportunity => {
+    const status = String(opportunity.status || "").toLowerCase();
+    if (clientPipelineExcludedOpportunityStatuses.has(status)) return;
+    const applications = records.applications.filter(item =>
+      item.opportunity_id === opportunity.id
+      && !["rejected", "cancelled", "withdrawn", "expired"].includes(String(item.status || "").toLowerCase())
+    );
+    const participations = records.participations.filter(item => item.opportunity_id === opportunity.id);
+    const conversions = records.conversions.filter(item =>
+      item.opportunity_id === opportunity.id
+      && !["rejected", "cancelled"].includes(String(item.validation_status || "").toLowerCase())
+    );
+    const hasValidated = conversions.some(item => String(item.validation_status || "").toLowerCase() === "validated");
+    const hasActiveParticipation = participations.some(item => clientActiveParticipationStatuses.has(String(item.status || "").toLowerCase()));
+    let stageKey = "";
+    if (hasValidated) stageKey = "validated";
+    else if (conversions.length) stageKey = "submitted";
+    else if (hasActiveParticipation) stageKey = "participations";
+    else if (applications.length) stageKey = "applicants";
+    else if (clientActiveOpportunityStatuses.has(status)) stageKey = "published";
+    if (stageKey) stageByKey.get(stageKey).count += 1;
+  });
+
+  const total = stages.reduce((sum, stage) => sum + stage.count, 0);
+  return {
+    total,
+    stages: stages.map(stage => ({
+      ...stage,
+      percentage: total ? Math.round(stage.count / total * 100) : 0
+    }))
+  };
+}
+
+function clientCountValues(values = [], limit = 6) {
+  const counts = new Map();
+  values.map(value => String(value || "").trim()).filter(Boolean).forEach(value => {
+    counts.set(value, (counts.get(value) || 0) + 1);
+  });
+  return [...counts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "es"))
+    .slice(0, limit);
+}
+
+function buildClientOpportunityMap(company = currentCompany(), data = state.data || {}) {
+  const records = clientExecutiveCollections(company, data);
+  const activeOpportunities = records.opportunities.filter(item => clientActiveOpportunityStatuses.has(String(item.status || "").toLowerCase()));
+  const activeLeads = records.scoutLeads.filter(item => !["rejected", "cancelled", "closed"].includes(String(item.status || "").toLowerCase()));
+  const opportunityRegions = activeOpportunities.map(item => item.territory || item.location);
+  const leadRegions = activeLeads.map(item => [item.city, item.country].filter(Boolean).join(", "));
+  const segments = [
+    ...activeOpportunities.map(item => item.category || item.industry || opportunityTypeLabel(item.opportunity_type)),
+    ...activeLeads.map(item => item.industry)
+  ];
+  return {
+    regions: clientCountValues([...opportunityRegions, ...leadRegions]),
+    segments: clientCountValues(segments),
+    opportunityCount: activeOpportunities.length,
+    prospectCount: activeLeads.length
+  };
+}
+
+function clientDateTime(value) {
+  const timestamp = value ? new Date(value).getTime() : NaN;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function clientRelativeDate(value, now = Date.now()) {
+  const timestamp = clientDateTime(value);
+  if (!timestamp) return "Fecha pendiente";
+  const elapsed = Math.max(0, now - timestamp);
+  const minutes = Math.floor(elapsed / 60000);
+  if (minutes < 1) return "Hace unos segundos";
+  if (minutes < 60) return `Hace ${minutes} ${minutes === 1 ? "minuto" : "minutos"}`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Hace ${hours} ${hours === 1 ? "hora" : "horas"}`;
+  const days = Math.floor(hours / 24);
+  if (days <= 14) return `Hace ${days} ${days === 1 ? "día" : "días"}`;
+  return new Date(timestamp).toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+}
+
+function buildClientRecentActivity(company = currentCompany(), data = state.data || {}) {
+  const records = clientExecutiveCollections(company, data);
+  const opportunityById = new Map(records.opportunities.map(item => [item.id, item]));
+  const activity = [];
+  const add = (date, icon, title, context, target, translateContext = false) => {
+    const sortTime = clientDateTime(date);
+    if (!sortTime) return;
+    activity.push({ date, sortTime, icon, title, context, target, translateContext });
+  };
+
+  records.opportunities.forEach(item => {
+    add(item.created_at, "+", "Oportunidad creada", item.title || "Oportunidad ROIS", "client-opportunities", !item.title);
+    if (item.published_at) add(item.published_at, "↗", "Oportunidad publicada", item.title || "Oportunidad ROIS", "client-opportunities", !item.title);
+  });
+  records.applications.forEach(item => {
+    const opportunity = opportunityById.get(item.opportunity_id);
+    add(item.submitted_at || item.created_at, "◎", "Postulación recibida", opportunity?.title || "Oportunidad ROIS", "client-applicants", !opportunity?.title);
+    if (String(item.status || "").toLowerCase() === "accepted" && item.decided_at) {
+      add(item.decided_at, "✓", "Postulante aceptado", opportunity?.title || "Oportunidad ROIS", "client-applicants", !opportunity?.title);
+    }
+  });
+  records.missionScouts.forEach(item => {
+    const title = opportunityById.get(item.opportunity_id)?.title;
+    add(item.joined_at || item.created_at, "S", "Scout vinculado", title || "Mision Scout", "client-scout-network", !title);
+  });
+  records.scoutLeads.forEach(item => {
+    const context = item.prospect_company || item.prospect_name || opportunityById.get(item.opportunity_id)?.title;
+    add(item.submitted_at || item.created_at, "P", "Prospecto registrado", context || "Red Scout", "client-scout-network", !context);
+  });
+  records.conversions.forEach(item => {
+    const opportunity = opportunityById.get(item.opportunity_id);
+    add(item.created_at, "R", "Resultado enviado", opportunity?.title || "Oportunidad ROIS", "client-results", !opportunity?.title);
+    if (String(item.validation_status || "").toLowerCase() === "validated") {
+      add(item.validated_at || item.updated_at, "✓", "Resultado validado", opportunity?.title || "Oportunidad ROIS", "client-results", !opportunity?.title);
+    }
+  });
+  records.scoutCommissions.filter(item => item.paid_at).forEach(item => {
+    const title = opportunityById.get(item.opportunity_id)?.title;
+    add(item.paid_at, "$", "Comisión pagada", title || "Red Scout", "client-scout-network", !title);
+  });
+  records.creativePayments.forEach(item => {
+    const status = String(item.payment_status || "").toLowerCase();
+    if (status === "paid") add(item.paid_at || item.updated_at, "$", "Pago registrado", item.campaign_title || "Impulso creativo", "client-payments", !item.campaign_title);
+    else if (status === "payment_enabled") add(item.payment_enabled_at || item.updated_at, "↗", "Pago habilitado", item.campaign_title || "Impulso creativo", "client-payments", !item.campaign_title);
+  });
+  records.events.forEach(item => add(item.created_at, "E", "Evento registrado", item.name || "Evento ROIS", "client-register", !item.name));
+
+  return activity.sort((a, b) => b.sortTime - a.sortTime).slice(0, 6);
+}
+
+function clientCompanyProfileProgress(company = currentCompany()) {
+  const fields = ["name", "owner", "interest", "website", "description", "logo_url"];
+  const completed = fields.filter(field => String(company?.[field] || "").trim()).length;
+  return {
+    completed,
+    total: fields.length,
+    percentage: Math.round(completed / fields.length * 100),
+    ready: completed === fields.length
+  };
+}
+
+function clientLatestActivityAt(records = {}) {
+  const values = Object.values(records).flatMap(items => Array.isArray(items) ? items : []);
+  const latest = values.reduce((timestamp, item) => Math.max(
+    timestamp,
+    clientDateTime(item.updated_at || item.paid_at || item.validated_at || item.decided_at || item.published_at || item.submitted_at || item.created_at)
+  ), 0);
+  return latest ? new Date(latest).toISOString() : "";
+}
+
+function clientOpportunityNextAction(opportunity, records) {
+  const applications = records.applications.filter(item => item.opportunity_id === opportunity.id);
+  const participations = records.participations.filter(item => item.opportunity_id === opportunity.id);
+  const conversions = records.conversions.filter(item => item.opportunity_id === opportunity.id);
+  const status = String(opportunity.status || "").toLowerCase();
+  if (clientActionTerminalOpportunityStatuses.has(status)) {
+    return { label: "Consultar estado", target: "client-opportunities" };
+  }
+  if (conversions.some(item => String(item.validation_status || "").toLowerCase() === "validated")) {
+    return { label: "Revisar pago", target: "client-payments" };
+  }
+  if (conversions.some(item => !["validated", "rejected"].includes(String(item.validation_status || "").toLowerCase()))) {
+    return { label: "Validar resultado", target: "client-results" };
+  }
+  if (participations.some(item => clientActiveParticipationStatuses.has(String(item.status || "").toLowerCase()))) {
+    return { label: "Dar seguimiento", target: "client-results" };
+  }
+  if (applications.some(item => String(item.status || "").toLowerCase() === "submitted")) {
+    return { label: "Revisar postulantes", target: "client-applicants" };
+  }
+  if (status === "in_review") {
+    return { label: "Consultar revision", target: "client-opportunities" };
+  }
+  if (status === "completed") {
+    return { label: "Consultar estado", target: "client-opportunities" };
+  }
+  return { label: "Promover oportunidad", target: "client-opportunities" };
+}
+
+function buildClientRecentOpportunities(company = currentCompany(), data = state.data || {}) {
+  const records = clientExecutiveCollections(company, data);
+  return records.opportunities
+    .slice()
+    .sort((a, b) => clientDateTime(b.updated_at || b.published_at || b.created_at) - clientDateTime(a.updated_at || a.published_at || a.created_at))
+    .slice(0, 5)
+    .map(opportunity => {
+      const applications = records.applications.filter(item => item.opportunity_id === opportunity.id);
+      const participations = records.participations.filter(item => item.opportunity_id === opportunity.id);
+      const conversions = records.conversions.filter(item => item.opportunity_id === opportunity.id);
+      return {
+        opportunity,
+        applications: applications.length,
+        participations: participations.length,
+        conversions: conversions.length,
+        nextAction: clientOpportunityNextAction(opportunity, records),
+        updatedAt: opportunity.updated_at || opportunity.published_at || opportunity.created_at
+      };
+    });
+}
+
+function buildClientAttentionItems(company = currentCompany(), data = state.data || {}, options = {}) {
+  const metrics = buildClientExecutiveMetrics(company, data);
+  const records = metrics.records;
+  const profile = clientCompanyProfileProgress(company);
+  const verification = records.verifications[0];
+  const alerts = [];
+  const add = (severity, title, detail, action, target) => alerts.push({ severity, title, detail, action, target });
+
+  if (!profile.ready) add("warning", "Perfil empresarial incompleto", `${profile.completed} de ${profile.total} datos comerciales disponibles.`, "Editar perfil", "client-settings");
+  if (!verification || String(verification.status || "").toLowerCase() !== "approved") {
+    add("review", "Verificación empresarial pendiente", "Completa o consulta la revisión necesaria para publicar y revisar postulantes.", "Abrir oportunidades", "client-opportunities");
+  }
+  const opportunitiesAreComplete = options.opportunitiesComplete !== false;
+  if (opportunitiesAreComplete && !metrics.activeOpportunities) add("warning", "No existen oportunidades activas", "Publica una iniciativa para comenzar a recibir actividad comercial.", "Nueva oportunidad", "client-opportunities");
+  if (metrics.pendingApplicants) add("active", "Postulantes pendientes de decisión", `${metrics.pendingApplicants} ${metrics.pendingApplicants === 1 ? "postulación requiere" : "postulaciones requieren"} revisión.`, "Revisar postulantes", "client-applicants");
+
+  const pendingResults = records.conversions.filter(item => !["validated", "rejected"].includes(String(item.validation_status || "").toLowerCase()));
+  if (pendingResults.length) add("review", "Resultados pendientes de validación", `${pendingResults.length} ${pendingResults.length === 1 ? "resultado requiere" : "resultados requieren"} atención.`, "Ver resultados", "client-results");
+
+  const now = Date.now();
+  const closingSoon = records.opportunities.filter(item => {
+    if (!clientActiveOpportunityStatuses.has(String(item.status || "").toLowerCase())) return false;
+    const close = clientDateTime(item.closes_at);
+    return close > now && close - now <= 7 * 86400000;
+  });
+  if (closingSoon.length) add("warning", "Oportunidades próximas a cerrar", `${closingSoon.length} ${closingSoon.length === 1 ? "oportunidad cierra" : "oportunidades cierran"} durante los próximos siete días.`, "Revisar oportunidades", "client-opportunities");
+
+  const pendingOpportunityCommissions = records.commissions.filter(item => clientPendingCommissionStatuses.has(String(item.status || "").toLowerCase()));
+  const pendingScoutCommissions = records.scoutCommissions.filter(item => clientPendingCommissionStatuses.has(String(item.status || "").toLowerCase()));
+  if (pendingOpportunityCommissions.length) add("warning", "Comisiones de oportunidad pendientes", `${pendingOpportunityCommissions.length} ${pendingOpportunityCommissions.length === 1 ? "comisión requiere" : "comisiones requieren"} seguimiento.`, "Ver pagos", "client-payments");
+  if (pendingScoutCommissions.length) add("warning", "Comisiones Scout pendientes", `${pendingScoutCommissions.length} ${pendingScoutCommissions.length === 1 ? "comisión requiere" : "comisiones requieren"} seguimiento.`, "Abrir Red Scout", "client-scout-network");
+  const pendingLinks = records.creativePayments.filter(item => String(item.payment_status || "").toLowerCase() === "pending_link");
+  if (pendingLinks.length) add("review", "Enlace de pago pendiente", `${pendingLinks.length} ${pendingLinks.length === 1 ? "operación espera" : "operaciones esperan"} configuración administrativa.`, "Ver pagos", "client-payments");
+
+  const commissionedLeadIds = new Set(records.scoutCommissions.map(item => item.lead_id).filter(Boolean));
+  const openLeads = records.scoutLeads.filter(item =>
+    ["submitted", "contacted", "qualified", "meeting"].includes(String(item.status || "").toLowerCase())
+    && !commissionedLeadIds.has(item.id)
+  );
+  if (openLeads.length) add("active", "Prospectos sin resultado registrado", `${openLeads.length} ${openLeads.length === 1 ? "prospecto necesita" : "prospectos necesitan"} seguimiento.`, "Abrir Red Scout", "client-scout-network");
+  return alerts;
+}
+
+function clientStatusClass(value = "") {
+  const status = String(value || "").toLowerCase();
+  if (["active", "published", "in_progress", "payment_enabled"].includes(status)) return "status-active";
+  if (["approved", "accepted", "validated"].includes(status)) return "status-approved";
+  if (["rejected", "cancelled", "closed", "expired"].includes(status)) return "status-rejected";
+  if (["completed", "paid"].includes(status)) return status === "paid" ? "status-paid" : "status-completed";
+  if (["in_review", "review", "submitted", "pending_link"].includes(status)) return "status-review";
+  if (["warning", "disputed"].includes(status)) return "status-warning";
+  return "status-pending";
+}
+
 function renderClientOverview() {
   const coverSlot = document.getElementById("clientDashboardCover");
   if (coverSlot) {
@@ -5482,49 +6294,278 @@ function renderClientOverview() {
     coverSlot.hidden = true;
     coverSlot.setAttribute("aria-hidden", "true");
   }
-  document.querySelector(`[data-dashboard-panel="client-overview"]`).innerHTML = clientAdvertisingOverviewMarkup();
+  const host = document.querySelector(`[data-dashboard-panel="client-overview"]`);
+  if (!host) return;
+  host.innerHTML = clientAdvertisingOverviewMarkup();
+  host.querySelectorAll("[data-client-overview-retry]").forEach(buttonElement => {
+    buttonElement.addEventListener("click", async () => {
+      buttonElement.disabled = true;
+      buttonElement.textContent = "Cargando...";
+      await ensureDashboardHydrated("client", { maxAgeMs: 0 });
+      await ensureDashboardPanelData("client-overview", { refresh: true });
+      renderClientKpis();
+      renderClientOverview();
+    });
+  });
+  host.querySelector("[data-client-overview-guide]")?.addEventListener("click", () => {
+    setClientTutorialDismissed("client-overview", false);
+    renderClientTutorial("client-overview");
+    host.querySelector("[data-client-tutorial]")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+
+  const load = dashboardPanelLoads.get("client-overview");
+  if (currentCompany()?.id && !load?.loaded && !load?.loading) {
+    queueMicrotask(() => ensureDashboardPanelData("client-overview"));
+  }
+}
+
+function clientCommandHead(kicker, title, description = "") {
+  return `
+    <header class="client-command-card-head">
+      <div>
+        <p class="client-command-kicker">${escapeHtml(kicker)}</p>
+        <h3>${escapeHtml(title)}</h3>
+        ${description ? `<p>${escapeHtml(description)}</p>` : ""}
+      </div>
+    </header>`;
+}
+
+function clientCommandStateMarkup(tables, readyMarkup, emptyMarkup = "") {
+  const status = clientExecutiveTableState(tables);
+  if (status === "loading") {
+    return `<div class="client-command-skeleton skeleton" role="status" aria-live="polite"><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span><small>Cargando información real de tu empresa...</small></div>`;
+  }
+  if (status === "error") {
+    return `<div class="client-command-empty client-command-error error" role="alert"><strong>No pudimos cargar esta información.</strong><p>Vuelve a intentar para consultar datos actualizados de tu empresa.</p><button class="btn" type="button" data-client-overview-retry>Reintentar</button></div>`;
+  }
+  const partial = status === "truncated"
+    ? `<p class="client-command-data-note">Vista parcial: puede haber más registros disponibles. Los conteos visibles representan un mínimo confirmado.</p>`
+    : "";
+  if (status === "truncated" && !readyMarkup) {
+    return `${partial}<div class="client-command-empty empty"><strong>No se encontraron registros en el tramo cargado.</strong><button class="btn" type="button" data-load-more-panel="client-overview">Cargar más registros</button></div>`;
+  }
+  return `${partial}${readyMarkup || emptyMarkup}`;
+}
+
+function clientOpportunityMapMarkup(map) {
+  const maxSegment = Math.max(1, ...map.segments.map(item => item.count));
+  const hasData = map.regions.length || map.segments.length;
+  const ready = hasData ? `
+    <div class="client-opportunity-map">
+    <div class="client-map-visual">
+      <div class="grid client-map-grid" aria-hidden="true"></div>
+      <svg viewBox="0 0 520 220" aria-hidden="true" focusable="false">
+        <path d="M42 118c58-66 133-91 217-67 55 16 80 60 139 60 35 0 61-14 83-31" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".35"/>
+        <path d="M65 162c86-33 147-25 211 2 61 25 127 20 179-20" fill="none" stroke="currentColor" stroke-width="1" opacity=".22"/>
+      </svg>
+      <div class="regions client-map-regions" role="list" aria-label="Territorios con actividad">
+        ${map.regions.map(item => `<span class="chip client-map-chip" role="listitem"><strong data-no-translate>${escapeHtml(item.label)}</strong><small>${item.count}</small></span>`).join("")}
+      </div>
+    </div>
+    <div class="client-segment-bars" role="list" aria-label="Actividad por segmento">
+      ${map.segments.map(item => `
+        <div class="row client-segment-row" role="listitem">
+          <span data-no-translate>${escapeHtml(item.label)}</span>
+          <div class="track client-segment-track" aria-hidden="true"><i class="fill client-segment-fill" style="--client-segment-value:${Math.max(8, Math.round(item.count / maxSegment * 100))}%"></i></div>
+          <strong>${item.count}</strong>
+        </div>`).join("")}
+    </div></div>` : "";
+  const empty = `<div class="client-command-empty empty"><strong>Tu mapa de oportunidades se construirá conforme publiques iniciativas y recibas actividad.</strong><button class="btn" type="button" data-dashboard-shortcut="client-opportunities">Crear la primera oportunidad</button></div>`;
+  return `
+    <section class="client-command-card">
+      ${clientCommandHead("INTELIGENCIA DE MERCADO", "Opportunity Map", "Territorios y segmentos detectados en oportunidades y prospectos reales.")}
+      ${clientCommandStateMarkup(["opportunities", "scout_leads"], ready, empty)}
+    </section>`;
+}
+
+function clientPipelineMarkup(pipeline) {
+  const colors = ["var(--client-blue)", "#7797ff", "var(--client-gold)", "var(--client-warning)", "var(--client-success)"];
+  let cursor = 0;
+  const stops = pipeline.stages.map((stage, index) => ({ stage, color: colors[index] })).filter(item => item.stage.count).map(({ stage, color }) => {
+    const start = cursor;
+    cursor += stage.count / pipeline.total * 100;
+    return `${color} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`;
+  });
+  const ready = pipeline.total ? `
+    <div class="client-pipeline-layout">
+      <div class="client-pipeline-donut donut" style="background:conic-gradient(${stops.join(",")})" aria-hidden="true">
+        <div class="center client-pipeline-center"><strong>${pipeline.total}</strong><span>registros</span></div>
+      </div>
+      <div><p class="sr-only">Total de registros: ${pipeline.total}</p><ul class="client-pipeline-legend legend">
+        ${pipeline.stages.map((stage, index) => `
+          <li class="item client-pipeline-item" style="--pipeline-color:${colors[index]}">
+            <span>${escapeHtml(stage.label)}</span>
+            <strong>${stage.count} <small>${stage.percentage}%</small></strong>
+          </li>`).join("")}
+      </ul></div>
+    </div>` : "";
+  const empty = `<div class="client-command-empty empty"><strong>Aún no existe actividad suficiente para construir el pipeline.</strong><p>Las etapas aparecerán al publicar oportunidades y recibir participación.</p></div>`;
+  return `
+    <section class="client-command-card client-pipeline-panel">
+      ${clientCommandHead("TRAZABILIDAD", "Pipeline por etapa", "Ciclo operativo real de oportunidades dentro de ROIS.")}
+      ${clientCommandStateMarkup(["opportunities", "opportunity_applications", "participations", "conversions"], ready, empty)}
+    </section>`;
+}
+
+function clientRecentOpportunitiesMarkup(items) {
+  const ready = items.length ? `
+    <div class="client-executive-table-wrap" role="region" aria-label="Oportunidades recientes" tabindex="0">
+      <table class="table client-executive-table">
+        <caption class="sr-only">Oportunidades recientes</caption>
+        <thead><tr><th scope="col">Oportunidad</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Actividad</th><th scope="col">Siguiente acción</th><th scope="col">Actualización</th></tr></thead>
+        <tbody>${items.map(item => {
+          const opportunity = item.opportunity;
+          const activity = [
+            [item.applications, "postulante", "postulantes"],
+            [item.participations, "participación", "participaciones"],
+            [item.conversions, "resultado", "resultados"]
+          ].map(([count, singular, plural]) => `<span>${count} ${count === 1 ? singular : plural}</span>`).join(`<span aria-hidden="true"> · </span>`);
+          return `<tr>
+            <td><button class="client-table-link" type="button" data-dashboard-shortcut="client-opportunities" aria-label="${escapeAttr(`Abrir oportunidad ${opportunity.title || "ROIS"}`)}">${clientAuthoredValue(opportunity.title, "Oportunidad ROIS")}</button></td>
+            <td>${escapeHtml(opportunityTypeLabel(opportunity.opportunity_type))}</td>
+            <td><span class="client-status-badge ${clientStatusClass(opportunity.status)}">${escapeHtml(opportunityStatusLabel(opportunity.status))}</span></td>
+            <td class="client-activity-counts">${activity}</td>
+            <td><button class="btn" type="button" data-dashboard-shortcut="${escapeAttr(item.nextAction.target)}">${escapeHtml(item.nextAction.label)}</button></td>
+            <td>${escapeHtml(clientRelativeDate(item.updatedAt))}</td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>
+    </div>` : "";
+  const empty = `<div class="client-command-empty empty"><strong>Aún no hay oportunidades recientes.</strong><button class="btn primary" type="button" data-dashboard-shortcut="client-opportunities">Nueva oportunidad</button></div>`;
+  return `
+    <section class="client-command-card client-recent-opportunities">
+      ${clientCommandHead("EJECUCION", "Oportunidades recientes", "Estado, actividad y siguiente accion de cada relacion comercial.")}
+      ${clientCommandStateMarkup(["opportunities", "opportunity_applications", "participations", "conversions"], ready, empty)}
+    </section>`;
+}
+
+function clientRecentActivityMarkup(items) {
+  const ready = items.length ? `<ol class="client-activity-list">${items.map(item => `
+    <li><button class="item client-activity-item" type="button" data-dashboard-shortcut="${escapeAttr(item.target)}">
+      <span class="icon client-activity-icon" aria-hidden="true">${escapeHtml(item.icon)}</span>
+      <div><strong>${escapeHtml(item.title)}</strong><p ${item.translateContext ? "" : "data-no-translate"}>${escapeHtml(item.context)}</p></div>
+      <time datetime="${escapeAttr(item.date)}">${escapeHtml(clientRelativeDate(item.date))}</time>
+    </button></li>`).join("")}</ol>` : "";
+  const empty = `<div class="client-command-empty empty"><strong>Aún no hay actividad comercial registrada.</strong><p>La actividad aparecerá cuando tu empresa publique, reciba respuestas o valide resultados.</p></div>`;
+  return `
+    <section class="client-command-card client-activity-panel">
+      ${clientCommandHead("SEGUIMIENTO", "Actividad reciente")}
+      ${clientCommandStateMarkup(["opportunities", "opportunity_applications", "mission_scouts", "scout_leads", "conversions", "scout_mission_commissions", "creative_payment_operations", "events"], ready, empty)}
+    </section>`;
+}
+
+function clientAttentionMarkup(items) {
+  const ready = items.length ? `<ul class="client-attention-list">${items.map(item => `
+    <li class="item client-attention-item" data-attention-status="${escapeAttr(clientStatusClass(item.severity))}">
+      <span class="client-status-badge ${clientStatusClass(item.severity)}">${escapeHtml(item.severity === "active" ? "Acción" : item.severity === "review" ? "Revisión" : "Atención")}</span>
+      <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.detail)}</p></div>
+      <button class="btn" type="button" data-dashboard-shortcut="${escapeAttr(item.target)}">${escapeHtml(item.action)}</button>
+    </li>`).join("")}</ul>` : "";
+  const empty = `<div class="client-command-empty empty"><strong>No hay alertas pendientes.</strong><p>Tu operación se encuentra al día con la información disponible.</p></div>`;
+  return `
+    <section class="client-command-card client-attention-panel">
+      ${clientCommandHead("SIGUIENTE ACCION", "Requiere tu atencion")}
+      ${clientCommandStateMarkup(["opportunities", "opportunity_applications", "company_verifications", "conversions", "commissions", "scout_leads", "scout_mission_commissions", "creative_payment_operations"], ready, empty)}
+    </section>`;
+}
+
+function clientQuickActionsMarkup() {
+  const actions = [
+    ["Nueva oportunidad", "Define y envía una iniciativa a revisión.", "client-opportunities"],
+    ["Revisar postulantes", "Decide quien puede ejecutar tus oportunidades.", "client-applicants"],
+    ["Explorar eventos", "Consulta eventos con contexto comercial.", "client-events"],
+    ["Mercado Corporativo", "Explora activos y oportunidades empresariales.", "client-sponsors"],
+    ["Mercado de fichajes", "Revisa talento deportivo disponible.", "client-marketplace"],
+    ["Ver resultados", "Consulta participaciones y valor validado.", "client-results"]
+  ];
+  return `
+    <section class="client-command-card">
+      ${clientCommandHead("ACCESOS DIRECTOS", "Acciones rapidas")}
+      <div class="client-quick-actions">${actions.map(([title, detail, target]) => `
+        <button class="client-quick-action" type="button" data-dashboard-shortcut="${escapeAttr(target)}">
+          <strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span><i aria-hidden="true">→</i>
+        </button>`).join("")}</div>
+    </section>`;
 }
 
 function clientAdvertisingOverviewMarkup() {
   const company = currentCompany();
-  const news = state.data.news
-    .filter(item => item.status === "published" && visualIsPublic(item))
-    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const companyName = company?.name || state.session?.name || "Empresa ROIS";
-  const interest = company?.interest || "Oportunidades premium";
-  const description = company?.description || "Cuenta empresarial habilitada para explorar el Mercado Corporativo, athletes, creadores, eventos privados y oportunidades administradas por ROIS.";
+  const metrics = buildClientExecutiveMetrics(company);
+  const records = metrics.records;
+  const profile = clientCompanyProfileProgress(company);
+  const verification = records.verifications[0];
+  const verificationState = clientExecutiveTableState(["company_verifications"]);
+  const activityState = clientExecutiveTableState([
+    "opportunities", "opportunity_applications", "participations", "conversions",
+    "commissions", "mission_scouts", "scout_leads", "scout_mission_commissions",
+    "events", "creative_payment_operations"
+  ]);
+  const approvalStatus = verificationState === "loading"
+    ? "Cargando"
+    : ["error", "truncated"].includes(verificationState)
+      ? "No disponible"
+      : opportunityStatusLabel(verification?.status || "pending");
+  const latestActivity = clientLatestActivityAt(records);
+  const latestActivityLabel = activityState === "loading"
+    ? "Cargando"
+    : ["error", "truncated"].includes(activityState)
+      ? "—"
+      : latestActivity
+        ? clientRelativeDate(latestActivity)
+        : "Sin actividad registrada";
+  const logo = company?.logo_url || profileImageFallback;
+  const load = dashboardPanelLoads.get("client-overview");
+  const dataNotice = !company?.id && hydratedRoles.has("client")
+    ? `<div class="client-command-card client-command-error error" role="alert"><strong>No pudimos vincular esta sesión con una empresa.</strong><p>Recarga la plataforma o contacta a ROIS para revisar la relación de tu cuenta empresarial.</p><button class="btn" type="button" data-client-overview-retry>Reintentar</button></div>`
+    : load?.failedTables?.length
+    ? `<div class="client-command-card client-command-error error" role="alert"><strong>No pudimos cargar el resumen ejecutivo completo.</strong><p>Fuentes no disponibles: ${escapeHtml(load.failedTables.join(", "))}.</p><button class="btn" type="button" data-client-overview-retry>Reintentar</button></div>`
+    : load?.truncatedTables?.length
+      ? `<div class="client-command-card client-command-data-note" role="status"><strong>Vista ejecutiva parcial.</strong><p>Se alcanzó el límite de 250 registros en: ${escapeHtml(load.truncatedTables.join(", "))}. Puede haber más registros disponibles. Los conteos marcados con + son límites inferiores confirmados.</p><button class="btn" type="button" data-load-more-panel="client-overview">Cargar más registros</button></div>`
+      : "";
 
   return `
-    <div class="client-ad-home">
-      <section class="client-company-card">
-        <div class="company-profile-logo">${clientCompanyLogoMarkup(company)}</div>
-        <div class="client-company-copy">
-          <p class="eyebrow">Perfil empresarial</p>
-          <h2>${escapeHtml(companyName)}</h2>
-          <p><strong>${escapeHtml(interest)}</strong></p>
-          <p>${escapeHtml(description)}</p>
-          <div class="company-profile-actions">
-          <button class="btn primary" type="button" data-dashboard-shortcut="client-sponsors">Explorar mercado corporativo</button>
-            <button class="btn" type="button" data-dashboard-shortcut="client-marketplace">Ver mercado de fichajes</button>
-            <button class="btn" type="button" data-dashboard-shortcut="client-founders">Ver creadores</button>
-            <button class="btn" type="button" data-dashboard-shortcut="client-settings">Editar perfil</button>
+    <div class="client-ad-home client-executive-shell">
+      <section class="client-executive-hero">
+        <div class="client-executive-identity">
+          <div class="logo client-executive-logo${company?.logo_url ? "" : " is-rois-fallback"}" data-no-translate>${safeProfileImageMarkup(logo, companyName, profileImageFallback)}</div>
+          <div class="copy client-executive-copy">
+            <p class="eyebrow">RESUMEN EJECUTIVO</p>
+            <h2 data-no-translate>${escapeHtml(companyName)}</h2>
+            <p>Visión general de oportunidades y relaciones comerciales.</p>
+            <strong>Cada oportunidad necesita contexto, responsable y siguiente acción.</strong>
+            <div class="meta client-executive-meta">
+              ${company?.industry ? `<span><small>Industria</small><strong data-no-translate>${escapeHtml(company.industry)}</strong></span>` : ""}
+              ${company?.city || company?.location ? `<span><small>Ciudad</small><strong data-no-translate>${escapeHtml(company.city || company.location)}</strong></span>` : ""}
+              <span><small>Interés principal</small><strong ${company?.interest ? "data-no-translate" : ""}>${escapeHtml(company?.interest || "Por definir")}</strong></span>
+              <span><small>Perfil</small><strong>${profile.ready ? "Perfil completo" : `Perfil incompleto · ${profile.percentage}%`}</strong></span>
+              <span><small>Aprobación</small><strong class="client-status-badge ${clientStatusClass(verification?.status || "pending")}">${escapeHtml(approvalStatus)}</strong></span>
+              <span><small>Última actualización</small><strong>${escapeHtml(latestActivityLabel)}</strong></span>
+            </div>
           </div>
+        </div>
+        <div class="actions client-executive-actions">
+          <button class="btn primary" type="button" data-dashboard-shortcut="client-opportunities">Nueva oportunidad</button>
+          <button class="btn" type="button" data-dashboard-shortcut="client-settings">Editar perfil</button>
+          <button class="btn" type="button" data-client-overview-guide>Ver guía</button>
+          <button class="btn" type="button" data-logout>Cerrar sesión</button>
         </div>
       </section>
 
-        <section class="client-editorial-feed">
-          <div class="section-minihead">
-            <p class="eyebrow">Noticias ROIS</p>
-            <h3>Actualizaciones publicadas por administracion.</h3>
-            <p>Mensajes, aperturas de inventario, alianzas y oportunidades que requieren atencion empresarial.</p>
-          </div>
-          ${news.length ? `<div class="editorial-news-stack">${news.map(item => editorialNewsCard(item, {
-            kicker: "Nota ROIS",
-            text: item.summary
-          })).join("")}</div>` : `<div class="empty">Las noticias publicadas por admin apareceran aqui.</div>`}
-        </section>
-    </div>
-  `;
+      ${dataNotice}
+      <div class="client-overview-grid">
+        ${clientOpportunityMapMarkup(buildClientOpportunityMap(company))}
+        ${clientPipelineMarkup(buildClientOpportunityPipeline(company))}
+      </div>
+      ${clientRecentOpportunitiesMarkup(buildClientRecentOpportunities(company))}
+      <div class="client-overview-grid client-overview-grid-secondary">
+        ${clientRecentActivityMarkup(buildClientRecentActivity(company))}
+        ${clientAttentionMarkup(buildClientAttentionItems(company, state.data, {
+          opportunitiesComplete: clientExecutiveTableState(["opportunities"]) === "ready"
+        }))}
+      </div>
+      ${clientQuickActionsMarkup()}
+    </div>`;
 }
 
 function clientNewsPreviewCard(news) {
@@ -5836,32 +6877,75 @@ async function requestPremiumAllianceProduct(value) {
 
 function renderClientHeader() {
   const company = currentCompany();
-  document.getElementById("clientAccountEyebrow").textContent = "Cuenta aprobada";
+  const overviewActive = document.getElementById("clientView")?.dataset.clientPanel === "client-overview";
+  document.getElementById("clientAccountEyebrow").textContent = overviewActive ? "Resumen ejecutivo" : "Inteligencia comercial";
   document.getElementById("clientAccountName").textContent = company?.name || state.session?.name || "Cuenta ROIS";
   const companyLogo = document.getElementById("clientCompanyLogo");
   if (companyLogo) {
-    companyLogo.hidden = !company?.logo_url;
-    if (company?.logo_url) companyLogo.src = company.logo_url;
+    companyLogo.hidden = false;
+    companyLogo.src = company?.logo_url || profileImageFallback;
+    companyLogo.dataset.fallback = profileImageFallback;
+    companyLogo.classList.toggle("is-rois-fallback", !company?.logo_url);
+    companyLogo.alt = company?.name
+      ? `${state.dashboardLanguage === "en" ? "Logo of" : "Logotipo de"} ${company.name}`
+      : "ROIS TRADE";
+    companyLogo.onerror = () => {
+      companyLogo.onerror = null;
+      companyLogo.src = profileImageFallback;
+      companyLogo.classList.add("is-rois-fallback");
+    };
   }
   applySessionBranding();
 }
 
+function clientKpiValue(value, tables, options = {}) {
+  const status = clientExecutiveTableState(tables);
+  if (status === "loading") return { markup: `<span class="skeleton" role="status">Cargando</span>`, detail: "Sincronizando datos" };
+  if (status === "error") return { markup: "—", detail: "Fuente no disponible" };
+  if (status === "truncated") {
+    if (options.money) return { markup: "—", detail: "Suma parcial no mostrada" };
+    return { markup: `${Number(value || 0).toLocaleString("es-MX")}+`, detail: "Minimo confirmado" };
+  }
+  const markup = options.money
+    ? money(value)
+    : Number(value || 0).toLocaleString("es-MX");
+  return { markup, detail: options.detail || "Datos de tu empresa" };
+}
+
 function renderClientKpis() {
-  const countFor = (targetId, records) => {
-    const status = dashboardPanelLoads.get(targetId);
-    if (!status?.loaded) return "Al abrir";
-    return status.hasMore ? `${records.length}+` : records.length;
-  };
-  const events = countFor("client-events", state.data.events.filter(item => item.status === "approved" && visualIsPublic(item)));
-  const athletes = countFor("client-marketplace", clientAthleteRecords());
-  const founders = countFor("client-founders", clientFounderRecords());
-  const pendingPayments = countFor("client-payments", state.data.payments.filter(item => item.status !== "paid"));
-  document.getElementById("clientKpis").innerHTML = [
-    ["Eventos", events],
-    ["Athletes", athletes],
-    ["Creadores", founders],
-    ["Pagos", pendingPayments]
-  ].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong></div>`).join("");
+  const host = document.getElementById("clientKpis");
+  if (!host) return;
+  const overviewState = clientExecutiveTableState([
+    "opportunities", "opportunity_applications", "participations", "conversions",
+    "mission_scouts", "scout_leads", "commissions", "scout_mission_commissions"
+  ]);
+  host.setAttribute("aria-busy", String(overviewState === "loading"));
+  const metrics = buildClientExecutiveMetrics(currentCompany());
+  const primary = [
+    { label: "Oportunidades activas", value: metrics.activeOpportunities, tables: ["opportunities"], detail: "Publicadas o en ejecucion" },
+    { label: "Postulantes por revisar", value: metrics.pendingApplicants, tables: ["opportunities", "opportunity_applications"], detail: "Decisiones pendientes" },
+    { label: "Prospectos registrados", value: metrics.registeredProspects, tables: ["scout_leads"], detail: "Red Scout empresarial" },
+    { label: "Valor validado", value: metrics.validatedValue, tables: ["opportunities", "conversions"], detail: "Resultados economicos validados", money: true }
+  ];
+  const secondary = [
+    { label: "Scouts activos", value: metrics.activeScouts, tables: ["mission_scouts"] },
+    { label: "Participaciones activas", value: metrics.activeParticipations, tables: ["opportunities", "participations"] },
+    { label: "Resultados enviados", value: metrics.submittedResults, tables: ["opportunities", "conversions"] },
+    { label: "Resultados validados", value: metrics.validatedResults, tables: ["opportunities", "conversions"] },
+    { label: "Comisiones pendientes", value: metrics.pendingCommissions, tables: ["opportunities", "commissions", "scout_mission_commissions"] }
+  ];
+  host.classList.add("client-kpi-grid");
+  host.innerHTML = `
+      ${primary.map(item => {
+        const display = clientKpiValue(item.value, item.tables, item);
+        return `<article class="card client-kpi-card"><span class="label client-kpi-label">${escapeHtml(item.label)}</span><strong class="value client-kpi-value">${display.markup}</strong><small class="detail client-kpi-detail">${escapeHtml(display.detail || item.detail)}</small></article>`;
+      }).join("")}
+    <div class="client-secondary-metrics">
+      ${secondary.map(item => {
+        const display = clientKpiValue(item.value, item.tables, item);
+        return `<div class="metric client-secondary-metric"><span>${escapeHtml(item.label)}</span><strong>${display.markup}</strong><small>${escapeHtml(display.detail)}</small></div>`;
+      }).join("")}
+    </div>`;
 }
 
 function renderClientEvents() {
@@ -5901,6 +6985,18 @@ function corporateMarketplaceListings() {
     .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
 }
 
+function clientAuthoredValue(value, fallback) {
+  const authored = value !== null && value !== undefined && String(value).trim() !== "";
+  return authored
+    ? `<span data-no-translate>${escapeHtml(value)}</span>`
+    : escapeHtml(fallback);
+}
+
+function clientOpportunityTitleValue(opportunityId, fallback = "Mision comercial") {
+  const title = (state.data?.opportunities || []).find(item => item.id === opportunityId)?.title;
+  return clientAuthoredValue(title, fallback);
+}
+
 function companyListingCard(listing) {
   const own = listing.company_id === currentCompany()?.id;
   const image = listing.primary_image_url || "./assets/rois-isotipo-cropped.png";
@@ -5911,17 +7007,17 @@ function companyListingCard(listing) {
         <div class="corporate-listing-badges">
           <span class="pill">${escapeHtml(companyListingTypeLabel(listing.listing_type))}</span>
           ${listing.featured ? `<span class="pill premium">Destacado</span>` : ""}
-          ${own ? `<span class="pill">${escapeHtml(listing.status || "pending")}</span>` : ""}
+          ${own ? `<span class="pill">${escapeHtml(opportunityStatusLabel(listing.status || "pending"))}</span>` : ""}
         </div>
       </div>
       <div class="corporate-listing-copy">
-        <p class="eyebrow">${escapeHtml(listing.company_name || "Empresa ROIS")} · ${escapeHtml(listing.category || "Corporativo")}</p>
-        <h3>${escapeHtml(listing.title || "Oferta corporativa")}</h3>
-        <p>${escapeHtml(listing.summary || listing.description || "Información disponible para empresas ROIS.")}</p>
+        <p class="eyebrow">${clientAuthoredValue(listing.company_name, "Empresa ROIS")} · ${clientAuthoredValue(listing.category, "Corporativo")}</p>
+        <h3>${clientAuthoredValue(listing.title, "Oferta corporativa")}</h3>
+        <p>${clientAuthoredValue(listing.summary || listing.description, "Información disponible para empresas ROIS.")}</p>
         <div class="corporate-listing-meta">
-          <div><span>Condición comercial</span><strong>${escapeHtml(companyListingPrice(listing))}</strong></div>
+          <div><span>Condición comercial</span><strong>${clientAuthoredValue(listing.price_label, companyListingPrice(listing))}</strong></div>
           <div><span>Disponibilidad</span><strong>${escapeHtml(companyListingAvailabilityLabel(listing.availability))}</strong></div>
-          <div><span>Ubicación</span><strong>${escapeHtml(listing.location || "Por confirmar")}</strong></div>
+          <div><span>Ubicación</span><strong>${clientAuthoredValue(listing.location, "Por confirmar")}</strong></div>
         </div>
         <div class="action-row">
           ${own
@@ -6198,7 +7294,7 @@ function marketProfileCard(profile, options = {}) {
         ${safeProfileImageMarkup(profile.image_url, displayName || typeLabel)}
       </div>
       <div class="market-profile-summary">
-        <h3>${escapeHtml(displayName || typeLabel)}</h3>
+        <h3>${clientAuthoredValue(displayName, typeLabel)}</h3>
         <div class="market-profile-actions">
           <button class="btn" type="button" data-athlete-profile="${escapeAttr(profile.id)}">Ver perfil</button>
           ${athleteSponsorCta(profile, founder ? "Solicitar colaboracion" : "Solicitar patrocinio")}
@@ -6281,26 +7377,81 @@ function renderClientRegister() {
   });
 }
 
+function clientPaymentStatusLabel(value, options = {}) {
+  const commission = options.commission === true;
+  const status = String(value || "pending").toLowerCase();
+  const labels = {
+    pending: "Pendiente",
+    pending_review: "En revisión",
+    review: "En revisión",
+    payment_started: "Pago iniciado",
+    approved: commission ? "Aprobada" : "Aprobado",
+    validated: commission ? "Validada" : "Validado",
+    paid: commission ? "Pagada" : "Pagado",
+    cancelled: commission ? "Cancelada" : "Cancelado",
+    disputed: "En disputa"
+  };
+  return labels[status] || "Pendiente";
+}
+
 function renderClientPayments() {
-  const companyName = currentCompany()?.name || state.session?.name || "";
-  const rows = state.data.payments.filter(payment => payment.company === companyName).map(payment => [
-    payment.concept,
+  const company = currentCompany();
+  const paymentSourceTables = ["payments", "opportunities", "commissions", "creative_payment_operations"];
+  const paymentState = clientPanelTableState("client-payments", paymentSourceTables);
+  if (paymentState === "loading") {
+    panel("client-payments", "Pagos", "Operaciones y compromisos comerciales ROIS", `
+      <div class="panel-body"><div class="client-command-skeleton skeleton" role="status" aria-live="polite"><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span><small>Cargando operaciones empresariales...</small></div></div>
+    `);
+    return;
+  }
+  if (paymentState === "error") {
+    panel("client-payments", "Pagos", "Operaciones y compromisos comerciales ROIS", `
+      <div class="panel-body"><div class="client-command-empty client-command-error error" role="alert"><strong>No pudimos cargar las operaciones empresariales.</strong><p>Vuelve a intentar para consultar pagos y compromisos actualizados.</p><button class="btn" type="button" data-refresh-dashboard-panel="client-payments">Reintentar</button></div></div>
+    `);
+    return;
+  }
+  const companyName = company?.name || "";
+  const rows = (state.data.payments || []).filter(payment => payment.company === companyName).map(payment => [
+    clientAuthoredValue(payment.concept, "Pago ROIS"),
     `$${Number(payment.amount).toLocaleString("es-MX")} MXN`,
-    badge(payment.status),
+    badge(clientPaymentStatusLabel(payment.status)),
     payment.status === "paid" ? "Pagado" : button("Pagar con Stripe", () => payClientPayment(payment.id))
   ]);
-  const creativeOperations = state.data.creative_payment_operations || [];
+  const opportunityById = new Map((state.data.opportunities || [])
+    .filter(opportunity => opportunity.company_id === company?.id)
+    .map(opportunity => [opportunity.id, opportunity]));
+  const opportunityCommissionRows = (state.data.commissions || [])
+    .filter(commission => commission.company_id === company?.id)
+    .map(commission => [
+      clientAuthoredValue(opportunityById.get(commission.opportunity_id)?.title, "Oportunidad ROIS"),
+      money(commission.gross_amount),
+      money(commission.net_amount),
+      badge(clientPaymentStatusLabel(commission.status, { commission: true })),
+      escapeHtml(readableDate(commission.updated_at || commission.paid_at || commission.created_at))
+    ]);
+  const creativeOperations = (state.data.creative_payment_operations || [])
+    .filter(operation => operation.company_id === company?.id);
+  const partialNotice = paymentState === "truncated"
+    ? `<div class="panel-body"><p class="client-command-data-note">Vista parcial: puede haber más operaciones disponibles.</p></div>`
+    : "";
   panel("client-payments", "Pagos", "Operaciones y compromisos comerciales ROIS", `
+    ${partialNotice}
     ${rows.length ? table(["Concepto", "Monto", "Estado", "Acci\u00f3n"], rows) : `
       <div class="panel-body"><div class="empty">No hay otros pagos empresariales registrados.</div></div>
     `}
     <div class="panel-body">
+      <div class="section-minihead"><p class="eyebrow">Comisiones de oportunidades</p><h3>Compromisos derivados de resultados comerciales registrados.</h3></div>
+      ${opportunityCommissionRows.length
+        ? table(["Oportunidad", "Valor bruto", "Valor neto", "Estado", "Actualización"], opportunityCommissionRows)
+        : `<div class="empty">No hay comisiones de oportunidades vinculadas a esta empresa.</div>`}
+    </div>
+    <div class="panel-body">
       <div class="section-minihead"><p class="eyebrow">Operaciones de Impulso Creativo</p><h3>Cotizaciones aceptadas vinculadas a tu empresa.</h3></div>
       ${creativeOperations.length ? `<div class="creative-payment-grid">${creativeOperations.map(operation => `
         <article class="creative-payment-card">
-          <div class="creative-payment-card-head"><div><p class="eyebrow">${escapeHtml(operation.campaign_title || "Impulso creativo")}</p><h4>${escapeHtml(operation.participant_name || "Participante ROIS")}</h4></div>${badge(creativePaymentStatusLabel(operation.payment_status))}</div>
+          <div class="creative-payment-card-head"><div><p class="eyebrow">${clientAuthoredValue(operation.campaign_title, "Impulso creativo")}</p><h4>${clientAuthoredValue(operation.participant_name, "Participante ROIS")}</h4></div>${badge(creativePaymentStatusLabel(operation.payment_status))}</div>
           <div class="creative-payment-company-amount"><span>Monto aceptado</span><strong>${money(operation.gross_amount)} ${escapeHtml(operation.currency || "MXN")}</strong></div>
-          <p class="hint">Actualizacion: ${escapeHtml(formatDate(operation.updated_at || operation.created_at))}${operation.paid_at ? ` · Pago confirmado: ${escapeHtml(formatDate(operation.paid_at))}` : ""}</p>
+          <p class="hint"><span>Actualización:</span> <span>${escapeHtml(readableDate(operation.updated_at || operation.created_at))}</span>${operation.paid_at ? ` <span>· Pago confirmado:</span> <span>${escapeHtml(readableDate(operation.paid_at))}</span>` : ""}</p>
           ${creativePaymentLinkMarkup(operation, true)}
         </article>
       `).join("")}</div>` : `<div class="empty">No hay operaciones de Impulso creativo vinculadas a esta empresa.</div>`}
@@ -9479,9 +10630,14 @@ const opportunityTypeLabels = {
 };
 
 const opportunityStatusLabels = {
+  pending: "Pendiente",
   draft: "Borrador",
   in_review: "En revision",
+  approved: "Aprobada",
   published: "Publicada",
+  active: "Activa",
+  paused: "Pausada",
+  removed: "Retirada",
   submitted: "Postulacion enviada",
   information_requested: "Informacion solicitada",
   accepted: "Aceptada",
@@ -9493,6 +10649,8 @@ const opportunityStatusLabels = {
   commission_paid: "Comision pagada",
   completed: "Completada",
   cancelled: "Cancelada",
+  closed: "Cerrada",
+  expired: "Vencida",
   disputed: "En disputa"
 };
 
@@ -9575,6 +10733,7 @@ function opportunityCompensation(opportunity) {
 function opportunityCardMarkup(opportunity, options = {}) {
   const canApply = options.canApply === true;
   const deadline = opportunity.closes_at ? readableDate(opportunity.closes_at) : "Vigencia abierta";
+  const company = (state.data?.companies || []).find(item => item.id === opportunity.company_id);
   return `
     <article class="opportunity-card" data-opportunity-type="${escapeAttr(opportunity.opportunity_type || "")}">
       <div class="opportunity-card-head">
@@ -9585,13 +10744,13 @@ function opportunityCardMarkup(opportunity, options = {}) {
         <span class="opportunity-status">${escapeHtml(opportunityStatusLabel(opportunity.status))}</span>
       </div>
       <div>
-        <p class="eyebrow">${escapeHtml(opportunityCompanyName(opportunity))}</p>
-        <h3>${escapeHtml(opportunity.title || "Oportunidad ROIS")}</h3>
-        <p>${escapeHtml(opportunity.description || "Consulta las condiciones completas antes de participar.")}</p>
+        <p class="eyebrow">${clientAuthoredValue(company?.name, "Empresa verificada ROIS")}</p>
+        <h3>${clientAuthoredValue(opportunity.title, "Oportunidad ROIS")}</h3>
+        <p>${clientAuthoredValue(opportunity.description, "Consulta las condiciones completas antes de participar.")}</p>
       </div>
       <dl class="opportunity-facts">
-        <div><dt>Modalidad</dt><dd>${escapeHtml(opportunity.modality || "Por definir")}</dd></div>
-        <div><dt>Territorio</dt><dd>${escapeHtml(opportunity.territory || opportunity.location || "Abierto")}</dd></div>
+        <div><dt>Modalidad</dt><dd>${clientAuthoredValue(opportunity.modality, "Por definir")}</dd></div>
+        <div><dt>Territorio</dt><dd>${clientAuthoredValue(opportunity.territory || opportunity.location, "Abierto")}</dd></div>
         <div><dt>Compensacion</dt><dd>${escapeHtml(opportunityCompensation(opportunity))}</dd></div>
         <div><dt>Cierre</dt><dd>${escapeHtml(deadline)}</dd></div>
         ${opportunity.scout_enabled ? `<div><dt>Comision Scout</dt><dd>${money(opportunity.scout_reward_amount)}</dd></div>` : ""}
@@ -10045,10 +11204,10 @@ function renderClientScoutNetwork() {
     .filter(item => ["pending", "approved"].includes(item.status))
     .reduce((sum, item) => sum + Number(item.net_amount || 0), 0);
   const membershipRows = memberships.map(item => [
-    escapeHtml(scoutMissionName(item.opportunity_id)),
-    escapeHtml(item.scout_public_name || "Usuario ROIS"),
-    escapeHtml(item.scout_code || ""),
-    badge(item.status || "pending"),
+    clientOpportunityTitleValue(item.opportunity_id),
+    clientAuthoredValue(item.scout_public_name, "Usuario ROIS"),
+    clientAuthoredValue(item.scout_code, "—"),
+    badge(opportunityStatusLabel(item.status || "pending")),
     actionGroup([
       item.status === "pending" ? button("Activar", () => updateMissionScoutStatus(item, "active")) : "",
       !["paused", "rejected", "removed"].includes(item.status) ? button("Pausar", () => updateMissionScoutStatus(item, "paused")) : ""
@@ -10057,10 +11216,10 @@ function renderClientScoutNetwork() {
   const leadRows = leads.map(item => {
     const nextStatus = nextScoutLeadStatus(item.status);
     return [
-      escapeHtml(scoutMissionName(item.opportunity_id)),
-      escapeHtml(item.prospect_name || "Prospecto"),
-      escapeHtml(item.prospect_company || item.prospect_type || ""),
-      escapeHtml(item.scout_code || ""),
+      clientOpportunityTitleValue(item.opportunity_id),
+      clientAuthoredValue(item.prospect_name, "Prospecto"),
+      clientAuthoredValue(item.prospect_company || item.prospect_type, "—"),
+      clientAuthoredValue(item.scout_code, "—"),
       badge(scoutLeadStatusLabel(item.status)),
       actionGroup([
         nextStatus ? button(`Marcar ${scoutLeadStatusLabel(nextStatus)}`, () => updateScoutLeadStatus(item, nextStatus)) : "",
@@ -10069,11 +11228,11 @@ function renderClientScoutNetwork() {
     ];
   });
   const commissionRows = commissions.map(item => [
-    escapeHtml(scoutMissionName(item.opportunity_id)),
-    escapeHtml(item.scout_code || ""),
+    clientOpportunityTitleValue(item.opportunity_id),
+    clientAuthoredValue(item.scout_code, "—"),
     escapeHtml(scoutLeadStatusLabel(item.trigger_type)),
     money(item.net_amount),
-    badge(item.status || "pending"),
+    badge(clientPaymentStatusLabel(item.status, { commission: true })),
     escapeHtml(item.estimated_payment_at ? readableDate(item.estimated_payment_at) : "Por definir")
   ]);
   panel("client-scout-network", "Red Scout", "Participantes, prospectos y resultados por mision", `
@@ -10221,9 +11380,9 @@ function renderClientApplicants() {
     const shared = application.shared_profile_snapshot || {};
     const snapshot = typeof shared === "string" ? (() => { try { return JSON.parse(shared); } catch (error) { return {}; } })() : shared;
     return [
-      escapeHtml(opportunity?.title || "Oportunidad"),
-      escapeHtml(snapshot.name || snapshot.public_name || "Perfil autorizado"),
-      escapeHtml(Object.entries(snapshot).filter(([key]) => key !== "name").map(([, value]) => Array.isArray(value) ? value.join(", ") : value).filter(Boolean).join(" · ") || "Sin datos adicionales"),
+      clientAuthoredValue(opportunity?.title, "Oportunidad"),
+      clientAuthoredValue(snapshot.name || snapshot.public_name, "Perfil autorizado"),
+      clientAuthoredValue(Object.entries(snapshot).filter(([key]) => key !== "name").map(([, value]) => Array.isArray(value) ? value.join(", ") : value).filter(Boolean).join(" · "), "Sin datos adicionales"),
       badge(opportunityStatusLabel(application.status)),
       actionGroup([
         button("Aceptar", () => decideOpportunityApplication(application, "accepted")),
@@ -10260,16 +11419,38 @@ async function decideOpportunityApplication(application, status) {
 
 function renderClientOpportunityResults() {
   const companyId = currentCompany()?.id;
-  const participations = (state.data?.participations || []).filter(item => !companyId || item.company_id === companyId);
-  const conversions = (state.data?.conversions || []).filter(item => !companyId || item.company_id === companyId);
+  if (!companyId) {
+    panel("client-results", "Resultados", "Acceso protegido", `
+      <div class="panel-body"><div class="client-command-empty client-command-error error" role="alert"><strong>No pudimos vincular esta sesión con una empresa.</strong><p>Recarga la plataforma o contacta a ROIS para revisar la relación de tu cuenta empresarial.</p></div></div>
+    `);
+    return;
+  }
+  const resultState = clientPanelTableState("client-results", ["participations", "conversions"]);
+  if (resultState === "loading") {
+    panel("client-results", "Resultados", "Actividad y conversiones verificadas", `
+      <div class="panel-body"><div class="client-command-skeleton skeleton" role="status" aria-live="polite"><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span><small>Cargando información real de tu empresa...</small></div></div>
+    `);
+    return;
+  }
+  if (resultState === "error") {
+    panel("client-results", "Resultados", "Actividad y conversiones verificadas", `
+      <div class="panel-body"><div class="client-command-empty client-command-error error" role="alert"><strong>No pudimos cargar esta información.</strong><p>Vuelve a intentar para consultar datos actualizados de tu empresa.</p><button class="btn" type="button" data-refresh-dashboard-panel="client-results">Reintentar</button></div></div>
+    `);
+    return;
+  }
+  const participations = (state.data?.participations || []).filter(item => item.company_id === companyId);
+  const conversions = (state.data?.conversions || []).filter(item => item.company_id === companyId);
   const validated = conversions.filter(item => item.validation_status === "validated");
+  const isPartial = resultState === "truncated";
+  const count = value => `${value}${isPartial ? "+" : ""}`;
   panel("client-results", "Resultados", "Actividad y conversiones verificadas", `
     <div class="panel-body">
+      ${isPartial ? `<p class="client-command-data-note">Vista parcial: puede haber más registros disponibles. Los conteos visibles representan un mínimo confirmado.</p>` : ""}
       <div class="scout-metrics">
-        <div><span>Participaciones</span><strong>${participations.length}</strong></div>
-        <div><span>Conversiones</span><strong>${conversions.length}</strong></div>
-        <div><span>Validadas</span><strong>${validated.length}</strong></div>
-        <div><span>Valor validado</span><strong>${money(validated.reduce((sum, item) => sum + Number(item.economic_value || 0), 0))}</strong></div>
+        <div><span>Participaciones</span><strong>${count(participations.length)}</strong></div>
+        <div><span>Conversiones</span><strong>${count(conversions.length)}</strong></div>
+        <div><span>Validadas</span><strong>${count(validated.length)}</strong></div>
+        <div><span>Valor validado</span><strong>${isPartial ? "—" : money(validated.reduce((sum, item) => sum + Number(item.economic_value || 0), 0))}</strong></div>
       </div>
       <div class="empty">La captura detallada de resultados se habilita al iniciar una participacion aceptada. ROIS mantiene validacion y auditoria.</div>
     </div>`);
@@ -13901,15 +15082,15 @@ function eventClientCard(event) {
       </div>
       <div class="event-commercial-content">
         <div class="event-commercial-heading">
-          <div><p class="eyebrow">${escapeHtml(event.category || "Evento ROIS")}</p><h3>${escapeHtml(event.name || "Evento ROIS")}</h3></div>
-          <div class="event-commercial-meta"><span>${escapeHtml(event.venue || "Sede por confirmar")}</span><span>${escapeHtml(event.date || "Fecha por confirmar")}</span></div>
+          <div><p class="eyebrow">${clientAuthoredValue(event.category, "Evento ROIS")}</p><h3>${clientAuthoredValue(event.name, "Evento ROIS")}</h3></div>
+          <div class="event-commercial-meta"><span>${clientAuthoredValue(event.venue, "Sede por confirmar")}</span><span>${clientAuthoredValue(event.date, "Fecha por confirmar")}</span></div>
         </div>
-        <section><p class="eyebrow">Alcance y posicionamiento</p>${formatEditorialBody(scope)}</section>
-        <section><p class="eyebrow">Patrocinio y participaci\u00f3n empresarial</p>${formatEditorialBody(sponsorship)}</section>
+        <section><p class="eyebrow">Alcance y posicionamiento</p><div ${event.event_scope ? "data-no-translate" : ""}>${formatEditorialBody(scope)}</div></section>
+        <section><p class="eyebrow">Patrocinio y participaci\u00f3n empresarial</p><div ${event.sponsor_levels ? "data-no-translate" : ""}>${formatEditorialBody(sponsorship)}</div></section>
         ${event.brochure_url ? `
           <section class="event-brochure-section">
             <div class="event-brochure-heading">
-              <div><p class="eyebrow">Documento comercial</p><h4>${escapeHtml(event.brochure_name || "Brochure del evento")}</h4></div>
+              <div><p class="eyebrow">Documento comercial</p><h4>${clientAuthoredValue(event.brochure_name, "Brochure del evento")}</h4></div>
               ${eventBrochureLink(event)}
             </div>
             <iframe class="event-brochure-viewer" src="${escapeAttr(event.brochure_url)}#view=FitH" title="Brochure de ${escapeAttr(event.name || "Evento ROIS")}" loading="lazy"></iframe>
