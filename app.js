@@ -1932,7 +1932,7 @@ function invalidateClientPanelLoadsForTables(sourceTargetId, tables = []) {
 }
 
 async function ensureDashboardPanelData(targetId, options = {}) {
-  if(isScoutSession() && targetId==="commercial-missions" && !currentUniversalProfile()) {
+  if(isScoutSession() && targetId==="commercial-missions") {
     try {
       const profile=await api.agentRpc("rois_scout_mission_profile");
       replaceRecordInState("user_profiles",profile);
@@ -13574,7 +13574,7 @@ function agentAccountName(id) {
 }
 function agentPublishingCompany(a) {
   if(a?.company_id)return a.company_id;
-  return agentAssignments().find(p=>p.id===a?.scope?.publishing_assignment_id)?.company_id||null;
+  return a?.scope?.institutional_publisher_company_id||null;
 }
 function agentMaster(a) {
   if(!a||a.account_type==="company") return null;
@@ -13587,7 +13587,7 @@ function agentScope(assignmentId=agentActiveAssignment) {
   const assignments=agentAssignments().filter(a=>!assignmentId||a.id===assignmentId);
   const ids=new Set(assignments.map(a=>a.id)), companies=new Set(assignments.map(a=>a.company_id).filter(Boolean));
   const own=t=>agentRecords(t).filter(r=>ids.has(r.assignment_id));
-  const corporate=t=>agentRecords(t).filter(r=>(companies.has(r.company_id)||ids.has(r.commercial_assignment_id))&&!r.deleted_at);
+  const corporate=t=>agentRecords(t).filter(r=>(r.commercial_assignment_id?ids.has(r.commercial_assignment_id):companies.has(r.company_id))&&!r.deleted_at);
   const opportunities=corporate("opportunities"), opportunityIds=new Set(opportunities.map(o=>o.id));
   return {assignments,affinities:own("commercial_affinities"),proposals:own("commercial_proposal_variants"),connections:own("commercial_connections"),
     followups:own("commercial_followups"),opportunities,listings:corporate("company_listings"),
@@ -13597,7 +13597,7 @@ function agentScope(assignmentId=agentActiveAssignment) {
     commissions:agentRecords("scout_mission_commissions").filter(r=>opportunityIds.has(r.opportunity_id)),
     applications:agentRecords("opportunity_applications").filter(x=>opportunityIds.has(x.opportunity_id)),
     participations:agentRecords("participations").filter(x=>opportunityIds.has(x.opportunity_id)),
-    activity:agentRecords("analytics_events").filter(e=>ids.has(e.commercial_assignment_id)||companies.has(e.company_id))};
+    activity:agentRecords("analytics_events").filter(e=>ids.has(e.commercial_assignment_id))};
 }
 function agentCurrencyTotals(rows,field="potential_value") {
   const totals=new Map();
@@ -13663,9 +13663,9 @@ async function loadAgentWorkspace(force=false) {
       const snapshot=await api.agentRpc("rois_agent_workspace");
       if((state.session?.authId||state.session?.id)!==owner)return false;
       if(!Array.isArray(snapshot?.commercial_account_assignments))throw new Error("Invalid Agent Workspace response");
-      agentWorkspaceLoad.catalog={agents:snapshot.agent_catalog||[],accounts:snapshot.account_catalog||[]};
+      agentWorkspaceLoad.catalog={agents:snapshot.agent_catalog||[],accounts:snapshot.account_catalog||[],publishers:snapshot.institutional_publisher_catalog||[]};
       Object.entries(snapshot).forEach(([table,rows])=>{
-        if(!Array.isArray(rows)||["agent_catalog","account_catalog"].includes(table))return;
+        if(!Array.isArray(rows)||["agent_catalog","account_catalog","institutional_publisher_catalog"].includes(table))return;
         if(state.session.role==="admin"&&!table.startsWith("commercial_"))return;
         state.data[table]=rows;
       });
@@ -13866,7 +13866,7 @@ function agentFields(kind) {
 function agentFieldMarkup(f,r) {
   let value=r[f.name]??"";
   if(f.type==="datetime-local"&&value){const d=new Date(value);value=new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}
-  const attrs=`name="${escapeAttr(f.name)}" id="agent-field-${escapeAttr(f.name)}" ${f.required?"required":""}`;
+  const attrs=`name="${escapeAttr(f.name)}" id="agent-field-${escapeAttr(f.name)}" ${f.required?"required":""} ${f.locked?'disabled aria-disabled="true"':""}`;
   const field=f.type==="select"?`<select ${attrs}>${f.options.map((v,i)=>`<option value="${escapeAttr(v)}" ${v===value||(!value&&i===0)?"selected":""}>${escapeHtml(v.replaceAll("_"," "))}</option>`).join("")}</select>`:
     f.type==="checkbox"?`<input ${attrs} type="checkbox" ${value?"checked":""}>`:
     ["textarea","array","json"].includes(f.type)?`<textarea ${attrs} rows="3">${escapeHtml(f.type==="json"?JSON.stringify(value||{},null,2):Array.isArray(value)?value.join("\n"):value)}</textarea>`:
@@ -13887,7 +13887,7 @@ function openAgentEditor(kind,id="",assignmentId="",seed={}) {
   const assignment=agentAssignments().find(a=>a.id===aid);
   if(!assignment){host.innerHTML=agentEmpty(agentT("Selecciona una cuenta asignada antes de operar.","Select an assigned account before operating."));return;}
   if(["listing","opportunity","mission","scout","lead","invitation"].includes(kind)&&!agentPublishingCompany(assignment)){
-    host.innerHTML=agentEmpty(agentT("Esta operación requiere una cuenta empresa asignada como publicadora. La representación del talento conserva sus propuestas y conexiones.","This operation requires an assigned publishing company. Talent representation retains its proposals and connections."));return;
+    host.innerHTML=agentEmpty(agentT("Esta operación requiere un publisher institucional ROIS designado por Administración. El talento conserva la titularidad comercial; nunca se utiliza otra cuenta cliente.","This operation requires a ROIS institutional publisher designated by Administration. The talent retains commercial ownership; another client account is never used."));return;
   }
   const r={priority:"normal",currency:"MXN",modality:"remote",status:kind==="affinity"||kind==="connection"?"identified":kind==="followup"?"pending":"draft",...row,...seed};
   if(kind==="mission"&&!id){host.innerHTML=agentEmpty(agentT("Elige una oportunidad existente para configurar la misión Scout.","Choose an existing opportunity to configure the Scout mission."))+agentScope(aid).opportunities.map(o=>agentAction(o.title,"edit","mission",o.id,aid)).join("");return;}
@@ -13895,12 +13895,15 @@ function openAgentEditor(kind,id="",assignmentId="",seed={}) {
   // Never silently select a new status while editing an approved record.
   fields.filter(f=>f.name==="status").forEach(f=>{if(r.status&&!f.options.includes(r.status))f.options.unshift(r.status);});
   const scoped=agentScope(aid);
+  const termsLocked=kind==="mission"&&(r.scout_terms_locked_at||scoped.scouts.some(m=>m.opportunity_id===id)||scoped.leads.some(l=>l.opportunity_id===id));
+  if(termsLocked)fields.forEach(f=>{f.locked=["scout_enabled","scout_reward_event","scout_reward_amount","scout_reward_currency","scout_terms","scout_evidence_required"].includes(f.name);});
   const relationships=kind==="followup"?[{type:"account",id:aid,name:agentAccountName(aid)},...["affinity","proposal","connection","opportunity","listing"].flatMap(type=>agentRecords(agentTables[type]).filter(x=>agentRowAssignment(x)===aid).map(x=>({type,id:x.id,name:x.title||x.target_name||x.counterparty_name})))]:[];
   const relatedMarkup=kind==="followup"?`<label>${agentCopy("Proceso relacionado","Related process")}<select name="related" required>${relationships.map(x=>`<option value="${x.type}:${x.id}" ${r.entity_id===x.id?"selected":""}>${escapeHtml(x.type+" · "+x.name)}</option>`).join("")}</select></label>`:"";
   host.innerHTML=`<form id="agentEntityForm" class="agent-editor"><div class="agent-editor-head"><div><p class="eyebrow">${escapeHtml(kind)}</p><h3 data-no-translate>${escapeHtml(agentAccountName(aid))}</h3></div>${agentAction(agentT("Cerrar","Close"),"cancel")}</div><p>${agentCopy("Cada cambio conserva cuenta representada, agente y fecha.","Each change records the represented account, agent and timestamp.")}</p>
     <div class="agent-form-grid">${relatedMarkup}${fields.map(f=>agentFieldMarkup(f,r)).join("")}</div>
     <p data-agent-form-error role="alert"></p><div class="action-row"><button class="btn primary" type="submit">${agentCopy(kind==="invitation"?"Preparar y enviar invitación":"Guardar en ROIS",kind==="invitation"?"Prepare and send invitation":"Save in ROIS")}</button>${agentAction(agentT("Cancelar","Cancel"),"cancel")}</div></form>`;
   const form=host.querySelector("form");
+  if(termsLocked)form.insertAdjacentHTML("afterbegin",`<p role="status">${agentCopy("Términos aceptados: recompensa, condiciones y evidencia son inmutables. Crea otra misión para ofrecer términos nuevos.","Accepted terms: reward, conditions and evidence are immutable. Create another mission to offer new terms.")}</p>`);
   form.dataset.preserveDashboardDraft="";
   form.dataset.dashboardDraftKey=`agent:${kind}:${aid}:${id}`;
   restoreDashboardPanelDraft(section.dataset.dashboardPanel);
@@ -13910,6 +13913,7 @@ function openAgentEditor(kind,id="",assignmentId="",seed={}) {
     const payload={};
     try{
       fields.forEach(f=>{
+        if(f.locked)return;
         const input=form.elements.namedItem(f.name),value=input.value.trim();
         payload[f.name]=f.type==="checkbox"?input.checked:f.type==="array"?value.split("\n").map(v=>v.trim()).filter(Boolean):
           f.type==="json"?JSON.parse(value||"{}"):f.type==="number"?(value===""?null:Number(value)):
@@ -14022,7 +14026,7 @@ function renderAdminAgentAssignments(){
     if(!agentWorkspaceLoad.loading&&!agentWorkspaceLoad.error)void loadAgentWorkspace();
     return;
   }
-  const {agents,accounts}=agentWorkspaceLoad.catalog;
+  const {agents,accounts,publishers}=agentWorkspaceLoad.catalog;
   const rows=agentRecords("commercial_account_assignments");
   const name=a=>accounts.find(c=>c.id===(a.company_id||a.user_profile_id))?.name||a.company_id||a.user_profile_id;
   const proposals=agentRecords("commercial_proposal_variants").filter(p=>p.status==="review");
@@ -14036,13 +14040,13 @@ function renderAdminAgentAssignments(){
         a.status==="active"?`<button class="btn" type="button" data-agent-withdraw="${escapeAttr(a.id)}">${agentCopy("Retirar asignación","Withdraw assignment")}</button>`:"—"])):agentEmpty()}</div>
     <div class="panel-body"><h3>${agentCopy("Propuestas pendientes de revisión","Proposals awaiting review")}</h3>${proposals.length?proposals.map(p=>`<article><h4 data-no-translate>${escapeHtml(p.title)} · ${escapeHtml(p.counterparty_name)}</h4><p data-no-translate>${escapeHtml(p.commercial_thesis||"")}</p><details><summary>${agentCopy("Contenido completo","Full content")}</summary><pre data-no-translate>${escapeHtml(JSON.stringify({benefits:p.benefits,activations:p.activations,deliverables:p.deliverables,economic_proposal:p.economic_proposal,cta:p.cta},null,2))}</pre></details><button class="btn" type="button" data-agent-approve="${escapeAttr(p.id)}">${agentCopy("Aprobar propuesta","Approve proposal")}</button></article>`).join(""):agentEmpty()}</div>`);
   const section=document.querySelector(`[data-dashboard-panel="${target}"]`);
-  section.querySelector("form").insertAdjacentHTML("afterbegin",`<label>${agentCopy("Empresa publicadora para talento (opcional)","Publishing company for talent (optional)")}<select name="publishing_assignment_id"><option value="">—</option>${rows.filter(a=>a.company_id&&a.status==="active").map(a=>`<option value="${escapeAttr(a.id)}">${escapeHtml(name(a))} · ${escapeHtml(agents.find(g=>g.id===a.agent_profile_id)?.name||a.agent_profile_id)}</option>`).join("")}</select></label>`);
+  section.querySelector("form").insertAdjacentHTML("afterbegin",`<label>${agentCopy("Publisher institucional ROIS para talento (opcional)","ROIS institutional publisher for talent (optional)")}<select name="institutional_publisher_company_id"><option value="">—</option>${publishers.map(c=>`<option value="${escapeAttr(c.id)}">${escapeHtml(c.name)}</option>`).join("")}</select><small>${agentCopy("Sólo infraestructura técnica ROIS. El titular comercial sigue siendo el talento asignado.","ROIS technical infrastructure only. The assigned talent remains the commercial owner.")}</small></label>`);
   section.querySelector("form").addEventListener("submit",async e=>{
     e.preventDefault();const form=e.currentTarget,button=form.querySelector("button[type=submit]");if(button.disabled)return;
     const fd=new FormData(form),[type,id]=String(fd.get("account")).split(":");button.disabled=true;
     try{
       await api.insert("commercial_account_assignments",{agent_profile_id:fd.get("agent_profile_id"),account_type:type,
-        scope:type!=="company"&&fd.get("publishing_assignment_id")?{publishing_assignment_id:fd.get("publishing_assignment_id")}:{},
+        scope:type!=="company"&&fd.get("institutional_publisher_company_id")?{institutional_publisher_company_id:fd.get("institutional_publisher_company_id")}:{},
         company_id:type==="company"?id:null,user_profile_id:type!=="company"?id:null,status:"active",
         service_started_at:fd.get("service_started_at")?new Date(fd.get("service_started_at")).toISOString():null,
         service_ends_at:fd.get("service_ends_at")?new Date(fd.get("service_ends_at")).toISOString():null});

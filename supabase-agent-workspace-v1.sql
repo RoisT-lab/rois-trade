@@ -123,13 +123,71 @@ alter table public.crm add column if not exists commercial_assignment_id uuid re
 alter table public.analytics_events add column if not exists commercial_assignment_id uuid references public.commercial_account_assignments(id) on delete restrict;
 alter table public.analytics_events add column if not exists commercial_actor_id uuid references public.profiles(id) on delete restrict;
 
+-- A publisher is infrastructure owned by an approved ROIS admin, never a client
+-- account. No publisher is seeded; Administration must designate an existing entity.
+create table if not exists public.commercial_institutional_publishers (
+ company_id uuid primary key references public.companies(id) on delete restrict,
+ designated_by uuid not null default auth.uid() references public.profiles(id),
+ created_at timestamptz not null default now()
+);
+alter table public.commercial_institutional_publishers enable row level security;
+revoke all on public.commercial_institutional_publishers from anon,authenticated;
+grant select,insert on public.commercial_institutional_publishers to authenticated;
+drop policy if exists institutional_publisher_admin on public.commercial_institutional_publishers;
+create policy institutional_publisher_admin on public.commercial_institutional_publishers for all to authenticated
+ using(public.rois_is_admin()) with check(public.rois_is_admin());
+create or replace function public.rois_agent_publisher_guard()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+ if not public.rois_is_admin() or not exists(select 1 from public.companies c join public.profiles p on p.id=c.profile_id
+ where c.id=new.company_id and p.role='admin' and p.status='approved')
+ or exists(select 1 from public.commercial_account_assignments where company_id=new.company_id) then
+  raise exception 'Publisher must be an admin-owned ROIS institution, never a represented client' using errcode='42501';
+ end if;
+ new.designated_by:=auth.uid(); new.created_at:=now(); return new;
+end; $$;
+drop trigger if exists institutional_publisher_guard on public.commercial_institutional_publishers;
+create trigger institutional_publisher_guard before insert or update on public.commercial_institutional_publishers
+ for each row execute function public.rois_agent_publisher_guard();
+
+-- Do not let the technical institution become a client after designation.
+create or replace function public.rois_agent_institution_identity_guard()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+ if tg_table_name='companies' then
+  if new.profile_id is distinct from old.profile_id and exists(select 1 from public.commercial_institutional_publishers where company_id=old.id) then
+   raise exception 'Institutional publisher identity cannot be transferred';
+  end if;
+ else
+  if new.role<>'admin' and exists(select 1 from public.commercial_institutional_publishers i join public.companies c on c.id=i.company_id where c.profile_id=old.id) then
+   raise exception 'Institutional publisher must retain an admin identity';
+  end if;
+ end if;
+ return new;
+end; $$;
+drop trigger if exists agent_institution_identity_guard on public.companies;
+create trigger agent_institution_identity_guard before update on public.companies for each row execute function public.rois_agent_institution_identity_guard();
+drop trigger if exists agent_institution_identity_guard on public.profiles;
+create trigger agent_institution_identity_guard before update on public.profiles for each row execute function public.rois_agent_institution_identity_guard();
+
+-- A non-null represented assignment ALWAYS takes precedence over company_id.
+create or replace function public.rois_agent_can_read_operation(p_assignment_id uuid,p_company_id uuid)
+returns boolean language sql stable security definer set search_path=public,pg_temp as $$
+ select case when p_assignment_id is not null then public.rois_agent_can_manage_assignment(p_assignment_id)
+ else public.rois_agent_can_manage_company(p_company_id) end;
+$$;
+create or replace function public.rois_agent_can_read_opportunity(p_id uuid)
+returns boolean language sql stable security definer set search_path=public,pg_temp as $$
+ select exists(select 1 from public.opportunities o where o.id=p_id
+ and public.rois_agent_can_read_operation(o.commercial_assignment_id,o.company_id));
+$$;
 create or replace function public.rois_agent_application_allowed(p_application_id uuid)
 returns boolean language sql stable security definer set search_path=public,pg_temp as $$
  select public.rois_is_admin() or exists(
  select 1 from public.opportunity_applications app join public.opportunities o on o.id=app.opportunity_id
  join public.company_verifications v on v.company_id=o.company_id and v.status='approved'
  join public.application_consents c on c.application_id=app.id and c.company_id=o.company_id
- where app.id=p_application_id and public.rois_agent_can_manage_company(o.company_id)
+ where app.id=p_application_id and public.rois_agent_can_read_operation(o.commercial_assignment_id,o.company_id)
  and c.granted and c.revoked_at is null and (c.expires_at is null or c.expires_at>now()));
 $$;
 
@@ -162,11 +220,15 @@ begin
   raise exception 'Withdraw and create a new assignment to change ownership';
  end if;
  if tg_op='INSERT' then new.assigned_by:=auth.uid(); new.assigned_at:=now(); new.created_at:=now(); end if;
- if nullif(new.scope->>'publishing_assignment_id','') is not null and not exists(
-  select 1 from public.commercial_account_assignments publisher
-  where publisher.id=(new.scope->>'publishing_assignment_id')::uuid and publisher.company_id is not null
-  and publisher.agent_profile_id=new.agent_profile_id and publisher.status='active') then
-  raise exception 'Publishing company must be assigned to the same agent';
+ if new.scope ? 'publishing_assignment_id' then raise exception 'Client publishing assignments are not supported; designate a ROIS institutional publisher'; end if;
+ if new.company_id is not null and exists(select 1 from public.commercial_institutional_publishers where company_id=new.company_id) then
+  raise exception 'Institutional publishers cannot be assigned as client accounts';
+ end if;
+ if nullif(new.scope->>'institutional_publisher_company_id','') is not null and (new.user_profile_id is null or not exists(
+  select 1 from public.commercial_institutional_publishers i join public.companies c on c.id=i.company_id
+  join public.profiles p on p.id=c.profile_id where i.company_id=(new.scope->>'institutional_publisher_company_id')::uuid
+  and p.role='admin' and p.status='approved')) then
+  raise exception 'A designated ROIS institutional publisher is required';
  end if;
  new.updated_at:=now(); return new;
 end; $$;
@@ -185,10 +247,10 @@ begin
  when 'affinity' then exists(select 1 from public.commercial_affinities where id=p_id and assignment_id=a.id)
  when 'proposal' then exists(select 1 from public.commercial_proposal_variants where id=p_id and assignment_id=a.id)
  when 'connection' then exists(select 1 from public.commercial_connections where id=p_id and assignment_id=a.id)
- when 'opportunity' then exists(select 1 from public.opportunities where id=p_id and (company_id=a.company_id or commercial_assignment_id=a.id) and deleted_at is null)
- when 'listing' then exists(select 1 from public.company_listings where id=p_id and (company_id=a.company_id or commercial_assignment_id=a.id))
+ when 'opportunity' then exists(select 1 from public.opportunities where id=p_id and (commercial_assignment_id=a.id or (commercial_assignment_id is null and a.company_id is not null and company_id=a.company_id)) and deleted_at is null)
+ when 'listing' then exists(select 1 from public.company_listings where id=p_id and (commercial_assignment_id=a.id or (commercial_assignment_id is null and a.company_id is not null and company_id=a.company_id)))
  when 'lead' then exists(select 1 from public.scout_leads l join public.opportunities o on o.id=l.opportunity_id where l.id=p_id
-  and (l.company_id=a.company_id or o.commercial_assignment_id=a.id) and l.consent and l.deleted_at is null)
+  and (o.commercial_assignment_id=a.id or (o.commercial_assignment_id is null and a.company_id is not null and o.company_id=a.company_id)) and l.consent and l.deleted_at is null)
  else false end;
 end; $$;
 
@@ -357,10 +419,8 @@ create policy agent_no_direct_delete on public.companies as restrictive for dele
 
 drop policy if exists agent_scope_boundary on public.user_profiles;
 create policy agent_scope_boundary on public.user_profiles as restrictive for select to authenticated
- using(not public.rois_agent_role() or (public.rois_agent_can_manage_profile(id)));
+ using(not public.rois_agent_role());
 drop policy if exists agent_delegated_read on public.user_profiles;
-create policy agent_delegated_read on public.user_profiles for select to authenticated
- using(public.rois_agent_role() and (public.rois_agent_can_manage_profile(id)));
 drop policy if exists agent_no_direct_insert on public.user_profiles;
 create policy agent_no_direct_insert on public.user_profiles as restrictive for insert to authenticated
   with check(not public.rois_agent_role());
@@ -373,10 +433,8 @@ create policy agent_no_direct_delete on public.user_profiles as restrictive for 
 
 drop policy if exists agent_scope_boundary on public.athletes;
 create policy agent_scope_boundary on public.athletes as restrictive for select to authenticated
- using(not public.rois_agent_role() or (exists(select 1 from public.user_profiles u where u.legacy_athlete_id=athletes.id and public.rois_agent_can_manage_profile(u.id))));
+ using(not public.rois_agent_role());
 drop policy if exists agent_delegated_read on public.athletes;
-create policy agent_delegated_read on public.athletes for select to authenticated
- using(public.rois_agent_role() and (exists(select 1 from public.user_profiles u where u.legacy_athlete_id=athletes.id and public.rois_agent_can_manage_profile(u.id))));
 drop policy if exists agent_no_direct_insert on public.athletes;
 create policy agent_no_direct_insert on public.athletes as restrictive for insert to authenticated
   with check(not public.rois_agent_role());
@@ -389,10 +447,8 @@ create policy agent_no_direct_delete on public.athletes as restrictive for delet
 
 drop policy if exists agent_scope_boundary on public.founders;
 create policy agent_scope_boundary on public.founders as restrictive for select to authenticated
- using(not public.rois_agent_role() or (exists(select 1 from public.user_profiles u where u.legacy_founder_id=founders.id and public.rois_agent_can_manage_profile(u.id))));
+ using(not public.rois_agent_role());
 drop policy if exists agent_delegated_read on public.founders;
-create policy agent_delegated_read on public.founders for select to authenticated
- using(public.rois_agent_role() and (exists(select 1 from public.user_profiles u where u.legacy_founder_id=founders.id and public.rois_agent_can_manage_profile(u.id))));
 drop policy if exists agent_no_direct_insert on public.founders;
 create policy agent_no_direct_insert on public.founders as restrictive for insert to authenticated
   with check(not public.rois_agent_role());
@@ -405,10 +461,10 @@ create policy agent_no_direct_delete on public.founders as restrictive for delet
 
 drop policy if exists agent_scope_boundary on public.opportunities;
 create policy agent_scope_boundary on public.opportunities as restrictive for select to authenticated
- using(not public.rois_agent_role() or (public.rois_agent_can_manage_company(company_id)));
+ using(not public.rois_agent_role() or (public.rois_agent_can_read_operation(commercial_assignment_id,company_id)));
 drop policy if exists agent_delegated_read on public.opportunities;
 create policy agent_delegated_read on public.opportunities for select to authenticated
- using(public.rois_agent_role() and (public.rois_agent_can_manage_company(company_id)));
+ using(public.rois_agent_role() and (public.rois_agent_can_read_operation(commercial_assignment_id,company_id)));
 drop policy if exists agent_no_direct_insert on public.opportunities;
 create policy agent_no_direct_insert on public.opportunities as restrictive for insert to authenticated
   with check(not public.rois_agent_role());
@@ -421,10 +477,10 @@ create policy agent_no_direct_delete on public.opportunities as restrictive for 
 
 drop policy if exists agent_scope_boundary on public.company_listings;
 create policy agent_scope_boundary on public.company_listings as restrictive for select to authenticated
- using(not public.rois_agent_role() or (public.rois_agent_can_manage_company(company_id)));
+ using(not public.rois_agent_role() or (public.rois_agent_can_read_operation(commercial_assignment_id,company_id)));
 drop policy if exists agent_delegated_read on public.company_listings;
 create policy agent_delegated_read on public.company_listings for select to authenticated
- using(public.rois_agent_role() and (public.rois_agent_can_manage_company(company_id)));
+ using(public.rois_agent_role() and (public.rois_agent_can_read_operation(commercial_assignment_id,company_id)));
 drop policy if exists agent_no_direct_insert on public.company_listings;
 create policy agent_no_direct_insert on public.company_listings as restrictive for insert to authenticated
   with check(not public.rois_agent_role());
@@ -437,10 +493,10 @@ create policy agent_no_direct_delete on public.company_listings as restrictive f
 
 drop policy if exists agent_scope_boundary on public.mission_scouts;
 create policy agent_scope_boundary on public.mission_scouts as restrictive for select to authenticated
- using(not public.rois_agent_role() or (public.rois_agent_can_manage_company(company_id)));
+ using(not public.rois_agent_role() or (public.rois_agent_can_read_opportunity(opportunity_id)));
 drop policy if exists agent_delegated_read on public.mission_scouts;
 create policy agent_delegated_read on public.mission_scouts for select to authenticated
- using(public.rois_agent_role() and (public.rois_agent_can_manage_company(company_id)));
+ using(public.rois_agent_role() and (public.rois_agent_can_read_opportunity(opportunity_id)));
 drop policy if exists agent_no_direct_insert on public.mission_scouts;
 create policy agent_no_direct_insert on public.mission_scouts as restrictive for insert to authenticated
   with check(not public.rois_agent_role());
@@ -453,10 +509,10 @@ create policy agent_no_direct_delete on public.mission_scouts as restrictive for
 
 drop policy if exists agent_scope_boundary on public.scout_leads;
 create policy agent_scope_boundary on public.scout_leads as restrictive for select to authenticated
- using(not public.rois_agent_role() or (public.rois_agent_can_manage_company(company_id) and consent and deleted_at is null));
+ using(not public.rois_agent_role() or (public.rois_agent_can_read_opportunity(opportunity_id) and consent and deleted_at is null));
 drop policy if exists agent_delegated_read on public.scout_leads;
 create policy agent_delegated_read on public.scout_leads for select to authenticated
- using(public.rois_agent_role() and (public.rois_agent_can_manage_company(company_id) and consent and deleted_at is null));
+ using(public.rois_agent_role() and (public.rois_agent_can_read_opportunity(opportunity_id) and consent and deleted_at is null));
 drop policy if exists agent_no_direct_insert on public.scout_leads;
 create policy agent_no_direct_insert on public.scout_leads as restrictive for insert to authenticated
   with check(not public.rois_agent_role());
@@ -469,10 +525,10 @@ create policy agent_no_direct_delete on public.scout_leads as restrictive for de
 
 drop policy if exists agent_scope_boundary on public.scout_mission_commissions;
 create policy agent_scope_boundary on public.scout_mission_commissions as restrictive for select to authenticated
- using(not public.rois_agent_role() or (public.rois_agent_can_manage_company(company_id)));
+ using(not public.rois_agent_role() or (public.rois_agent_can_read_opportunity(opportunity_id)));
 drop policy if exists agent_delegated_read on public.scout_mission_commissions;
 create policy agent_delegated_read on public.scout_mission_commissions for select to authenticated
- using(public.rois_agent_role() and (public.rois_agent_can_manage_company(company_id)));
+ using(public.rois_agent_role() and (public.rois_agent_can_read_opportunity(opportunity_id)));
 drop policy if exists agent_no_direct_insert on public.scout_mission_commissions;
 create policy agent_no_direct_insert on public.scout_mission_commissions as restrictive for insert to authenticated
   with check(not public.rois_agent_role());
@@ -517,10 +573,10 @@ create policy agent_no_direct_delete on public.application_consents as restricti
 
 drop policy if exists agent_scope_boundary on public.participations;
 create policy agent_scope_boundary on public.participations as restrictive for select to authenticated
- using(not public.rois_agent_role() or (exists(select 1 from public.opportunities o where o.id=participations.opportunity_id and public.rois_agent_can_manage_company(o.company_id))));
+ using(not public.rois_agent_role() or (public.rois_agent_can_read_opportunity(opportunity_id)));
 drop policy if exists agent_delegated_read on public.participations;
 create policy agent_delegated_read on public.participations for select to authenticated
- using(public.rois_agent_role() and (exists(select 1 from public.opportunities o where o.id=participations.opportunity_id and public.rois_agent_can_manage_company(o.company_id))));
+ using(public.rois_agent_role() and (public.rois_agent_can_read_opportunity(opportunity_id)));
 drop policy if exists agent_no_direct_insert on public.participations;
 create policy agent_no_direct_insert on public.participations as restrictive for insert to authenticated
   with check(not public.rois_agent_role());
@@ -533,10 +589,10 @@ create policy agent_no_direct_delete on public.participations as restrictive for
 
 drop policy if exists agent_scope_boundary on public.conversions;
 create policy agent_scope_boundary on public.conversions as restrictive for select to authenticated
- using(not public.rois_agent_role() or (public.rois_agent_can_manage_company(company_id)));
+ using(not public.rois_agent_role() or (public.rois_agent_can_read_opportunity(opportunity_id)));
 drop policy if exists agent_delegated_read on public.conversions;
 create policy agent_delegated_read on public.conversions for select to authenticated
- using(public.rois_agent_role() and (public.rois_agent_can_manage_company(company_id)));
+ using(public.rois_agent_role() and (public.rois_agent_can_read_opportunity(opportunity_id)));
 drop policy if exists agent_no_direct_insert on public.conversions;
 create policy agent_no_direct_insert on public.conversions as restrictive for insert to authenticated
   with check(not public.rois_agent_role());
@@ -639,10 +695,12 @@ declare a public.commercial_account_assignments; tbl text; allowed text[]; k tex
 begin
  a:=public.rois_agent_require_assignment(p_assignment_id);
  if a.company_id is null then
-  -- Talent representation can use a publishing company explicitly linked by Admin.
-  -- Both assignments must remain authorized. Never invent a company or impersonate its owner.
-  a.company_id:=(public.rois_agent_require_assignment(nullif(a.scope->>'publishing_assignment_id','')::uuid)).company_id;
-  if a.company_id is null then raise exception 'This operation requires an assigned publishing company'; end if;
+  -- Only a designated admin-owned institution can satisfy the legacy company FK.
+  -- a.id / user_profile_id remain the commercial owner and authorization boundary.
+  select c.id into a.company_id from public.commercial_institutional_publishers i
+  join public.companies c on c.id=i.company_id join public.profiles p on p.id=c.profile_id
+  where c.id=nullif(a.scope->>'institutional_publisher_company_id','')::uuid and p.role='admin' and p.status='approved' for share of c,p;
+  if a.company_id is null then raise exception 'This operation requires a designated ROIS institutional publisher'; end if;
  end if;
  case p_kind
  when 'opportunity' then
@@ -659,13 +717,18 @@ begin
  if p_id is not null then
   if p_kind='application' then
    if not public.rois_agent_application_allowed(p_id) or not exists(select 1 from public.opportunity_applications app
-    join public.opportunities o on o.id=app.opportunity_id where app.id=p_id and o.company_id=a.company_id) then
+    join public.opportunities o on o.id=app.opportunity_id where app.id=p_id and public.rois_agent_entity_belongs(a.id,'opportunity',o.id)) then
     raise exception 'Application consent or account access is not valid' using errcode='42501';
    end if;
    select to_jsonb(t) into existing from public.opportunity_applications t where id=p_id for update;
   else
-   execute format('select to_jsonb(t) from public.%I t where id=$1 and company_id=$2 for update',tbl)
-    into existing using p_id,a.company_id;
+   if p_kind in ('opportunity','listing','mission') then
+    execute format('select to_jsonb(t) from public.%I t where id=$1 and public.rois_agent_entity_belongs($2,$3,id) for update',tbl)
+     into existing using p_id,a.id,case when p_kind='listing' then 'listing' else 'opportunity' end;
+   else
+    execute format('select to_jsonb(t) from public.%I t where id=$1 and public.rois_agent_entity_belongs($2,''opportunity'',opportunity_id) for update',tbl)
+     into existing using p_id,a.id;
+   end if;
   end if;
   if existing is null or existing->>'deleted_at' is not null then raise exception 'Record not authorized' using errcode='42501'; end if;
  elsif p_kind not in ('opportunity','listing') then raise exception 'Existing record required';
@@ -701,8 +764,8 @@ begin
    execute format('insert into public.opportunities(id,company_id,commercial_assignment_id,created_by,%s) select $2,$3,$4,auth.uid(),%s returning to_jsonb(opportunities.*)',cols,vals)
     into result using p_values,rid,a.company_id,a.id;
   else
-   execute format('insert into public.company_listings(id,company_id,commercial_assignment_id,commercial_actor_id,profile_id,company_name,%s) select $2,$3,$4,auth.uid(),c.profile_id,c.name,%s from public.companies c where c.id=$3 returning to_jsonb(company_listings.*)',cols,vals)
-    into result using p_values,rid,a.company_id,a.id;
+   execute format('insert into public.company_listings(id,company_id,commercial_assignment_id,commercial_actor_id,profile_id,company_name,%s) select $2,$3,$4,auth.uid(),c.profile_id,coalesce((select name from public.user_profiles where id=$5),c.name),%s from public.companies c where c.id=$3 returning to_jsonb(company_listings.*)',cols,vals)
+    into result using p_values,rid,a.company_id,a.id,a.user_profile_id;
   end if;
  else
   execute format('update public.%I set %s,updated_at=now() where id=$2 returning to_jsonb(%I.*)',tbl,sets,tbl)
@@ -781,21 +844,24 @@ begin
  into rows from public.founders t join public.user_profiles u on coalesce(u.legacy_founder_id,(select id from public.founders where profile_id=u.profile_id order by created_at,id limit 1))=t.id where u.id=any(uids);
  result:=result||jsonb_build_object('founders',rows);
  foreach tbl in array array['opportunities','company_listings','mission_scouts','conversions','scout_mission_commissions'] loop
-  execute format('select coalesce(jsonb_agg(to_jsonb(t) order by created_at desc),''[]'') from public.%I t where company_id=any($1)',tbl)
-   into rows using cids;
+  if tbl in ('opportunities','company_listings') then
+   execute format('select coalesce(jsonb_agg(to_jsonb(t) order by created_at desc),''[]'') from public.%I t where public.rois_agent_can_read_operation(commercial_assignment_id,company_id)',tbl) into rows;
+  else
+   execute format('select coalesce(jsonb_agg(to_jsonb(t) order by created_at desc),''[]'') from public.%I t where public.rois_agent_can_read_opportunity(opportunity_id)',tbl) into rows;
+  end if;
   result:=result||jsonb_build_object(tbl,rows);
  end loop;
  select coalesce(jsonb_agg(to_jsonb(l) order by l.created_at desc),'[]') into rows
- from public.scout_leads l where company_id=any(cids) and consent and deleted_at is null;
+ from public.scout_leads l where public.rois_agent_can_read_opportunity(l.opportunity_id) and consent and deleted_at is null;
  result:=result||jsonb_build_object('scout_leads',rows);
  select coalesce(jsonb_agg(jsonb_build_object('lead_id',l.id,'company_id',l.company_id,'registered_at',u.created_at)),'[]')
  into rows from public.scout_leads l join public.crm r on r.id=l.commercial_invitation_crm_id
  join public.user_profiles u on lower(u.email)=lower(r.email)
- where l.company_id=any(cids) and l.consent and l.deleted_at is null
+ where public.rois_agent_can_read_opportunity(l.opportunity_id) and l.consent and l.deleted_at is null
  and r.invitation_sent_at is not null and u.created_at>=r.invitation_sent_at;
  result:=result||jsonb_build_object('commercial_professional_outcomes',rows);
  select coalesce(jsonb_agg(to_jsonb(p)),'[]') into rows from public.participations p
- join public.opportunities o on o.id=p.opportunity_id where o.company_id=any(cids);
+ join public.opportunities o on o.id=p.opportunity_id where public.rois_agent_can_read_operation(o.commercial_assignment_id,o.company_id);
  result:=result||jsonb_build_object('participations',rows);
  select coalesce(jsonb_agg(jsonb_build_object('id',app.id,'opportunity_id',app.opportunity_id,'status',app.status,
  'message',app.message,'company_notes',app.company_notes,'created_at',app.created_at,'updated_at',app.updated_at,
@@ -803,17 +869,20 @@ begin
  where exists(select 1 from public.application_consents c where c.application_id=app.id and c.company_id=o.company_id
  and c.granted and c.revoked_at is null and (c.expires_at is null or c.expires_at>now()) and k.key=any(c.authorized_fields))))),'[]')
  into rows from public.opportunity_applications app join public.opportunities o on o.id=app.opportunity_id
- where o.company_id=any(cids) and public.rois_agent_application_allowed(app.id);
+ where public.rois_agent_can_read_operation(o.commercial_assignment_id,o.company_id) and public.rois_agent_application_allowed(app.id);
  result:=result||jsonb_build_object('opportunity_applications',rows);
  select coalesce(jsonb_agg(to_jsonb(e) order by e.created_at desc),'[]') into rows from public.analytics_events e
- where e.commercial_assignment_id=any(aids) or (e.company_id=any(cids) and e.commercial_assignment_id is not null);
+ where e.commercial_assignment_id=any(aids);
  result:=result||jsonb_build_object('analytics_events',rows);
  if public.rois_is_admin() then
+  select coalesce(jsonb_agg(jsonb_build_object('id',c.id,'name',c.name)),'[]') into rows
+  from public.commercial_institutional_publishers i join public.companies c on c.id=i.company_id;
+  result:=result||jsonb_build_object('institutional_publisher_catalog',rows);
   select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'name',p.name)),'[]') into rows
   from public.profiles p where role='commercial' and status='approved';
   result:=result||jsonb_build_object('agent_catalog',rows);
   select coalesce(jsonb_agg(t),'[]') into rows from (
-   select c.id,c.name,'company'::text as account_type from public.companies c
+   select c.id,c.name,'company'::text as account_type from public.companies c where not exists(select 1 from public.commercial_institutional_publishers i where i.company_id=c.id)
    union all select u.id,u.name,case p.role when 'athlete' then 'athlete' else 'creator' end
    from public.user_profiles u join public.profiles p on p.id=u.profile_id where p.role in ('athlete','founder')) t;
   result:=result||jsonb_build_object('account_catalog',rows);
@@ -839,6 +908,75 @@ begin
   end loop;
  end loop;
 end $$;
+
+-- Global freeze (option A): once any Scout joins, material terms cannot change,
+-- including through Admin/service-role updates. Create a new mission for new terms.
+-- A durable marker prevents deleting memberships from reopening the old terms.
+alter table public.opportunities add column if not exists scout_terms_locked_at timestamptz;
+update public.opportunities o set scout_terms_locked_at=now()
+ where scout_terms_locked_at is null and (exists(select 1 from public.mission_scouts m where m.opportunity_id=o.id)
+ or exists(select 1 from public.scout_leads l where l.opportunity_id=o.id));
+create or replace function public.rois_agent_scout_terms_guard()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+ if tg_op='UPDATE' then
+  if old.scout_terms_locked_at is not null or exists(select 1 from public.mission_scouts where opportunity_id=old.id)
+   or exists(select 1 from public.scout_leads where opportunity_id=old.id) then
+   if (new.scout_reward_event,new.scout_reward_amount,new.scout_reward_currency,new.scout_terms,new.scout_evidence_required,new.scout_enabled)
+    is distinct from (old.scout_reward_event,old.scout_reward_amount,old.scout_reward_currency,old.scout_terms,old.scout_evidence_required,old.scout_enabled) then
+    raise exception 'Accepted Scout mission terms are immutable; create a new mission' using errcode='42501';
+   end if;
+   new.scout_terms_locked_at:=coalesce(old.scout_terms_locked_at,now());
+  elsif new.scout_terms_locked_at is distinct from old.scout_terms_locked_at and pg_trigger_depth()<2 then
+   raise exception 'Scout terms lock is server-managed';
+  end if;
+ elsif new.scout_terms_locked_at is not null then raise exception 'Scout terms lock is server-managed';
+ end if;
+ return new;
+end; $$;
+drop trigger if exists agent_scout_terms_guard on public.opportunities;
+create trigger agent_scout_terms_guard before insert or update on public.opportunities
+ for each row execute function public.rois_agent_scout_terms_guard();
+create or replace function public.rois_agent_lock_scout_terms()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+ -- UPDATE locks the same row as mission editing, serializing join vs term changes.
+ update public.opportunities set scout_terms_locked_at=coalesce(scout_terms_locked_at,now()) where id=new.opportunity_id;
+ return new;
+end; $$;
+drop trigger if exists agent_lock_scout_terms on public.mission_scouts;
+create trigger agent_lock_scout_terms before insert on public.mission_scouts
+ for each row execute function public.rois_agent_lock_scout_terms();
+drop trigger if exists agent_lock_scout_lead_terms on public.scout_leads;
+create trigger agent_lock_scout_lead_terms before insert on public.scout_leads
+ for each row execute function public.rois_agent_lock_scout_terms();
+
+create or replace function public.rois_agent_ownership_guard()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+declare a public.commercial_account_assignments; publisher uuid;
+begin
+ if tg_op='UPDATE' and (new.commercial_assignment_id,new.company_id)
+ is distinct from (old.commercial_assignment_id,old.company_id) and old.commercial_assignment_id is not null then
+  raise exception 'Represented commercial ownership is immutable';
+ end if;
+ if new.commercial_assignment_id is not null then
+  select * into a from public.commercial_account_assignments where id=new.commercial_assignment_id;
+  publisher:=coalesce(a.company_id,nullif(a.scope->>'institutional_publisher_company_id','')::uuid);
+  if new.company_id is distinct from publisher then raise exception 'Publisher does not match represented ownership'; end if;
+  if a.user_profile_id is not null and not exists(select 1 from public.commercial_institutional_publishers i
+    join public.companies c on c.id=i.company_id join public.profiles p on p.id=c.profile_id
+    where i.company_id=publisher and p.role='admin' and p.status='approved') then
+   raise exception 'Talent requires an institutional publisher, never a client';
+  end if;
+ end if;
+ return new;
+end; $$;
+drop trigger if exists agent_ownership_guard on public.opportunities;
+create trigger agent_ownership_guard before insert or update on public.opportunities
+ for each row execute function public.rois_agent_ownership_guard();
+drop trigger if exists agent_ownership_guard on public.company_listings;
+create trigger agent_ownership_guard before insert or update on public.company_listings
+ for each row execute function public.rois_agent_ownership_guard();
 
 -- Never expose definer helper functions or triggers to anonymous callers.
 
@@ -913,7 +1051,7 @@ begin
 end $$;
 grant execute on function public.rois_agent_role(),public.rois_agent_can_manage_assignment(uuid),
  public.rois_agent_can_manage_company(uuid),public.rois_agent_can_manage_profile(uuid),
- public.rois_agent_application_allowed(uuid) to authenticated;
+ public.rois_agent_application_allowed(uuid),public.rois_agent_can_read_operation(uuid,uuid),public.rois_agent_can_read_opportunity(uuid) to authenticated;
 grant execute on function public.rois_agent_workspace(),public.rois_agent_save(text,uuid,uuid,jsonb),
  public.rois_agent_operate(text,uuid,uuid,jsonb),public.rois_agent_prepare_invitation(uuid,uuid,text) to authenticated;
 comment on table public.commercial_account_assignments is 'Admin-managed representation, never impersonation. Withdraw instead of deleting.';
@@ -924,16 +1062,20 @@ notify pgrst,'reload schema';
 -- Does not introduce a role, replace Scout registration, or create a new network.
 create or replace function public.rois_scout_mission_profile()
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
-declare p public.profiles; s jsonb; u public.user_profiles;
+declare p public.profiles; s public.scouts; u public.user_profiles;
 begin
  select * into p from public.profiles where id=auth.uid() and role='scout' and status='approved';
  if p.id is null then raise exception 'Approved external Scout required' using errcode='42501'; end if;
- if to_regclass('public.scouts') is null then raise exception 'Existing external Scout migration is required'; end if;
- execute 'select to_jsonb(s) from public.scouts s where profile_id=$1 and status=''approved'' limit 1' into s using p.id;
- if s is null or nullif(s->>'scout_code','') is null then raise exception 'Active Scout identity is required'; end if;
+ select * into s from public.scouts where profile_id=p.id and status='approved' for share;
+ if s.id is null or nullif(trim(s.scout_code),'') is null then raise exception 'Active Scout identity is required'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(p.id::text,0));
+ if exists(select 1 from public.user_profiles where profile_id<>p.id
+  and regexp_replace(upper(scout_code),'[^A-Z0-9]','','g')=regexp_replace(upper(s.scout_code),'[^A-Z0-9]','','g')) then
+  raise exception 'Canonical Scout code conflicts with another identity; Administration must reconcile it';
+ end if;
  insert into public.user_profiles(profile_id,email,name,public_name,scout_code,scout_active,status)
- values(p.id,p.email,p.name,p.name,s->>'scout_code',true,'approved')
- on conflict(profile_id) do nothing;
+ values(p.id,p.email,p.name,p.name,s.scout_code,true,'approved')
+ on conflict(profile_id) do update set scout_code=excluded.scout_code,scout_active=true;
  select * into u from public.user_profiles where profile_id=p.id;
  return to_jsonb(u);
 end; $$;

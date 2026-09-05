@@ -13,11 +13,11 @@ for(const file of ['supabase-schema.sql','supabase-company-marketplace-pro-busin
  }catch(e){console.error('BASE FAILED',file,e.message);process.exit(1);}
 }
 await db.exec(readFileSync(root+'/supabase-founder-profile-sponsorship-hotfix.sql','utf8'));
-if(process.env.ROIS_SCOUT_SCHEMA)await db.exec(readFileSync(process.env.ROIS_SCOUT_SCHEMA,'utf8'));
+for(let i=0;i<2;i++)await db.exec(readFileSync(root+'/supabase-external-scout-network.sql','utf8'));
 await db.exec("alter table athletes add column if not exists sponsor_deck jsonb; alter table athletes add column if not exists max_sponsors integer; alter table founders add column if not exists sponsor_deck jsonb; grant usage on schema public to authenticated,anon; grant select,insert,update,delete on all tables in schema public to authenticated;");
 for(let i=0;i<2;i++){
  try{await db.exec(readFileSync(root+'/supabase-agent-workspace-v1.sql','utf8'));console.log('MIGRATION OK',i+1);}
- catch(e){console.error('MIGRATION FAILED',e.message,e.query);process.exit(1);}
+ catch(e){console.error('MIGRATION FAILED',e.message,'position',e.position);process.exit(1);}
 }
 console.log('IDEMPOTENCE PASSED');
 
@@ -43,6 +43,9 @@ async function run(db) {
   const up=await value("insert into user_profiles(profile_id,email,name,legacy_athlete_id) values($1,$2,'Athlete QA',$3) returning id",[ids.talent,ids.talent+"@test.invalid",athlete]);
   const fu=await value("insert into user_profiles(profile_id,email,name,legacy_founder_id) values($1,$2,'Creator QA',$3) returning id",[ids.creator,ids.creator+"@test.invalid",creator]);
   await q("insert into company_verifications(company_id,status) values($1,'approved')",[company]);
+  await q("update athletes set guardian_name='Private guardian',guardian_email='guardian@test.invalid',guardian_phone='private-phone',birth_date='2000-01-01',sponsor_payment_url='https://private.test/pay',category='Category QA',location='Territory QA' where id=$1",[athlete]);
+  await q("update user_profiles set birth_date='2000-01-01',city='City QA',country='MX' where id in ($1,$2)",[up,fu]);
+  await q("update founders set sponsor_payment_url='https://private.test/creator' where id=$1",[creator]);
   await role(ids.admin);
   const assignment=await value("insert into commercial_account_assignments(agent_profile_id,company_id,account_type) values($1,$2,'company') returning id",[ids.a,company]);
   const otherAssignment=await value("insert into commercial_account_assignments(agent_profile_id,company_id,account_type) values($1,$2,'company') returning id",[ids.b,other]);
@@ -55,6 +58,14 @@ async function run(db) {
   await deny("Agent cannot promote own role",()=>q("update profiles set role='admin' where id=$1",[ids.a]));
   let snap=await rpc("rois_agent_workspace",[]);
   assert(snap.companies.length===1&&snap.companies[0].id===company,"B Agent A sees only assigned company");
+  for(const [table,id,fields]of [['athletes',athlete,'guardian_name,guardian_email,guardian_phone,birth_date,email,sponsor_payment_url'],['founders',creator,'email,sponsor_payment_url'],['user_profiles',up,'birth_date,email']]){
+    assert((await q(`select ${fields} from ${table} where id=$1`,[id])).length===0,'Sensitive talent direct SELECT denied: '+table);
+    assert((await q(`select * from ${table}`)).length===0,'Full talent table enumeration denied: '+table);
+  }
+  const safeAthlete=snap.athletes[0],safeCreator=snap.founders[0],safeProfile=snap.user_profiles.find(u=>u.id===up);
+  assert(safeAthlete.name==='Athlete QA'&&safeAthlete.sport==='Sport QA'&&safeAthlete.category==='Category QA'&&safeAthlete.location==='Territory QA'&&safeAthlete.sponsor_deck.headline==='Objective master','Safe athlete RPC projection supplies commercial master');
+  assert(safeCreator.name==='Creator QA'&&safeCreator.sponsor_deck.headline==='Creator master'&&safeProfile.city==='City QA'&&safeProfile.country==='MX','Safe creator/profile RPC projection succeeds');
+  assert([safeAthlete,safeCreator,safeProfile].every(row=>['guardian_name','guardian_email','guardian_phone','birth_date','email','sponsor_payment_url'].every(k=>!(k in row))),'Safe RPC excludes sensitive talent columns');
   await deny("Agent cannot assign accounts",()=>q("insert into commercial_account_assignments(agent_profile_id,company_id,account_type) values($1,$2,'company')",[ids.a,other]));
   const affinity=await save("affinity",assignment,null,{target_type:"external",target_name:"Counterparty QA",score:87,reasons:["Category match"],commercial_hypothesis:"Activation",next_action:"Prepare proposal"});
   assert(affinity.created_by===ids.a,"D Affinity is stamped with the real actor");
@@ -64,7 +75,7 @@ async function run(db) {
   await deny("Cannot write free financial fields",()=>operate("opportunity",assignment,opp.id,{approved_by:ids.a}));
   const connection=await save("connection",assignment,null,{counterparty_type:"external",counterparty_name:"Counterparty QA",affinity_id:affinity.id,potential_value:1500,currency:"MXN",next_action:"Arrange meeting"});
   assert(connection.assignment_id===assignment,"F Connection preserves account and source");
-  await operate("mission",assignment,opp.id,{scout_enabled:true,scout_reward_amount:50,scout_reward_event:"qualified",scout_reward_currency:"MXN",scout_evidence_required:"Introduction evidence"});
+  await operate("mission",assignment,opp.id,{scout_enabled:true,scout_reward_amount:1000,scout_reward_event:"qualified",scout_reward_currency:"MXN",scout_terms:"Accepted terms QA",scout_evidence_required:"Introduction evidence"});
   assert((await rpc("rois_agent_workspace",[])).opportunities[0].scout_enabled,"G Existing opportunity becomes a Scout mission");
   const listing=await operate("listing",assignment,null,{listing_type:"service",category:"Services",title:"Service QA",summary:"Corporate service",status:"draft",commercial_target_market:"Regional companies"});
   assert(listing.company_id===company,"Corporate Market reuses company_listings");
@@ -96,9 +107,14 @@ async function run(db) {
   const app=await value("insert into opportunity_applications(opportunity_id,user_profile_id,applicant_profile_id,shared_profile_snapshot) values($1,$2,$3,$4) returning id",[opp.id,up,ids.talent,JSON.stringify({name:"Consented name",email:"secret@test.invalid"})]);
   await q("insert into application_consents(application_id,user_profile_id,company_id,opportunity_id,purpose,authorized_fields) values($1,$2,$3,$4,'Evaluation',array['name'])",[app,up,company,opp.id]);
   assert((await q("select id from athletes where id=$1",[athlete])).length===1,"P Athlete retains own access");
+  assert((await q("select guardian_email,sponsor_payment_url from athletes where id=$1",[athlete]))[0].guardian_email==='guardian@test.invalid','Athlete retains private own data');
   await role(ids.creator);
   assert((await q("select id from founders where id=$1",[creator])).length===1,"P Creator retains own access");
+  assert((await q("select email,sponsor_payment_url from founders where id=$1",[creator]))[0].sponsor_payment_url==='https://private.test/creator','Creator retains private own data');
   await role(ids.a);
+  await deny("Joined mission cannot reduce 1000 to 500",()=>operate("mission",assignment,opp.id,{scout_reward_amount:500}));
+  for(const [field,v] of Object.entries({scout_reward_currency:"USD",scout_reward_event:"meeting",scout_terms:"Changed",scout_evidence_required:"Changed",scout_enabled:false}))
+    await deny('Accepted mission field immutable: '+field,()=>operate("mission",assignment,opp.id,{[field]:v}));
   await operate("lead",assignment,lead,{status:"qualified",company_notes:"Evidence reviewed"});
   assert((await rpc("rois_agent_workspace",[])).scout_leads[0].status==="qualified","I Agent validates owned Scout lead");
   const la=await save("affinity",assignment,null,{target_type:"professional",target_name:"Professional QA",source_lead_id:lead});
@@ -118,6 +134,7 @@ async function run(db) {
   await operate("application",assignment,app,{status:"accepted"});
   assert((await rpc("rois_agent_workspace",[])).opportunity_applications[0].status==="accepted","Authorized application can be accepted");
   assert(snap.scout_mission_commissions.length===1&&snap.scout_mission_commissions[0].status==="pending","Existing commission trigger runs without self-approval");
+  assert(Number(snap.scout_mission_commissions[0].gross_amount)===1000&&snap.scout_mission_commissions[0].currency==='MXN',"Commission uses the accepted 1000 MXN terms");
   assert((await q("update scout_mission_commissions set status='approved' returning id")).length===0,"Agent cannot approve commissions");
   assert(snap.analytics_events.some(e=>e.commercial_actor_id===ids.a&&e.entity_id===affinity.id),"M Activity records actor, account, entity and timestamp");
   await deny("Approved content cannot be changed",()=>save("proposal",talentAssignment,proposal.id,{commercial_thesis:"Changed"}));
@@ -128,22 +145,54 @@ async function run(db) {
   await role(ids.admin);
   assert((await q("select * from companies")).length===2,"Q Admin retains global account access");
   assert((await q("select * from commercial_account_assignments")).length===4,"Q Admin sees all assignments");
+  assert((await q("select guardian_email from athletes where id=$1",[athlete]))[0].guardian_email==='guardian@test.invalid'&&(await q('select email from founders where id=$1',[creator])).length===1&&(await q('select birth_date,email from user_profiles where id=$1',[up])).length===1,'Admin retains complete sensitive talent access');
   await q("update commercial_account_assignments set status='withdrawn' where id=$1",[assignment]);
   await role(ids.a);
   assert(!(await rpc("rois_agent_workspace",[])).companies.some(c=>c.id===company),"Withdrawal immediately removes company from snapshot");
   await deny("Withdrawal immediately blocks RPC mutations",()=>save("connection",assignment,connection.id,{notes:"After withdrawal"}));
   await role(ids.admin);
   await q("update commercial_account_assignments set status='active' where id=$1",[assignment]);
-  await q("update commercial_account_assignments set scope=$1 where id=$2",[JSON.stringify({publishing_assignment_id:assignment}),talentAssignment]);
-  await role(ids.a);
-  const represented=await operate("opportunity",talentAssignment,null,{title:"Talent distribution QA",description:"Assigned company publishes for represented talent",opportunity_type:"create",category:"Content",status:"draft"});
-  assert(represented.commercial_assignment_id===talentAssignment&&represented.company_id===company,"Talent uses explicitly assigned publishing company");
+  await deny("Legacy client publisher assignment rejected",()=>q("update commercial_account_assignments set scope=$1 where id=$2",[JSON.stringify({publishing_assignment_id:assignment}),talentAssignment]));
+  await deny("Client cannot become institutional publisher",()=>q("insert into commercial_institutional_publishers(company_id) values($1)",[company]));
+  await deny("Admin cannot retroactively alter accepted mission terms",()=>q("update opportunities set scout_reward_amount=500 where id=$1",[opp.id]));
+  // Both talents share technical infrastructure, not commercial ownership.
+  const institution=await value("insert into companies(name,profile_id,status) values('Institutional publisher QA',$1,'approved') returning id",[ids.admin]);
+  await q("update company_subscriptions set plan='pro',status='active',listing_limit=10 where company_id=$1",[institution]);
+  await q("insert into commercial_institutional_publishers(company_id) values($1)",[institution]);
+  await deny("Institution cannot be assigned as a client",()=>q("insert into commercial_account_assignments(agent_profile_id,company_id,account_type) values($1,$2,'company')",[ids.a,institution]));
+  const publisherScope=JSON.stringify({institutional_publisher_company_id:institution});
+  await q("update commercial_account_assignments set scope=$1 where id=$2",[publisherScope,talentAssignment]);
+  await q("update commercial_account_assignments set status='withdrawn' where id=$1",[creatorAssignment]);
+  const talentB=await value("insert into commercial_account_assignments(agent_profile_id,user_profile_id,account_type,scope) values($1,$2,'creator',$3) returning id",[ids.b,fu,publisherScope]);
+  const represented={};
+  for(const [who,aid] of [[ids.a,talentAssignment],[ids.b,talentB]]){
+    await role(who);
+    const o=await operate('opportunity',aid,null,{title:'Represented talent QA',description:'Talent remains commercial owner',opportunity_type:'create',category:'Content',status:'draft'});
+    const l=await operate('listing',aid,null,{listing_type:'service',title:'Talent asset QA',category:'Content',summary:'Talent owned',status:'draft'});
+    represented[who]={o,l};
+    assert(o.company_id===institution&&o.commercial_assignment_id===aid&&l.commercial_assignment_id===aid,'Technical publisher preserves represented assignment '+who);
+    assert(l.company_name===(who===ids.a?'Athlete QA':'Creator QA'),'Listing displays represented talent, not technical publisher '+who);
+  }
+  for(const [who,aid,otherAgent] of [[ids.a,talentAssignment,ids.b],[ids.b,talentB,ids.a]]){
+    await role(who);
+    const own=represented[who],foreign=represented[otherAgent],workspace=await rpc('rois_agent_workspace',[]);
+    assert(workspace.opportunities.some(x=>x.id===own.o.id)&&workspace.company_listings.some(x=>x.id===own.l.id),'Assigned talent operations visible '+who);
+    assert(!workspace.opportunities.some(x=>x.id===foreign.o.id)&&!workspace.company_listings.some(x=>x.id===foreign.l.id),'Cross-talent publisher RPC isolation '+who);
+    assert(!(await q('select id from opportunities where id=$1',[foreign.o.id])).length&&!(await q('select id from company_listings where id=$1',[foreign.l.id])).length,'Cross-talent publisher direct ID read denied '+who);
+    await deny('Cross-talent opportunity manual update denied '+who,()=>operate('opportunity',aid,foreign.o.id,{title:'Intrusion'}));
+    await deny('Cross-talent listing manual update denied '+who,()=>operate('listing',aid,foreign.l.id,{title:'Intrusion'}));
+    await deny('Cross-talent mission manual update denied '+who,()=>operate('mission',aid,foreign.o.id,{scout_enabled:true}));
+    await operate('opportunity',aid,own.o.id,{title:'Owned update'});
+    await operate('listing',aid,own.l.id,{title:'Owned update'});
+    assert(true,'Owned talent opportunity/listing remains editable '+who);
+  }
   await role(ids.admin);
-  await q("update commercial_account_assignments set service_ends_at=now()-interval '1 day' where id=$1",[assignment]);
+  await q("update commercial_account_assignments set service_ends_at=now()-interval '1 day' where id=$1",[talentAssignment]);
   await role(ids.a);
-  await deny("Expired publishing assignment blocks talent operations",()=>operate("opportunity",talentAssignment,represented.id,{title:"Forbidden"}));
+  await deny('Expired represented assignment blocks manual ID writes',()=>operate('opportunity',talentAssignment,represented[ids.a].o.id,{title:'Expired'}));
+  assert(!(await rpc('rois_agent_workspace',[])).opportunities.some(o=>o.id===represented[ids.a].o.id),'Expired talent disappears even with shared publisher');
   await role(ids.admin);
-  await q("update commercial_account_assignments set service_ends_at=null where id=$1",[assignment]);
+  await q('update commercial_account_assignments set service_ends_at=null where id=$1',[talentAssignment]);
   await q("update application_consents set revoked_at=now() where application_id=$1",[app]);
   await role(ids.a);
   assert((await rpc("rois_agent_workspace",[])).opportunity_applications.length===0,"Revoked consent removes applicant snapshot");
@@ -160,7 +209,8 @@ async function run(db) {
   await role(ids.talent);
   await deny("Scout cannot forge agent activity",()=>q("insert into analytics_events(profile_id,event_name,commercial_assignment_id,commercial_actor_id) values($1,'agent.insert',$2,$3)",[up,assignment,ids.a]));
   await role(ids.admin);
-  if(await value("select to_regclass('public.scouts') is not null")){
+  {
+    assert(await value("select to_regclass('public.scouts') is not null"),'Canonical external Scout migration is mandatory');
     await db.exec("reset role");
     const external="00000000-0000-4000-8000-000000000007";
     await q("insert into profiles(id,email,name,role,status) values($1,$2,'External Scout QA','scout','approved')",[external,external+"@test.invalid"]);
@@ -169,9 +219,43 @@ async function run(db) {
     const identity=await rpc("rois_scout_mission_profile",[]);
     const identity2=await rpc("rois_scout_mission_profile",[]);
     assert(identity.id===identity2.id&&identity.scout_code==="ROIS-EXTQA01","External Scout reuses one universal identity and original code");
+    assert(await value("select is_active_scout_code('ROIS-EXTQA01')"),'Existing validator accepts canonical external Scout code');
+    const registration=await rpc('register_external_scout',['External Scout QA',external+'@test.invalid']);
+    assert(registration.scout_code==='ROIS-EXTQA01','Repeat registration preserves canonical code');
+    await role(ids.admin);
+    await q("update user_profiles set scout_code='ROIS-STALE' where id=$1",[identity.id]);
+    await role(external);
+    const reconciled=await rpc('rois_scout_mission_profile',[]);
+    assert(reconciled.id===identity.id&&reconciled.scout_code==='ROIS-EXTQA01','Existing universal profile reconciles canonical Scout code');
+    await deny('External Scout cannot change canonical code',()=>q("update scouts set scout_code='FORGED' where profile_id=$1",[external]));
     const externalMission=await value("insert into mission_scouts(opportunity_id,company_id,user_profile_id,scout_code,scout_public_name,status) values($1,$2,$3,$4,'External Scout QA','active') returning id",[opp.id,company,identity.id,identity.scout_code]);
     assert(!!externalMission,"External Scout joins existing mission infrastructure");
+    await role(ids.admin);
+    await q("update scouts set status='blocked' where profile_id=$1",[external]);
+    await role(external);
+    await deny('Blocked Scout cannot reactivate via registration',()=>rpc('register_external_scout',['External Scout QA',external+'@test.invalid']));
+    await deny('Blocked Scout cannot use mission bridge',()=>rpc('rois_scout_mission_profile',[]));
+    await role(ids.admin);
+    await q("update scouts set status='approved' where profile_id=$1",[external]);
+    await q("update user_profiles set scout_code='ROIS-STALE' where id=$1",[identity.id]);
+    await q("update user_profiles set scout_code='ROIS-EXTQA01' where id=$1",[fu]);
+    await role(external);
+    await deny('Canonical code collision fails without stealing another identity',()=>rpc('rois_scout_mission_profile',[]));
+    await role(ids.admin);
+    await q('update user_profiles set scout_code=$1 where id=$2',[scoutCode+'-CREATOR',fu]);
+    await role(external);
+    await rpc('rois_scout_mission_profile',[]);
   }
+  await role(ids.admin);
+  await deny('Institutional publisher cannot be transferred to client',()=>q('update companies set profile_id=$1 where id=$2',[ids.client,institution]));
+  await deny('Institutional publisher role cannot become client',()=>q("update profiles set role='client' where id=$1",[ids.admin]));
+  await role(ids.a);
+  await deny('Agent cannot re-register as Scout',()=>rpc('register_external_scout',['Agent',ids.a+'@test.invalid']));
+  await db.exec('reset role');
+  await db.exec(readFileSync(root+'/supabase-external-scout-network.sql','utf8'));
+  await db.exec(readFileSync(root+'/supabase-agent-workspace-v1.sql','utf8'));
+  assert(await value("select role='commercial' from profiles where id=$1",[ids.a]),'Reapplying canonical migration preserves commercial role with populated data');
+  assert(Number(await value('select gross_amount from scout_mission_commissions where lead_id=$1',[lead]))===1000,'Reapplying migration preserves accepted commission');
   await role(ids.a);
   console.log("ASSERTIONS",assertions);
   return {ids,assignment,talentAssignment,creatorAssignment,company,snapshot:await rpc("rois_agent_workspace",[])};
