@@ -113,13 +113,40 @@ Resultados filtra por cuenta, agente creador y fecha de creación para los objet
 
 - `node --check app.js` y `node --check supabase/functions/send-rois-crm-invitation/index.ts`.
 - `git diff --check`.
-- PostgreSQL embebido PGlite: ambas migraciones aplicadas dos veces en vacío y de nuevo con datos; **107 aserciones**. Incluyen SELECT sensible denegado, proyección segura, aislamiento bidireccional con publisher compartido, IDs manuales, términos congelados, comisión de $1,000 conservada, código Scout reconciliado/colisión, registro bloqueado, aislamiento/consentimientos y acceso propio de atleta/creador/cliente/Admin.
+- PostgreSQL embebido PGlite: ambas migraciones aplicadas dos veces en vacío y de nuevo con datos; **135 aserciones**. Incluyen SELECT sensible denegado, proyección segura, aislamiento bidireccional con publisher compartido, IDs manuales, términos congelados, comisión de $1,000 conservada, código Scout reconciliado/reservado, registro bloqueado, aislamiento/consentimientos y acceso propio de atleta/creador/cliente/Admin. Las 28 comprobaciones adicionales cubren alta pendiente, ambos estados, aprobación sólo Admin, prohibición de misiones/leads incluso con perfil universal legacy activo, no auto-reactivación y no apropiación del código.
 - Navegador Edge/Playwright con servidor local y RPCs ejecutadas en ese PostgreSQL aislado: catorce paneles, creación persistida de afinidad, asignar/retirar desde Admin, selector, borrador entre paneles, propuesta compartida, menú móvil e inglés. Consola sin errores en esos recorridos.
 - Anchos/altos revisados: 1920×1080, 1440×900, 1366×768, 1024×768, 768×1024, 390×844, 360×800; sin overflow horizontal en Inicio. Botón de envío móvil de 44 px de alto. Capturas fuera del repositorio con datos exclusivamente de QA.
 - Hardening en navegador: campos económicos de misión aceptada deshabilitados, guardado permitido de un objetivo no económico y catálogo administrativo con sólo el publisher institucional. Formulario móvil 390×844 sin overflow ni errores de consola en estos recorridos.
+- Aprobación Scout en navegador: botón administrativo conectado a la RPC local, refresco con `approved / approved`, sin botón para rechazados; siete resoluciones sin overflow horizontal. Capturas desktop/móvil fuera del repositorio.
 
 Reproducir SQL: proporcionar PGlite como dependencia de pruebas externa y ejecutar `node tests/agent-workspace-v1.test.mjs`. `ROIS_PGLITE_MODULE` permite indicar su módulo. `supabase-external-scout-network.sql` se carga obligatoriamente desde el repositorio; ya no se utiliza `ROIS_SCOUT_SCHEMA`. No se agrega dependencia al frontend.
 
 ### Límites de la validación
 
 No se conectó ni migró Supabase remoto. PGlite ejecuta SQL/RLS real pero sustituye los helpers de Auth/Storage y no valida PostgREST, infraestructura de red ni la configuración efectiva de producción. La sesión de navegador fue inicializada por el arnés local, no se probó login real. No se enviaron correos ni se ejecutó Deno typecheck. Compatibilidad de cliente/atleta/creador/admin verificada en RLS; no se realizó una regresión visual completa de sus dashboards ni todos los uploads/pagos remotos. Esos recorridos requieren staging con cuentas autorizadas antes de publicar.
+
+## Aprobación obligatoria de Scouts externos
+
+`register_external_scout` crea `profiles.role=scout` con `profiles.status=pending` y `scouts.status=pending`. Reintentos conservan el código canónico y no cambian roles, estados ni códigos existentes. Los Scouts ya aprobados no se degradan al reaplicar la migración. Identidades legacy inconsistentes requieren revisión, no una aprobación implícita.
+
+Administración → AGENTES ROIS → **Aprobación de Scouts externos → Aprobar Scout** llama a `rois_admin_approve_scout(profile_id)`. La función verifica Admin aprobado, bloquea ambas filas y actualiza ambos estados en una transacción. No permite que el agente o el Scout se aprueben; no desbloquea silenciosamente cuentas bloqueadas, eliminadas o rechazadas.
+
+`rois_external_scout_profile_guard` impide cambiar el rol/estado de la identidad Scout desde permisos propios legacy; `scouts_identity_guard` protege la fila Scout. `external_scout_approval_boundary` es restrictiva en oportunidades, membresías, leads y comisiones: ambos estados deben estar aprobados para un usuario Scout, incluso si ya tenía un perfil universal activo o una membresía anterior. Los demás roles conservan sus políticas. `rois_scout_mission_profile` también exige ambos estados aprobados.
+
+`rois_reserved_scout_code_guard` rechaza que otro perfil universal, atleta o creador reclame un código reservado en `scouts`, incluso cuando su titular está pendiente/bloqueado/rechazado. La unicidad normalizada de `scouts` impide registrar dos identidades con el mismo código.
+
+## Preflight de producción: exclusivamente lectura
+
+Este checklist **no autoriza SQL remoto, merge, publicación ni despliegue de funciones**. No contiene consultas para ejecutar. El repositorio describe el esquema esperado, no demuestra el estado real de producción.
+
+Con una sesión administrativa autorizada, consultar únicamente metadatos y vistas de lectura del panel:
+
+- Tables/Schema: existencia y columnas de `profiles`, `scouts`, `user_profiles`, `opportunities`, `company_listings`, `mission_scouts`, `scout_leads`, `scout_mission_commissions`, las seis tablas `commercial_*` y metadatos delegados/lock de términos. Anotar diferencias, sin editar ni ejecutar SQL.
+- En `profiles`, tipos de rol/estado efectivamente presentes; revisar incoherencias de estado Scout sin exportar correos u otros datos personales.
+- Misiones: identificar oportunidades publicadas con Scout habilitado y las que ya tienen membresías/leads. Verificar términos históricos antes de congelarlos; no inferir acuerdos anteriores a partir de valores actuales.
+- Mercado Corporativo: estado/columnas de `company_listings` y propietarios actuales; no usar un cliente como publisher de talento.
+- Publisher: verificar candidatos reales ROIS en `companies`, propietario Admin aprobado y ausencia de asignación como cliente. La migración no designa candidatos automáticamente.
+- Edge Functions: existencia, versión, fecha, JWT y configuración visible de `send-rois-crm-invitation`. Obtener el baseline autorizado antes de cualquier despliegue; comprobar proveedor y nombres de secretos sin revelar valores.
+- Backups: disponibilidad real de respaldo/restauración/exportación, fecha del último respaldo y acceso a un mecanismo de exportación autorizado. No iniciar restauración ni exportar datos sensibles durante este preflight.
+
+Si el panel no está autenticado o no expone esos datos sin SQL, marcar **no verificado** y solicitar acceso de lectura o un inventario administrativo autorizado. No convertir hipótesis del código en hechos de producción.

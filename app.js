@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260905-agent-workspace-v1";
+const roisBuild = "20260906-agent-scout-approval";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -556,6 +556,13 @@ const dashboardEnglishPatterns = [
 // Keep interface copy deterministic and local. User-authored profile and campaign
 // content is intentionally not passed through an external translation service.
 const dashboardEnglishAccentedText = {
+  "Aprobar Scout": "Approve Scout",
+  "Aprobación de Scouts externos": "External Scout approval",
+  "Las cuentas pendientes no pueden participar en misiones ni registrar leads. Aprobar Scout habilita ambas identidades de forma consistente.": "Pending accounts cannot join missions or register leads. Scout approval consistently enables both identities.",
+  "Cuenta pendiente de aprobación": "Account awaiting approval",
+  "Código reservado para tu identidad": "Code reserved for your identity",
+  "Administración debe aprobar tu cuenta antes de participar en misiones o registrar leads. Una cuenta bloqueada o rechazada requiere revisión administrativa.": "Administration must approve your account before you can join missions or register leads. Blocked or rejected accounts require administrative review.",
+  "Registro recibido · Pendiente de aprobación": "Registration received · Awaiting approval",
   "Administración": "Administration",
   "Operación comercial ROIS": "ROIS commercial operations",
   "Operación interna": "Internal operations",
@@ -3495,7 +3502,7 @@ function supabaseApi() {
       });
     },
     async agentRpc(name, values = {}) {
-      if (!["rois_agent_workspace", "rois_agent_save", "rois_agent_operate", "rois_agent_prepare_invitation", "rois_scout_mission_profile"].includes(name)) {
+      if (!["rois_agent_workspace", "rois_agent_save", "rois_agent_operate", "rois_agent_prepare_invitation", "rois_scout_mission_profile", "rois_admin_approve_scout"].includes(name)) {
         throw new Error("Operación de agente no permitida.");
       }
       return request(`/rest/v1/rpc/${name}`, {
@@ -4327,7 +4334,7 @@ function supabaseApi() {
         email: normalizedEmail,
         role: "scout",
         name: registered.name || name,
-        status: registered.status || "approved",
+        status: registered.status || "pending",
         must_change_password: false,
         scout_code: normalizeScoutCode(registered.scout_code)
       };
@@ -13663,9 +13670,9 @@ async function loadAgentWorkspace(force=false) {
       const snapshot=await api.agentRpc("rois_agent_workspace");
       if((state.session?.authId||state.session?.id)!==owner)return false;
       if(!Array.isArray(snapshot?.commercial_account_assignments))throw new Error("Invalid Agent Workspace response");
-      agentWorkspaceLoad.catalog={agents:snapshot.agent_catalog||[],accounts:snapshot.account_catalog||[],publishers:snapshot.institutional_publisher_catalog||[]};
+      agentWorkspaceLoad.catalog={agents:snapshot.agent_catalog||[],accounts:snapshot.account_catalog||[],publishers:snapshot.institutional_publisher_catalog||[],scouts:snapshot.external_scout_catalog||[]};
       Object.entries(snapshot).forEach(([table,rows])=>{
-        if(!Array.isArray(rows)||["agent_catalog","account_catalog","institutional_publisher_catalog"].includes(table))return;
+        if(!Array.isArray(rows)||["agent_catalog","account_catalog","institutional_publisher_catalog","external_scout_catalog"].includes(table))return;
         if(state.session.role==="admin"&&!table.startsWith("commercial_"))return;
         state.data[table]=rows;
       });
@@ -14026,7 +14033,7 @@ function renderAdminAgentAssignments(){
     if(!agentWorkspaceLoad.loading&&!agentWorkspaceLoad.error)void loadAgentWorkspace();
     return;
   }
-  const {agents,accounts,publishers}=agentWorkspaceLoad.catalog;
+  const {agents,accounts,publishers,scouts=[]}=agentWorkspaceLoad.catalog;
   const rows=agentRecords("commercial_account_assignments");
   const name=a=>accounts.find(c=>c.id===(a.company_id||a.user_profile_id))?.name||a.company_id||a.user_profile_id;
   const proposals=agentRecords("commercial_proposal_variants").filter(p=>p.status==="review");
@@ -14040,6 +14047,18 @@ function renderAdminAgentAssignments(){
         a.status==="active"?`<button class="btn" type="button" data-agent-withdraw="${escapeAttr(a.id)}">${agentCopy("Retirar asignación","Withdraw assignment")}</button>`:"—"])):agentEmpty()}</div>
     <div class="panel-body"><h3>${agentCopy("Propuestas pendientes de revisión","Proposals awaiting review")}</h3>${proposals.length?proposals.map(p=>`<article><h4 data-no-translate>${escapeHtml(p.title)} · ${escapeHtml(p.counterparty_name)}</h4><p data-no-translate>${escapeHtml(p.commercial_thesis||"")}</p><details><summary>${agentCopy("Contenido completo","Full content")}</summary><pre data-no-translate>${escapeHtml(JSON.stringify({benefits:p.benefits,activations:p.activations,deliverables:p.deliverables,economic_proposal:p.economic_proposal,cta:p.cta},null,2))}</pre></details><button class="btn" type="button" data-agent-approve="${escapeAttr(p.id)}">${agentCopy("Aprobar propuesta","Approve proposal")}</button></article>`).join(""):agentEmpty()}</div>`);
   const section=document.querySelector(`[data-dashboard-panel="${target}"]`);
+  section.querySelector(".panel").insertAdjacentHTML("beforeend",`<div class="panel-body"><h3>${agentCopy("Aprobación de Scouts externos","External Scout approval")}</h3>
+    <p>${agentCopy("Las cuentas pendientes no pueden participar en misiones ni registrar leads. Aprobar Scout habilita ambas identidades de forma consistente.","Pending accounts cannot join missions or register leads. Scout approval consistently enables both identities.")}</p>
+    <div class="scout-approval-table" tabindex="0" role="region" aria-label="${agentCopy("Aprobación de Scouts externos","External Scout approval")}">${scouts.length?table([agentT("Scout","Scout"),agentT("Código","Code"),agentT("Estado","Status"),agentT("Acciones","Actions")],scouts.map(s=>[
+      escapeHtml(s.name),escapeHtml(s.scout_code),escapeHtml(s.profile_status+" / "+s.status),
+      [s.status,s.profile_status].every(status=>["pending","approved"].includes(status))&&[s.status,s.profile_status].includes("pending")
+        ?`<button class="btn" type="button" data-admin-approve-scout="${escapeAttr(s.profile_id)}">${agentCopy("Aprobar Scout","Approve Scout")}</button>`:"—"
+    ])):agentEmpty()}</div></div>`);
+  section.querySelectorAll("[data-admin-approve-scout]").forEach(button=>button.addEventListener("click",async()=>{
+    button.disabled=true;
+    try{await api.agentRpc("rois_admin_approve_scout",{p_profile_id:button.dataset.adminApproveScout});await loadAgentWorkspace(true);renderAdminAgentAssignments();}
+    catch(error){notify("SCOUT","Error",humanError(error));button.disabled=false;}
+  }));
   section.querySelector("form").insertAdjacentHTML("afterbegin",`<label>${agentCopy("Publisher institucional ROIS para talento (opcional)","ROIS institutional publisher for talent (optional)")}<select name="institutional_publisher_company_id"><option value="">—</option>${publishers.map(c=>`<option value="${escapeAttr(c.id)}">${escapeHtml(c.name)}</option>`).join("")}</select><small>${agentCopy("Sólo infraestructura técnica ROIS. El titular comercial sigue siendo el talento asignado.","ROIS technical infrastructure only. The assigned talent remains the commercial owner.")}</small></label>`);
   section.querySelector("form").addEventListener("submit",async e=>{
     e.preventDefault();const form=e.currentTarget,button=form.querySelector("button[type=submit]");if(button.disabled)return;
@@ -14124,6 +14143,12 @@ function renderCommercialOverview() {
   }
   const scout = currentScoutRecord();
   const scoutCode = currentScoutCode();
+  if(scout?.status!=="approved"){
+    panel("commercial-overview","SCOUT",agentT("Cuenta pendiente de aprobación","Account awaiting approval"),
+      `<div class="panel-body"><p>${agentCopy("Administración debe aprobar tu cuenta antes de participar en misiones o registrar leads. Una cuenta bloqueada o rechazada requiere revisión administrativa.","Administration must approve your account before you can join missions or register leads. Blocked or rejected accounts require administrative review.")}</p>
+      <p>${agentCopy("Código reservado para tu identidad","Code reserved for your identity")}: <strong data-no-translate>${escapeHtml(scoutCode||"—")}</strong></p></div>`);
+    return;
+  }
   const talent = [...(state.data.athletes || []), ...(state.data.founders || [])];
   const referrals = talent.filter(item => normalizeScoutCode(item.invited_by_scout_code) === scoutCode);
   const validatedReferrals = referrals.filter(item => scoutReferralStatus(item).eligible);
@@ -16976,7 +17001,8 @@ async function submitRegistrationLegacy(event) {
         renderSession();
         renderCommercial();
         showView("commercial");
-        notify("Cuenta Scout", "Tu red está activa", `Tu código personal es ${currentScoutCode() || signup.session.scoutCode}. Ya puedes invitar deportistas y creadores desde tu panel.`);
+        notify("SCOUT", agentT("Registro recibido · Pendiente de aprobación","Registration received · Awaiting approval"),
+          `${agentT("Código reservado para tu identidad","Code reserved for your identity")}: ${currentScoutCode() || signup.session.scoutCode}. ${agentT("Administración debe aprobar tu cuenta antes de participar en misiones o registrar leads.","Administration must approve your account before you can join missions or register leads.")}`);
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }

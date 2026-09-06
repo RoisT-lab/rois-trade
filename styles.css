@@ -22226,3 +22226,12 @@ body:has(#commercialView.agent-workspace.active) .view:not(.active) { display: n
 @media (prefers-reduced-motion: reduce) {
   #commercialView.agent-workspace, #commercialView.agent-workspace * { transition: none; animation: none; scroll-behavior: auto; }
 }
+/* Keep approval table scrolling independent from its administrative explanation. */
+#adminView .scout-approval-table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+#adminView .scout-approval-table:focus-visible {
+  outline: 2px solid #4f7cff;
+  outline-offset: 2px;
+}

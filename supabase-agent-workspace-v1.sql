@@ -875,6 +875,10 @@ begin
  where e.commercial_assignment_id=any(aids);
  result:=result||jsonb_build_object('analytics_events',rows);
  if public.rois_is_admin() then
+  select coalesce(jsonb_agg(jsonb_build_object('profile_id',p.id,'name',s.name,'email',s.email,
+   'scout_code',s.scout_code,'status',s.status,'profile_status',p.status,'created_at',s.created_at)),'[]') into rows
+  from public.scouts s join public.profiles p on p.id=s.profile_id where p.role='scout';
+  result:=result||jsonb_build_object('external_scout_catalog',rows);
   select coalesce(jsonb_agg(jsonb_build_object('id',c.id,'name',c.name)),'[]') into rows
   from public.commercial_institutional_publishers i join public.companies c on c.id=i.company_id;
   result:=result||jsonb_build_object('institutional_publisher_catalog',rows);
