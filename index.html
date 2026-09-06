@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ROIS TRADE | Inteligencia Comercial y Oportunidades</title>
-  <meta name="rois-build" content="20260903-company-talent-profile-v2" />
+  <meta name="rois-build" content="20260906-agent-scout-approval" />
   <meta name="description" content="ROIS TRADE utiliza inteligencia comercial y tecnolog&iacute;a propia para identificar, estructurar y activar oportunidades entre empresas, mercados, talento y relaciones estrat&eacute;gicas." />
-    <link rel="stylesheet" href="./styles.css?v=20260903-company-talent-profile-v2" />
+    <link rel="stylesheet" href="./styles.css?v=20260906-agent-scout-approval" />
 </head>
 <body data-active-view="home">
   <div id="app" class="app-shell">
@@ -219,10 +219,27 @@
             <strong>Contraer men&uacute;</strong>
           </button>
           <nav class="side-nav" data-dashboard-nav="commercial">
-            <span class="side-nav-label">Comercial</span>
+            <span class="side-nav-label" data-scout-only>Comercial</span>
+            <span class="side-nav-label" data-agent-only>CENTRO DE MANDO</span>
             <button class="active" type="button" data-dashboard-target="commercial-overview">Inicio</button>
-            <button type="button" data-dashboard-target="commercial-prospects">Registros</button>
+            <button type="button" data-scout-only data-dashboard-target="commercial-prospects">Registros</button>
+            <button type="button" data-agent-only data-dashboard-target="commercial-accounts">Mis cuentas</button>
+            <span class="side-nav-label" data-agent-only>INTELIGENCIA</span>
+            <button type="button" data-agent-only data-dashboard-target="commercial-affinities">Afinidades</button>
+            <button type="button" data-agent-only data-dashboard-target="commercial-map">Opportunity Map</button>
+            <span class="side-nav-label" data-agent-only>ACTIVACIÓN</span>
+            <button type="button" data-agent-only data-dashboard-target="commercial-opportunities">Oportunidades</button>
+            <button type="button" data-agent-only data-dashboard-target="commercial-market">Mercado Corporativo</button>
+            <button type="button" data-agent-only data-dashboard-target="commercial-proposals">Propuestas</button>
+            <button type="button" data-agent-only data-dashboard-target="commercial-connections">Conexiones</button>
+            <span class="side-nav-label" data-agent-only>RED SCOUT</span>
+            <button type="button" data-agent-only data-dashboard-target="commercial-scouts">Scouts</button>
+            <button type="button" data-dashboard-target="commercial-missions">Misiones</button>
+            <button type="button" data-agent-only data-dashboard-target="commercial-leads">Leads / Profesionales</button>
+            <span class="side-nav-label" data-agent-only>EJECUCIÓN</span>
             <button type="button" data-dashboard-target="commercial-followup">Seguimiento</button>
+            <button type="button" data-agent-only data-dashboard-target="commercial-results">Resultados</button>
+            <button type="button" data-agent-only data-dashboard-target="commercial-activity">Actividad</button>
           </nav>
         </aside>
         <div class="workspace" data-dashboard="commercial">
@@ -236,6 +253,18 @@
           <section class="dash-section active" data-dashboard-panel="commercial-overview"></section>
           <section class="dash-section" data-dashboard-panel="commercial-prospects"></section>
           <section class="dash-section" data-dashboard-panel="commercial-followup"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-accounts"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-affinities"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-map"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-opportunities"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-market"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-proposals"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-connections"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-scouts"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-missions"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-leads"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-results"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-activity"></section>
         </div>
       </section>
 
@@ -267,6 +296,7 @@
             <button type="button" data-dashboard-target="admin-corporate-market">Mercado Corporativo</button>
             <button type="button" data-dashboard-target="admin-events">Eventos</button>
             <button type="button" data-dashboard-target="admin-crm">CRM</button>
+            <button type="button" data-dashboard-target="admin-agents">Agentes ROIS</button>
             <button type="button" data-dashboard-target="admin-revenue">Ingresos</button>
             <button type="button" data-dashboard-target="admin-payments">Pagos</button>
             <button type="button" data-dashboard-target="admin-payment-links">Enlaces de pago</button>
@@ -304,6 +334,7 @@
           <section class="dash-section" data-dashboard-panel="admin-disputes"></section>
           <section class="dash-section" data-dashboard-panel="admin-corporate-market"></section>
           <section class="dash-section" data-dashboard-panel="admin-crm"></section>
+          <section class="dash-section" data-dashboard-panel="admin-agents"></section>
           <section class="dash-section" data-dashboard-panel="admin-revenue"></section>
           <section class="dash-section" data-dashboard-panel="admin-payments"></section>
           <section class="dash-section" data-dashboard-panel="admin-uploads"></section>
@@ -398,7 +429,7 @@
   </div>
 
   <script src="./app-config.js?v=20260706-success-fee-only-model" charset="UTF-8"></script>
-<script src="./app.js?v=20260903-company-talent-profile-v2" charset="UTF-8"></script>
+<script src="./app.js?v=20260906-agent-scout-approval" charset="UTF-8"></script>
 </body>
 </html>
 

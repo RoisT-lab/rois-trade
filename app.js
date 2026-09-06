@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260903-company-talent-profile-v2";
+const roisBuild = "20260906-agent-scout-approval";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -39,6 +39,33 @@ let dashboardTranslationScheduled = false;
 let sponsorDeckViewerReturnFocus = null;
 
 const dashboardEnglishText = new Map(Object.entries({
+  "AGENTE ROIS": "ROIS AGENT",
+  "Agentes ROIS": "ROIS agents",
+  "CENTRO DE MANDO": "COMMAND CENTER",
+  "INTELIGENCIA": "INTELLIGENCE",
+  "ACTIVACIÓN": "ACTIVATION",
+  "RED SCOUT": "SCOUT NETWORK",
+  "EJECUCIÓN": "EXECUTION",
+  "Mis cuentas": "Managed accounts",
+  "Afinidades": "Affinities",
+  "Propuestas": "Proposals",
+  "Conexiones": "Connections",
+  "Misiones": "Missions",
+  "Leads / Profesionales": "Leads / Professionals",
+  "Actividad": "Activity",
+  "Contraparte": "Counterparty",
+  "Tipo de contraparte": "Counterparty type",
+  "Hipótesis comercial": "Commercial hypothesis",
+  "Razones (una por línea)": "Reasons (one per line)",
+  "Fecha de siguiente acción": "Next action date",
+  "Título de la propuesta": "Proposal title",
+  "Tesis comercial": "Commercial thesis",
+  "Beneficios (uno por línea)": "Benefits (one per line)",
+  "Activaciones (una por línea)": "Activations (one per line)",
+  "Entregables (uno por línea)": "Deliverables (one per line)",
+  "Guardar en ROIS": "Save in ROIS",
+  "Proceso relacionado": "Related process",
+  "Acción concreta": "Concrete action",
   "Inicio": "Home",
   "Territorio": "Territory",
   "Condición comercial": "Commercial terms",
@@ -529,6 +556,13 @@ const dashboardEnglishPatterns = [
 // Keep interface copy deterministic and local. User-authored profile and campaign
 // content is intentionally not passed through an external translation service.
 const dashboardEnglishAccentedText = {
+  "Aprobar Scout": "Approve Scout",
+  "Aprobación de Scouts externos": "External Scout approval",
+  "Las cuentas pendientes no pueden participar en misiones ni registrar leads. Aprobar Scout habilita ambas identidades de forma consistente.": "Pending accounts cannot join missions or register leads. Scout approval consistently enables both identities.",
+  "Cuenta pendiente de aprobación": "Account awaiting approval",
+  "Código reservado para tu identidad": "Code reserved for your identity",
+  "Administración debe aprobar tu cuenta antes de participar en misiones o registrar leads. Una cuenta bloqueada o rechazada requiere revisión administrativa.": "Administration must approve your account before you can join missions or register leads. Blocked or rejected accounts require administrative review.",
+  "Registro recibido · Pendiente de aprobación": "Registration received · Awaiting approval",
   "Administración": "Administration",
   "Operación comercial ROIS": "ROIS commercial operations",
   "Operación interna": "Internal operations",
@@ -1052,6 +1086,9 @@ function setDashboardLanguage(language) {
   } catch (error) {
     console.warn("ROIS could not save the dashboard language preference.", error);
   }
+  if(isInternalCommercialSession() && !document.querySelector('#commercialView [data-dashboard-panel].active form')) {
+    renderAgentWorkspace(activeDashboardPanelId("commercial") || "commercial-overview");
+  }
   translateDashboardTree(document);
 }
 
@@ -1213,7 +1250,12 @@ const seed = {
   analytics_events: [],
   mission_scouts: [],
   scout_leads: [],
-  scout_mission_commissions: []
+  scout_mission_commissions: [],
+  commercial_account_assignments: [],
+  commercial_affinities: [],
+  commercial_proposal_variants: [],
+  commercial_connections: [],
+  commercial_followups: []
 };
 
 const api = withCachedLoadAll(demoMode ? demoApi() : supabaseApi());
@@ -1669,7 +1711,7 @@ function dashboardPanelQueries(targetId) {
   const founderColumns = "id,profile_id,email,name,venture_name,industry,stage,city,ranking,stats,creator_type,public_name,content_categories,primary_platform,audience_size,engagement_rate,audience_location,audience_demographics,brand_categories,past_collaborations,deliverables,availability,monthly,max_sponsors,image_url,image_path,sponsor_deck,sponsor_deck_status,sponsor_deck_score,sponsor_deck_updated_at,instagram_url,tiktok_url,facebook_url,linkedin_url,instagram_followers,tiktok_followers,facebook_followers,linkedin_followers,sponsor_payment_url,sponsor_terms,status,visual_status,scout_code,scout_active,invited_by_scout_code,annual,annual_fee_required,annual_fee_paid,annual_payment_status,annual_payment_requested_at,annual_access_started_at,annual_access_expires_at,marketplace_access_status,marketplace_access_requested_at,scout_validation_status,scout_commission_status,created_at";
   const universalProfileColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,email,name,public_name,image_url,bio,city,state_region,country,birth_date,age_range,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,verification_status,scout_code,scout_active,created_at,updated_at";
   const marketplaceUniversalColumns = "id,profile_id,legacy_athlete_id,legacy_founder_id,name,public_name,image_url,bio,city,state_region,country,languages,availability,capabilities,interests,industries,sales_experience,territories,audience_size,audience_description,travel_availability,can_invoice,badges,status,visual_status,verification_status,scout_code,scout_active,created_at,updated_at";
-  const opportunityColumns = "id,company_id,created_by,title,description,opportunity_type,category,industry,objective,desired_profile,territory,location,modality,starts_at,closes_at,slots,compensation_type,compensation_amount,commission_rate,margin_amount,wholesale_price,suggested_price,minimum_purchase,purchase_required,inventory_available,delivery_method,return_policy,deliverables,acceptance_criteria,attribution_rules,payment_terms,requested_data_fields,materials,legal_documents,scout_enabled,scout_reward_event,scout_reward_amount,scout_reward_currency,scout_terms,scout_requires_approval,status,moderation_notes,approved_at,published_at,created_at,updated_at";
+  const opportunityColumns = "id,company_id,created_by,title,description,opportunity_type,category,industry,objective,desired_profile,territory,location,modality,starts_at,closes_at,slots,compensation_type,compensation_amount,commission_rate,margin_amount,wholesale_price,suggested_price,minimum_purchase,purchase_required,inventory_available,delivery_method,return_policy,deliverables,acceptance_criteria,attribution_rules,payment_terms,requested_data_fields,materials,legal_documents,scout_enabled,scout_reward_event,scout_reward_amount,scout_reward_currency,scout_terms,scout_evidence_required,scout_requires_approval,status,moderation_notes,approved_at,published_at,created_at,updated_at";
   const applicationColumns = "id,opportunity_id,user_profile_id,applicant_profile_id,message,shared_profile_snapshot,status,company_notes,requested_information,submitted_at,decided_at,created_at,updated_at";
   const crmColumns = "id,name,contact_name,email,prospect_type,organization,phone,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at";
   const companyName = currentCompany()?.name || state.session?.name || "";
@@ -1836,7 +1878,7 @@ function dashboardPanelQueries(targetId) {
   const scoutMissionUserQueries = [
     ...opportunityUserQueries,
     { table: "mission_scouts", query: "select=id,opportunity_id,company_id,user_profile_id,scout_code,scout_public_name,status,joined_at,approved_at,created_at,updated_at&order=created_at.desc" },
-    { table: "scout_leads", query: "select=id,mission_scout_id,opportunity_id,company_id,scout_user_profile_id,scout_code,prospect_type,prospect_name,prospect_email,prospect_phone,prospect_company,country,city,industry,consent,consent_at,notes,economic_value,status,submitted_at,created_at,updated_at&order=created_at.desc" },
+    { table: "scout_leads", query: "select=id,mission_scout_id,opportunity_id,company_id,scout_user_profile_id,scout_code,prospect_type,prospect_name,prospect_email,prospect_phone,prospect_company,country,city,industry,consent,consent_at,notes,commercial_requested_information,economic_value,status,submitted_at,created_at,updated_at&order=created_at.desc" },
     { table: "scout_mission_commissions", query: "select=id,mission_scout_id,lead_id,opportunity_id,company_id,user_profile_id,scout_code,trigger_type,gross_amount,withholding_amount,net_amount,currency,status,estimated_payment_at,approved_at,paid_at,payment_evidence_url,created_at,updated_at&order=created_at.desc" }
   ];
   const opportunityApplicationQueries = [
@@ -1849,6 +1891,7 @@ function dashboardPanelQueries(targetId) {
     { table: "opportunities", query: `select=${opportunityColumns}&order=created_at.desc` }
   ];
   const commercial = {
+    "commercial-missions": scoutMissionUserQueries,
     "commercial-overview": [{ table: "crm", query: `select=${crmColumns}&order=created_at.desc` }],
     "commercial-prospects": [{ table: "crm", query: `select=${crmColumns}&order=created_at.desc` }],
     "commercial-followup": [{ table: "crm", query: `select=${crmColumns}&order=next_follow_up_at.asc.nullslast,created_at.desc` }]
@@ -1896,6 +1939,18 @@ function invalidateClientPanelLoadsForTables(sourceTargetId, tables = []) {
 }
 
 async function ensureDashboardPanelData(targetId, options = {}) {
+  if(isScoutSession() && targetId==="commercial-missions") {
+    try {
+      const profile=await api.agentRpc("rois_scout_mission_profile");
+      replaceRecordInState("user_profiles",profile);
+    } catch(error) {
+      panel(targetId,"SCOUT",agentT("Misiones comerciales","Commercial missions"),`<div class="empty" role="alert">${escapeHtml(humanError(error))}</div>`);
+      return false;
+    }
+  }
+  if ((isInternalCommercialSession() && targetId.startsWith("commercial-")) || targetId === "admin-agents") {
+    return loadAgentWorkspace(options.refresh === true);
+  }
   if (targetId === "admin-control") {
     await loadAdminGrowthSnapshot({ force: options.refresh === true });
     dashboardPanelLoads.set(targetId, {
@@ -3446,6 +3501,14 @@ function supabaseApi() {
         body: "{}"
       });
     },
+    async agentRpc(name, values = {}) {
+      if (!["rois_agent_workspace", "rois_agent_save", "rois_agent_operate", "rois_agent_prepare_invitation", "rois_scout_mission_profile", "rois_admin_approve_scout"].includes(name)) {
+        throw new Error("Operación de agente no permitida.");
+      }
+      return request(`/rest/v1/rpc/${name}`, {
+        method: "POST", headers: headers(), body: JSON.stringify(values)
+      });
+    },
     async loadCreativePaymentOperations() {
       return request("/rest/v1/rpc/list_creative_payment_operations", {
         method: "POST",
@@ -3577,12 +3640,9 @@ function supabaseApi() {
         return normalizeLoadedData(result);
       }
       if (role === "commercial") {
-        const [profiles, crm, grants] = await Promise.all([
-          roleRequest(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&or=(id.eq.${encodeURIComponent(authId)},email.eq.${encodedEmail})&limit=1`),
-          roleRequest("/rest/v1/crm?select=id,name,contact_name,email,prospect_type,organization,phone,country,preferred_language,advanced_access_months,advanced_access_status,source,notes,scout_code,volume,status,invitation_status,invitation_sent_at,invitation_attempts,invitation_error,last_contact_at,next_follow_up_at,created_by,created_at,updated_at&order=created_at.desc&limit=500"),
-          roleRequest("/rest/v1/company_access_grants?select=id,email,grant_type,status,access_months,source_crm_id,invited_by,offer_expires_at,trial_started_at,trial_ends_at,redeemed_company_id,redeemed_profile_id,created_at,updated_at&order=created_at.desc&limit=500")
-        ]);
-        return normalizeLoadedData({ profiles, crm, company_access_grants: grants });
+        agentWorkspaceLoad.loaded = false;
+        const profiles = await roleRequest(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password,created_at&id=eq.${encodeURIComponent(authId)}&limit=1`);
+        return normalizeLoadedData({ profiles });
       }
       if (role === "scout") {
         const [profiles, scouts, crm] = await Promise.all([
@@ -4274,7 +4334,7 @@ function supabaseApi() {
         email: normalizedEmail,
         role: "scout",
         name: registered.name || name,
-        status: registered.status || "approved",
+        status: registered.status || "pending",
         must_change_password: false,
         scout_code: normalizeScoutCode(registered.scout_code)
       };
@@ -4689,6 +4749,8 @@ function supabaseApi() {
 }
 
 function bindGlobalEvents() {
+  document.getElementById("commercialView")?.addEventListener("click", handleAgentWorkspaceClick);
+  document.getElementById("commercialView")?.addEventListener("change", handleAgentWorkspaceChange);
   document.querySelectorAll("[data-open-login]").forEach(button => button.addEventListener("click", openLogin));
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModalFromButton));
   document.querySelectorAll("[data-dashboard-target]").forEach(button => button.addEventListener("click", () => showDashboardPanel(button.dataset.dashboardTarget)));
@@ -5455,7 +5517,7 @@ function renderSession() {
           ? "Panel deportista"
           : "Panel cliente";
   area.innerHTML = `
-    <span class="pill">${state.session.role === "admin" ? "Admin" : state.session.role === "commercial" ? "Comercial" : state.session.role === "scout" ? "Scout" : state.session.name}</span>
+    <span class="pill">${state.session.role === "admin" ? "Admin" : state.session.role === "commercial" ? "AGENTE ROIS" : state.session.role === "scout" ? "Scout" : state.session.name}</span>
     <button class="btn subtle" type="button" data-panel-link>${panelLabel}</button>
   `;
   area.querySelector("[data-panel-link]").addEventListener("click", () => showView(dashboardViewForRole(state.session.role)));
@@ -10039,6 +10101,7 @@ function scoutMissionUserMarkup() {
           <div><dt>Territorio</dt><dd>${escapeHtml(opportunity.territory || opportunity.location || "Abierto")}</dd></div>
         </dl>
         <p class="hint">${escapeHtml(opportunity.scout_terms || "La comision depende de validacion empresarial y no esta garantizada.")}</p>
+        ${opportunity.scout_evidence_required ? `<p class="hint"><strong>${agentCopy("Evidencia requerida","Required evidence")}</strong>: <span data-no-translate>${escapeHtml(opportunity.scout_evidence_required)}</span></p>` : ""}
         ${membership
           ? `<span class="pill">${membership.status === "active" ? "Mision activa" : "En revision"}</span>`
           : `<button class="btn" type="button" data-join-scout-mission="${escapeAttr(opportunity.id)}">Unirme con mi codigo</button>`}
@@ -10053,7 +10116,8 @@ function scoutMissionUserMarkup() {
     escapeHtml(item.prospect_name || "Prospecto"),
     escapeHtml(item.prospect_company || item.prospect_type || ""),
     badge(item.status || "submitted"),
-    escapeHtml(readableDate(item.submitted_at || item.created_at))
+    escapeHtml(readableDate(item.submitted_at || item.created_at)),
+    escapeHtml(item.commercial_requested_information || "—")
   ]);
   return `
     <section class="scout-mission-module">
@@ -10077,7 +10141,7 @@ function scoutMissionUserMarkup() {
         <form class="form-grid scout-lead-form" data-scout-lead-form>
           <div class="section-minihead" style="grid-column:1/-1"><p class="eyebrow">Registrar resultado</p><h3>Agrega un prospecto para validacion.</h3></div>
           <label>Mision<select name="mission_scout_id" required>${activeOptions}</select></label>
-          <label>Tipo<select name="prospect_type"><option value="company">Empresa</option><option value="person">Persona</option></select></label>
+          <label>Tipo<select name="prospect_type"><option value="company">Empresa</option><option value="person">Persona</option><option value="professional">Profesional externo</option></select></label>
           <label>Nombre<input name="prospect_name" required maxlength="120"></label>
           <label>Empresa<input name="prospect_company" maxlength="160"></label>
           <label>Correo<input name="prospect_email" type="email" required></label>
@@ -10089,7 +10153,7 @@ function scoutMissionUserMarkup() {
           <button class="btn primary" type="submit">Enviar a validacion</button>
         </form>
       ` : ""}
-      ${leadRows.length ? table(["Mision", "Prospecto", "Organizacion", "Estado", "Fecha"], leadRows) : ""}
+      ${leadRows.length ? table(["Mision", "Prospecto", "Organizacion", "Estado", "Fecha", agentT("Información solicitada","Requested information")], leadRows) : ""}
     </section>
   `;
 }
@@ -10118,7 +10182,7 @@ async function joinScoutMission(opportunityId) {
     notify("Scouts", opportunity.scout_requires_approval ? "Solicitud enviada" : "Mision activada", opportunity.scout_requires_approval
       ? "La empresa revisara tu vinculacion antes de aceptar prospectos."
       : "Ya puedes registrar prospectos con tu codigo global.");
-    renderAthleteScouts();
+    if(isScoutSession())renderCommercialScoutMissions();else renderAthleteScouts();
   } catch (error) {
     notify("Scouts", "No fue posible vincularte", humanError(error));
   }
@@ -10158,7 +10222,7 @@ async function submitScoutMissionLead(event) {
     replaceRecordInState("scout_leads", record);
     form.reset();
     notify("Scouts", "Prospecto registrado", "La empresa ya puede revisar y validar el resultado desde su CRM.");
-    renderAthleteScouts();
+    if(isScoutSession())renderCommercialScoutMissions();else renderAthleteScouts();
   } catch (error) {
     notify("Scouts", "No fue posible registrar", humanError(error));
     submit.disabled = false;
@@ -10166,12 +10230,17 @@ async function submitScoutMissionLead(event) {
   }
 }
 
-function bindScoutMissionUserEvents() {
-  document.querySelectorAll("[data-join-scout-mission]").forEach(button => {
+function bindScoutMissionUserEvents(root=document) {
+  root.querySelectorAll("[data-join-scout-mission]").forEach(button => {
     button.addEventListener("click", () => joinScoutMission(button.dataset.joinScoutMission));
   });
-  document.querySelector("[data-copy-global-scout]")?.addEventListener("click", () => copyScoutCode(currentUniversalScoutCode()));
-  document.querySelector("[data-scout-lead-form]")?.addEventListener("submit", submitScoutMissionLead);
+  root.querySelector("[data-copy-global-scout]")?.addEventListener("click", () => copyScoutCode(currentUniversalScoutCode()));
+  root.querySelector("[data-scout-lead-form]")?.addEventListener("submit", submitScoutMissionLead);
+}
+
+function renderCommercialScoutMissions() {
+  panel("commercial-missions","SCOUT",agentT("Misiones comerciales","Commercial missions"),scoutMissionUserMarkup());
+  bindScoutMissionUserEvents(document.querySelector('[data-dashboard-panel="commercial-missions"]'));
 }
 
 function renderAthleteScouts() {
@@ -12010,6 +12079,7 @@ function renderAdminPlans() {
 
 function renderAdminPanel(targetId) {
   const map = {
+    "admin-agents": renderAdminAgentAssignments,
     "admin-control": renderAdminControl,
     "admin-users": renderAdminUsers,
     "admin-athletes": renderAdminAthletes,
@@ -13479,13 +13549,554 @@ function bindCommercialProspectForm(options = {}) {
   syncScoutRequirement();
 }
 
+
+/* ROIS TRADE — Agent Workspace V1. Authorization is enforced by server RPCs. */
+const agentWorkspaceLoad = { owner:"", loaded:false, loading:false, error:"", promise:null, at:0, catalog:null };
+let agentActiveAssignment = "";
+let agentResultsSince = "";
+const agentTables = {
+  affinity:"commercial_affinities", proposal:"commercial_proposal_variants", connection:"commercial_connections",
+  followup:"commercial_followups", opportunity:"opportunities", listing:"company_listings", mission:"opportunities",
+  scout:"mission_scouts", lead:"scout_leads", application:"opportunity_applications"
+};
+const agentLabels = {
+  accounts:["Mis cuentas","Managed accounts"], affinities:["Afinidades","Affinities"], map:["Opportunity Map","Opportunity Map"],
+  opportunities:["Oportunidades","Opportunities"], market:["Mercado Corporativo","Corporate Market"], proposals:["Propuestas","Proposals"],
+  connections:["Conexiones","Connections"], scouts:["Scouts","Scouts"], missions:["Misiones","Missions"], leads:["Leads / Profesionales","Leads / Professionals"],
+  followup:["Seguimiento","Next actions"], results:["Resultados","Results"], activity:["Actividad","Activity"], overview:["Inicio","Home"]
+};
+function agentT(es,en=es) { return state.dashboardLanguage==="en"?en:es; }
+function agentCopy(es,en) { return escapeHtml(agentT(es,en)); }
+function agentRecords(table) { return Array.isArray(state.data?.[table])?state.data[table]:[]; }
+function agentAssignments() {
+  const owner=state.session?.authId||state.session?.id;
+  return agentRecords("commercial_account_assignments").filter(a=>a.status==="active"&&a.agent_profile_id===owner&&
+    (!a.service_started_at||new Date(a.service_started_at)<=new Date())&&(!a.service_ends_at||new Date(a.service_ends_at)>new Date()));
+}
+function agentAccount(a) {
+  return a?.company_id?agentRecords("companies").find(c=>c.id===a.company_id):agentRecords("user_profiles").find(u=>u.id===a?.user_profile_id);
+}
+function agentAccountName(id) {
+  return agentAccount(agentRecords("commercial_account_assignments").find(a=>a.id===id))?.name||agentT("Cuenta representada","Represented account");
+}
+function agentPublishingCompany(a) {
+  if(a?.company_id)return a.company_id;
+  return a?.scope?.institutional_publisher_company_id||null;
+}
+function agentMaster(a) {
+  if(!a||a.account_type==="company") return null;
+  const u=agentAccount(a);
+  if(a.account_type==="athlete") return agentRecords("athletes").find(t=>t.id===u?.legacy_athlete_id);
+  const f=agentRecords("founders").find(t=>t.id===u?.legacy_founder_id);
+  return f?founderAsAthleteProfile(f):null;
+}
+function agentScope(assignmentId=agentActiveAssignment) {
+  const assignments=agentAssignments().filter(a=>!assignmentId||a.id===assignmentId);
+  const ids=new Set(assignments.map(a=>a.id)), companies=new Set(assignments.map(a=>a.company_id).filter(Boolean));
+  const own=t=>agentRecords(t).filter(r=>ids.has(r.assignment_id));
+  const corporate=t=>agentRecords(t).filter(r=>(r.commercial_assignment_id?ids.has(r.commercial_assignment_id):companies.has(r.company_id))&&!r.deleted_at);
+  const opportunities=corporate("opportunities"), opportunityIds=new Set(opportunities.map(o=>o.id));
+  return {assignments,affinities:own("commercial_affinities"),proposals:own("commercial_proposal_variants"),connections:own("commercial_connections"),
+    followups:own("commercial_followups"),opportunities,listings:corporate("company_listings"),
+    scouts:agentRecords("mission_scouts").filter(r=>opportunityIds.has(r.opportunity_id)),
+    leads:agentRecords("scout_leads").filter(r=>opportunityIds.has(r.opportunity_id)&&!r.deleted_at),
+    conversions:agentRecords("conversions").filter(r=>opportunityIds.has(r.opportunity_id)),
+    commissions:agentRecords("scout_mission_commissions").filter(r=>opportunityIds.has(r.opportunity_id)),
+    applications:agentRecords("opportunity_applications").filter(x=>opportunityIds.has(x.opportunity_id)),
+    participations:agentRecords("participations").filter(x=>opportunityIds.has(x.opportunity_id)),
+    activity:agentRecords("analytics_events").filter(e=>ids.has(e.commercial_assignment_id))};
+}
+function agentCurrencyTotals(rows,field="potential_value") {
+  const totals=new Map();
+  rows.forEach(r=>{
+    if(r[field]===null||r[field]===undefined||r[field]===""||!Number.isFinite(Number(r[field]))) return;
+    const currency=r.currency||"MXN"; totals.set(currency,(totals.get(currency)||0)+Number(r[field]));
+  });
+  return [...totals].map(([c,v])=>`${v.toLocaleString(state.dashboardLanguage==="en"?"en-US":"es-MX",{maximumFractionDigits:2})} ${c}`).join(" · ")||"—";
+}
+function buildAgentExecutiveMetrics(s=agentScope()) {
+  return [
+    [agentT("Cuentas asignadas","Assigned accounts"),s.assignments.length],
+    [agentT("Afinidades activas","Active affinities"),s.affinities.filter(x=>!["converted","discarded"].includes(x.status)).length],
+    [agentT("Oportunidades activas","Active opportunities"),s.opportunities.filter(x=>x.status==="published").length],
+    [agentT("Activos corporativos","Corporate assets"),s.listings.filter(x=>x.status==="approved").length],
+    [agentT("Propuestas abiertas","Open proposals"),s.proposals.filter(x=>!["closed","discarded"].includes(x.status)).length],
+    [agentT("Conexiones abiertas","Open connections"),s.connections.filter(x=>!["closed_won","closed_lost"].includes(x.status)).length],
+    [agentT("Misiones Scout activas","Active Scout missions"),s.opportunities.filter(x=>x.scout_enabled&&x.status==="published").length],
+    [agentT("Leads por validar","Leads to validate"),s.leads.filter(x=>["submitted","contacted"].includes(x.status)).length],
+    [agentT("Acciones vencidas","Overdue actions"),s.followups.filter(x=>x.status==="pending"&&new Date(x.due_at)<new Date()).length],
+    [agentT("Negociaciones","Negotiations"),s.connections.filter(x=>x.status==="negotiation").length],
+    [agentT("Valor potencial","Potential value"),agentCurrencyTotals(s.connections.filter(x=>!["closed_won","closed_lost"].includes(x.status)))]
+  ];
+}
+function buildAgentAttention(s=agentScope()) {
+  const result=[], add=(rows,label,target)=>{if(rows.length)result.push({count:rows.length,label,target});};
+  add(s.affinities.filter(x=>!["converted","discarded"].includes(x.status)&&!x.next_action),agentT("Afinidades sin siguiente acción","Affinities without a next action"),"affinities");
+  add(s.proposals.filter(x=>x.status==="review"),agentT("Propuestas en revisión","Proposals under review"),"proposals");
+  add(s.connections.filter(x=>!["closed_won","closed_lost"].includes(x.status)&&(!x.next_action||Date.now()-new Date(x.updated_at)>7*86400000)),agentT("Conexiones que requieren movimiento","Connections needing progress"),"connections");
+  add(s.leads.filter(x=>["submitted","contacted"].includes(x.status)),agentT("Leads Scout pendientes de validar","Scout leads awaiting validation"),"leads");
+  add(s.followups.filter(x=>x.status==="pending"&&new Date(x.due_at)<new Date()),agentT("Seguimientos vencidos","Overdue follow-ups"),"followup");
+  add(s.opportunities.filter(x=>x.status==="published"&&x.closes_at&&new Date(x.closes_at)>new Date()&&new Date(x.closes_at)-Date.now()<=7*86400000),agentT("Oportunidades próximas a cerrar","Opportunities closing soon"),"opportunities");
+  return result;
+}
+function agentAction(label,action,kind="",id="",assignment="") {
+  return `<button class="btn" type="button" data-agent-action="${escapeAttr(action)}" data-agent-kind="${escapeAttr(kind)}" data-agent-id="${escapeAttr(id)}" data-agent-assignment="${escapeAttr(assignment)}"${label==="→"?` aria-label="${escapeAttr(agentT("Abrir módulo","Open module"))}"`:""}>${escapeHtml(label)}</button>`;
+}
+function agentEmpty(text=agentT("La actividad aparecerá al operar tus cuentas asignadas.","Activity will appear as you operate your assigned accounts.")) {
+  return `<div class="agent-empty"><span aria-hidden="true">◇</span><p>${escapeHtml(text)}</p></div>`;
+}
+function agentDate(value) { return value?escapeHtml(new Date(value).toLocaleString(state.dashboardLanguage==="en"?"en-US":"es-MX",{dateStyle:"medium",timeStyle:"short"})):"—"; }
+function agentStatus(status) {
+  const es={identified:"Identificada",analyzed:"Analizada",prioritized:"Priorizada",activated:"Activada",converted:"Convertida",discarded:"Descartada",
+    draft:"Borrador",review:"En revisión",in_review:"En revisión",approved:"Aprobada",published:"Publicada",pending:"Pendiente",submitted:"Enviada",
+    proposed:"Propuesta",activation_requested:"Activación solicitada",accepted:"Aceptada",conversation:"Conversación",negotiation:"Negociación",
+    closed_won:"Cerrada ganada",closed_lost:"Cerrada perdida",completed:"Completada",qualified:"Validado",contacted:"Contactado",active:"Activo",
+    paused:"Pausado",rejected:"Rechazado",closed:"Cerrado",withdrawn:"Retirada",cancelled:"Cancelada"};
+  return `<span class="agent-status" data-status="${escapeAttr(status)}">${escapeHtml(agentT(es[status]||status,String(status||"").replaceAll("_"," ")))}</span>`;
+}
+async function loadAgentWorkspace(force=false) {
+  const owner=state.session?.authId||state.session?.id||"";
+  if(!["commercial","admin"].includes(state.session?.role)) return false;
+  if(agentWorkspaceLoad.owner!==owner) {
+    Object.assign(agentWorkspaceLoad,{owner,loaded:false,loading:false,promise:null,error:"",catalog:null});
+    try{agentActiveAssignment=sessionStorage.getItem(`rois-agent-account:${owner}`)||"";}catch{agentActiveAssignment="";}
+  }
+  if(agentWorkspaceLoad.loading)return agentWorkspaceLoad.promise;
+  if(!force&&agentWorkspaceLoad.loaded&&Date.now()-agentWorkspaceLoad.at<60000)return true;
+  agentWorkspaceLoad.loading=true; agentWorkspaceLoad.error="";
+  agentWorkspaceLoad.promise=(async()=>{
+    try {
+      if(!api.agentRpc)throw new Error(agentT("Agent Workspace requiere una conexión Supabase.","Agent Workspace requires a Supabase connection."));
+      const snapshot=await api.agentRpc("rois_agent_workspace");
+      if((state.session?.authId||state.session?.id)!==owner)return false;
+      if(!Array.isArray(snapshot?.commercial_account_assignments))throw new Error("Invalid Agent Workspace response");
+      agentWorkspaceLoad.catalog={agents:snapshot.agent_catalog||[],accounts:snapshot.account_catalog||[],publishers:snapshot.institutional_publisher_catalog||[],scouts:snapshot.external_scout_catalog||[]};
+      Object.entries(snapshot).forEach(([table,rows])=>{
+        if(!Array.isArray(rows)||["agent_catalog","account_catalog","institutional_publisher_catalog","external_scout_catalog"].includes(table))return;
+        if(state.session.role==="admin"&&!table.startsWith("commercial_"))return;
+        state.data[table]=rows;
+      });
+      if(agentActiveAssignment&&!agentAssignments().some(a=>a.id===agentActiveAssignment))agentActiveAssignment="";
+      agentWorkspaceLoad.loaded=true; agentWorkspaceLoad.at=Date.now(); return true;
+    }catch(error){agentWorkspaceLoad.error=humanError(error);agentWorkspaceLoad.loaded=false;return false;}
+    finally{
+      agentWorkspaceLoad.loading=false;
+      const target=state.session?.role==="admin"?"admin-agents":(activeDashboardPanelId("commercial")||"commercial-overview");
+      const section=document.querySelector(`[data-dashboard-panel="${target}"]`);
+      if(section?.classList.contains("active")&&!section.querySelector("form")){
+        if(state.session?.role==="admin")renderAdminAgentAssignments();
+        else if(isInternalCommercialSession())renderAgentWorkspace(target);
+      }
+    }
+  })();
+  return agentWorkspaceLoad.promise;
+}
+function agentLoadState() {
+  if(agentWorkspaceLoad.error)return `<div class="agent-empty" role="alert"><h3>${agentCopy("No fue posible cargar tus cuentas","Your accounts could not be loaded")}</h3><p data-no-translate>${escapeHtml(agentWorkspaceLoad.error)}</p>${agentAction(agentT("Reintentar","Retry"),"refresh")}</div>`;
+  return `<div class="agent-skeleton" role="status">${agentCopy("Cargando cuentas autorizadas…","Loading authorized accounts…")}</div>`;
+}
+function renderAgentWorkspace(targetId) {
+  captureDashboardPanelDraft(targetId);
+  const view=document.getElementById("commercialView");
+  if(agentWorkspaceLoad.owner!==(state.session?.authId||state.session?.id)) {
+    agentWorkspaceLoad.loaded=false;
+    agentWorkspaceLoad.error="";
+  }
+  view.classList.add("agent-workspace");
+  view.querySelectorAll("[data-agent-editor]").forEach(host=>{
+    captureDashboardPanelDraft(host.closest("[data-dashboard-panel]")?.dataset.dashboardPanel);
+    host.innerHTML="";
+  });
+  view.querySelector(".workspace-head h1").textContent="AGENTE ROIS";
+  view.querySelector(".workspace-head .eyebrow").textContent="Commercial Intelligence Workspace";
+  const key=targetId.replace("commercial-",""), label=agentLabels[key]||agentLabels.overview;
+  if(!agentWorkspaceLoad.loaded){
+    panel(targetId,"AGENTE ROIS",agentT(...label),agentLoadState());
+    if(!agentWorkspaceLoad.loading&&!agentWorkspaceLoad.error)void loadAgentWorkspace();
+    return;
+  }
+const selector=`<div class="agent-toolbar"><label>${agentCopy("CUENTA ACTIVA","ACTIVE ACCOUNT")}<select id="agentAccountSelector-${key}" data-agent-account-selector><option value="">${agentCopy("Todas mis cuentas","All my accounts")}</option>${agentAssignments().map(a=>`<option value="${escapeAttr(a.id)}" ${a.id===agentActiveAssignment?"selected":""}>${escapeHtml(agentAccountName(a.id))}</option>`).join("")}</select></label><span>${agentCopy("Actualización","Updated")} · ${agentDate(agentWorkspaceLoad.at)}</span>${agentAction(agentT("Actualizar","Refresh"),"refresh")}</div>`;
+  const s=agentScope(), renderers={
+    overview:()=>agentOverviewMarkup(s),accounts:()=>agentActiveAssignment?agentDedicatedAccountMarkup(s.assignments[0])+agentOverviewMarkup(s):agentAccountsMarkup(s),
+    affinities:()=>agentEntityListMarkup("affinity",s.affinities),map:()=>agentMapMarkup(s),opportunities:()=>agentOpportunitiesMarkup(s),
+    market:()=>agentEntityListMarkup("listing",s.listings),proposals:()=>agentEntityListMarkup("proposal",s.proposals),
+    connections:()=>agentConnectionsMarkup(s),scouts:()=>agentEntityListMarkup("scout",s.scouts),missions:()=>agentMissionsMarkup(s),
+    leads:()=>agentEntityListMarkup("lead",s.leads),followup:()=>agentFollowupsMarkup(s),results:()=>agentResultsMarkup(s),activity:()=>agentActivityMarkup(s)
+  };
+  panel(targetId,"AGENTE ROIS",agentT(...label),selector+`<div class="agent-content"><div data-agent-editor></div>${(renderers[key]||renderers.overview)()}</div>`);
+  translateDashboardTree(view);
+}
+function agentOverviewMarkup(s) {
+  const alerts=buildAgentAttention(s);
+  return `<div class="agent-intro"><p class="eyebrow">INTELLIGENCE → ACTIVATION → EXECUTION</p><h2>${agentCopy("¿Qué tenemos que mover hoy?","What needs to move today?")}</h2><p>${agentCopy("Cada cuenta, una estrategia. Cada relación, una siguiente acción.","Every account has a strategy. Every relationship has a next action.")}</p><div class="action-row">${agentAction(agentT("Nueva afinidad","New affinity"),"new","affinity")}${agentAction(agentT("Crear conexión","Create connection"),"new","connection")}${agentAction(agentT("Programar seguimiento","Schedule follow-up"),"new","followup")}</div></div>
+  <div class="agent-kpis">${buildAgentExecutiveMetrics(s).map(([label,value])=>`<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></article>`).join("")}</div>
+  <div class="agent-two-col"><section><h3>${agentCopy("Requiere tu atención","Needs your attention")}</h3>${alerts.length?alerts.map(a=>`<div class="agent-alert"><strong>${a.count}</strong><span>${escapeHtml(a.label)}</span>${agentAction("→","nav",a.target)}</div>`).join(""):agentEmpty(agentT("No hay alertas pendientes en tus cuentas.","There are no pending alerts for your accounts."))}</section><section><h3>${agentCopy("Actividad reciente","Recent activity")}</h3>${agentActivityMarkup({...s,activity:s.activity.slice(0,6)})}</section></div>`;
+}
+function agentAccountsMarkup(s) {
+  return s.assignments.length?`<div class="agent-account-grid">${s.assignments.map(a=>{
+    const account=agentAccount(a)||{},related=agentScope(a.id);
+    const next=related.followups.filter(f=>f.status==="pending").sort((x,y)=>new Date(x.due_at)-new Date(y.due_at))[0];
+    return `<article class="agent-account"><img src="${escapeAttr(account.logo_url||account.image_url||"./assets/rois-logo.png")}" alt="${escapeAttr(account.name||"ROIS")}" onerror="this.onerror=null;this.src='./assets/rois-logo.png'"><p class="eyebrow">${escapeHtml(a.account_type)}</p><h3 data-no-translate>${escapeHtml(account.name||"ROIS")}</h3><p data-no-translate>${escapeHtml(account.interest||account.bio||account.description||agentT("Objetivo pendiente de estructurar","Objective to be structured"))}</p><dl>${[["Afinidades","Affinities",related.affinities.length],["Oportunidades","Opportunities",related.opportunities.length],["Propuestas","Proposals",related.proposals.length],["Conexiones","Connections",related.connections.length],["Misiones","Missions",related.opportunities.filter(o=>o.scout_enabled).length]].map(([es,en,n])=>`<div><dt>${agentCopy(es,en)}</dt><dd>${n}</dd></div>`).join("")}</dl><p data-no-translate>${escapeHtml(next?.action||agentT("Sin siguiente acción","No next action"))}</p><small>${agentDate(related.activity[0]?.created_at||a.updated_at)}</small><div class="action-row">${agentAction(agentT("Abrir cuenta","Open account"),"account","",a.id)}</div></article>`;
+  }).join("")}</div>`:agentEmpty(agentT("Administración todavía no te ha asignado cuentas activas.","Administration has not assigned you any active accounts yet."));
+}
+function agentDedicatedAccountMarkup(a) {
+  if(!a)return agentEmpty();
+  const account=agentAccount(a)||{},master=agentMaster(a);
+  return `<section class="agent-intro"><p class="eyebrow">${a.account_type==="company"?"Commercial Intelligence Workspace":"Commercial Representation Workspace"}</p><h2 data-no-translate>${escapeHtml(account.name||"")}</h2><p data-no-translate>${escapeHtml(account.description||account.bio||account.interest||"")}</p><div class="action-row">${["affinities","opportunities",...(a.company_id?["market"]:["proposals"]),"connections","scouts","followup","results"].map(k=>agentAction(agentT(...agentLabels[k]),"nav",k)).join("")}${master?.id?agentAction("Sponsor Deck","master","",a.id):""}</div><details><summary>Intelligence Profile</summary><p data-no-translate>${escapeHtml([account.interest,account.city,account.country,...(account.capabilities||[]),...(account.interests||[])].filter(Boolean).join(" · "))}</p></details></section>`;
+}
+function agentMapMarkup(s) {
+  return `<p>${agentCopy("Hipótesis comerciales agrupadas por prioridad, cuenta y contraparte.","Commercial hypotheses grouped by priority, account and counterparty.")}</p><div class="agent-map">${["critical","high","normal","low"].map(priority=>{
+    const rows=s.affinities.filter(a=>a.priority===priority&&a.status!=="discarded");
+    return `<section><p class="eyebrow">${escapeHtml(priority)}</p><strong class="agent-map-count">${rows.length}</strong>${rows.map(a=>`<article><small data-no-translate>${escapeHtml(agentAccountName(a.assignment_id))} · ${escapeHtml(a.target_type)}</small><h4 data-no-translate>${escapeHtml(a.target_name)}</h4>${agentStatus(a.status)}<p>${a.score===null?"—":`${a.score}/100`}</p>${agentAction(agentT("Abrir afinidad","Open affinity"),"edit","affinity",a.id,a.assignment_id)}</article>`).join("")||agentEmpty()}</section>`;
+  }).join("")}</div>`;
+}
+function agentRowAssignment(r) {
+  return r.assignment_id||r.commercial_assignment_id||agentAssignments().find(a=>a.company_id===r.company_id)?.id||"";
+}
+function agentEntityListMarkup(kind,rows) {
+  const creatable=["affinity","proposal","connection","listing","opportunity","followup"].includes(kind);
+  return `${creatable?`<div class="action-row">${agentAction(agentT("Crear","Create"),"new",kind)}</div>`:""}${rows.length?`<div class="agent-record-list">${rows.map(r=>{
+    const aid=agentRowAssignment(r),title=r.title||r.target_name||r.counterparty_name||r.prospect_name||r.scout_public_name||r.action||r.scout_code;
+    return `<article><div><p class="eyebrow" data-no-translate>${escapeHtml(agentAccountName(aid))}</p><h3 data-no-translate>${escapeHtml(title||agentT("Registro","Record"))}</h3>${agentStatus(r.status)}<p data-no-translate>${escapeHtml(r.commercial_hypothesis||r.commercial_thesis||r.context||r.summary||r.description||r.notes||"")}</p>
+    ${kind==="affinity"?`<div class="agent-detail"><strong>${r.score===null?"—":`${r.score}/100`}</strong><span>${escapeHtml(r.priority)}</span><span data-no-translate>${escapeHtml((r.reasons||[]).join(" · "))}</span></div>`:""}
+    ${kind==="lead"?`<p>${agentCopy("Tipo","Type")}: <span data-no-translate>${escapeHtml(r.prospect_type)}</span> · Scout <span data-no-translate>${escapeHtml(r.scout_code)}</span></p>`:""}
+    ${r.potential_value!==undefined?`<strong data-no-translate>${escapeHtml(agentCurrencyTotals([r]))}</strong>`:""}
+    ${r.next_action||r.due_at?`<p class="agent-next"><span>${agentCopy("Siguiente acción","Next action")}</span><b data-no-translate>${escapeHtml(r.next_action||r.action||"")}</b> ${agentDate(r.next_action_at||r.due_at)}</p>`:""}<small>${agentCopy("Última actividad","Last activity")} · ${agentDate(r.updated_at||r.created_at)}</small></div>
+    <div class="agent-record-actions">${agentAction(agentT("Gestionar","Manage"),"edit",kind,r.id,aid)}
+    ${["affinity","listing","lead"].includes(kind)?agentAction(agentT("Crear conexión","Create connection"),"derive","connection",r.id,aid):""}
+    ${kind==="affinity"?agentAction(agentT("Crear propuesta","Create proposal"),"derive","proposal",r.id,aid)+agentAction(agentT("Crear oportunidad","Create opportunity"),"derive","opportunity",r.id,aid):""}
+    ${["opportunity","listing","affinity"].includes(kind)?agentAction(agentT("Activar Red Scout","Activate Scout Network"),"mission",kind,r.id,aid):""}
+    ${kind==="listing"?agentAction(agentT("Buscar afinidades","Find affinities"),"derive","affinity",r.id,aid):""}
+    ${kind==="lead"?agentAction(agentT("Convertir en afinidad","Convert to affinity"),"derive","affinity",r.id,aid)+agentAction(agentT("Invitar a ROIS","Invite to ROIS"),"invite","lead",r.id,aid):""}
+    ${kind==="proposal"?agentAction(agentT("Ver propuesta","View proposal"),"preview","proposal",r.id,aid):""}
+    ${creatable?agentAction(agentT("Siguiente acción","Next action"),"followup",kind,r.id,aid):""}</div></article>`;
+  }).join("")}</div>`:agentEmpty()}`;
+}
+function agentOpportunitiesMarkup(s) {
+  return agentEntityListMarkup("opportunity",s.opportunities)+`<h3>${agentCopy("Postulantes autorizados","Authorized applicants")}</h3>`+(s.applications.length?s.applications.map(r=>{
+    const o=s.opportunities.find(x=>x.id===r.opportunity_id),aid=agentRowAssignment(o||{});
+    return `<article class="agent-applicant"><h4 data-no-translate>${escapeHtml(o?.title||"")}</h4>${agentStatus(r.status)}<dl>${Object.entries(r.shared_profile_snapshot||{}).map(([k,v])=>`<div><dt>${escapeHtml(k)}</dt><dd data-no-translate>${escapeHtml(Array.isArray(v)?v.join(", "):typeof v==="object"?JSON.stringify(v):String(v??""))}</dd></div>`).join("")}</dl>${agentAction(agentT("Revisar","Review"),"edit","application",r.id,aid)}</article>`;
+  }).join(""):agentEmpty(agentT("No hay postulaciones con consentimiento vigente disponibles.","There are no available applications with current consent.")));
+}
+function agentConnectionsMarkup(s) {
+  return `<div class="agent-pipeline">${["identified","proposed","activation_requested","accepted","conversation","negotiation","closed_won","closed_lost"].map(status=>`<div>${agentStatus(status)}<strong>${s.connections.filter(c=>c.status===status).length}</strong></div>`).join("")}</div>`+agentEntityListMarkup("connection",s.connections);
+}
+function agentMissionsMarkup(s) {
+  return `<p>${agentCopy("Una misión distribuye una oportunidad existente. Los Scouts refieren; ROIS valida y activa.","A mission distributes an existing opportunity. Scouts refer; ROIS validates and activates.")}</p>${agentAction(agentT("Configurar misión","Configure mission"),"mission")}`+agentEntityListMarkup("mission",s.opportunities.filter(o=>o.scout_enabled));
+}
+function agentFollowupsMarkup(s) {
+  const now=new Date(),end=new Date(now.getTime()+7*86400000),day=d=>new Date(d).toDateString();
+  const groups=[[agentT("HOY","TODAY"),s.followups.filter(f=>f.status==="pending"&&day(f.due_at)===day(now))],
+    [agentT("VENCIDAS","OVERDUE"),s.followups.filter(f=>f.status==="pending"&&new Date(f.due_at)<now)],
+    [agentT("ESTA SEMANA","THIS WEEK"),s.followups.filter(f=>f.status==="pending"&&new Date(f.due_at)>=now&&new Date(f.due_at)<=end)],
+    [agentT("COMPLETADAS","COMPLETED"),s.followups.filter(f=>f.status==="completed")]];
+  return `<div class="action-row">${agentAction(agentT("Programar seguimiento","Schedule follow-up"),"new","followup")}</div>`+groups.map(([label,rows])=>`<h3>${escapeHtml(label)}</h3>${rows.length?rows.map(f=>`<article class="agent-followup"><div><strong data-no-translate>${escapeHtml(f.action)}</strong><p data-no-translate>${escapeHtml(agentAccountName(f.assignment_id))}</p><small>${agentDate(f.due_at)} · ${escapeHtml(f.priority)}</small></div>${agentAction(agentT("Gestionar","Manage"),"edit","followup",f.id,f.assignment_id)}</article>`).join(""):agentEmpty()}`).join("")+
+    `<h3>${agentCopy("SIN SIGUIENTE ACCIÓN","WITHOUT A NEXT ACTION")}</h3>${buildAgentAttention(s).filter(a=>["affinities","connections"].includes(a.target)).map(a=>`<p>${a.count} · ${escapeHtml(a.label)} ${agentAction("→","nav",a.target)}</p>`).join("")||agentEmpty()}`;
+}
+function agentResultsMarkup(s) {
+  const since=agentResultsSince?new Date(agentResultsSince):null,actor=state.session?.authId||state.session?.id;
+  const range=rows=>rows.filter(r=>!since||new Date(r.created_at)>=since),owned=rows=>range(rows).filter(r=>r.created_by===actor);
+  const connections=owned(s.connections),affinities=owned(s.affinities);
+  const measures=[
+    [agentT("Afinidades creadas","Affinities created"),affinities.length],
+    [agentT("Afinidades activadas","Activated affinities"),affinities.filter(a=>["activated","converted"].includes(a.status)).length],
+    [agentT("Propuestas adaptadas","Adapted proposals"),owned(s.proposals).length],
+    [agentT("Oportunidades posicionadas","Published opportunities"),owned(s.opportunities).filter(o=>o.status==="published").length],
+    [agentT("Conexiones creadas","Connections created"),connections.length],
+    [agentT("Conversaciones","Conversations"),connections.filter(c=>c.status==="conversation").length],
+    [agentT("Negociaciones","Negotiations"),connections.filter(c=>c.status==="negotiation").length],
+    ["Closed won",connections.filter(c=>c.status==="closed_won").length],
+    [agentT("Valor cerrado declarado","Declared closed value"),agentCurrencyTotals(connections.filter(c=>c.status==="closed_won"))],
+    [agentT("Pipeline potencial","Potential pipeline"),agentCurrencyTotals(connections.filter(c=>!["closed_won","closed_lost"].includes(c.status)))],
+    [agentT("Misiones Scout","Scout missions"),owned(s.opportunities).filter(o=>o.scout_enabled).length],
+    [agentT("Leads Scout","Scout leads"),range(s.leads).length],
+    [agentT("Leads validados","Validated leads"),range(s.leads).filter(l=>["qualified","meeting","activated"].includes(l.status)).length],
+    [agentT("Invitaciones preparadas","Prepared invitations"),range(s.leads).filter(l=>l.commercial_invitation_crm_id).length],
+    [agentT("Profesionales incorporados","Onboarded professionals"),new Set(agentRecords("commercial_professional_outcomes").filter(r=>s.leads.some(l=>l.id===r.lead_id)&&(!since||new Date(r.registered_at)>=since)).map(r=>r.lead_id)).size],
+    [agentT("Conversiones validadas","Validated conversions"),range(s.conversions).filter(c=>["validated","approved"].includes(c.validation_status)).length],
+    [agentT("Revenue originado","Originated revenue"),"—"]];
+  return `<p>${agentCopy("Actividad creada por el agente actual; resultados Scout de las cuentas seleccionadas. Valores declarados no equivalen a revenue cobrado.","Activity created by the current agent; Scout results for selected accounts. Declared values do not equal collected revenue.")}</p><label>${agentCopy("Desde","Since")}<input type="date" id="agentResultsSince" value="${escapeAttr(agentResultsSince)}"></label><div class="agent-kpis">${measures.map(([label,value])=>`<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></article>`).join("")}</div>`;
+}
+function agentActivityMarkup(s) {
+  const events=[...s.activity].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const names={commercial_account_assignments:["asignación de cuenta","account assignment"],commercial_affinities:["afinidad","affinity"],commercial_proposal_variants:["propuesta","proposal"],commercial_connections:["conexión","connection"],commercial_followups:["seguimiento","follow-up"],opportunities:["oportunidad / misión","opportunity / mission"],company_listings:["activo corporativo","corporate asset"],mission_scouts:["participación Scout","Scout participation"],scout_leads:["lead Scout","Scout lead"]};
+  return events.length?`<ol class="agent-activity">${events.map(e=>{
+    const entity=names[e.entity_type]||["actividad","activity"];
+    return `<li><span aria-hidden="true">↗</span><div><strong data-no-translate>${escapeHtml(e.properties?.actor_name||agentT("Operador ROIS","ROIS operator"))}</strong><p>${agentCopy(e.event_name==="agent.insert"?"Registró":"Actualizó",e.event_name==="agent.insert"?"Created":"Updated")} ${escapeHtml(agentT(...entity))}<span data-no-translate> · ${escapeHtml(e.properties?.title||agentAccountName(e.commercial_assignment_id))}</span></p><small data-no-translate>${escapeHtml(agentAccountName(e.commercial_assignment_id))}</small><time>${agentDate(e.created_at)}</time></div></li>`;
+  }).join("")}</ol>`:agentEmpty();
+}
+
+
+function agentFields(kind) {
+  const f=(name,es,en,type="text",options=[],required=false)=>({name,label:agentT(es,en),type,options,required});
+  const status=options=>f("status","Estado","Status","select",options,true);
+  const next=[f("next_action","Siguiente acción","Next action"),f("next_action_at","Fecha de siguiente acción","Next action date","datetime-local")];
+  const priority=f("priority","Prioridad","Priority","select",["low","normal","high","critical"],true);
+  const target=[f("counterparty_type","Tipo de contraparte","Counterparty type","select",["company","athlete","creator","professional","external"],true),f("counterparty_name","Contraparte","Counterparty","text",[],true)];
+  const economic=[f("potential_value","Valor potencial","Potential value","number"),f("currency","Moneda","Currency","select",["MXN","USD","EUR"],true)];
+  return {
+    affinity:[f("target_type","Tipo de contraparte","Counterparty type","select",["company","athlete","creator","professional","external"],true),f("target_name","Contraparte","Counterparty","text",[],true),
+      f("score","Score (0–100)","Score (0–100)","number"),priority,f("reasons","Razones (una por línea)","Reasons (one per line)","array"),
+      f("commercial_hypothesis","Hipótesis comercial","Commercial hypothesis","textarea"),...economic,status(["identified","analyzed","prioritized","activated","converted","discarded"]),...next],
+    proposal:[...target,f("title","Título de la propuesta","Proposal title","text",[],true),f("commercial_thesis","Tesis comercial","Commercial thesis","textarea"),
+      f("benefits","Beneficios (uno por línea)","Benefits (one per line)","array"),f("activations","Activaciones (una por línea)","Activations (one per line)","array"),
+      f("deliverables","Entregables (uno por línea)","Deliverables (one per line)","array"),f("economic_proposal","Propuesta económica (JSON: monto, moneda, condiciones)","Economic proposal (JSON: amount, currency, terms)","json"),
+      f("cta","Llamado a la acción","Call to action"),status(["draft","review","activated","negotiation","closed","discarded"])],
+    connection:[...target,f("context","Contexto comercial","Commercial context","textarea"),...economic,status(["identified","proposed","activation_requested","accepted","conversation","negotiation","closed_won","closed_lost"]),...next,f("notes","Notas","Notes","textarea")],
+    followup:[f("action","Acción concreta","Concrete action","text",[],true),f("context","Contexto","Context","textarea"),priority,f("due_at","Fecha límite","Due date","datetime-local",[],true),status(["pending","completed","cancelled"])],
+    opportunity:[f("title","Título","Title","text",[],true),f("description","Descripción","Description","textarea",[],true),
+      f("opportunity_type","Tipo","Type","select",["sell","refer","create","collaborate"],true),f("category","Categoría","Category","text",[],true),
+      f("objective","Objetivo","Objective","textarea"),f("industry","Industria","Industry"),f("desired_profile","Perfil buscado","Desired profile","textarea"),
+      f("territory","Territorio","Territory"),f("location","Ubicación","Location"),f("modality","Modalidad","Mode","select",["remote","hybrid","onsite"],true),
+      f("starts_at","Inicio","Starts","datetime-local"),f("closes_at","Cierre","Closes","datetime-local"),f("slots","Cupos","Slots","number"),
+      f("compensation_type","Compensación","Compensation","select",["commission","fixed","hybrid","in_kind"],true),f("compensation_amount","Monto","Amount","number"),
+      f("deliverables","Entregables","Deliverables","textarea"),f("acceptance_criteria","Criterios de aceptación","Acceptance criteria","textarea"),
+      f("payment_terms","Condiciones de pago","Payment terms","textarea"),status(["draft","in_review"])],
+    listing:[f("listing_type","Tipo de activo","Asset type","select",["product","service","asset","opportunity"],true),f("category","Categoría","Category","text",[],true),
+      f("title","Título","Title","text",[],true),f("summary","Resumen","Summary","textarea",[],true),f("description","Narrativa comercial","Commercial narrative","textarea"),
+      f("price","Precio","Price","number"),f("currency","Moneda","Currency","select",["MXN","USD","EUR"],true),f("price_label","Etiqueta del precio","Price label"),
+      f("location","Ubicación","Location"),f("inventory_count","Inventario","Inventory","number"),f("availability","Disponibilidad","Availability","select",["available","limited","on_request","sold_out"],true),
+      f("commercial_target_market","Mercado objetivo","Target market","textarea"),status(["draft","pending"])],
+    mission:[f("scout_enabled","Misión habilitada","Mission enabled","checkbox"),f("objective","Objetivo","Objective","textarea"),
+      f("desired_profile","Perfil buscado","Desired profile","textarea"),f("territory","Territorio","Territory"),
+      f("scout_reward_event","Resultado pagable","Payable result","select",["qualified","meeting","activated"],true),
+      f("scout_reward_amount","Recompensa","Reward","number"),f("scout_reward_currency","Moneda","Currency","select",["MXN","USD","EUR"],true),
+      f("scout_terms","Criterios de aceptación y términos","Acceptance criteria and terms","textarea"),f("scout_evidence_required","Evidencia requerida","Required evidence","textarea"),
+      f("closes_at","Fecha límite","Deadline","datetime-local"),f("slots","Cupos","Slots","number"),f("scout_requires_approval","Requiere aprobación de Scouts","Scouts require approval","checkbox")],
+    scout:[status(["pending","active","paused","rejected","removed"])],
+    lead:[status(["submitted","contacted","qualified","meeting","activated","rejected","duplicate","cancelled"]),f("company_notes","Notas de validación","Validation notes","textarea"),
+      f("commercial_requested_information","Solicitar información","Request information","textarea")],
+    application:[status(["information_requested","accepted","rejected","in_execution","completed","cancelled","disputed"]),f("company_notes","Notas","Notes","textarea"),f("requested_information","Información solicitada","Requested information","textarea")],
+    invitation:[f("prospect_type","Tipo de profesional","Professional type","select",["athlete","creator"],true)]
+  }[kind]||[];
+}
+function agentFieldMarkup(f,r) {
+  let value=r[f.name]??"";
+  if(f.type==="datetime-local"&&value){const d=new Date(value);value=new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}
+  const attrs=`name="${escapeAttr(f.name)}" id="agent-field-${escapeAttr(f.name)}" ${f.required?"required":""} ${f.locked?'disabled aria-disabled="true"':""}`;
+  const field=f.type==="select"?`<select ${attrs}>${f.options.map((v,i)=>`<option value="${escapeAttr(v)}" ${v===value||(!value&&i===0)?"selected":""}>${escapeHtml(v.replaceAll("_"," "))}</option>`).join("")}</select>`:
+    f.type==="checkbox"?`<input ${attrs} type="checkbox" ${value?"checked":""}>`:
+    ["textarea","array","json"].includes(f.type)?`<textarea ${attrs} rows="3">${escapeHtml(f.type==="json"?JSON.stringify(value||{},null,2):Array.isArray(value)?value.join("\n"):value)}</textarea>`:
+    `<input ${attrs} type="${f.type}" value="${escapeAttr(String(value))}" ${f.type==="number"?`min="0" step="${["slots","inventory_count","score"].includes(f.name)?"1":"0.01"}" ${f.name==="score"?'max="100"':""}`:""}>`;
+  return `<label class="${["textarea","array","json"].includes(f.type)?"agent-field-wide":""}" for="agent-field-${escapeAttr(f.name)}">${escapeHtml(f.label)}${field}</label>`;
+}
+function openAgentEditor(kind,id="",assignmentId="",seed={}) {
+  const section=document.querySelector('#commercialView [data-dashboard-panel].active');
+  let host=section?.querySelector("[data-agent-editor]");
+  if(!host)return;
+  if(!assignmentId&&!agentActiveAssignment&&agentAssignments().length>1) {
+    host.innerHTML=`<h3>${agentCopy("Elige la cuenta que representas","Choose the account you represent")}</h3><div class="action-row">${agentAssignments().map(a=>agentAction(agentAccountName(a.id),"new",kind,"",a.id)).join("")}</div>`;
+    host.scrollIntoView({block:"start"});
+    return;
+  }
+  const row=id?agentRecords(agentTables[kind]).find(r=>r.id===id):null;
+  const aid=assignmentId||agentActiveAssignment||agentAssignments()[0]?.id||"";
+  const assignment=agentAssignments().find(a=>a.id===aid);
+  if(!assignment){host.innerHTML=agentEmpty(agentT("Selecciona una cuenta asignada antes de operar.","Select an assigned account before operating."));return;}
+  if(["listing","opportunity","mission","scout","lead","invitation"].includes(kind)&&!agentPublishingCompany(assignment)){
+    host.innerHTML=agentEmpty(agentT("Esta operación requiere un publisher institucional ROIS designado por Administración. El talento conserva la titularidad comercial; nunca se utiliza otra cuenta cliente.","This operation requires a ROIS institutional publisher designated by Administration. The talent retains commercial ownership; another client account is never used."));return;
+  }
+  const r={priority:"normal",currency:"MXN",modality:"remote",status:kind==="affinity"||kind==="connection"?"identified":kind==="followup"?"pending":"draft",...row,...seed};
+  if(kind==="mission"&&!id){host.innerHTML=agentEmpty(agentT("Elige una oportunidad existente para configurar la misión Scout.","Choose an existing opportunity to configure the Scout mission."))+agentScope(aid).opportunities.map(o=>agentAction(o.title,"edit","mission",o.id,aid)).join("");return;}
+  const fields=agentFields(kind);
+  // Never silently select a new status while editing an approved record.
+  fields.filter(f=>f.name==="status").forEach(f=>{if(r.status&&!f.options.includes(r.status))f.options.unshift(r.status);});
+  const scoped=agentScope(aid);
+  const termsLocked=kind==="mission"&&(r.scout_terms_locked_at||scoped.scouts.some(m=>m.opportunity_id===id)||scoped.leads.some(l=>l.opportunity_id===id));
+  if(termsLocked)fields.forEach(f=>{f.locked=["scout_enabled","scout_reward_event","scout_reward_amount","scout_reward_currency","scout_terms","scout_evidence_required"].includes(f.name);});
+  const relationships=kind==="followup"?[{type:"account",id:aid,name:agentAccountName(aid)},...["affinity","proposal","connection","opportunity","listing"].flatMap(type=>agentRecords(agentTables[type]).filter(x=>agentRowAssignment(x)===aid).map(x=>({type,id:x.id,name:x.title||x.target_name||x.counterparty_name})))]:[];
+  const relatedMarkup=kind==="followup"?`<label>${agentCopy("Proceso relacionado","Related process")}<select name="related" required>${relationships.map(x=>`<option value="${x.type}:${x.id}" ${r.entity_id===x.id?"selected":""}>${escapeHtml(x.type+" · "+x.name)}</option>`).join("")}</select></label>`:"";
+  host.innerHTML=`<form id="agentEntityForm" class="agent-editor"><div class="agent-editor-head"><div><p class="eyebrow">${escapeHtml(kind)}</p><h3 data-no-translate>${escapeHtml(agentAccountName(aid))}</h3></div>${agentAction(agentT("Cerrar","Close"),"cancel")}</div><p>${agentCopy("Cada cambio conserva cuenta representada, agente y fecha.","Each change records the represented account, agent and timestamp.")}</p>
+    <div class="agent-form-grid">${relatedMarkup}${fields.map(f=>agentFieldMarkup(f,r)).join("")}</div>
+    <p data-agent-form-error role="alert"></p><div class="action-row"><button class="btn primary" type="submit">${agentCopy(kind==="invitation"?"Preparar y enviar invitación":"Guardar en ROIS",kind==="invitation"?"Prepare and send invitation":"Save in ROIS")}</button>${agentAction(agentT("Cancelar","Cancel"),"cancel")}</div></form>`;
+  const form=host.querySelector("form");
+  if(termsLocked)form.insertAdjacentHTML("afterbegin",`<p role="status">${agentCopy("Términos aceptados: recompensa, condiciones y evidencia son inmutables. Crea otra misión para ofrecer términos nuevos.","Accepted terms: reward, conditions and evidence are immutable. Create another mission to offer new terms.")}</p>`);
+  form.dataset.preserveDashboardDraft="";
+  form.dataset.dashboardDraftKey=`agent:${kind}:${aid}:${id}`;
+  restoreDashboardPanelDraft(section.dataset.dashboardPanel);
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();if(!form.reportValidity())return;
+    const submit=form.querySelector('[type="submit"]');if(submit.disabled)return;
+    const payload={};
+    try{
+      fields.forEach(f=>{
+        if(f.locked)return;
+        const input=form.elements.namedItem(f.name),value=input.value.trim();
+        payload[f.name]=f.type==="checkbox"?input.checked:f.type==="array"?value.split("\n").map(v=>v.trim()).filter(Boolean):
+          f.type==="json"?JSON.parse(value||"{}"):f.type==="number"?(value===""?null:Number(value)):
+          f.type==="datetime-local"?(value?new Date(value).toISOString():null):value;
+      });
+      if(kind==="proposal"&&!id){
+        const account=agentAccount(assignment),masterId=assignment.account_type==="athlete"?account?.legacy_athlete_id:account?.legacy_founder_id;
+        Object.assign(payload,{proposal_type:assignment.company_id?"commercial":"sponsorship",master_entity_type:assignment.company_id?"company":assignment.account_type,master_entity_id:assignment.company_id||masterId});
+      }
+      for(const key of ["affinity_id","source_lead_id","proposal_variant_id"])if(!id&&seed[key])payload[key]=seed[key];
+      if(kind==="followup"){const [type,rid]=form.elements.related.value.split(":");payload.entity_type=type;payload.entity_id=rid;}
+      if(kind==="mission"&&seed.corporate_listing_id)payload.corporate_listing_id=seed.corporate_listing_id;
+      submit.disabled=true;form.querySelector("[data-agent-form-error]").textContent="";
+      if(kind==="invitation"){
+        const record=await api.agentRpc("rois_agent_prepare_invitation",{p_assignment_id:aid,p_lead_id:id,p_prospect_type:payload.prospect_type});
+        replaceRecordInState("crm",record);
+        await sendCrmInvitation(record.id,{silent:true});
+      }else{
+        await api.agentRpc(["affinity","proposal","connection","followup"].includes(kind)?"rois_agent_save":"rois_agent_operate",
+          {p_kind:kind,p_assignment_id:aid,p_id:id||null,p_values:payload});
+      }
+      clearDashboardFormDraft(form);
+      host.innerHTML="";
+      await loadAgentWorkspace(true);
+      renderAgentWorkspace(activeDashboardPanelId("commercial")||"commercial-overview");
+    }catch(error){form.querySelector("[data-agent-form-error]").textContent=humanError(error);}
+    finally{submit.disabled=false;}
+  });
+  form.scrollIntoView({block:"start",behavior:"instant"});
+  form.querySelector("input,select,textarea")?.focus();
+}
+function agentSetAccount(id){
+  agentActiveAssignment=agentAssignments().some(a=>a.id===id)?id:"";
+  try{sessionStorage.setItem(`rois-agent-account:${state.session?.authId||state.session?.id}`,agentActiveAssignment);}catch{}
+}
+function handleAgentWorkspaceChange(e){
+  if(!isInternalCommercialSession())return;
+  if(e.target.matches("[data-agent-account-selector]")){
+    agentSetAccount(e.target.value);renderAgentWorkspace(activeDashboardPanelId("commercial")||"commercial-overview");
+  }
+  if(e.target.id==="agentResultsSince"){agentResultsSince=e.target.value;renderAgentWorkspace("commercial-results");}
+}
+async function handleAgentWorkspaceClick(e){
+  const button=e.target.closest("[data-agent-action]");
+  if(!button||!isInternalCommercialSession())return;
+  const {agentAction:action,agentKind:kind,agentId:id,agentAssignment:aid}=button.dataset;
+  try{
+    if(action==="refresh"){await loadAgentWorkspace(true);renderAgentWorkspace(activeDashboardPanelId("commercial")||"commercial-overview");}
+    if(action==="nav")showDashboardPanel(`commercial-${kind}`);
+    if(action==="account"){agentSetAccount(id);showDashboardPanel("commercial-accounts");}
+    if(action==="cancel"){
+      clearDashboardFormDraft(button.closest("form"));
+      button.closest("[data-agent-editor]").innerHTML="";
+    }
+    if(action==="new")openAgentEditor(kind,"",aid);
+    if(action==="edit")openAgentEditor(kind,id,aid);
+    if(action==="master"){const a=agentAssignments().find(x=>x.id===id);const p=agentMaster(a);if(p)openSponsorDeckView(p,{returnFocus:button});}
+    if(action==="preview")openAgentProposal(id);
+    if(action==="followup")openAgentEditor("followup","",aid,{entity_type:kind,entity_id:id});
+    if(action==="invite")openAgentEditor("invitation",id,aid);
+    if(action==="mission"){
+      if(kind==="opportunity")openAgentEditor("mission",id,aid,{scout_enabled:true});
+      else if(kind==="listing"){
+        const host=document.querySelector('#commercialView [data-dashboard-panel].active [data-agent-editor]');
+        host.innerHTML=`<h3>${agentCopy("Selecciona la oportunidad que distribuirá este activo","Select the opportunity distributing this asset")}</h3>`;
+        agentScope(aid).opportunities.forEach(o=>{
+          const b=document.createElement("button");b.className="btn";b.type="button";b.textContent=o.title;
+          b.addEventListener("click",()=>openAgentEditor("mission",o.id,aid,{scout_enabled:true,corporate_listing_id:id}));host.append(b);
+        });
+        if(!agentScope(aid).opportunities.length)host.insertAdjacentHTML("beforeend",agentEmpty(agentT("Crea primero una oportunidad de distribución en esta cuenta.","Create a distribution opportunity for this account first.")));
+      }else openAgentEditor("mission","",aid);
+    }
+    if(action==="derive"){
+      const s=agentScope(aid),affinity=s.affinities.find(r=>r.id===id),lead=s.leads.find(r=>r.id===id),listing=s.listings.find(r=>r.id===id);
+      const seed={};
+      if(affinity)Object.assign(seed,{affinity_id:affinity.id,counterparty_type:affinity.target_type,counterparty_name:affinity.target_name,
+        title:affinity.target_name,commercial_thesis:affinity.commercial_hypothesis,context:affinity.commercial_hypothesis,potential_value:affinity.potential_value,currency:affinity.currency});
+      if(lead){
+        if(!["qualified","meeting","activated"].includes(lead.status))throw new Error(agentT("Valida el lead antes de convertirlo.","Validate the lead before converting it."));
+        Object.assign(seed,{source_lead_id:lead.id,target_type:lead.prospect_type==="company"?"company":"professional",target_name:lead.prospect_company||lead.prospect_name,
+          counterparty_type:lead.prospect_type==="company"?"company":"professional",counterparty_name:lead.prospect_company||lead.prospect_name,context:lead.notes,commercial_hypothesis:lead.notes});
+      }
+      if(listing)Object.assign(seed,{context:listing.title,commercial_hypothesis:listing.commercial_target_market||listing.summary});
+      openAgentEditor(kind,"",aid,seed);
+    }
+  }catch(error){notify("AGENTE ROIS",agentT("No fue posible completar la acción","The action could not be completed"),humanError(error));}
+}
+function openAgentProposal(id){
+  const variant=agentScope().proposals.find(p=>p.id===id);
+  if(!variant)return;
+  const assignment=agentAssignments().find(a=>a.id===variant.assignment_id);
+  const master=agentMaster(assignment);
+  // Reuse the shared viewer's editorial modules and benefits. Objective facts always
+  // come from the master; economic variants are shown separately, never written back.
+  const header=`<section class="sponsor-deck-section"><p class="eyebrow">${agentCopy("Propuesta adaptada","Adapted proposal")} · ${escapeHtml(variant.proposal_type)}</p><h2 data-no-translate>${escapeHtml(variant.title)}</h2><p data-no-translate>${escapeHtml(variant.counterparty_name)}</p>${agentStatus(variant.status)}</section>`;
+  const blocks=`<section class="sponsor-deck-section"><div class="sponsor-deck-profile-grid">${sponsorDeckProfileModuleMarkup(1,agentT("Tesis comercial","Commercial thesis"),variant.commercial_thesis)}
+    ${sponsorDeckProfileModuleMarkup(2,agentT("Activaciones","Activations"),variant.activations,{list:true})}
+    ${sponsorDeckProfileModuleMarkup(3,agentT("Beneficios","Benefits"),variant.benefits,{list:true})}
+    ${sponsorDeckProfileModuleMarkup(4,agentT("Entregables","Deliverables"),variant.deliverables,{list:true})}</div></section>
+    <section class="sponsor-deck-section"><h3>${agentCopy("Propuesta económica adaptada","Adapted economic proposal")}</h3><dl>${Object.entries(variant.economic_proposal||{}).map(([k,v])=>`<div><dt data-no-translate>${escapeHtml(k)}</dt><dd data-no-translate>${escapeHtml(typeof v==="object"?JSON.stringify(v):String(v))}</dd></div>`).join("")}</dl><p data-no-translate>${escapeHtml(variant.cta||"")}</p></section>`;
+  notify("ROIS",variant.title,"",`<article class="sponsor-deck-preview sponsor-deck-viewer-v2">${header}${blocks}</article>${master?sponsorDeckMarkup(master,{compact:true}):""}`);
+  document.querySelector(".modal.active")?.classList.add("sponsor-deck-modal");
+}
+function renderAdminAgentAssignments(){
+  if(state.session?.role!=="admin")return;
+  const target="admin-agents";
+  if(!agentWorkspaceLoad.loaded||agentWorkspaceLoad.owner!==(state.session.authId||state.session.id)){
+    panel(target,"AGENTES ROIS",agentT("Asignación de cuentas","Account assignments"),agentLoadState());
+    document.querySelector(`[data-dashboard-panel="${target}"] [data-agent-action="refresh"]`)?.addEventListener("click",()=>loadAgentWorkspace(true));
+    if(!agentWorkspaceLoad.loading&&!agentWorkspaceLoad.error)void loadAgentWorkspace();
+    return;
+  }
+  const {agents,accounts,publishers,scouts=[]}=agentWorkspaceLoad.catalog;
+  const rows=agentRecords("commercial_account_assignments");
+  const name=a=>accounts.find(c=>c.id===(a.company_id||a.user_profile_id))?.name||a.company_id||a.user_profile_id;
+  const proposals=agentRecords("commercial_proposal_variants").filter(p=>p.status==="review");
+  panel(target,"AGENTES ROIS",agentT("Asignación y supervisión","Assignment and supervision"),`<div class="panel-body">
+    <form id="adminAgentAssignmentForm" class="form-grid"><label>${agentCopy("Agente aprobado","Approved agent")}<select name="agent_profile_id" required><option value="">—</option>${agents.map(a=>`<option value="${escapeAttr(a.id)}">${escapeHtml(a.name)}</option>`).join("")}</select></label>
+    <label>${agentCopy("Cuenta","Account")}<select name="account" required><option value="">—</option>${accounts.map(a=>`<option value="${escapeAttr(a.account_type+":"+a.id)}">${escapeHtml(a.name+" · "+a.account_type)}</option>`).join("")}</select></label>
+    <label>${agentCopy("Inicio del servicio","Service starts")}<input name="service_started_at" type="datetime-local"></label><label>${agentCopy("Fin del servicio","Service ends")}<input name="service_ends_at" type="datetime-local"></label>
+    <p id="adminAgentError" role="alert"></p><button class="btn primary" type="submit">${agentCopy("Asignar cuenta","Assign account")}</button></form></div>
+    <div class="panel-body">${rows.length?table([agentT("Agente","Agent"),agentT("Cuenta","Account"),agentT("Estado","Status"),agentT("Vigencia","Service term"),agentT("Acciones","Actions")],
+      rows.map(a=>[escapeHtml(agents.find(g=>g.id===a.agent_profile_id)?.name||a.agent_profile_id),escapeHtml(name(a)),agentStatus(a.status),agentDate(a.service_ends_at),
+        a.status==="active"?`<button class="btn" type="button" data-agent-withdraw="${escapeAttr(a.id)}">${agentCopy("Retirar asignación","Withdraw assignment")}</button>`:"—"])):agentEmpty()}</div>
+    <div class="panel-body"><h3>${agentCopy("Propuestas pendientes de revisión","Proposals awaiting review")}</h3>${proposals.length?proposals.map(p=>`<article><h4 data-no-translate>${escapeHtml(p.title)} · ${escapeHtml(p.counterparty_name)}</h4><p data-no-translate>${escapeHtml(p.commercial_thesis||"")}</p><details><summary>${agentCopy("Contenido completo","Full content")}</summary><pre data-no-translate>${escapeHtml(JSON.stringify({benefits:p.benefits,activations:p.activations,deliverables:p.deliverables,economic_proposal:p.economic_proposal,cta:p.cta},null,2))}</pre></details><button class="btn" type="button" data-agent-approve="${escapeAttr(p.id)}">${agentCopy("Aprobar propuesta","Approve proposal")}</button></article>`).join(""):agentEmpty()}</div>`);
+  const section=document.querySelector(`[data-dashboard-panel="${target}"]`);
+  section.querySelector(".panel").insertAdjacentHTML("beforeend",`<div class="panel-body"><h3>${agentCopy("Aprobación de Scouts externos","External Scout approval")}</h3>
+    <p>${agentCopy("Las cuentas pendientes no pueden participar en misiones ni registrar leads. Aprobar Scout habilita ambas identidades de forma consistente.","Pending accounts cannot join missions or register leads. Scout approval consistently enables both identities.")}</p>
+    <div class="scout-approval-table" tabindex="0" role="region" aria-label="${agentCopy("Aprobación de Scouts externos","External Scout approval")}">${scouts.length?table([agentT("Scout","Scout"),agentT("Código","Code"),agentT("Estado","Status"),agentT("Acciones","Actions")],scouts.map(s=>[
+      escapeHtml(s.name),escapeHtml(s.scout_code),escapeHtml(s.profile_status+" / "+s.status),
+      [s.status,s.profile_status].every(status=>["pending","approved"].includes(status))&&[s.status,s.profile_status].includes("pending")
+        ?`<button class="btn" type="button" data-admin-approve-scout="${escapeAttr(s.profile_id)}">${agentCopy("Aprobar Scout","Approve Scout")}</button>`:"—"
+    ])):agentEmpty()}</div></div>`);
+  section.querySelectorAll("[data-admin-approve-scout]").forEach(button=>button.addEventListener("click",async()=>{
+    button.disabled=true;
+    try{await api.agentRpc("rois_admin_approve_scout",{p_profile_id:button.dataset.adminApproveScout});await loadAgentWorkspace(true);renderAdminAgentAssignments();}
+    catch(error){notify("SCOUT","Error",humanError(error));button.disabled=false;}
+  }));
+  section.querySelector("form").insertAdjacentHTML("afterbegin",`<label>${agentCopy("Publisher institucional ROIS para talento (opcional)","ROIS institutional publisher for talent (optional)")}<select name="institutional_publisher_company_id"><option value="">—</option>${publishers.map(c=>`<option value="${escapeAttr(c.id)}">${escapeHtml(c.name)}</option>`).join("")}</select><small>${agentCopy("Sólo infraestructura técnica ROIS. El titular comercial sigue siendo el talento asignado.","ROIS technical infrastructure only. The assigned talent remains the commercial owner.")}</small></label>`);
+  section.querySelector("form").addEventListener("submit",async e=>{
+    e.preventDefault();const form=e.currentTarget,button=form.querySelector("button[type=submit]");if(button.disabled)return;
+    const fd=new FormData(form),[type,id]=String(fd.get("account")).split(":");button.disabled=true;
+    try{
+      await api.insert("commercial_account_assignments",{agent_profile_id:fd.get("agent_profile_id"),account_type:type,
+        scope:type!=="company"&&fd.get("institutional_publisher_company_id")?{institutional_publisher_company_id:fd.get("institutional_publisher_company_id")}:{},
+        company_id:type==="company"?id:null,user_profile_id:type!=="company"?id:null,status:"active",
+        service_started_at:fd.get("service_started_at")?new Date(fd.get("service_started_at")).toISOString():null,
+        service_ends_at:fd.get("service_ends_at")?new Date(fd.get("service_ends_at")).toISOString():null});
+      await loadAgentWorkspace(true);renderAdminAgentAssignments();
+    }catch(error){section.querySelector("#adminAgentError").textContent=humanError(error);}finally{button.disabled=false;}
+  });
+  section.querySelectorAll("[data-agent-withdraw]").forEach(button=>button.addEventListener("click",async()=>{
+    button.disabled=true;
+    try{await api.update("commercial_account_assignments",button.dataset.agentWithdraw,{status:"withdrawn"});await loadAgentWorkspace(true);renderAdminAgentAssignments();}
+    catch(error){notify("AGENTES ROIS","Error",humanError(error));button.disabled=false;}
+  }));
+  section.querySelectorAll("[data-agent-approve]").forEach(button=>button.addEventListener("click",async()=>{
+    const p=proposals.find(p=>p.id===button.dataset.agentApprove);button.disabled=true;
+    try{await api.agentRpc("rois_agent_save",{p_kind:"proposal",p_assignment_id:p.assignment_id,p_id:p.id,p_values:{status:"approved"}});await loadAgentWorkspace(true);renderAdminAgentAssignments();}
+    catch(error){notify("AGENTES ROIS","Error",humanError(error));button.disabled=false;}
+  }));
+}
+
 function renderCommercial() {
   const activePanel = document.querySelector('[data-dashboard="commercial"] [data-dashboard-panel].active')?.dataset.dashboardPanel || "commercial-overview";
   renderCommercialPanel(activePanel);
 }
 
 function renderCommercialPanel(targetId) {
+  if (isInternalCommercialSession()) {
+    renderAgentWorkspace(targetId);
+    return;
+  }
+  document.getElementById("commercialView").classList.remove("agent-workspace");
   const map = {
+    "commercial-missions": renderCommercialScoutMissions,
     "commercial-overview": renderCommercialOverview,
     "commercial-prospects": renderCommercialProspects,
     "commercial-followup": renderCommercialFollowup
@@ -13532,6 +14143,12 @@ function renderCommercialOverview() {
   }
   const scout = currentScoutRecord();
   const scoutCode = currentScoutCode();
+  if(scout?.status!=="approved"){
+    panel("commercial-overview","SCOUT",agentT("Cuenta pendiente de aprobación","Account awaiting approval"),
+      `<div class="panel-body"><p>${agentCopy("Administración debe aprobar tu cuenta antes de participar en misiones o registrar leads. Una cuenta bloqueada o rechazada requiere revisión administrativa.","Administration must approve your account before you can join missions or register leads. Blocked or rejected accounts require administrative review.")}</p>
+      <p>${agentCopy("Código reservado para tu identidad","Code reserved for your identity")}: <strong data-no-translate>${escapeHtml(scoutCode||"—")}</strong></p></div>`);
+    return;
+  }
   const talent = [...(state.data.athletes || []), ...(state.data.founders || [])];
   const referrals = talent.filter(item => normalizeScoutCode(item.invited_by_scout_code) === scoutCode);
   const validatedReferrals = referrals.filter(item => scoutReferralStatus(item).eligible);
@@ -16384,7 +17001,8 @@ async function submitRegistrationLegacy(event) {
         renderSession();
         renderCommercial();
         showView("commercial");
-        notify("Cuenta Scout", "Tu red está activa", `Tu código personal es ${currentScoutCode() || signup.session.scoutCode}. Ya puedes invitar deportistas y creadores desde tu panel.`);
+        notify("SCOUT", agentT("Registro recibido · Pendiente de aprobación","Registration received · Awaiting approval"),
+          `${agentT("Código reservado para tu identidad","Code reserved for your identity")}: ${currentScoutCode() || signup.session.scoutCode}. ${agentT("Administración debe aprobar tu cuenta antes de participar en misiones o registrar leads.","Administration must approve your account before you can join missions or register leads.")}`);
       } else {
         showVerificationNotice(signup.email || form.email.value);
       }
