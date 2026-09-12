@@ -50,7 +50,7 @@
 #homeView.rh-home .rh-hero { padding-top: 62px; padding-bottom: 24px; }
 #homeView.rh-home .rh-hero > .rh-overline { display: flex; align-items: center; gap: 12px; }
 #homeView.rh-home .rh-signal { width: 8px; height: 8px; border-radius: 50%; background: var(--rh-accent); box-shadow: none; }
-#homeView.rh-home h1.rh-heading { font-size: clamp(44px, 5.7vw, 88px); line-height: 1.01; margin: 38px 0; max-width: 1220px; }
+#homeView.rh-home h1.rh-heading { font-size: clamp(44px, 5vw, 76px); line-height: 1.06; margin: 38px 0; max-width: 1220px; }
 #homeView.rh-home .rh-hero-bottom { display: flex; align-items: start; justify-content: space-between; gap: 50px; margin-bottom: 56px; }
 #homeView.rh-home .rh-hero-bottom > p { max-width: 610px; color: var(--rh-muted); font-size: 18px; }
 #homeView.rh-home .rh-actions { display: grid; justify-items: start; gap: 8px; flex-shrink: 0; }

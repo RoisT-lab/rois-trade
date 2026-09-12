@@ -12,22 +12,28 @@ html body img[src*="rois-trade-metallic-20260912.png"] {
   padding: 0 !important;
   box-sizing: border-box;
 }
-/* 30% above the legacy rendered widths (142px desktop / 112px mobile).
-   Override the legacy max-width as well, so the image keeps its proportions. */
+/* Frame the official artwork, trimming only its empty outer black margins.
+   The source asset, emblem proportions and colors remain unchanged. */
+html body.rois-dossier .topbar { min-height: 112px !important; }
 html body.rois-dossier .topbar .brand {
-  min-width: 184.6px !important;
-  width: 184.6px !important;
-  max-width: 184.6px !important;
-  flex: 0 0 184.6px !important;
+  min-width: 312px !important;
+  width: 312px !important;
+  max-width: 312px !important;
+  height: 96px !important;
+  flex: 0 0 312px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   padding: 0 !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 html body .topbar .brand img[src*="rois-trade-metallic-20260912.png"] {
   display: block !important;
-  width: 184.6px !important;
-  height: 73.84px !important;
+  width: 432px !important;
+  height: 172.8px !important;
+  flex-shrink: 0;
   max-height: none !important;
-  max-width: 100% !important;
+  max-width: none !important;
 }
 html body .dashboard .sidebar .rois-sidebar-identity {
   display: block;
@@ -56,16 +62,22 @@ html body .sponsor-deck-brand img[src*="rois-trade-metallic-20260912.png"] {
   height: auto;
 }
 html body .information-brand img { width: 220px; height: auto; max-width: 100%; max-height: none; }
-@media (max-width: 600px) {
+@media (max-width: 1100px) {
+  html body.rois-dossier .topbar {
+    height: auto !important;
+    grid-template-rows: auto auto !important;
+    row-gap: 10px !important;
+  }
   html body.rois-dossier .topbar .brand {
-    min-width: 145.6px !important;
-    width: 145.6px !important;
-    max-width: 145.6px !important;
-    flex-basis: 145.6px !important;
+    min-width: 174.72px !important;
+    width: 174.72px !important;
+    max-width: 174.72px !important;
+    flex-basis: 174.72px !important;
+    height: 60px !important;
   }
   html body .topbar .brand img[src*="rois-trade-metallic-20260912.png"] {
-    width: 145.6px !important;
-    height: 58.24px !important;
+    width: 252px !important;
+    height: 100.8px !important;
   }
 }
 
