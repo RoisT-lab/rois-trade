@@ -81,20 +81,24 @@ html body .information-brand img { width: 220px; height: auto; max-width: 100%; 
   }
 }
 
-/* ROIS TRADE — Charcoal, warm silver and dark olive dossier system.
-   Palette interpreted from the supplied brand board; status colors stay semantic.
+/* ROIS TRADE — Charcoal, metallic silver and electric blue dossier system.
+   Blue accents echo the site's imagery; status colors stay semantic.
    Presentation only. Keep existing navigation, layout breakpoints and form behavior.
    Legacy dashboard rules contain !important and hardcoded light backgrounds;
    the scoped compatibility rules below replace that palette, not functionality. */
 body.rois-dossier {
-  --dossier-bg: #080908;
-  --dossier-panel: #10120f;
-  --dossier-raised: #1a1e17;
-  --dossier-text: #f2f0e9;
-  --dossier-muted: #b6b8ac;
-  --dossier-line: #55594d;
-  --dossier-line-soft: #30342b;
-  --dossier-accent: #c9c6b9;
+  --dossier-bg: #05080d;
+  --dossier-panel: #0b111b;
+  --dossier-raised: #101e30;
+  --dossier-text: #f2f5fa;
+  --dossier-muted: #afbdd0;
+  --dossier-line: #526882;
+  --dossier-line-soft: #27364b;
+  --dossier-accent: #69b5ff;
+  --dossier-primary: #1856b8;
+  --dossier-primary-hover: #2065d8;
+  --dossier-selected: #102b4b;
+  --dossier-metal: #c9c6b9;
   --bg: var(--dossier-bg);
   --card: var(--dossier-panel);
   --card-strong: var(--dossier-raised);
@@ -104,7 +108,7 @@ body.rois-dossier {
   --muted: var(--dossier-muted);
   --accent: var(--dossier-accent);
   --line: var(--dossier-line-soft);
-  --soft: #22271c;
+  --soft: var(--dossier-raised);
   --shadow: none;
   --shadow-soft: none;
   color-scheme: dark;
@@ -152,7 +156,7 @@ html body.rois-dossier .topbar :is(.btn,.pill) {
   border-color: var(--dossier-line) !important;
 }
 html body.rois-dossier .topbar .nav-create-account {
-  background: #353e29 !important;
+  background: var(--dossier-primary) !important;
   border-color: var(--dossier-accent) !important;
 }
 /* Shared dashboard colors; business data and profile imagery remain untouched. */
@@ -166,7 +170,7 @@ body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) {
   --client-line: var(--dossier-line-soft);
   --client-line-strong: var(--dossier-line);
   --client-blue: var(--dossier-accent);
-  --client-blue-strong: #353e29;
+  --client-blue-strong: var(--dossier-primary);
   --client-gold: var(--dossier-muted);
   --client-radius: 2px;
   --client-shadow: none;
@@ -182,7 +186,7 @@ body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) {
   --text: var(--dossier-text);
   --muted: var(--dossier-muted);
   --line: var(--dossier-line-soft);
-  --soft: #22271c;
+  --soft: var(--dossier-raised);
   background: var(--dossier-bg) !important;
   color: var(--dossier-text) !important;
   border-radius: 2px !important;
@@ -216,9 +220,9 @@ body.rois-dossier .dashboard .side-nav button {
   box-shadow: none !important;
 }
 body.rois-dossier .dashboard .side-nav button.active {
-  background: #20261b !important;
+  background: var(--dossier-selected) !important;
   color: var(--dossier-text) !important;
-  border-color: #737a63 !important;
+  border-color: var(--dossier-accent) !important;
   border-left: 2px solid var(--dossier-accent) !important;
 }
 body.rois-dossier .dashboard .side-nav button:hover { background: var(--dossier-raised) !important; color: #fff !important; }
@@ -323,16 +327,16 @@ body.rois-dossier #adminView .admin-live-status b { color: #73d9a6; font-size: 1
 body.rois-dossier :is(.dashboard,.modal-card) code { color: var(--dossier-text); overflow-wrap: anywhere; }
 body.rois-dossier :is(.dashboard,.modal-card) :is(input,select,textarea) {
   color: var(--dossier-text) !important;
-  background-color: #13160f !important;
-  border: 1px solid #626a56 !important;
+  background-color: var(--dossier-panel) !important;
+  border: 1px solid var(--dossier-line) !important;
   border-radius: 2px !important;
   box-shadow: none !important;
   accent-color: var(--dossier-accent);
   caret-color: var(--dossier-accent);
 }
-body.rois-dossier :is(.dashboard,.modal-card) ::placeholder { color: #acb1a1 !important; opacity: 1; }
+body.rois-dossier :is(.dashboard,.modal-card) ::placeholder { color: var(--dossier-muted) !important; opacity: 1; }
 body.rois-dossier :is(.dashboard,.modal-card) input::file-selector-button {
-  background: #353e29; color: #fff; border: 1px solid #7c856a; padding: 10px 14px; margin-right: 12px;
+  background: var(--dossier-primary); color: #fff; border: 1px solid var(--dossier-accent); padding: 10px 14px; margin-right: 12px;
 }
 body.rois-dossier :is(.dashboard,.modal-card) :is(.btn,button[type=submit],.modal-close,.mobile-app-action,.mobile-avatar,.mobile-menu-close,.commercial-sidebar-toggle) {
   border: 1px solid var(--dossier-line) !important;
@@ -343,12 +347,12 @@ body.rois-dossier :is(.dashboard,.modal-card) :is(.btn,button[type=submit],.moda
   min-height: 44px;
 }
 body.rois-dossier :is(.dashboard,.modal-card) .btn.primary {
-  color: #fff !important; background: #353e29 !important; border-color: var(--dossier-accent) !important;
+  color: #fff !important; background: var(--dossier-primary) !important; border-color: var(--dossier-accent) !important;
 }
-body.rois-dossier :is(.dashboard,.modal-card) .btn:hover { background: #303a25 !important; border-color: var(--dossier-accent) !important; }
+body.rois-dossier :is(.dashboard,.modal-card) .btn:hover { background: var(--dossier-primary-hover) !important; border-color: var(--dossier-accent) !important; }
 body.rois-dossier :is(.dashboard,.modal-card) :is(.btn.danger,.error,[role=alert]) { color: #ffb0b8 !important; }
 body.rois-dossier .dashboard .pill {
-  color: #e0dfd2; background: #20261b; border: 1px solid #626b53; border-radius: 2px;
+  color: var(--dossier-text); background: var(--dossier-selected); border: 1px solid var(--dossier-line); border-radius: 2px;
 }
 body.rois-dossier :is(.dashboard,.modal-card,.topbar) :is(a,button,input,select,textarea,summary):focus-visible {
   outline: 2px solid var(--dossier-accent) !important; outline-offset: 4px !important;
@@ -370,7 +374,7 @@ body.rois-dossier .sponsor-deck-viewer-v2 {
   --deck-line: var(--dossier-line-soft);
   --deck-line-strong: var(--dossier-line);
   --deck-blue: var(--dossier-accent);
-  --deck-gold: var(--dossier-accent);
+  --deck-gold: var(--dossier-metal);
 }
 body.rois-dossier[data-active-view="client"] .company-athlete-profile {
   --talent-bg: var(--dossier-bg);
@@ -381,16 +385,16 @@ body.rois-dossier[data-active-view="client"] .company-athlete-profile {
   --talent-line: var(--dossier-line-soft);
   --talent-line-strong: var(--dossier-line);
   --talent-blue: var(--dossier-accent);
-  --talent-gold: var(--dossier-accent);
+  --talent-gold: var(--dossier-metal);
 }
 body.rois-dossier .sponsor-deck-viewer-v2 .sponsor-deck-cover {
-  background: radial-gradient(ellipse at top right, #252c1e, transparent 65%), var(--dossier-bg);
+  background: radial-gradient(ellipse at top right, var(--dossier-selected), transparent 65%), var(--dossier-bg);
 }
 body.rois-dossier .sponsor-deck-viewer-v2 .sponsor-deck-request-action { background: var(--dossier-raised); }
 body.rois-dossier .sponsor-deck-viewer-header { background: var(--dossier-bg); }
 body.rois-dossier :is(.sponsor-deck-header-cta,.sponsor-deck-request-action .btn),
 body.rois-dossier[data-active-view="client"] .company-athlete-profile .athlete-social-actions > .btn:first-child {
-  background: #353e29; color: var(--dossier-text); border-color: var(--dossier-accent);
+  background: var(--dossier-primary); color: var(--dossier-text); border-color: var(--dossier-accent);
 }
 body.rois-dossier[data-active-view="client"] .company-talent-evaluation { background: var(--dossier-panel); }
 body.rois-dossier[data-active-view="client"] .company-talent-completion > i > b,
