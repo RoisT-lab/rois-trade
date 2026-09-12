@@ -12,17 +12,20 @@ html body img[src*="rois-trade-metallic-20260912.png"] {
   padding: 0 !important;
   box-sizing: border-box;
 }
-html body .topbar .brand {
-  min-width: 260px !important;
-  width: 260px !important;
-  flex: 0 0 260px !important;
+/* 30% above the legacy rendered widths (142px desktop / 112px mobile).
+   Override the legacy max-width as well, so the image keeps its proportions. */
+html body.rois-dossier .topbar .brand {
+  min-width: 184.6px !important;
+  width: 184.6px !important;
+  max-width: 184.6px !important;
+  flex: 0 0 184.6px !important;
   padding: 0 !important;
   overflow: visible !important;
 }
 html body .topbar .brand img[src*="rois-trade-metallic-20260912.png"] {
   display: block !important;
-  width: 260px !important;
-  height: 104px !important;
+  width: 184.6px !important;
+  height: 73.84px !important;
   max-height: none !important;
   max-width: 100% !important;
 }
@@ -54,14 +57,15 @@ html body .sponsor-deck-brand img[src*="rois-trade-metallic-20260912.png"] {
 }
 html body .information-brand img { width: 220px; height: auto; max-width: 100%; max-height: none; }
 @media (max-width: 600px) {
-  html body .topbar .brand {
-    min-width: 150px !important;
-    width: 150px !important;
-    flex-basis: 150px !important;
+  html body.rois-dossier .topbar .brand {
+    min-width: 145.6px !important;
+    width: 145.6px !important;
+    max-width: 145.6px !important;
+    flex-basis: 145.6px !important;
   }
   html body .topbar .brand img[src*="rois-trade-metallic-20260912.png"] {
-    width: 150px !important;
-    height: 60px !important;
+    width: 145.6px !important;
+    height: 58.24px !important;
   }
 }
 
