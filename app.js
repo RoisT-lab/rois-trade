@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260907-home-commercial-intelligence";
+const roisBuild = "20260911-official-brand";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -12,13 +12,13 @@ const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
 const configuredDemoAdmin = config.demoAdminEmail && config.demoAdminPassword;
 const adminEmail = (config.adminEmail || config.demoAdminEmail || "").toLowerCase();
-const fixedLogoPath = config.logoDataUrl || "./assets/rois-logo.png";
+const fixedLogoPath = "./assets/rois-trade-official-20260911.png";
 const dataCacheKey = "rois_runtime_data_cache_v2";
 const dashboardFreshnessMs = 15000;
 const profileMediaBucket = "profile-media";
 const companyMediaBucket = "company-media";
 const operationTimeoutMs = 15000;
-const profileImageFallback = "./assets/rois-logo.png";
+const profileImageFallback = fixedLogoPath;
 const runtimeCacheRowsPerTable = 120;
 const sponsorDeckFunctionName = "generate-sponsor-deck";
 const roisIAEnabled = config.roisIAEnabled === true;
@@ -7170,11 +7170,11 @@ function clientOpportunityTitleValue(opportunityId, fallback = "Mision comercial
 
 function companyListingCard(listing) {
   const own = listing.company_id === currentCompany()?.id;
-  const image = listing.primary_image_url || "./assets/rois-isotipo-cropped.png";
+  const image = listing.primary_image_url || "./assets/rois-trade-official-20260911.png";
   return `
     <article class="corporate-listing-card">
       <div class="corporate-listing-media">
-        <img src="${escapeAttr(image)}" alt="${escapeAttr(listing.title || "Oferta corporativa ROIS")}" onerror="this.onerror=null;this.src='./assets/rois-isotipo-cropped.png';">
+        <img src="${escapeAttr(image)}" alt="${escapeAttr(listing.title || "Oferta corporativa ROIS")}" onerror="this.onerror=null;this.src='./assets/rois-trade-official-20260911.png';">
         <div class="corporate-listing-badges">
           <span class="pill">${escapeHtml(companyListingTypeLabel(listing.listing_type))}</span>
           ${listing.featured ? `<span class="pill premium">Destacado</span>` : ""}
@@ -8866,7 +8866,7 @@ function sponsorDeckMarkup(profile, options = {}) {
       </nav>` : ""}
       <header class="sponsor-deck-cover">
         <div class="sponsor-deck-brand">
-          <img src="./assets/rois-logo.png" alt="ROIS TRADE">
+          <img src="./assets/rois-trade-official-20260911.png" alt="ROIS TRADE">
           <span>01 · Dossier comercial privado</span>
         </div>
         <div class="sponsor-deck-portrait">${safeProfileImageMarkup(profile.image_url, profile.name || "Perfil ROIS")}</div>
@@ -13736,7 +13736,7 @@ function agentAccountsMarkup(s) {
   return s.assignments.length?`<div class="agent-account-grid">${s.assignments.map(a=>{
     const account=agentAccount(a)||{},related=agentScope(a.id);
     const next=related.followups.filter(f=>f.status==="pending").sort((x,y)=>new Date(x.due_at)-new Date(y.due_at))[0];
-    return `<article class="agent-account"><img src="${escapeAttr(account.logo_url||account.image_url||"./assets/rois-logo.png")}" alt="${escapeAttr(account.name||"ROIS")}" onerror="this.onerror=null;this.src='./assets/rois-logo.png'"><p class="eyebrow">${escapeHtml(a.account_type)}</p><h3 data-no-translate>${escapeHtml(account.name||"ROIS")}</h3><p data-no-translate>${escapeHtml(account.interest||account.bio||account.description||agentT("Objetivo pendiente de estructurar","Objective to be structured"))}</p><dl>${[["Afinidades","Affinities",related.affinities.length],["Oportunidades","Opportunities",related.opportunities.length],["Propuestas","Proposals",related.proposals.length],["Conexiones","Connections",related.connections.length],["Misiones","Missions",related.opportunities.filter(o=>o.scout_enabled).length]].map(([es,en,n])=>`<div><dt>${agentCopy(es,en)}</dt><dd>${n}</dd></div>`).join("")}</dl><p data-no-translate>${escapeHtml(next?.action||agentT("Sin siguiente acción","No next action"))}</p><small>${agentDate(related.activity[0]?.created_at||a.updated_at)}</small><div class="action-row">${agentAction(agentT("Abrir cuenta","Open account"),"account","",a.id)}</div></article>`;
+    return `<article class="agent-account"><img src="${escapeAttr(account.logo_url||account.image_url||"./assets/rois-trade-official-20260911.png")}" alt="${escapeAttr(account.name||"ROIS")}" onerror="this.onerror=null;this.src='./assets/rois-trade-official-20260911.png'"><p class="eyebrow">${escapeHtml(a.account_type)}</p><h3 data-no-translate>${escapeHtml(account.name||"ROIS")}</h3><p data-no-translate>${escapeHtml(account.interest||account.bio||account.description||agentT("Objetivo pendiente de estructurar","Objective to be structured"))}</p><dl>${[["Afinidades","Affinities",related.affinities.length],["Oportunidades","Opportunities",related.opportunities.length],["Propuestas","Proposals",related.proposals.length],["Conexiones","Connections",related.connections.length],["Misiones","Missions",related.opportunities.filter(o=>o.scout_enabled).length]].map(([es,en,n])=>`<div><dt>${agentCopy(es,en)}</dt><dd>${n}</dd></div>`).join("")}</dl><p data-no-translate>${escapeHtml(next?.action||agentT("Sin siguiente acción","No next action"))}</p><small>${agentDate(related.activity[0]?.created_at||a.updated_at)}</small><div class="action-row">${agentAction(agentT("Abrir cuenta","Open account"),"account","",a.id)}</div></article>`;
   }).join("")}</div>`:agentEmpty(agentT("Administración todavía no te ha asignado cuentas activas.","Administration has not assigned you any active accounts yet."));
 }
 function agentDedicatedAccountMarkup(a) {
@@ -16206,7 +16206,7 @@ async function submitAthleteSponsorForm(event, athlete) {
 }
 
 function publishedCard({ item, kicker, title, text, action }) {
-  const image = item.image_url || "./assets/rois-logo.png";
+  const image = item.image_url || "./assets/rois-trade-official-20260911.png";
   return `
     <article class="published-card editorial-card">
       <div class="published-cover editorial-cover">
@@ -16234,7 +16234,7 @@ function editorialPreviewText(text = "") {
 }
 
 function editorialNewsCard(item, options = {}) {
-  const image = item.image_url || "./assets/rois-logo.png";
+  const image = item.image_url || "./assets/rois-trade-official-20260911.png";
   const kicker = options.kicker || "Nota ROIS";
   const title = options.title || item.title || "Actualizacion ROIS";
   const rawText = options.text || item.summary || "Informacion disponible para miembros aprobados.";
