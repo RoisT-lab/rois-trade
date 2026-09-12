@@ -188,7 +188,11 @@ body.rois-dossier .dashboard p { color: var(--dossier-muted) !important; }
 body.rois-dossier .dashboard :is(h1,h2,h3,h4) { letter-spacing: -.02em !important; }
 body.rois-dossier .dashboard :is(.eyebrow,.side-nav-label,.hint,.muted,small) { color: var(--dossier-muted) !important; }
 body.rois-dossier .dashboard .side-nav-label { letter-spacing: .14em; }
+body.rois-dossier .dashboard .side-nav { min-width: 0; }
 body.rois-dossier .dashboard .side-nav button {
+  min-height: 44px;
+  white-space: normal;
+  overflow-wrap: anywhere;
   border-radius: 2px !important;
   border: 1px solid transparent !important;
   color: var(--dossier-muted) !important;
@@ -203,8 +207,13 @@ body.rois-dossier .dashboard .side-nav button.active {
 }
 body.rois-dossier .dashboard .side-nav button:hover { background: var(--dossier-raised) !important; color: #fff !important; }
 body.rois-dossier .dashboard .side-nav button::before { background-color: var(--dossier-accent) !important; }
-/* Named card surfaces: no blanket background/filter applied to photos or videos. */
-body.rois-dossier .dashboard :is(
+body.rois-dossier .dashboard .dash-section { scroll-margin-block-start: 24px; }
+body.rois-dossier .dashboard .panel-head h3:focus-visible { outline: 2px solid var(--dossier-accent); outline-offset: 6px; }
+body.rois-dossier .dashboard .sidebar { overscroll-behavior: contain; scrollbar-color: var(--dossier-line) var(--dossier-bg); }
+/* Pair surface and text colors for populated cards, editors and modal content too.
+   Legacy gradients are background images: background-color alone leaves them white.
+   Only named UI components are themed; media and customer logos remain untouched. */
+body.rois-dossier :is(.dashboard,.modal-card) :is(
   .kpi,.stat-card,.metric-card,.empty,.empty-state,.table-wrap,.table-container,
   .card,.tutorial-card,.quick-guide,.dashboard-tutorial,.profile-status-grid>div,
   .athlete-edit-drawer,.athlete-profile-reels,.profile-brands,.athlete-profile-tabs,
@@ -216,7 +225,21 @@ body.rois-dossier .dashboard :is(
   .check-option,.settings-password-form,.payment-link-card,.stripe-info,.scout-metrics>div,
   .agent-kpis>article,.agent-account,.agent-editor,.agent-two-col>section,
   .agent-record-list>article,.agent-followup,.agent-applicant,.admin-command-card,
-  .admin-command-hero,.admin-control-card,.admin-kpi,.admin-metric,.admin-control-hero
+  .admin-command-hero,.admin-control-card,.admin-kpi,.admin-metric,.admin-control-hero,
+  .published-card,.published-content,.partner-card,.partner-content,.payment-card,
+  .sponsor-tier,.opportunity-card,.scout-mission-card,.plan-admin-card,.notification-card,
+  .company-profile-form,.company-logo-upload-prompt,.onboarding-hero,.requirement-item,
+  .sponsor-deck-form,.sponsor-deck-progress,.sponsor-deck-managed-contact,
+  .sponsor-deck-media-editor,.sponsor-deck-ai-coming,.sponsor-deck-fixed-offer,.sponsorship-level-form,
+  .sponsorship-level-card,.sponsorship-level-live-breakdown,.sponsorship-level-breakdown,
+  .company-plan-gate,.company-plan-card,.corporate-listing-card,.corporate-publisher,
+  .athlete-social-info-card,.athlete-profile-reels article,.feed-card,.reel-content,
+  .company-profile-card,.company-operations-card,.company-alliances-preview,
+  .company-reels-widget,.premium-products-block,.premium-product-card,.vip-product-card,
+  .premium-alliance-card.silver,.company-action-grid article,.client-step-grid article,
+  .launch-card,.launch-sponsor-grid article,.commercial-table-scroll,.admin-map-legend,
+  .admin-control-funnel,.admin-control-signal,.event-commercial-card,.client-editorial-feed,
+  .brand-growth-campaign,.brand-growth-quote-response,.brand-growth-score
 ) {
   color: var(--dossier-text) !important;
   background: var(--dossier-panel) !important;
@@ -229,6 +252,15 @@ body.rois-dossier .dashboard :is(.kpis>div,.kpis>article,fieldset) {
   color: var(--dossier-text) !important;
   border-color: var(--dossier-line-soft) !important;
   border-radius: 2px !important;
+}
+body.rois-dossier :is(.dashboard,.modal-card) :is(.partner-mark,.athlete-media,.athlete-social-avatar) {
+  background: var(--dossier-raised); color: var(--dossier-text); border-color: var(--dossier-line);
+}
+body.rois-dossier :is(.dashboard,.modal-card) :is(.notification-message,.notification-meta,.published-content,.partner-content,.reel-content,.sponsorship-level-breakdown,.sponsorship-level-live-breakdown) {
+  color: var(--dossier-text);
+}
+body.rois-dossier :is(.dashboard,.modal-card) :is(.optional-strip span,.athlete-social-highlights span,.media-pill) {
+  color: var(--dossier-text); background: var(--dossier-raised); border-color: var(--dossier-line);
 }
 body.rois-dossier .dashboard :is(.table-wrap,.table-container) { overflow-x: auto; }
 body.rois-dossier .dashboard :is(.client-tutorial-intro,.client-tutorial-steps,.client-tutorial-example,.admin-geo-dashboard) {
@@ -270,6 +302,9 @@ html body.rois-dossier #adminView [data-dashboard-panel] table :is(td,th) {
 }
 body.rois-dossier .dashboard .admin-geo-bar { background: var(--dossier-line-soft); }
 body.rois-dossier .dashboard .admin-geo-bar i { background: var(--dossier-accent); }
+body.rois-dossier #adminView :is(.admin-candle-empty span,.admin-chart-legend span) { color: var(--dossier-muted); }
+body.rois-dossier #adminView .admin-live-status b { color: #73d9a6; font-size: 12px; }
+body.rois-dossier :is(.dashboard,.modal-card) code { color: var(--dossier-text); overflow-wrap: anywhere; }
 body.rois-dossier :is(.dashboard,.modal-card) :is(input,select,textarea) {
   color: var(--dossier-text) !important;
   background-color: #13160f !important;
@@ -361,6 +396,8 @@ html body.rois-dossier .client-sidebar-brand span { font-size: 12px; color: var(
 body.rois-dossier #commercialView.commercial-sidebar-collapsed .rois-sidebar-lockup { justify-content: center; }
 body.rois-dossier #commercialView.commercial-sidebar-collapsed .rois-signature { display: none; }
 @media (max-width: 900px) {
+  body.rois-dossier:has(.dashboard.active.nav-open) { overflow: hidden; }
+  body.rois-dossier .dashboard .dash-section { scroll-margin-block-start: 100px; }
   /* Only the ROIS fallback gets a horizontal slot. Personal/company avatars keep their sizing. */
   body.rois-dossier .dashboard .mobile-appbar:has(.mobile-avatar img[src*="rois-trade-metallic-20260912.png"]) { grid-template-columns: minmax(0, 150px) 60px; }
   html body.rois-dossier .dashboard .mobile-avatar:has(img[src*="rois-trade-metallic-20260912.png"]) { width: 150px; max-width: 100%; height: 60px; padding: 0; }
