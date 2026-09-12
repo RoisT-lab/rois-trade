@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260912-metallic-identity";
+const roisBuild = "20260912-dashboard-contrast-navigation";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -1124,7 +1124,7 @@ let adminGrowthSnapshot = null;
 let adminGrowthSnapshotPromise = null;
 let adminGrowthSnapshotLoadedAt = 0;
 let adminControlRealtimeTimer = null;
-let clientMobileMenuTrigger = null;
+let dashboardMobileMenuTrigger = null;
 
 const companyPlanCatalog = {
   free: {
@@ -4765,7 +4765,7 @@ function bindGlobalEvents() {
   document.getElementById("eventSponsorForm")?.addEventListener("submit", submitEventSponsorshipRequest);
   initializeCommercialSidebar();
   closeMobileDashboardMenus();
-  window.addEventListener("resize", syncClientMobileMenuAccessibility);
+  window.addEventListener("resize", syncDashboardMobileMenuAccessibility);
   document.addEventListener("keydown", event => {
     const sponsorDeckModal = document.getElementById("actionModal");
     if (sponsorDeckModal?.classList.contains("active") && sponsorDeckModal.classList.contains("sponsor-deck-modal")) {
@@ -4775,14 +4775,14 @@ function bindGlobalEvents() {
       }
       return;
     }
-    const clientView = document.getElementById("clientView");
-    if (!clientView?.classList.contains("nav-open")) return;
+    if (!document.querySelector(".dashboard.active.nav-open")) return;
     if (event.key === "Escape") {
+      event.preventDefault();
       closeMobileDashboardMenus();
       return;
     }
     if (event.key === "Tab" && window.matchMedia("(max-width: 900px)").matches) {
-      trapClientMobileMenuFocus(event);
+      trapDashboardMobileMenuFocus(event);
     }
   });
   document.addEventListener("click", handleDashboardDelegatedActions);
@@ -4976,6 +4976,13 @@ function showDashboardPanel(targetId) {
   renderDashboardPanelById(targetId);
   optimizeRenderedMedia(targetPanel);
   closeMobileDashboardMenus();
+  if (currentPanelId !== targetId) {
+    // Keep the newly selected section discoverable for both pointer and keyboard users.
+    const heading = targetPanel.querySelector(".panel-head h3") || targetPanel;
+    heading.setAttribute("tabindex", "-1");
+    heading.focus({ preventScroll: true });
+    targetPanel.scrollIntoView({ block: "start", behavior: "instant" });
+  }
   const role = workspace.dataset.dashboard === "athlete"
     ? (state.session?.role === "founder" ? "founder" : "athlete")
     : workspace.dataset.dashboard === "client"
@@ -5000,43 +5007,45 @@ function renderDashboardPanelById(targetId) {
   decoratePanelPagination(targetId);
 }
 
-function syncClientMobileMenuAccessibility() {
-  const view = document.getElementById("clientView");
-  const sidebar = document.getElementById("clientSidebar");
-  if (!view || !sidebar) return;
+function syncDashboardMobileMenuAccessibility() {
   const mobile = window.matchMedia("(max-width: 900px)").matches;
-  const menuOpen = mobile && view.classList.contains("nav-open");
-  const hidden = mobile && !menuOpen;
-  sidebar.toggleAttribute("inert", hidden);
-  if (hidden) sidebar.setAttribute("aria-hidden", "true");
-  else sidebar.removeAttribute("aria-hidden");
-  setClientMobileMenuBackgroundAccessibility(menuOpen);
+  document.querySelectorAll(".dashboard").forEach(view => {
+    const sidebar = view.querySelector(":scope > .sidebar");
+    if (!sidebar) return;
+    const menuOpen = mobile && view.classList.contains("nav-open");
+    const hidden = mobile && !menuOpen;
+    sidebar.toggleAttribute("inert", hidden);
+    if (hidden) sidebar.setAttribute("aria-hidden", "true");
+    else sidebar.removeAttribute("aria-hidden");
+    setDashboardMobileMenuBackgroundAccessibility(menuOpen, view);
+  });
 }
 
-function setClientMobileMenuBackgroundAccessibility(hidden) {
-  const view = document.getElementById("clientView");
-  if (!view) return;
-  view.querySelectorAll(":scope > .workspace, :scope > .mobile-appbar, :scope > .mobile-dash-toggle").forEach(element => {
+function setDashboardMobileMenuBackgroundAccessibility(hidden, view = document) {
+  const selector = view === document
+    ? ".dashboard > .workspace, .dashboard > .mobile-appbar, .dashboard > .mobile-dash-toggle"
+    : ":scope > .workspace, :scope > .mobile-appbar, :scope > .mobile-dash-toggle";
+  view.querySelectorAll(selector).forEach(element => {
     element.toggleAttribute("inert", hidden);
     if (hidden) element.setAttribute("aria-hidden", "true");
     else element.removeAttribute("aria-hidden");
   });
 }
 
-function clientMobileMenuFocusableElements() {
-  const sidebar = document.getElementById("clientSidebar");
+function dashboardMobileMenuFocusableElements() {
+  const sidebar = document.querySelector(".dashboard.active.nav-open > .sidebar");
   if (!sidebar) return [];
   return [...sidebar.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
     .filter(element => !element.hidden && element.getClientRects().length > 0);
 }
 
-function trapClientMobileMenuFocus(event) {
-  const focusable = clientMobileMenuFocusableElements();
+function trapDashboardMobileMenuFocus(event) {
+  const focusable = dashboardMobileMenuFocusableElements();
   if (!focusable.length) return;
   const first = focusable[0];
   const last = focusable[focusable.length - 1];
   const active = document.activeElement;
-  if (!document.getElementById("clientSidebar")?.contains(active)) {
+  if (!document.querySelector(".dashboard.active.nav-open > .sidebar")?.contains(active)) {
     event.preventDefault();
     first.focus();
     return;
@@ -5061,23 +5070,28 @@ function openMobileDashboardMenu(type, trigger = null) {
         : "client";
   const view = document.querySelector(`[data-view="${viewName}"]`);
   view?.classList.add("nav-open");
-  if (viewName === "client") clientMobileMenuTrigger = trigger;
+  dashboardMobileMenuTrigger = trigger || document.activeElement;
   document.querySelectorAll(`[data-mobile-menu="${viewName}"]`).forEach(button => button.setAttribute("aria-expanded", "true"));
   view?.querySelectorAll(".mobile-nav-backdrop").forEach(backdrop => {
     backdrop.hidden = false;
     backdrop.setAttribute("aria-hidden", "false");
   });
-  syncClientMobileMenuAccessibility();
-  if (viewName === "client") requestAnimationFrame(() => view?.querySelector(".mobile-menu-close")?.focus());
+  syncDashboardMobileMenuAccessibility();
+  requestAnimationFrame(() => {
+    if (!view?.classList.contains("nav-open") || !window.matchMedia("(max-width: 900px)").matches) return;
+    const activeLink = view.querySelector('.side-nav [aria-current="page"]') || view.querySelector(".side-nav button.active");
+    (activeLink || view.querySelector(".mobile-menu-close"))?.focus({ preventScroll: true });
+    activeLink?.scrollIntoView({ block: "nearest", behavior: "instant" });
+  });
 }
 
 function closeMobileDashboardMenus(options = {}) {
   const restoreFocus = options?.restoreFocus !== false;
-  const returnFocus = clientMobileMenuTrigger;
+  const returnFocus = dashboardMobileMenuTrigger;
   const shouldRestoreFocus = restoreFocus
     && returnFocus?.isConnected
     && window.matchMedia("(max-width: 900px)").matches;
-  setClientMobileMenuBackgroundAccessibility(false);
+  setDashboardMobileMenuBackgroundAccessibility(false);
   if (shouldRestoreFocus) returnFocus.focus({ preventScroll: true });
   document.querySelectorAll(".dashboard.nav-open").forEach(view => view.classList.remove("nav-open"));
   document.querySelectorAll("[data-mobile-menu]").forEach(button => button.setAttribute("aria-expanded", "false"));
@@ -5085,8 +5099,8 @@ function closeMobileDashboardMenus(options = {}) {
     backdrop.hidden = true;
     backdrop.setAttribute("aria-hidden", "true");
   });
-  syncClientMobileMenuAccessibility();
-  clientMobileMenuTrigger = null;
+  syncDashboardMobileMenuAccessibility();
+  dashboardMobileMenuTrigger = null;
 }
 
 async function submitLogin(event) {
