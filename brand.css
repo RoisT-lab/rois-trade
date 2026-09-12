@@ -1,0 +1,65 @@
+/* ROIS TRADE — Official identity.
+   Target the approved asset only: company logos and personal photos are untouched.
+   !important is required here to neutralize legacy branding scale/filter rules. */
+html body img[src*="rois-trade-official-20260911.png"] {
+  object-fit: contain !important;
+  object-position: center !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  background: #000 !important;
+  border-radius: 0 !important;
+  padding: 4px !important;
+  box-sizing: border-box;
+}
+html body .topbar .brand {
+  min-width: 72px !important;
+  width: 72px !important;
+  flex: 0 0 72px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+html body .topbar .brand img[src*="rois-trade-official-20260911.png"] {
+  display: block !important;
+  width: 72px !important;
+  height: 72px !important;
+  max-height: none !important;
+  max-width: 100% !important;
+}
+html body .dashboard .sidebar .rois-sidebar-identity {
+  display: block;
+  width: 80px;
+  height: 80px;
+  max-width: 100%;
+  margin: 0 auto 20px;
+}
+html body #clientView .client-sidebar-brand img {
+  width: 80px;
+  height: 80px;
+}
+html body .dashboard img.company-session-logo[src*="rois-trade-official-20260911.png"] {
+  width: 64px !important;
+  height: 64px !important;
+}
+html body .dashboard .mobile-avatar img[src*="rois-trade-official-20260911.png"] {
+  width: 100% !important;
+  height: 100% !important;
+}
+html body #homeView.rh-home .rh-network-core img { width: 96px; height: 96px; }
+html body #homeView.rh-home .rh-footer-top img { width: 104px; height: 104px; }
+html body .sponsor-deck-brand img[src*="rois-trade-official-20260911.png"] {
+  width: 64px;
+  height: 64px;
+}
+html body .information-brand img { width: 72px; height: 72px; max-height: none; }
+@media (max-width: 600px) {
+  html body .topbar .brand {
+    min-width: 52px !important;
+    width: 52px !important;
+    flex-basis: 52px !important;
+  }
+  html body .topbar .brand img[src*="rois-trade-official-20260911.png"] {
+    width: 52px !important;
+    height: 52px !important;
+  }
+}
