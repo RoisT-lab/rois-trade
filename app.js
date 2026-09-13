@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260913-public-logo-match";
+const roisBuild = "20260913-company-settings";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -926,8 +926,7 @@ function readDashboardThemePreference() {
 function ensureDashboardThemeControls() {
   document.body.dataset.dashboardTheme = state.dashboardTheme;
   const english = state.dashboardLanguage === "en";
-  document.querySelectorAll(".view.dashboard .workspace-head").forEach(header => {
-    const host = header.querySelector(".client-workspace-actions") || header;
+  document.querySelectorAll(".view.dashboard:not(#clientView) .workspace-head, #clientView [data-client-theme-host]").forEach(host => {
     let control = host.querySelector("[data-dashboard-theme-control]");
     if (!control) {
       host.insertAdjacentHTML("beforeend", `<div class="dashboard-theme-control" data-dashboard-theme-control data-no-translate>
@@ -984,22 +983,8 @@ function dashboardLanguageControlMarkup() {
 function ensureDashboardLanguageControls() {
   ensureDashboardThemeControls();
   const hosts = [...document.querySelectorAll(".view.dashboard:not(#clientView) .workspace-head")];
-  const clientWorkspace = document.querySelector("#clientView .workspace");
-
-  if (clientWorkspace) {
-    const clientLanguageParent = clientWorkspace.querySelector(".client-workspace-actions") || clientWorkspace;
-    let clientHost = clientWorkspace.querySelector("[data-dashboard-language-host]");
-    if (!clientHost) {
-      clientLanguageParent.insertAdjacentHTML(
-        "afterbegin",
-        `<div class="dashboard-language-host" data-dashboard-language-host data-no-translate></div>`
-      );
-      clientHost = clientWorkspace.querySelector("[data-dashboard-language-host]");
-    } else if (clientHost.parentElement !== clientLanguageParent) {
-      clientLanguageParent.prepend(clientHost);
-    }
-    hosts.push(clientHost);
-  }
+  const clientHost = document.querySelector("#clientView [data-client-language-host]");
+  if (clientHost) hosts.push(clientHost);
 
   hosts.filter(Boolean).forEach(host => {
     let control = host.querySelector("[data-dashboard-language-control]");
@@ -6812,7 +6797,6 @@ function clientAdvertisingOverviewMarkup() {
           <button class="btn primary" type="button" data-dashboard-shortcut="client-opportunities">Nueva oportunidad</button>
           <button class="btn" type="button" data-dashboard-shortcut="client-settings">Editar perfil</button>
           <button class="btn" type="button" data-client-overview-guide>Ver guía</button>
-          <button class="btn" type="button" data-logout>Cerrar sesión</button>
         </div>
       </section>
 
@@ -6907,7 +6891,6 @@ function clientExperienceOverviewMarkup() {
           <div class="company-cover">
             ${cover?.image_url ? `<img src="${cover.image_url}" alt="Portada ROIS">` : `<div class="company-cover-fallback"><span>ROIS</span><small>Strategic partnerships Â· athletes Â· investment</small></div>`}
           </div>
-          <button class="btn company-cover-logout" type="button" data-logout>Cerrar sesiÃ³n</button>
           <div class="company-profile-body">
             <div class="company-profile-logo">${clientCompanyLogoMarkup(company)}</div>
             <div class="company-profile-copy">
@@ -7817,6 +7800,16 @@ function renderAccountSettings(panelId) {
     : null;
   panel(panelId, "Configuraci\u00f3n", panelId === "client-settings" ? "Perfil de empresa y seguridad" : "Seguridad de acceso", `
     <div class="panel-body">
+      ${panelId === "client-settings" ? `
+        <div class="client-settings-preferences">
+          <div class="settings-block" data-client-language-host></div>
+          <div class="settings-block" data-client-theme-host></div>
+          <div class="settings-block client-settings-session">
+            <p class="eyebrow">Sesión</p>
+            <button class="btn" type="button" data-logout>Cerrar sesión</button>
+          </div>
+        </div>
+      ` : ""}
       <div class="settings-grid">
         ${company ? `
           <div class="settings-block">
@@ -7888,17 +7881,10 @@ function renderAccountSettings(panelId) {
           <h3>Recuperar acceso</h3>
           <p class="hint">Si pierdes acceso, usa "Recuperar contrase\u00f1a" en la pantalla de acceso. ROIS enviar\u00e1 un enlace al correo registrado.</p>
         </div>
-        ${panelId === "client-settings" ? `
-          <div class="settings-block session-exit-block">
-            <p class="eyebrow">Salida segura</p>
-            <h3>Cerrar sesion</h3>
-            <p class="hint">Finaliza tu sesion empresarial cuando termines de operar en ROIS.</p>
-            <button class="btn" type="button" data-logout>Cerrar sesion</button>
-          </div>
-        ` : ""}
       </div>
     </div>
   `);
+  if (panelId === "client-settings") ensureDashboardLanguageControls();
   const companyForm = document.querySelector(`[data-dashboard-panel="${panelId}"] [data-company-profile]`);
   if (companyForm) companyForm.addEventListener("submit", submitCompanyProfile);
   const universalForm = document.querySelector(`[data-dashboard-panel="${panelId}"] [data-universal-profile]`);
