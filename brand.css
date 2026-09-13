@@ -61,7 +61,8 @@ html body .sponsor-deck-brand img[src*="rois-trade-transparent-20260913.png"] {
   max-width: 100%;
   height: auto;
 }
-html body .information-brand img { width: 220px; height: auto; max-width: 100%; max-height: none; }
+body.rois-dossier { --rois-public-logo-width: 220px; }
+html body .information-brand img { width: var(--rois-public-logo-width); height: auto; max-width: 100%; max-height: none; }
 @media (max-width: 1100px) {
   html body.rois-dossier .topbar {
     height: auto !important;
@@ -191,8 +192,22 @@ body.rois-dossier.rois-information-page :is(.btn,.information-access,.social-ico
 body.rois-dossier.rois-information-page a:focus-visible { outline: 2px solid var(--dossier-accent); outline-offset: 4px; }
 body.rois-dossier.rois-information-page a:hover { color: var(--dossier-text); }
 @media (max-width: 720px) {
-  html body.rois-dossier .information-brand img { width: 150px !important; }
+  body.rois-dossier { --rois-public-logo-width: 150px; }
+  html body.rois-dossier .information-brand img { width: var(--rois-public-logo-width) !important; }
   body.rois-dossier .information-access { padding-inline: 10px; font-size: 10px; }
+}
+/* Home and “Qué es ROIS” use the same uncropped public logo at every breakpoint. */
+html body.rois-dossier[data-active-view="home"] .topbar .brand {
+  min-width: var(--rois-public-logo-width) !important;
+  width: var(--rois-public-logo-width) !important;
+  max-width: var(--rois-public-logo-width) !important;
+  flex-basis: var(--rois-public-logo-width) !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+html body.rois-dossier[data-active-view="home"] .topbar .brand img[src*="rois-trade-transparent-20260913.png"] {
+  width: var(--rois-public-logo-width) !important;
+  height: auto !important;
 }
 html body.rois-dossier::before,
 html body.rois-dossier::after { background: none !important; }
