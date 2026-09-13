@@ -530,6 +530,31 @@ body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) :
 body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) .modal-card select option {
   color: var(--dossier-text) !important; background: var(--dossier-panel) !important;
 }
+/* Executive overview cards use legacy background-image gradients, not just colors.
+   Theme the complete surface; keep the pipeline's data-driven conic gradient intact. */
+body.rois-dossier[data-dashboard-theme="light"] #clientView :is(
+  .client-command-card,.client-map-visual,.client-command-error
+) {
+  background: var(--dossier-panel) !important;
+  color: var(--dossier-text) !important;
+  border-color: var(--dossier-line-soft) !important;
+  box-shadow: none !important;
+}
+body.rois-dossier[data-dashboard-theme="light"] #clientView .client-map-visual {
+  background: var(--dossier-raised) !important;
+}
+body.rois-dossier[data-dashboard-theme="light"] #clientView .client-map-visual svg {
+  color: var(--dossier-accent); filter: none;
+}
+body.rois-dossier[data-dashboard-theme="light"] #clientView .client-segment-track {
+  background: var(--dossier-line-soft);
+}
+body.rois-dossier[data-dashboard-theme="light"] #clientView :is(.client-pipeline-donut,.client-pipeline-donut::before) {
+  box-shadow: none;
+}
+body.rois-dossier[data-dashboard-theme="light"] #clientView .client-activity-icon {
+  color: var(--dossier-accent);
+}
 /* Company preferences live in Settings, not in the operational header. */
 body.rois-dossier #clientView .client-settings-preferences {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;
