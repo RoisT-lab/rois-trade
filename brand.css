@@ -124,8 +124,8 @@ body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) {
   --dossier-bg: #f3f6fa;
   --dossier-panel: #ffffff;
   --dossier-raised: #e9eff7;
-  --dossier-text: #152338;
-  --dossier-muted: #4d5f76;
+  --dossier-text: #111111;
+  --dossier-muted: #3f4650;
   --dossier-line: #647891;
   --dossier-line-soft: #c6d2e1;
   --dossier-accent: #1856b8;
@@ -472,6 +472,47 @@ body.rois-dossier[data-active-view="client"] .company-athlete-profile .athlete-s
 body.rois-dossier[data-active-view="client"] .company-talent-evaluation { background: var(--dossier-panel); }
 body.rois-dossier[data-active-view="client"] .company-talent-completion > i > b,
 body.rois-dossier .sponsor-deck-completion > i > b { background: var(--dossier-accent); }
+/* Legacy populated cards and detail viewers must pair light surfaces with dark text.
+   Keep these overrides light-only; media scrims and primary buttons retain white text. */
+body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) :is(.dashboard,.modal-card) :is(
+  .client-map-chip,.company-access-banner,.company-access-meta,.athlete-card,.athlete-info,
+  .market-profile-card,.premium-command-panel,.client-next-steps,
+  .company-athlete-profile .athlete-social-header,
+  .athlete-social-avatar span,.athlete-social-stats > div,.company-talent-meta span,
+  .company-talent-capacity-metrics > div,.company-talent-slot-strip,.sponsor-bubble.empty span
+) {
+  background: var(--dossier-panel) !important;
+  color: var(--dossier-text) !important;
+  border-color: var(--dossier-line-soft) !important;
+}
+body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) :is(.dashboard,.modal-card) :is(
+  .client-table-link,.client-executive-meta span,.client-command-data-note,
+  .company-access-meta span,.company-talent-module li,.athlete-social-stats strong,
+  .athlete-social-avatar span
+) { color: var(--dossier-text) !important; }
+body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) .dashboard .client-table-link {
+  background: transparent !important;
+}
+body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) :is(.dashboard,.modal-card) :is(
+  .athlete-technical span,.athlete-metrics span,.athlete-social-stats span,
+  .company-talent-capacity-metrics span,.company-talent-capacity-metrics small,
+  .sponsor-bubble.empty span,.sponsor-bubble figcaption
+) { color: var(--dossier-muted) !important; }
+body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) :is(.dashboard,.modal-card) :is(.badge,.client-status-badge,.athlete-social-name .pill) {
+  color: var(--dossier-text) !important;
+  background: var(--dossier-selected) !important;
+  border-color: var(--dossier-line-soft) !important;
+}
+body.rois-dossier[data-dashboard-theme="light"] #commercialView.agent-workspace [data-agent-form-error] {
+  color: var(--dossier-danger) !important;
+}
+/* Change foreground/background together on hover, without a white-on-light transition. */
+body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) :is(.dashboard,.modal-card) .btn {
+  transition-property: border-color, box-shadow, transform !important;
+}
+body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) .modal-card select option {
+  color: var(--dossier-text) !important; background: var(--dossier-panel) !important;
+}
 /* The represented account owns the heading. Keep ROIS once in the sidebar. */
 body.rois-dossier #athleteProfileLogo { display: none !important; }
 body.rois-dossier .rois-sidebar-lockup {
