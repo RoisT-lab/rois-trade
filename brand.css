@@ -1,7 +1,7 @@
-/* ROIS TRADE — Metallic identity / September 2026.
+/* ROIS TRADE — Institutional identity / September 2026.
    Target the approved asset only: company logos and personal photos are untouched.
    !important is required here to neutralize legacy branding scale/filter rules. */
-html body img[src*="rois-trade-transparent-20260913.png"] {
+html body img[src*="rois-trade-institutional-20260913.png"] {
   object-fit: contain !important;
   object-position: center !important;
   transform: none !important;
@@ -11,6 +11,7 @@ html body img[src*="rois-trade-transparent-20260913.png"] {
   border-radius: 0 !important;
   padding: 0 !important;
   box-sizing: border-box;
+  --rois-logo-aspect: 3 / 1;
 }
 /* Frame the official artwork, trimming only its empty outer transparent margins.
    The source asset, emblem proportions and colors remain unchanged. */
@@ -27,10 +28,10 @@ html body.rois-dossier .topbar .brand {
   padding: 0 !important;
   overflow: hidden !important;
 }
-html body .topbar .brand img[src*="rois-trade-transparent-20260913.png"] {
+html body .topbar .brand img[src*="rois-trade-institutional-20260913.png"] {
   display: block !important;
   width: 312px !important;
-  height: 124.8px !important;
+  height: 104px !important;
   flex-shrink: 0;
   max-height: none !important;
   max-width: none !important;
@@ -46,17 +47,17 @@ html body #clientView .client-sidebar-brand img {
   width: 240px;
   height: auto;
 }
-html body .dashboard img.company-session-logo[src*="rois-trade-transparent-20260913.png"] {
+html body .dashboard img.company-session-logo[src*="rois-trade-institutional-20260913.png"] {
   width: 160px !important;
   height: 64px !important;
 }
-html body .dashboard .mobile-avatar img[src*="rois-trade-transparent-20260913.png"] {
+html body .dashboard .mobile-avatar img[src*="rois-trade-institutional-20260913.png"] {
   width: 100% !important;
   height: 100% !important;
 }
-html body #homeView.rh-home .rh-network-core img { width: min(100%, 360px); height: auto; aspect-ratio: 1983 / 793; }
-html body #homeView.rh-home .rh-footer-top img { width: 260px; max-width: 100%; height: auto; aspect-ratio: 1983 / 793; }
-html body .sponsor-deck-brand img[src*="rois-trade-transparent-20260913.png"] {
+html body #homeView.rh-home .rh-network-core img { width: min(100%, 360px); height: auto; aspect-ratio: var(--rois-logo-aspect); }
+html body #homeView.rh-home .rh-footer-top img { width: 260px; max-width: 100%; height: auto; aspect-ratio: var(--rois-logo-aspect); }
+html body .sponsor-deck-brand img[src*="rois-trade-institutional-20260913.png"] {
   width: 220px;
   max-width: 100%;
   height: auto;
@@ -76,9 +77,9 @@ html body .information-brand img { width: var(--rois-public-logo-width); height:
     flex-basis: 174.72px !important;
     height: 60px !important;
   }
-  html body .topbar .brand img[src*="rois-trade-transparent-20260913.png"] {
+  html body .topbar .brand img[src*="rois-trade-institutional-20260913.png"] {
     width: 188px !important;
-    height: 75.2px !important;
+    height: auto !important;
   }
 }
 
@@ -118,7 +119,7 @@ body.rois-dossier {
   color: var(--dossier-text);
   background: var(--dossier-bg) !important;
 }
-body.rois-dossier img[src*="rois-trade-transparent-20260913.png"] { mix-blend-mode: normal; }
+body.rois-dossier img[src*="rois-trade-institutional-20260913.png"] { mix-blend-mode: normal; }
 /* Dashboard appearance. Home and public pages keep their dark editorial identity.
    Both themes use the same components and tokens; switching never changes layout/data. */
 body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) {
@@ -139,7 +140,8 @@ body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) {
 /* The official dark artwork is used only on light dashboard surfaces.
    CSS replacement also covers newly rendered cards/modals without mutating image
    sources, customer branding, form state or the public home's silver identity. */
-body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) :is(.dashboard,.modal-card) img[src*="rois-trade-transparent-20260913.png"] {
+body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) :is(.dashboard,.modal-card) img[src*="rois-trade-institutional-20260913.png"] {
+  --rois-logo-aspect: 1983 / 793;
   content: url("./assets/rois-trade-light-mode-20260913.png");
 }
 body.rois-dossier .dashboard .workspace-head { flex-wrap: wrap; gap: 20px; }
@@ -205,7 +207,7 @@ html body.rois-dossier[data-active-view="home"] .topbar .brand {
   height: auto !important;
   overflow: visible !important;
 }
-html body.rois-dossier[data-active-view="home"] .topbar .brand img[src*="rois-trade-transparent-20260913.png"] {
+html body.rois-dossier[data-active-view="home"] .topbar .brand img[src*="rois-trade-institutional-20260913.png"] {
   width: var(--rois-public-logo-width) !important;
   height: auto !important;
 }
@@ -558,12 +560,12 @@ body.rois-dossier .rois-sidebar-lockup {
   margin-bottom: 16px; border-bottom: 1px solid var(--dossier-line);
 }
 html body.rois-dossier .rois-sidebar-lockup .rois-sidebar-identity {
-  width: 240px; max-width: 100%; height: auto; aspect-ratio: 1983 / 793; margin: 0;
+  width: 240px; max-width: 100%; height: auto; aspect-ratio: var(--rois-logo-aspect); margin: 0;
 }
 html body.rois-dossier .client-sidebar-brand {
   grid-template-columns: minmax(0,1fr); gap: 0; justify-items: center; text-align: center;
 }
-html body.rois-dossier .client-sidebar-brand img { width: 240px !important; max-width: 100%; height: auto !important; aspect-ratio: 1983 / 793; }
+html body.rois-dossier .client-sidebar-brand img { width: 240px !important; max-width: 100%; height: auto !important; aspect-ratio: var(--rois-logo-aspect); }
 html body.rois-dossier .client-sidebar-brand span { font-size: 12px; color: var(--dossier-muted); }
 body.rois-dossier #commercialView.commercial-sidebar-collapsed .rois-sidebar-lockup { justify-content: center; }
 body.rois-dossier #commercialView.commercial-sidebar-collapsed .rois-signature { display: none; }
@@ -571,8 +573,8 @@ body.rois-dossier #commercialView.commercial-sidebar-collapsed .rois-signature {
   body.rois-dossier:has(.dashboard.active.nav-open) { overflow: hidden; }
   body.rois-dossier .dashboard .dash-section { scroll-margin-block-start: 100px; }
   /* Only the ROIS fallback gets a horizontal slot. Personal/company avatars keep their sizing. */
-  body.rois-dossier .dashboard .mobile-appbar:has(.mobile-avatar img[src*="rois-trade-transparent-20260913.png"]) { grid-template-columns: minmax(0, 150px) 60px; }
-  html body.rois-dossier .dashboard .mobile-avatar:has(img[src*="rois-trade-transparent-20260913.png"]) { width: 150px; max-width: 100%; height: 60px; padding: 0; }
+  body.rois-dossier .dashboard .mobile-appbar:has(.mobile-avatar img[src*="rois-trade-institutional-20260913.png"]) { grid-template-columns: minmax(0, 150px) 60px; }
+  html body.rois-dossier .dashboard .mobile-avatar:has(img[src*="rois-trade-institutional-20260913.png"]) { width: 150px; max-width: 100%; height: 60px; padding: 0; }
 }
 @media (max-width: 600px) {
   html body.rois-dossier .topbar .brand { gap: 8px; }
