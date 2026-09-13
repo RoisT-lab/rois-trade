@@ -528,6 +528,29 @@ body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) :
 body.rois-dossier[data-dashboard-theme="light"]:not([data-active-view="home"]) .modal-card select option {
   color: var(--dossier-text) !important; background: var(--dossier-panel) !important;
 }
+/* Company preferences live in Settings, not in the operational header. */
+body.rois-dossier #clientView .client-settings-preferences {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;
+  margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--dossier-line-soft);
+}
+body.rois-dossier #clientView .client-settings-preferences .settings-block {
+  min-width: 0; padding: 18px; border: 1px solid var(--dossier-line-soft); background: var(--dossier-panel);
+}
+body.rois-dossier #clientView .client-settings-preferences .dashboard-language-control > span {
+  position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal;
+}
+body.rois-dossier #clientView .client-settings-preferences .dashboard-language-control {
+  display: grid; align-items: start; gap: 6px;
+}
+body.rois-dossier #clientView .client-settings-preferences .dashboard-language-control > div {
+  background: transparent; border: 0; padding: 0;
+}
+body.rois-dossier #clientView .client-settings-session { display: grid; align-content: start; gap: 6px; }
+body.rois-dossier #clientView .client-settings-session .eyebrow { margin: 0; font-size: 11px; line-height: 1.4; }
+body.rois-dossier #clientView .client-settings-session .btn { justify-self: start; }
+@media (max-width: 1100px) {
+  body.rois-dossier #clientView .client-settings-preferences { grid-template-columns: 1fr; }
+}
 /* The represented account owns the heading. Keep ROIS once in the sidebar. */
 body.rois-dossier #athleteProfileLogo { display: none !important; }
 body.rois-dossier .rois-sidebar-lockup {
