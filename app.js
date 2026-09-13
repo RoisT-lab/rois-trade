@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260913-theme-logos";
+const roisBuild = "20260913-light-contrast-v2";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
