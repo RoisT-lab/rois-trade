@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260912-earth-home";
+const roisBuild = "20260913-theme-logos";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -12,7 +12,7 @@ const storeKey = "rois_demo_data_v2";
 const sessionKey = "rois_session_v2";
 const configuredDemoAdmin = config.demoAdminEmail && config.demoAdminPassword;
 const adminEmail = (config.adminEmail || config.demoAdminEmail || "").toLowerCase();
-const fixedLogoPath = "./assets/rois-trade-metallic-20260912.png";
+const fixedLogoPath = "./assets/rois-trade-transparent-20260913.png";
 const dataCacheKey = "rois_runtime_data_cache_v2";
 const dashboardFreshnessMs = 15000;
 const profileMediaBucket = "profile-media";
@@ -23,13 +23,15 @@ const runtimeCacheRowsPerTable = 120;
 const sponsorDeckFunctionName = "generate-sponsor-deck";
 const roisIAEnabled = config.roisIAEnabled === true;
 const dashboardLanguageStorageKey = "rois_dashboard_language_v1";
+const dashboardThemeStorageKey = "rois_dashboard_theme_v1";
 
 const state = {
   session: readSession(),
   pendingSession: null,
   registrationType: null,
   data: null,
-  dashboardLanguage: readDashboardLanguagePreference()
+  dashboardLanguage: readDashboardLanguagePreference(),
+  dashboardTheme: readDashboardThemePreference()
 };
 
 const dashboardOriginalText = new WeakMap();
@@ -39,6 +41,31 @@ let dashboardTranslationScheduled = false;
 let sponsorDeckViewerReturnFocus = null;
 
 const dashboardEnglishText = new Map(Object.entries({
+  "ROIS HORIZON · Atletas": "ROIS HORIZON · Athletes",
+  "Programa deportivo élite": "Elite sports program",
+  "Programa deportivo élite de ROIS TRADE": "ROIS TRADE elite sports program",
+  "Mi operación": "My operation",
+  "Dirección deportiva": "Sports direction",
+  "Rendimiento con dirección. Proyección comercial.": "Purposeful performance. Commercial positioning.",
+  "Estructura tu trayectoria, documenta evidencia y prepara tu propuesta para empresas. ROIS HORIZON integra el talento deportivo en las herramientas de activación comercial de ROIS TRADE.": "Structure your career, document evidence and prepare your business proposition. ROIS HORIZON integrates sports talent into ROIS TRADE's commercial activation tools.",
+  "Rendimiento": "Performance",
+  "Documenta avances y resultados deportivos.": "Document progress and sports results.",
+  "Posicionamiento": "Positioning",
+  "Estructura tu perfil y tu Sponsor Deck.": "Structure your profile and Sponsor Deck.",
+  "Activación": "Activation",
+  "Evalúa oportunidades y ejecuta compromisos.": "Assess opportunities and deliver commitments.",
+  "Registrar evidencia": "Record evidence",
+  "Preparar Sponsor Deck": "Prepare Sponsor Deck",
+  "Evaluar oportunidades": "Assess opportunities",
+  "Panorama operativo de oportunidades y relaciones comerciales.": "Operational overview of commercial opportunities and relationships.",
+  "Prioriza. Activa. Da seguimiento.": "Prioritize. Activate. Follow through.",
+  "Define tu siguiente movimiento comercial desde el resumen ejecutivo.": "Define your next commercial move from the executive overview.",
+  "Control de red. Prioridades de ejecución.": "Network oversight. Execution priorities.",
+  "Define el siguiente movimiento.": "Define the next move.",
+  "Prepara tu perfil para la siguiente oportunidad": "Prepare your profile for the next opportunity",
+  "Operación de referidos y seguimiento": "Referral operations and follow-up",
+  "Centro de operaciones": "Operations center",
+  "Inteligencia y ejecución": "Intelligence and execution",
   "AGENTE ROIS": "ROIS AGENT",
   "Agentes ROIS": "ROIS agents",
   "CENTRO DE MANDO": "COMMAND CENTER",
@@ -887,6 +914,51 @@ const dashboardEnglishNormalizedText = new Map(
   ])
 );
 
+// Presentation preference only: no account data, requests or panel re-rendering.
+function readDashboardThemePreference() {
+  try {
+    return localStorage.getItem(dashboardThemeStorageKey) === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+function ensureDashboardThemeControls() {
+  document.body.dataset.dashboardTheme = state.dashboardTheme;
+  const english = state.dashboardLanguage === "en";
+  document.querySelectorAll(".view.dashboard .workspace-head").forEach(header => {
+    const host = header.querySelector(".client-workspace-actions") || header;
+    let control = host.querySelector("[data-dashboard-theme-control]");
+    if (!control) {
+      host.insertAdjacentHTML("beforeend", `<div class="dashboard-theme-control" data-dashboard-theme-control data-no-translate>
+        <span data-theme-caption></span><div role="group">
+          <button type="button" data-dashboard-theme-option="dark"></button>
+          <button type="button" data-dashboard-theme-option="light"></button>
+        </div></div>`);
+      control = host.querySelector("[data-dashboard-theme-control]");
+    }
+    const caption = english ? "Appearance" : "Apariencia";
+    const label = control.querySelector("[data-theme-caption]");
+    if (label.textContent !== caption) label.textContent = caption;
+    control.querySelector('[role="group"]').setAttribute("aria-label", caption);
+    control.querySelectorAll("[data-dashboard-theme-option]").forEach(button => {
+      const dark = button.dataset.dashboardThemeOption === "dark";
+      const text = english ? (dark ? "Dark mode" : "Light mode") : (dark ? "Modo oscuro" : "Modo claro");
+      if (button.textContent !== text) button.textContent = text;
+      const active = button.dataset.dashboardThemeOption === state.dashboardTheme;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  });
+}
+
+function setDashboardTheme(theme) {
+  if (!["dark", "light"].includes(theme)) return;
+  state.dashboardTheme = theme;
+  try { localStorage.setItem(dashboardThemeStorageKey, theme); } catch { /* Keep the in-memory preference when storage is unavailable. */ }
+  ensureDashboardThemeControls();
+}
+
 function readDashboardLanguagePreference() {
   try {
     const stored = localStorage.getItem(dashboardLanguageStorageKey);
@@ -910,6 +982,7 @@ function dashboardLanguageControlMarkup() {
 }
 
 function ensureDashboardLanguageControls() {
+  ensureDashboardThemeControls();
   const hosts = [...document.querySelectorAll(".view.dashboard:not(#clientView) .workspace-head")];
   const clientWorkspace = document.querySelector("#clientView .workspace");
 
@@ -2968,6 +3041,7 @@ function sessionIsBlocked() {
 }
 
 function applyBranding() {
+  initializeDashboardLanguage();
   document.querySelectorAll(".brand-logo, .side-logo").forEach(logo => {
     logo.hidden = false;
     logo.closest(".brand, .sidebar")?.classList.remove("logo-fallback");
@@ -4832,6 +4906,11 @@ function handleDashboardDelegatedActions(event) {
     setDashboardLanguage(languageButton.dataset.dashboardLanguageOption);
     return;
   }
+  const themeButton = event.target.closest("[data-dashboard-theme-option]");
+  if (themeButton) {
+    setDashboardTheme(themeButton.dataset.dashboardThemeOption);
+    return;
+  }
   const eventSponsorButton = event.target.closest("[data-event-sponsor]");
   if (eventSponsorButton) {
     openEventSponsorshipForm(eventSponsorButton.dataset.eventSponsor);
@@ -5528,7 +5607,7 @@ function renderSession() {
       : state.session.role === "founder"
         ? "Panel creador"
         : state.session.role === "athlete"
-          ? "Panel deportista"
+          ? "ROIS HORIZON"
           : "Panel cliente";
   area.innerHTML = `
     <span class="pill">${state.session.role === "admin" ? "Admin" : state.session.role === "commercial" ? "AGENTE ROIS" : state.session.role === "scout" ? "Scout" : state.session.name}</span>
@@ -5722,8 +5801,8 @@ function renderClient() {
 
 const clientTutorialCatalog = {
   "client-overview": {
-    title: "Gobierna cada oportunidad desde un solo lugar",
-    purpose: "Usa el resumen ejecutivo para identificar actividad, atender alertas y ejecutar la siguiente accion comercial.",
+    title: "Prioriza. Activa. Da seguimiento.",
+    purpose: "Define tu siguiente movimiento comercial desde el resumen ejecutivo.",
     steps: ["Revisa los indicadores y la concentracion de actividad.", "Ubica cada oportunidad dentro del pipeline operativo.", "Atiende alertas y continua desde el modulo relacionado."],
     example: "Ejemplo: si existen postulantes pendientes, abre Postulantes, registra tu decision y continua el seguimiento desde Resultados."
   },
@@ -6717,7 +6796,7 @@ function clientAdvertisingOverviewMarkup() {
           <div class="copy client-executive-copy">
             <p class="eyebrow">RESUMEN EJECUTIVO</p>
             <h2 data-no-translate>${escapeHtml(companyName)}</h2>
-            <p>Visión general de oportunidades y relaciones comerciales.</p>
+            <p>Panorama operativo de oportunidades y relaciones comerciales.</p>
             <strong>Cada oportunidad necesita contexto, responsable y siguiente acción.</strong>
             <div class="meta client-executive-meta">
               ${company?.industry ? `<span><small>Industria</small><strong data-no-translate>${escapeHtml(company.industry)}</strong></span>` : ""}
@@ -7184,11 +7263,11 @@ function clientOpportunityTitleValue(opportunityId, fallback = "Mision comercial
 
 function companyListingCard(listing) {
   const own = listing.company_id === currentCompany()?.id;
-  const image = listing.primary_image_url || "./assets/rois-trade-metallic-20260912.png";
+  const image = listing.primary_image_url || "./assets/rois-trade-transparent-20260913.png";
   return `
     <article class="corporate-listing-card">
       <div class="corporate-listing-media">
-        <img src="${escapeAttr(image)}" alt="${escapeAttr(listing.title || "Oferta corporativa ROIS")}" onerror="this.onerror=null;this.src='./assets/rois-trade-metallic-20260912.png';">
+        <img src="${escapeAttr(image)}" alt="${escapeAttr(listing.title || "Oferta corporativa ROIS")}" onerror="this.onerror=null;this.src='./assets/rois-trade-transparent-20260913.png';">
         <div class="corporate-listing-badges">
           <span class="pill">${escapeHtml(companyListingTypeLabel(listing.listing_type))}</span>
           ${listing.featured ? `<span class="pill premium">Destacado</span>` : ""}
@@ -7859,7 +7938,7 @@ function athleteTutorialCatalog(profile = currentAthlete()) {
   const profileLabel = universal ? "usuario universal" : "deportista";
   return {
     "athlete-profile": {
-      title: "Construye un perfil que genere confianza",
+      title: "Prepara tu perfil para la siguiente oportunidad",
       purpose: `Mantén actualizada la informacion que empresas y otros miembros usan para evaluar tu perfil de ${profileLabel}.`,
       steps: ["Completa identidad, ubicacion y resumen.", "Agrega redes, evidencia y datos relevantes.", "Guarda y revisa como se presenta tu perfil."],
       example: universal
@@ -7969,7 +8048,8 @@ function renderAthleteTutorial(targetId) {
     return;
   }
 
-  (panelHead || panelElement).insertAdjacentHTML(panelHead ? "afterend" : "afterbegin", `
+  const tutorialAnchor = panelElement.querySelector(".horizon-brief") || panelHead;
+  (tutorialAnchor || panelElement).insertAdjacentHTML(tutorialAnchor ? "afterend" : "afterbegin", `
     <aside class="client-panel-tutorial" data-athlete-tutorial aria-label="Guia de ${escapeAttr(guide.title)}">
       <button class="client-tutorial-close" type="button" data-athlete-tutorial-close aria-label="Ocultar guia">&times;</button>
       <div class="client-tutorial-intro">
@@ -7993,8 +8073,18 @@ function renderAthleteTutorial(targetId) {
 function renderAthleteHeader() {
   const athlete = currentAthlete();
   const copy = verticalCopy(athlete);
-  document.getElementById("athleteAccountEyebrow").textContent = copy.accountEyebrow;
+  const horizon = state.session?.role === "athlete";
+  const view = document.getElementById("athleteView");
+  view.dataset.program = horizon ? "horizon" : "creator";
+  document.getElementById("athleteAccountEyebrow").textContent = horizon ? "ROIS HORIZON" : copy.accountEyebrow;
   document.getElementById("athleteAccountName").textContent = athlete?.name || state.session?.name || copy.profileDefaultName;
+  const programCaption = document.getElementById("athleteProgramCaption");
+  programCaption.hidden = !horizon;
+  const signature = view.querySelector(".rois-signature");
+  signature.innerHTML = horizon
+    ? '<strong data-no-translate>ROIS HORIZON</strong><small>Programa deportivo élite</small>'
+    : '<small>COMMERCIAL INTELLIGENCE</small>';
+  view.querySelector('[data-dashboard-target="athlete-profile"]').textContent = horizon ? "Mi operación" : "Perfil";
   const logo = document.getElementById("athleteProfileLogo");
   if (logo) {
     logo.removeAttribute("hidden");
@@ -8880,7 +8970,7 @@ function sponsorDeckMarkup(profile, options = {}) {
       </nav>` : ""}
       <header class="sponsor-deck-cover">
         <div class="sponsor-deck-brand">
-          <img src="./assets/rois-trade-metallic-20260912.png" alt="ROIS TRADE">
+          <img src="./assets/rois-trade-transparent-20260913.png" alt="ROIS TRADE">
           <span>01 · Dossier comercial privado</span>
         </div>
         <div class="sponsor-deck-portrait">${safeProfileImageMarkup(profile.image_url, profile.name || "Perfil ROIS")}</div>
@@ -9920,11 +10010,26 @@ function athleteProfileHero(athlete, logos = athleteSponsorLogos(athlete), optio
   `;
 }
 
+function horizonProgramMarkup() {
+  if (state.session?.role !== "athlete") return "";
+  return `<section class="horizon-brief" aria-label="ROIS HORIZON">
+    <p class="eyebrow">Dirección deportiva</p>
+    <h2>Rendimiento con dirección. Proyección comercial.</h2>
+    <p>Estructura tu trayectoria, documenta evidencia y prepara tu propuesta para empresas. ROIS HORIZON integra el talento deportivo en las herramientas de activación comercial de ROIS TRADE.</p>
+    <div class="horizon-pillars">
+      <div><strong>Rendimiento</strong><span>Documenta avances y resultados deportivos.</span></div>
+      <div><strong>Posicionamiento</strong><span>Estructura tu perfil y tu Sponsor Deck.</span></div>
+      <div><strong>Activación</strong><span>Evalúa oportunidades y ejecuta compromisos.</span></div>
+    </div>
+    <div class="horizon-actions">${button("Registrar evidencia", () => showDashboardPanel("athlete-results"))}${button("Preparar Sponsor Deck", () => showDashboardPanel("athlete-sponsor-deck"))}${button("Evaluar oportunidades", () => showDashboardPanel("athlete-opportunities"))}</div>
+  </section>`;
+}
+
 function renderAthleteProfile() {
   const athlete = currentAthlete();
   const copy = verticalCopy(athlete);
   if (!athlete) {
-    panel("athlete-profile", "Mi perfil", "Perfil profesional para sponsors", `<div class="empty">${copy.profileEmptyText}</div>`);
+    panel("athlete-profile", "Mi perfil", "Perfil profesional para sponsors", `${horizonProgramMarkup()}<div class="empty">${copy.profileEmptyText}</div>`);
     return;
   }
   const founder = isFounderProfile(athlete);
@@ -9933,6 +10038,7 @@ function renderAthleteProfile() {
   const marketplaceStatus = String(athlete.marketplace_access_status || "locked").toLowerCase();
   panel("athlete-profile", "Mi perfil", "Perfil profesional para sponsors", `
     <div class="panel-body">
+      ${horizonProgramMarkup()}
       ${athleteProfileHero(athlete, logos)}
       <details class="athlete-edit-drawer" id="athleteEditProfile">
         <summary>Editar informacion profesional</summary>
@@ -10915,7 +11021,7 @@ function renderAdminControl() {
       <header class="admin-command-head">
         <div>
           <p class="eyebrow">ROIS global command</p>
-          <h2>Red y crecimiento en una sola vista.</h2>
+          <h2>Control de red. Prioridades de ejecución.</h2>
           <p>${escapeHtml(sourceNote)}. El resumen se actualiza automaticamente sin recargar las tablas del panel.</p>
         </div>
         <div class="admin-command-actions">
@@ -13742,7 +13848,7 @@ const selector=`<div class="agent-toolbar"><label>${agentCopy("CUENTA ACTIVA","A
 }
 function agentOverviewMarkup(s) {
   const alerts=buildAgentAttention(s);
-  return `<div class="agent-intro"><p class="eyebrow">INTELLIGENCE → ACTIVATION → EXECUTION</p><h2>${agentCopy("¿Qué tenemos que mover hoy?","What needs to move today?")}</h2><p>${agentCopy("Cada cuenta, una estrategia. Cada relación, una siguiente acción.","Every account has a strategy. Every relationship has a next action.")}</p><div class="action-row">${agentAction(agentT("Nueva afinidad","New affinity"),"new","affinity")}${agentAction(agentT("Crear conexión","Create connection"),"new","connection")}${agentAction(agentT("Programar seguimiento","Schedule follow-up"),"new","followup")}</div></div>
+  return `<div class="agent-intro"><p class="eyebrow">INTELLIGENCE → ACTIVATION → EXECUTION</p><h2>${agentCopy("Define el siguiente movimiento.","Define the next move.")}</h2><p>${agentCopy("Cada cuenta, una estrategia. Cada relación, una siguiente acción.","Every account has a strategy. Every relationship has a next action.")}</p><div class="action-row">${agentAction(agentT("Nueva afinidad","New affinity"),"new","affinity")}${agentAction(agentT("Crear conexión","Create connection"),"new","connection")}${agentAction(agentT("Programar seguimiento","Schedule follow-up"),"new","followup")}</div></div>
   <div class="agent-kpis">${buildAgentExecutiveMetrics(s).map(([label,value])=>`<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></article>`).join("")}</div>
   <div class="agent-two-col"><section><h3>${agentCopy("Requiere tu atención","Needs your attention")}</h3>${alerts.length?alerts.map(a=>`<div class="agent-alert"><strong>${a.count}</strong><span>${escapeHtml(a.label)}</span>${agentAction("→","nav",a.target)}</div>`).join(""):agentEmpty(agentT("No hay alertas pendientes en tus cuentas.","There are no pending alerts for your accounts."))}</section><section><h3>${agentCopy("Actividad reciente","Recent activity")}</h3>${agentActivityMarkup({...s,activity:s.activity.slice(0,6)})}</section></div>`;
 }
@@ -13750,7 +13856,7 @@ function agentAccountsMarkup(s) {
   return s.assignments.length?`<div class="agent-account-grid">${s.assignments.map(a=>{
     const account=agentAccount(a)||{},related=agentScope(a.id);
     const next=related.followups.filter(f=>f.status==="pending").sort((x,y)=>new Date(x.due_at)-new Date(y.due_at))[0];
-    return `<article class="agent-account"><img src="${escapeAttr(account.logo_url||account.image_url||"./assets/rois-trade-metallic-20260912.png")}" alt="${escapeAttr(account.name||"ROIS")}" onerror="this.onerror=null;this.src='./assets/rois-trade-metallic-20260912.png'"><p class="eyebrow">${escapeHtml(a.account_type)}</p><h3 data-no-translate>${escapeHtml(account.name||"ROIS")}</h3><p data-no-translate>${escapeHtml(account.interest||account.bio||account.description||agentT("Objetivo pendiente de estructurar","Objective to be structured"))}</p><dl>${[["Afinidades","Affinities",related.affinities.length],["Oportunidades","Opportunities",related.opportunities.length],["Propuestas","Proposals",related.proposals.length],["Conexiones","Connections",related.connections.length],["Misiones","Missions",related.opportunities.filter(o=>o.scout_enabled).length]].map(([es,en,n])=>`<div><dt>${agentCopy(es,en)}</dt><dd>${n}</dd></div>`).join("")}</dl><p data-no-translate>${escapeHtml(next?.action||agentT("Sin siguiente acción","No next action"))}</p><small>${agentDate(related.activity[0]?.created_at||a.updated_at)}</small><div class="action-row">${agentAction(agentT("Abrir cuenta","Open account"),"account","",a.id)}</div></article>`;
+    return `<article class="agent-account"><img src="${escapeAttr(account.logo_url||account.image_url||"./assets/rois-trade-transparent-20260913.png")}" alt="${escapeAttr(account.name||"ROIS")}" onerror="this.onerror=null;this.src='./assets/rois-trade-transparent-20260913.png'"><p class="eyebrow">${escapeHtml(a.account_type)}</p><h3 data-no-translate>${escapeHtml(account.name||"ROIS")}</h3><p data-no-translate>${escapeHtml(account.interest||account.bio||account.description||agentT("Objetivo pendiente de estructurar","Objective to be structured"))}</p><dl>${[["Afinidades","Affinities",related.affinities.length],["Oportunidades","Opportunities",related.opportunities.length],["Propuestas","Proposals",related.proposals.length],["Conexiones","Connections",related.connections.length],["Misiones","Missions",related.opportunities.filter(o=>o.scout_enabled).length]].map(([es,en,n])=>`<div><dt>${agentCopy(es,en)}</dt><dd>${n}</dd></div>`).join("")}</dl><p data-no-translate>${escapeHtml(next?.action||agentT("Sin siguiente acción","No next action"))}</p><small>${agentDate(related.activity[0]?.created_at||a.updated_at)}</small><div class="action-row">${agentAction(agentT("Abrir cuenta","Open account"),"account","",a.id)}</div></article>`;
   }).join("")}</div>`:agentEmpty(agentT("Administración todavía no te ha asignado cuentas activas.","Administration has not assigned you any active accounts yet."));
 }
 function agentDedicatedAccountMarkup(a) {
@@ -14173,7 +14279,7 @@ function renderCommercialOverview() {
   const commission = Number(scout?.commission_per_active_referral || scoutCommissionAmount);
   const paidCommissions = validatedReferrals.filter(item => scoutReferralStatus(item).commissionPaid);
   const pendingCommissions = validatedReferrals.filter(item => !scoutReferralStatus(item).commissionPaid);
-  panel("commercial-overview", "Red Scout", "Referidos, invitaciones y comisiones ROIS", `
+  panel("commercial-overview", "Red Scout", "Operación de referidos y seguimiento", `
     <div class="panel-body">
       <div class="section-minihead">
         <p class="eyebrow">Tu c\u00f3digo personal</p>
@@ -16220,7 +16326,7 @@ async function submitAthleteSponsorForm(event, athlete) {
 }
 
 function publishedCard({ item, kicker, title, text, action }) {
-  const image = item.image_url || "./assets/rois-trade-metallic-20260912.png";
+  const image = item.image_url || "./assets/rois-trade-transparent-20260913.png";
   return `
     <article class="published-card editorial-card">
       <div class="published-cover editorial-cover">
@@ -16248,7 +16354,7 @@ function editorialPreviewText(text = "") {
 }
 
 function editorialNewsCard(item, options = {}) {
-  const image = item.image_url || "./assets/rois-trade-metallic-20260912.png";
+  const image = item.image_url || "./assets/rois-trade-transparent-20260913.png";
   const kicker = options.kicker || "Nota ROIS";
   const title = options.title || item.title || "Actualizacion ROIS";
   const rawText = options.text || item.summary || "Informacion disponible para miembros aprobados.";
