@@ -555,28 +555,28 @@ body.rois-dossier[data-dashboard-theme="light"] #clientView :is(.client-pipeline
 body.rois-dossier[data-dashboard-theme="light"] #clientView .client-activity-icon {
   color: var(--dossier-accent);
 }
-/* Company preferences live in Settings, not in the operational header. */
-body.rois-dossier #clientView .client-settings-preferences {
+/* Shared dashboard preferences live in Settings, not in operational headers. */
+body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) .dashboard-settings-preferences {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;
   margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--dossier-line-soft);
 }
-body.rois-dossier #clientView .client-settings-preferences .settings-block {
+body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) .dashboard-settings-preferences .settings-block {
   min-width: 0; padding: 18px; border: 1px solid var(--dossier-line-soft); background: var(--dossier-panel);
 }
-body.rois-dossier #clientView .client-settings-preferences .dashboard-language-control > span {
+body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) .dashboard-settings-preferences .dashboard-language-control > span {
   position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal;
 }
-body.rois-dossier #clientView .client-settings-preferences .dashboard-language-control {
+body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) .dashboard-settings-preferences .dashboard-language-control {
   display: grid; align-items: start; gap: 6px;
 }
-body.rois-dossier #clientView .client-settings-preferences .dashboard-language-control > div {
+body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) .dashboard-settings-preferences .dashboard-language-control > div {
   background: transparent; border: 0; padding: 0;
 }
-body.rois-dossier #clientView .client-settings-session { display: grid; align-content: start; gap: 6px; }
-body.rois-dossier #clientView .client-settings-session .eyebrow { margin: 0; font-size: 11px; line-height: 1.4; }
-body.rois-dossier #clientView .client-settings-session .btn { justify-self: start; }
+body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) .dashboard-settings-session { display: grid; align-content: start; gap: 6px; }
+body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) .dashboard-settings-session .eyebrow { margin: 0; font-size: 11px; line-height: 1.4; }
+body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) .dashboard-settings-session .btn { justify-self: start; }
 @media (max-width: 1100px) {
-  body.rois-dossier #clientView .client-settings-preferences { grid-template-columns: 1fr; }
+  body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) .dashboard-settings-preferences { grid-template-columns: 1fr; }
 }
 /* The represented account owns the heading. Keep ROIS once in the sidebar. */
 body.rois-dossier #athleteProfileLogo { display: none !important; }
@@ -592,9 +592,35 @@ html body.rois-dossier .client-sidebar-brand {
 }
 html body.rois-dossier .client-sidebar-brand img { width: 240px !important; max-width: 100%; height: auto !important; aspect-ratio: var(--rois-logo-aspect); }
 html body.rois-dossier .client-sidebar-brand span { font-size: 12px; color: var(--dossier-muted); }
-body.rois-dossier #commercialView.commercial-sidebar-collapsed .rois-sidebar-lockup { justify-content: center; }
-body.rois-dossier #commercialView.commercial-sidebar-collapsed .rois-signature { display: none; }
+body.rois-dossier .dashboard .dashboard-sidebar-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 44px; margin: 0 0 16px; padding: 8px;
+  border: 1px solid var(--dossier-line); background: var(--dossier-panel); color: var(--dossier-text);
+  border-radius: 2px; cursor: pointer;
+}
+body.rois-dossier .dashboard .dashboard-sidebar-toggle span { font-size: 26px; line-height: 1; }
+body.rois-dossier .dashboard .dashboard-sidebar-toggle strong { font-size: 11px; }
+body.rois-dossier .dashboard .dashboard-sidebar-toggle:hover { background: var(--dossier-selected); }
+@media (min-width: 901px) {
+  html body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) { overflow: visible !important; }
+  html body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) > .sidebar {
+    position: sticky !important; top: 0 !important; align-self: start;
+    height: 100dvh !important; min-height: 0 !important; max-height: 100dvh !important; overflow-y: auto;
+  }
+  html body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView).sidebar-collapsed {
+    grid-template-columns: 68px minmax(0,1fr) !important;
+  }
+  html body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView).sidebar-collapsed > .sidebar {
+    width: 68px !important; min-width: 0 !important; max-width: 68px !important;
+    height: 68px !important; max-height: 68px !important;
+    padding: 12px !important; overflow-x: hidden;
+  }
+  html body.rois-dossier .dashboard.sidebar-collapsed > .sidebar > :not(.dashboard-sidebar-toggle) { display: none !important; }
+  body.rois-dossier .dashboard.sidebar-collapsed .dashboard-sidebar-toggle { width: 44px; min-width: 44px; }
+  body.rois-dossier .dashboard.sidebar-collapsed .dashboard-sidebar-toggle strong { display: none; }
+}
 @media (max-width: 900px) {
+  body.rois-dossier .dashboard .dashboard-sidebar-toggle { display: none; }
   body.rois-dossier:has(.dashboard.active.nav-open) { overflow: hidden; }
   body.rois-dossier .dashboard .dash-section { scroll-margin-block-start: 100px; }
   /* Only the ROIS fallback gets a horizontal slot. Personal/company avatars keep their sizing. */

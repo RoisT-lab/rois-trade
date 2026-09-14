@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260913-client-overview-light";
+const roisBuild = "20260913-dashboard-settings-sidebar";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -926,7 +926,7 @@ function readDashboardThemePreference() {
 function ensureDashboardThemeControls() {
   document.body.dataset.dashboardTheme = state.dashboardTheme;
   const english = state.dashboardLanguage === "en";
-  document.querySelectorAll(".view.dashboard:not(#clientView) .workspace-head, #clientView [data-client-theme-host]").forEach(host => {
+  document.querySelectorAll(".view.dashboard [data-settings-theme-host]").forEach(host => {
     let control = host.querySelector("[data-dashboard-theme-control]");
     if (!control) {
       host.insertAdjacentHTML("beforeend", `<div class="dashboard-theme-control" data-dashboard-theme-control data-no-translate>
@@ -982,9 +982,8 @@ function dashboardLanguageControlMarkup() {
 
 function ensureDashboardLanguageControls() {
   ensureDashboardThemeControls();
-  const hosts = [...document.querySelectorAll(".view.dashboard:not(#clientView) .workspace-head")];
-  const clientHost = document.querySelector("#clientView [data-client-language-host]");
-  if (clientHost) hosts.push(clientHost);
+  initializeDashboardSidebars();
+  const hosts = [...document.querySelectorAll(".view.dashboard [data-settings-language-host]")];
 
   hosts.filter(Boolean).forEach(host => {
     let control = host.querySelector("[data-dashboard-language-control]");
@@ -1997,6 +1996,7 @@ function invalidateClientPanelLoadsForTables(sourceTargetId, tables = []) {
 }
 
 async function ensureDashboardPanelData(targetId, options = {}) {
+  if (targetId === "commercial-settings") return true;
   if(isScoutSession() && targetId==="commercial-missions") {
     try {
       const profile=await api.agentRpc("rois_scout_mission_profile");
@@ -4822,7 +4822,7 @@ function bindGlobalEvents() {
   document.getElementById("passwordForm").addEventListener("submit", submitPasswordChange);
   document.getElementById("registrationForm").addEventListener("submit", submitRegistration);
   document.getElementById("eventSponsorForm")?.addEventListener("submit", submitEventSponsorshipRequest);
-  initializeCommercialSidebar();
+  initializeDashboardSidebars();
   closeMobileDashboardMenus();
   window.addEventListener("resize", syncDashboardMobileMenuAccessibility);
   document.addEventListener("keydown", event => {
@@ -4847,39 +4847,50 @@ function bindGlobalEvents() {
   document.addEventListener("click", handleDashboardDelegatedActions);
 }
 
-function setCommercialSidebarCollapsed(collapsed) {
-  const view = document.getElementById("commercialView");
-  const toggle = view?.querySelector("[data-commercial-sidebar-toggle]");
+function setDashboardSidebarCollapsed(view, collapsed) {
+  const toggle = view?.querySelector("[data-sidebar-collapse]");
   if (!view || !toggle) return;
-  view.classList.toggle("commercial-sidebar-collapsed", collapsed);
+  view.classList.toggle("sidebar-collapsed", collapsed);
   toggle.setAttribute("aria-expanded", String(!collapsed));
-  toggle.setAttribute("aria-label", collapsed ? "Desplegar menú comercial" : "Contraer menú comercial");
+  const english = state.dashboardLanguage === "en";
+  const text = english ? (collapsed ? "Expand menu" : "Collapse menu") : (collapsed ? "Expandir menú" : "Contraer menú");
+  toggle.setAttribute("aria-label", text);
+  toggle.title = text;
   const label = toggle.querySelector("strong");
-  if (label) label.textContent = collapsed ? "Desplegar menú" : "Contraer menú";
+  if (label && label.textContent !== text) label.textContent = text;
+  const icon = toggle.querySelector("span");
+  if (icon.textContent !== (collapsed ? "›" : "‹")) icon.textContent = collapsed ? "›" : "‹";
 }
 
-function initializeCommercialSidebar() {
-  const toggle = document.querySelector("[data-commercial-sidebar-toggle]");
-  if (!toggle) return;
-  let collapsed = false;
-  try {
-    collapsed = localStorage.getItem("rois-commercial-sidebar-collapsed") === "true";
-  } catch (error) {
-    console.warn("ROIS could not restore the commercial sidebar preference.", error);
-  }
-  setCommercialSidebarCollapsed(collapsed);
-  toggle.addEventListener("click", () => {
-    const nextCollapsed = !document.getElementById("commercialView")?.classList.contains("commercial-sidebar-collapsed");
-    setCommercialSidebarCollapsed(nextCollapsed);
-    try {
-      localStorage.setItem("rois-commercial-sidebar-collapsed", String(nextCollapsed));
-    } catch (error) {
-      console.warn("ROIS could not save the commercial sidebar preference.", error);
+function initializeDashboardSidebars() {
+  document.querySelectorAll(".view.dashboard").forEach(view => {
+    const sidebar = view.querySelector(":scope > .sidebar");
+    if (!sidebar) return;
+    if (!sidebar.id) sidebar.id = `${view.id}Sidebar`;
+    if (!sidebar.querySelector("[data-sidebar-collapse]")) {
+      sidebar.insertAdjacentHTML("afterbegin", `<button class="dashboard-sidebar-toggle" type="button" data-sidebar-collapse data-no-translate aria-controls="${sidebar.id}"><span aria-hidden="true"></span><strong></strong></button>`);
     }
+    let collapsed = view.classList.contains("sidebar-collapsed");
+    if (!view.dataset.sidebarInitialized) {
+      try {
+        const stored = localStorage.getItem(`rois_sidebar_collapsed_${view.dataset.view}`);
+        collapsed = stored === "true" || (stored === null && view.id === "commercialView" && localStorage.getItem("rois-commercial-sidebar-collapsed") === "true");
+      } catch { /* The menu remains usable without browser storage. */ }
+      view.dataset.sidebarInitialized = "true";
+    }
+    setDashboardSidebarCollapsed(view, collapsed);
   });
 }
 
 function handleDashboardDelegatedActions(event) {
+  const sidebarToggle = event.target.closest("[data-sidebar-collapse]");
+  if (sidebarToggle) {
+    const view = sidebarToggle.closest(".dashboard");
+    const collapsed = !view.classList.contains("sidebar-collapsed");
+    setDashboardSidebarCollapsed(view, collapsed);
+    try { localStorage.setItem(`rois_sidebar_collapsed_${view.dataset.view}`, String(collapsed)); } catch { /* In-memory preference still works. */ }
+    return;
+  }
   const sponsorDeckBackButton = event.target.closest("[data-sponsor-deck-back]");
   if (sponsorDeckBackButton) {
     event.preventDefault();
@@ -7800,16 +7811,14 @@ function renderAccountSettings(panelId) {
     : null;
   panel(panelId, "Configuraci\u00f3n", panelId === "client-settings" ? "Perfil de empresa y seguridad" : "Seguridad de acceso", `
     <div class="panel-body">
-      ${panelId === "client-settings" ? `
-        <div class="client-settings-preferences">
-          <div class="settings-block" data-client-language-host></div>
-          <div class="settings-block" data-client-theme-host></div>
-          <div class="settings-block client-settings-session">
+        <div class="dashboard-settings-preferences">
+          <div class="settings-block" data-settings-language-host></div>
+          <div class="settings-block" data-settings-theme-host></div>
+          <div class="settings-block dashboard-settings-session">
             <p class="eyebrow">Sesión</p>
             <button class="btn" type="button" data-logout>Cerrar sesión</button>
           </div>
         </div>
-      ` : ""}
       <div class="settings-grid">
         ${company ? `
           <div class="settings-block">
@@ -7884,7 +7893,7 @@ function renderAccountSettings(panelId) {
       </div>
     </div>
   `);
-  if (panelId === "client-settings") ensureDashboardLanguageControls();
+  ensureDashboardLanguageControls();
   const companyForm = document.querySelector(`[data-dashboard-panel="${panelId}"] [data-company-profile]`);
   if (companyForm) companyForm.addEventListener("submit", submitCompanyProfile);
   const universalForm = document.querySelector(`[data-dashboard-panel="${panelId}"] [data-universal-profile]`);
@@ -13802,6 +13811,10 @@ function agentLoadState() {
   return `<div class="agent-skeleton" role="status">${agentCopy("Cargando cuentas autorizadas…","Loading authorized accounts…")}</div>`;
 }
 function renderAgentWorkspace(targetId) {
+  if (targetId === "commercial-settings") {
+    renderAccountSettings(targetId);
+    return;
+  }
   captureDashboardPanelDraft(targetId);
   const view=document.getElementById("commercialView");
   if(agentWorkspaceLoad.owner!==(state.session?.authId||state.session?.id)) {
@@ -14196,6 +14209,10 @@ function renderCommercial() {
 }
 
 function renderCommercialPanel(targetId) {
+  if (targetId === "commercial-settings") {
+    renderAccountSettings(targetId);
+    return;
+  }
   if (isInternalCommercialSession()) {
     renderAgentWorkspace(targetId);
     return;
