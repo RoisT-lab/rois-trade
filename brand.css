@@ -555,6 +555,46 @@ body.rois-dossier[data-dashboard-theme="light"] #clientView :is(.client-pipeline
 body.rois-dossier[data-dashboard-theme="light"] #clientView .client-activity-icon {
   color: var(--dossier-accent);
 }
+/* Agent workspace: six primary destinations, tools stay contextual. */
+body.rois-dossier #commercialView.agent-workspace .side-nav [data-agent-tool] { display: none !important; }
+body.rois-dossier #commercialView.agent-workspace .agent-day-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 24px 0; border-bottom: 1px solid var(--dossier-line-soft);
+}
+body.rois-dossier #commercialView.agent-workspace .agent-day-head h2 { font-size: clamp(24px,3vw,38px); line-height: 1.15; margin: 10px 0; }
+body.rois-dossier #commercialView.agent-workspace .agent-day-head p { max-width: 640px; }
+body.rois-dossier #commercialView.agent-workspace .agent-day-head > .action-row { flex-shrink: 0; flex-direction: column; }
+body.rois-dossier #commercialView.agent-workspace .agent-day-kpis { grid-template-columns: repeat(4,minmax(0,1fr)); }
+body.rois-dossier #commercialView.agent-workspace .agent-pipeline { grid-template-columns: repeat(5,minmax(0,1fr)); }
+body.rois-dossier #commercialView.agent-workspace :is(.agent-context-nav,.agent-list-pages) { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+body.rois-dossier #commercialView.agent-workspace .agent-list-pages { justify-content: flex-end; }
+body.rois-dossier #commercialView.agent-workspace .agent-list-pages > span { margin-right: auto; color: var(--dossier-muted); }
+body.rois-dossier #commercialView.agent-workspace .agent-list-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
+body.rois-dossier #commercialView.agent-workspace .agent-list-controls label { display: grid; gap: 8px; flex: 1 1 180px; }
+body.rois-dossier #commercialView.agent-workspace .agent-list-controls input { width: 100%; }
+body.rois-dossier #commercialView.agent-workspace .agent-list-controls .btn { margin: 0; }
+body.rois-dossier #commercialView.agent-workspace .agent-record-list { margin: 0; }
+body.rois-dossier #commercialView.agent-workspace .agent-record-actions details { min-width: 0; }
+body.rois-dossier #commercialView.agent-workspace .agent-record-actions details .action-row { margin-top: 14px; display: grid; }
+body.rois-dossier #commercialView.agent-workspace summary { cursor: pointer; color: var(--dossier-text); padding: 12px 0; min-height: 44px; }
+body.rois-dossier #commercialView.agent-workspace :is(.agent-account-tools,.agent-case-tools,.agent-agenda-group,.agent-history-details) { padding: 22px; border: 1px solid var(--dossier-line-soft); background: var(--dossier-panel); }
+body.rois-dossier #commercialView.agent-workspace .agent-editor fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+body.rois-dossier #commercialView.agent-workspace .agent-editor legend.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); }
+body.rois-dossier #commercialView.agent-workspace .agent-editor fieldset:disabled :is(input,textarea,select) { opacity: 1; color: var(--dossier-text); -webkit-text-fill-color: var(--dossier-text); background: var(--dossier-raised); cursor: default; }
+body.rois-dossier #commercialView.agent-workspace .agent-form-details { margin-top: 18px; border-top: 1px solid var(--dossier-line-soft); }
+body.rois-dossier #commercialView.agent-workspace .agent-readonly-note { padding: 16px; background: var(--dossier-selected); border-left: 3px solid var(--dossier-accent); }
+body.rois-dossier #commercialView.agent-workspace .agent-agenda-group h3 small { color: var(--dossier-muted); }
+body.rois-dossier #commercialView.agent-workspace .agent-alert { display: grid; grid-template-columns: 28px minmax(0,1fr) 44px; gap: 12px; }
+body.rois-dossier #commercialView.agent-workspace .agent-alert > span { color: var(--dossier-muted) !important; }
+body.rois-dossier #commercialView.agent-workspace .agent-alert > .btn { width: 44px !important; min-width: 44px !important; padding: 8px !important; }
+@media (max-width: 1100px) {
+  body.rois-dossier #commercialView.agent-workspace .agent-day-head { flex-direction: column; align-items: start; }
+  body.rois-dossier #commercialView.agent-workspace .agent-day-head > .action-row { flex-direction: row; }
+}
+@media (max-width: 700px) {
+  body.rois-dossier #commercialView.agent-workspace :is(.agent-day-kpis,.agent-pipeline) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  body.rois-dossier #commercialView.agent-workspace .agent-list-controls > .btn { width: 100%; }
+}
 /* Shared dashboard preferences live in Settings, not in operational headers. */
 body.rois-dossier :is(#clientView,#athleteView,#commercialView,#adminView) .dashboard-settings-preferences {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;
