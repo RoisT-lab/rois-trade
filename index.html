@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ROIS TRADE | Inteligencia Comercial y Oportunidades</title>
-  <meta name="rois-build" content="20260913-client-overview-light" />
+  <meta name="rois-build" content="20260913-dashboard-settings-sidebar" />
   <meta name="description" content="ROIS TRADE utiliza inteligencia comercial y tecnolog&iacute;a propia para identificar, estructurar y activar oportunidades entre empresas, mercados, talento y relaciones estrat&eacute;gicas." />
-    <link rel="stylesheet" href="./styles.css?v=20260913-client-overview-light" />
-  <link rel="stylesheet" href="./home.css?v=20260913-client-overview-light" />
-  <link rel="stylesheet" href="./brand.css?v=20260913-client-overview-light" />
+    <link rel="stylesheet" href="./styles.css?v=20260913-dashboard-settings-sidebar" />
+  <link rel="stylesheet" href="./home.css?v=20260913-dashboard-settings-sidebar" />
+  <link rel="stylesheet" href="./brand.css?v=20260913-dashboard-settings-sidebar" />
 </head>
 <body class="rois-dossier" data-active-view="home">
   <div id="app" class="app-shell">
@@ -217,7 +217,7 @@
             <button type="button" data-dashboard-target="athlete-results">Resultados</button>
             <button type="button" data-dashboard-target="athlete-sponsor-deck">Sponsor Deck ROIS</button>
             <button type="button" data-dashboard-target="athlete-growth">Impulso creativo</button>
-            <button type="button" data-dashboard-target="athlete-settings">Ajustes</button>
+            <button type="button" data-dashboard-target="athlete-settings">Configuración</button>
           </nav>
         </aside>
         <div class="workspace" data-dashboard="athlete">
@@ -230,7 +230,6 @@
                 <p class="horizon-workspace-caption" id="athleteProgramCaption" hidden>Programa deportivo élite de ROIS TRADE</p>
               </div>
             </div>
-            <button class="btn" type="button" data-logout>Cerrar sesión</button>
           </div>
           <div class="kpis" id="athleteKpis"></div>
           <section class="dash-section active" data-dashboard-panel="athlete-profile"></section>
@@ -258,10 +257,6 @@
         <button class="mobile-nav-backdrop" type="button" data-close-mobile-menu aria-label="Cerrar men&uacute;"></button>
         <aside class="sidebar">
           <button class="mobile-menu-close" type="button" data-close-mobile-menu aria-label="Cerrar men&uacute;">&times;</button>
-          <button class="commercial-sidebar-toggle" type="button" data-commercial-sidebar-toggle aria-expanded="true" aria-label="Contraer men&uacute; comercial">
-            <span aria-hidden="true">&lsaquo;</span>
-            <strong>Contraer men&uacute;</strong>
-          </button>
           <div class="rois-sidebar-lockup">
           <img class="rois-sidebar-identity" src="./assets/rois-trade-institutional-20260913.png" alt="ROIS TRADE" />
             <span class="rois-signature"><small>COMMERCIAL INTELLIGENCE</small></span>
@@ -288,6 +283,7 @@
             <button type="button" data-dashboard-target="commercial-followup">Seguimiento</button>
             <button type="button" data-agent-only data-dashboard-target="commercial-results">Resultados</button>
             <button type="button" data-agent-only data-dashboard-target="commercial-activity">Actividad</button>
+            <button type="button" data-dashboard-target="commercial-settings">Configuración</button>
           </nav>
         </aside>
         <div class="workspace" data-dashboard="commercial">
@@ -296,7 +292,6 @@
               <p class="eyebrow">Operaci&oacute;n comercial ROIS</p>
               <h1>Panel comercial</h1>
             </div>
-            <button class="btn" type="button" data-logout>Cerrar sesi&oacute;n</button>
           </div>
           <section class="dash-section active" data-dashboard-panel="commercial-overview"></section>
           <section class="dash-section" data-dashboard-panel="commercial-prospects"></section>
@@ -313,6 +308,7 @@
           <section class="dash-section" data-dashboard-panel="commercial-leads"></section>
           <section class="dash-section" data-dashboard-panel="commercial-results"></section>
           <section class="dash-section" data-dashboard-panel="commercial-activity"></section>
+          <section class="dash-section" data-dashboard-panel="commercial-settings"></section>
         </div>
       </section>
 
@@ -369,7 +365,6 @@
               <p class="eyebrow">Operación interna</p>
               <h1>Administracion</h1>
             </div>
-            <button class="btn" type="button" data-logout>Cerrar sesión</button>
           </div>
           <section class="dash-section active" data-dashboard-panel="admin-control"></section>
           <section class="dash-section" data-dashboard-panel="admin-users"></section>
@@ -481,7 +476,7 @@
   </div>
 
   <script src="./app-config.js?v=20260706-success-fee-only-model" charset="UTF-8"></script>
-<script src="./app.js?v=20260913-client-overview-light" charset="UTF-8"></script>
+<script src="./app.js?v=20260913-dashboard-settings-sidebar" charset="UTF-8"></script>
 </body>
 </html>
 
