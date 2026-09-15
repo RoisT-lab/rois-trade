@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260914-agent-workflow";
+const roisBuild = "20260915-crm-research";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -1138,6 +1138,11 @@ function scheduleDashboardTranslation() {
 function setDashboardLanguage(language) {
   const normalized = language === "en" ? "en" : "es";
   state.dashboardLanguage = normalized;
+  const researchHost = document.getElementById("research-admin");
+  if (state.session?.role === "admin" && researchHost && window.ROISResearch) {
+    researchHost.outerHTML = window.ROISResearch.adminMarkup(normalized);
+    window.ROISResearch.mountAdmin({ language: normalized, token: state.session?.token, demo: demoMode });
+  }
   if(isInternalCommercialSession())syncAgentNavigation((activeDashboardPanelId("commercial")||"commercial-overview").replace("commercial-",""));
   try {
     localStorage.setItem(dashboardLanguageStorageKey, normalized);
@@ -14483,11 +14488,13 @@ function renderAdminCrm() {
     button("Avanzar", () => updateCrm(item.id))
   ]);
   panel("admin-crm", "CRM", "Prospecci\u00f3n, invitaciones y trazabilidad", `
+    ${window.ROISResearch?.adminMarkup(state.dashboardLanguage) || ""}
     ${commercialProspectFormMarkup({ admin: true })}
     ${prospects.length ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], crmProspectRows(prospects)) : `<div class="empty">A\u00fan no hay prospectos comerciales.</div>`}
     ${legacyRows.length ? `<div class="panel-body"><div class="section-minihead"><p class="eyebrow">Registros anteriores</p><h3>Pipeline legacy conservado.</h3></div></div>${table(["Categor\u00eda", "Volumen", "Estado", "Acci\u00f3n"], legacyRows)}` : ""}
   `);
   bindCommercialProspectForm({ admin: true });
+  window.ROISResearch?.mountAdmin({ language: state.dashboardLanguage, token: state.session?.token, demo: demoMode });
 }
 
 function renderAdminPayments() {
