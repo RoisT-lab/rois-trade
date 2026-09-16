@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260915-crm-research-simple";
+const roisBuild = "20260915-crm-copy-links";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -13496,6 +13496,11 @@ function crmFollowUpIsPending(item) {
 }
 
 function crmProspectActions(item) {
+  if (item.source === "funding_research_v1") {
+    if (state.session?.role !== "admin") return "";
+    return actionGroup([button(state.dashboardLanguage === "en" ? "Copy survey link" : "Copiar enlace", () =>
+      window.ROISResearch.copyInvitation({ crmId: item.id, name: item.name, language: state.dashboardLanguage, token: state.session?.token, demo: demoMode }))]);
+  }
   const actions = [];
   if (item.invitation_status === "sent") {
     actions.push(button("Reenviar invitaci\u00f3n", () => retryCrmInvitation(item.id)));
@@ -13520,7 +13525,7 @@ function crmProspectRows(records = commercialCrmRecords()) {
     `${escapeHtml(item.email || "Sin correo")}<br><span class="hint">${escapeHtml(item.country || "País sin definir")} · ${escapeHtml(crmPreferredLanguageLabel(item.preferred_language))}</span>`,
     badge(crmProspectTypeLabel(item.prospect_type)),
     badge(item.status || "Nuevo"),
-    `${badge(crmInvitationStatusLabel(item.invitation_status))}${item.invitation_sent_at ? `<br><span class="hint">${readableDate(item.invitation_sent_at)}</span>` : ""}`,
+    item.source === "funding_research_v1" ? badge(state.dashboardLanguage === "en" ? "Survey link" : "Enlace de encuesta") : `${badge(crmInvitationStatusLabel(item.invitation_status))}${item.invitation_sent_at ? `<br><span class="hint">${readableDate(item.invitation_sent_at)}</span>` : ""}`,
     item.next_follow_up_at ? readableDate(item.next_follow_up_at) : "Sin fecha",
     crmProspectActions(item)
   ]);
