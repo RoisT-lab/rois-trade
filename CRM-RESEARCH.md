@@ -2,16 +2,17 @@
 
 ## Estado
 
-Implementado en el worktree `dashboard-brand-refresh`. La migración aditiva `crm_funding_research` se aplicó al proyecto Supabase configurado el 15 de septiembre de 2026. La interfaz web aún requiere el flujo habitual de publicación. No se enviaron correos, no se crearon contactos reales y las pruebas de base de datos se revirtieron íntegramente.
+La primera versión se publicó el 15 de septiembre de 2026. La simplificación de interfaz está implementada en el worktree `dashboard-brand-refresh` y pendiente de publicación. El cambio aditivo `research_named_invitations` ya se aplicó a Supabase; su SQL reproducible está en `supabase-research-named-invitations.sql` (CLI local no disponible; ejecución mediante la conexión Supabase). Conserva el RPC anterior y sus enlaces. Las pruebas se revierten íntegramente: no envían correos ni conservan contactos o respuestas de prueba.
 
 ## Uso
 
 1. Entrar como administrador, abrir CRM y encontrar **Investigación de mercado**.
-2. Abrir **Crear invitación / enlace ES–EN**. Seleccionar una empresa existente o ingresar nombre y correo para crear un registro CRM de investigación. Si el correo existe, seleccionar el registro, no duplicarlo.
+2. Abrir **Crear invitación / enlace ES–EN**. Seleccionar una empresa existente o ingresar una nueva empresa y el **nombre del destinatario**. No requiere correo: el CRM conserva nombre de persona, organización y correo nulo; la invitación guarda el destinatario. Una combinación repetida de persona/empresa de investigación se rechaza para que se seleccione el registro existente. Tras generar, el formulario selecciona el ID creado para no duplicarlo al regenerar.
 3. Generar y copiar los dos enlaces antes de actualizar. Los enlaces duran 30 días; regenerar uno pendiente invalida el anterior. No se envían automáticamente. Tratar el enlace como una invitación privada: quien lo recibe puede responder por esa empresa.
 4. El participante abre `encuesta.html?lang=es#token=…` o `?lang=en#token=…`, elige idioma y responde sin cuenta. Cambiar de idioma conserva lo escrito. Un error de envío conserva los campos; no se muestran confirmaciones hasta que la base confirma el guardado.
-5. **Actualizar respuestas** carga todas las páginas de datos. Se pueden filtrar país, sector, financiamiento, antigüedad, obstáculo, presupuesto, urgencia, idioma y fechas. La lista muestra 20 respuestas por página, pero la exportación contiene la selección completa.
+5. **Actualizar respuestas** carga todas las páginas de datos. Solo se muestran país, fecha desde/hasta y orden por fecha (reciente/antigua) o país (A–Z). La lista muestra 20 respuestas por página; el PDF contiene toda la selección en el mismo orden. Las demás respuestas del cuestionario se conservan sin añadir filtros.
 6. **Exportar selección a PDF** abre el reporte; pulsar **Guardar como PDF / Imprimir** y seleccionar **Guardar como PDF** en el navegador. También hay PDF individual y exportación agregada sin respuestas identificadas. El reporte está en el idioma del administrador y conserva los textos originales del participante.
+7. El formulario comercial anterior está cerrado por defecto detrás de **Enviar invitación comercial**. El botón permite abrirlo/cerrarlo conservando el borrador y no envía correos por sí solo. Ese flujo comercial separado mantiene su correo obligatorio.
 
 ## Datos y privacidad
 
