@@ -96,9 +96,39 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
   assert.deepEqual(invitationPayload,{p_crm_id:null,p_company:'QA New Company',p_recipient_name:'Álvaro Pérez'});
   assert.equal(await page.locator('#research-invite [name=crm_id]').inputValue(),'qa-new-crm');
   assert.equal(await page.locator('#research-invite [name=company]').isVisible(),false);
-  await page.locator('#research-invite').getByRole('button',{name:'Generate links',exact:true}).click();
-  await page.locator('.research-links input').first().waitFor();
-  assert.equal(invitationPayload.p_crm_id,'qa-new-crm');
+  let copyCalls=[], missingLegacy=false;
+  await page.route('**/rest/v1/rpc/rois_get_research_invitation_link',route=>{
+    const payload=route.request().postDataJSON();copyCalls.push(payload);
+    if(missingLegacy&&!payload.p_replace)return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({message:'link_unavailable'})});
+    return route.fulfill({contentType:'application/json',body:JSON.stringify({token:'b'.repeat(64),crm_id:payload.p_crm_id,expires_at:'2026-10-15'})});
+  });
+  await page.locator('#research-invite').getByRole('button',{name:'Get link',exact:true}).click();
+  await page.locator('#research-link-dialog .research-links input').first().waitFor();
+  const recoveredLink=await page.locator('#research-link-dialog .research-links input').first().inputValue();
+  assert(recoveredLink.includes('lang=es#token='+'b'.repeat(64)));
+  assert.deepEqual(copyCalls,[{p_crm_id:'qa-new-crm',p_replace:false}]);
+  await page.evaluate(()=>{navigator.clipboard.writeText=async()=>{throw Error('clipboard denied for QA');};});
+  await page.getByRole('button',{name:'Copy link ES',exact:true}).click();
+  await page.getByText('Select and copy the displayed link.',{exact:true}).waitFor();
+  await page.locator('#research-link-dialog').getByRole('button',{name:'Close',exact:true}).click();
+  // Reloading UI state still retrieves the server-stored link.
+  await page.evaluate(()=>ROISResearch.copyInvitation({crmId:'qa-new-crm',language:'en',token:'qa'}));
+  assert.equal(await page.locator('#research-link-dialog .research-links input').first().inputValue(),recoveredLink);
+  await page.locator('#research-link-dialog').getByRole('button',{name:'Close',exact:true}).click();
+  missingLegacy=true;
+  await page.evaluate(()=>ROISResearch.copyInvitation({crmId:'qa-new-crm',language:'en',token:'qa'}));
+  await page.getByRole('button',{name:'Create replacement link',exact:true}).waitFor();
+  const beforeCancel=copyCalls.length;page.once('dialog',d=>d.dismiss());
+  await page.getByRole('button',{name:'Create replacement link',exact:true}).click();
+  assert.equal(copyCalls.length,beforeCancel);
+  page.once('dialog',d=>d.accept());
+  await page.getByRole('button',{name:'Create replacement link',exact:true}).click();
+  await page.locator('#research-link-dialog .research-links input').first().waitFor();
+  assert.deepEqual(copyCalls.at(-1),{p_crm_id:'qa-new-crm',p_replace:true});
+  await page.locator('#research-link-dialog').screenshot({path:path.join(out,'copy-link-dialog.png')});
+  await page.locator('#research-link-dialog').getByRole('button',{name:'Close',exact:true}).click();
+  const researchActions=await page.evaluate(()=>crmProspectActions({id:'qa-new-crm',name:'QA',source:'funding_research_v1'}));
+  assert(researchActions.includes('Copy survey link'));assert(!researchActions.includes('Enviar'));
   for(const lang of ['es','en']){
    await page.setContent(R.reportHtml([row],lang,'País: México',true));
    await page.pdf({path:path.join(out,`research-${lang}.pdf`),format:'A4',printBackground:true,preferCSSPageSize:true,displayHeaderFooter:true,headerTemplate:'<span></span>',footerTemplate:'<div style="font-size:9px;width:100%;text-align:center">ROIS · <span class="pageNumber"></span> / <span class="totalPages"></span></div>'});
