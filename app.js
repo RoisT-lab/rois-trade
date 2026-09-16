@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260915-crm-research";
+const roisBuild = "20260915-crm-research-simple";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -1138,6 +1138,13 @@ function scheduleDashboardTranslation() {
 function setDashboardLanguage(language) {
   const normalized = language === "en" ? "en" : "es";
   state.dashboardLanguage = normalized;
+  const commercialInviteToggle = document.getElementById("admin-crm-invite-toggle");
+  if (commercialInviteToggle) {
+    const collapsed = document.getElementById("admin-crm-invite-fields").hidden;
+    commercialInviteToggle.textContent = normalized === "en"
+      ? (collapsed ? "Send commercial invitation" : "Hide commercial invitation")
+      : (collapsed ? "Enviar invitación comercial" : "Ocultar invitación comercial");
+  }
   const researchHost = document.getElementById("research-admin");
   if (state.session?.role === "admin" && researchHost && window.ROISResearch) {
     researchHost.outerHTML = window.ROISResearch.adminMarkup(normalized);
@@ -14489,11 +14496,23 @@ function renderAdminCrm() {
   ]);
   panel("admin-crm", "CRM", "Prospecci\u00f3n, invitaciones y trazabilidad", `
     ${window.ROISResearch?.adminMarkup(state.dashboardLanguage) || ""}
-    ${commercialProspectFormMarkup({ admin: true })}
+    <div class="crm-commercial-invitation">
+      <button type="button" id="admin-crm-invite-toggle" aria-expanded="false" aria-controls="admin-crm-invite-fields" data-no-translate translate="no">${state.dashboardLanguage === "en" ? "Send commercial invitation" : "Enviar invitación comercial"}</button>
+      <div id="admin-crm-invite-fields" hidden>${commercialProspectFormMarkup({ admin: true })}</div>
+    </div>
     ${prospects.length ? table(["Prospecto", "Correo", "Tipo", "Etapa", "Invitaci\u00f3n", "Seguimiento", "Acciones"], crmProspectRows(prospects)) : `<div class="empty">A\u00fan no hay prospectos comerciales.</div>`}
     ${legacyRows.length ? `<div class="panel-body"><div class="section-minihead"><p class="eyebrow">Registros anteriores</p><h3>Pipeline legacy conservado.</h3></div></div>${table(["Categor\u00eda", "Volumen", "Estado", "Acci\u00f3n"], legacyRows)}` : ""}
   `);
   bindCommercialProspectForm({ admin: true });
+  const inviteToggle = document.getElementById("admin-crm-invite-toggle");
+  inviteToggle.onclick = () => {
+    const fields = document.getElementById("admin-crm-invite-fields");
+    fields.hidden = !fields.hidden;
+    inviteToggle.setAttribute("aria-expanded", String(!fields.hidden));
+    inviteToggle.textContent = state.dashboardLanguage === "en"
+      ? (fields.hidden ? "Send commercial invitation" : "Hide commercial invitation")
+      : (fields.hidden ? "Enviar invitación comercial" : "Ocultar invitación comercial");
+  };
   window.ROISResearch?.mountAdmin({ language: state.dashboardLanguage, token: state.session?.token, demo: demoMode });
 }
 
