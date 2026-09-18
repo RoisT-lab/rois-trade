@@ -1,0 +1,112 @@
+/* Incubation landing only. Authenticated workspaces keep their existing styles. */
+html body.rois-dossier.rois-incubation[data-active-view="home"] {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #030910 !important;
+  color: #fff;
+}
+html body.rois-incubation[data-active-view="home"] :is(.app-shell, main) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html body.rois-incubation #homeView.incubation-home {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: none !important;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+  background: #030910 !important;
+}
+html body.rois-incubation #homeView.incubation-home.active {
+  display: grid !important;
+  place-items: center;
+  animation: none;
+}
+#homeView.incubation-home .incubation-earth {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+  object-position: 65% center;
+  pointer-events: none;
+}
+#homeView.incubation-home::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(2,8,16,.24), rgba(2,8,16,.18) 60%, rgba(2,8,16,.34));
+  pointer-events: none;
+}
+html body.rois-incubation #homeView .incubation-identity {
+  width: min(82vw, 900px);
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+html body.rois-incubation #homeView .incubation-identity img {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  max-width: none !important;
+}
+html body.rois-dossier.rois-incubation[data-active-view="home"] .topbar {
+  position: absolute !important;
+  inset: max(24px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) auto auto !important;
+  z-index: 10;
+  display: flex !important;
+  width: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html body.rois-incubation[data-active-view="home"] .topbar .session-area {
+  display: flex !important;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+html body.rois-dossier.rois-incubation[data-active-view="home"] .topbar .btn {
+  min-width: 112px !important;
+  min-height: 46px !important;
+  padding: 12px 24px !important;
+  border: 1px solid rgba(255,255,255,.6) !important;
+  border-radius: 2px !important;
+  background: rgba(3,9,16,.65) !important;
+  color: #fff !important;
+  font: 600 13px/1.4 "Segoe UI", Arial, sans-serif !important;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+html body.rois-incubation[data-active-view="home"] .topbar .btn:hover {
+  background: rgba(20,44,70,.9) !important;
+  border-color: #fff !important;
+}
+html body.rois-incubation[data-active-view="home"] .topbar .btn:focus-visible {
+  outline: 3px solid #87c5ff !important;
+  outline-offset: 5px;
+}
+@media (max-width: 600px) {
+  html body.rois-dossier.rois-incubation[data-active-view="home"] .topbar {
+    top: max(20px, env(safe-area-inset-top)) !important;
+    right: max(20px, env(safe-area-inset-right)) !important;
+  }
+  html body.rois-incubation #homeView .incubation-identity { width: 100%; }
+  #homeView.incubation-home .incubation-earth { object-position: 68% center; }
+}

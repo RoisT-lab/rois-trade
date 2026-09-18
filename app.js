@@ -1,5 +1,5 @@
 const config = window.ROIS_CONFIG || {};
-const roisBuild = "20260915-crm-copy-links";
+const roisBuild = "20260918-incubation";
 const sponsorshipLevelsStorageKey = "rois_sponsorship_levels_v1";
 const roisSponsorshipFeeRate = 0.3;
 const ROIS_CREATIVE_FEE_RATE = 0.30;
@@ -5340,7 +5340,10 @@ function logout() {
 }
 
 function openLogin() {
-  document.getElementById("loginModal").classList.add("active");
+  const modal = document.getElementById("loginModal");
+  modal.classList.add("active");
+  modal.setAttribute("aria-hidden", "false");
+  modal.querySelector('input[name="email"]')?.focus();
 }
 
 function closeModals(options = {}) {
@@ -5599,6 +5602,16 @@ function profileInitials(name = "ROIS") {
 
 function renderSession() {
   const area = document.getElementById("sessionArea");
+  if (document.body.classList.contains("rois-incubation")) {
+    const label = state.session?.role === "admin" ? "CRM" : "Acceso";
+    area.innerHTML = `<button class="btn subtle" type="button" data-incubation-access aria-label="${state.session?.role === "admin" ? "Abrir CRM" : "Acceso"}">${label}</button>`;
+    area.querySelector("[data-incubation-access]").addEventListener("click", () => {
+      if (!state.session) { openLogin(); return; }
+      showView(dashboardViewForRole(state.session.role));
+      if (state.session.role === "admin") showDashboardPanel("admin-crm");
+    });
+    return;
+  }
   if (!state.session) {
     area.innerHTML = `
       <button class="btn primary nav-create-account" type="button" data-registration-choice="profile">Crear cuenta</button>
