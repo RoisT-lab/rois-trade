@@ -1138,6 +1138,7 @@ function scheduleDashboardTranslation() {
 function setDashboardLanguage(language) {
   const normalized = language === "en" ? "en" : "es";
   state.dashboardLanguage = normalized;
+  if (isResearchOnly()) updateResearchLabels();
   const commercialInviteToggle = document.getElementById("admin-crm-invite-toggle");
   if (commercialInviteToggle) {
     const collapsed = document.getElementById("admin-crm-invite-fields").hidden;
@@ -2009,6 +2010,8 @@ function invalidateClientPanelLoadsForTables(sourceTargetId, tables = []) {
 }
 
 async function ensureDashboardPanelData(targetId, options = {}) {
+  // Research owns its reads; do not hydrate commercial datasets in this workspace.
+  if (isResearchOnly()) return ["admin-crm", "admin-settings"].includes(targetId);
   if (targetId === "commercial-settings") return true;
   if(isScoutSession() && targetId==="commercial-missions") {
     try {
@@ -2899,9 +2902,19 @@ function setupAthleteAgeGate() {
 
 async function init() {
   state.session = normalizeSession(state.session);
+  // Research uses the existing approved admin account, not a new agent role.
+  if (isResearchOnly() && state.session) {
+    try {
+      await ensureActiveSession();
+      await api.loadRoleData(state.session.role, state.session);
+    } catch {
+      state.session = null;
+      clearSession();
+    }
+  }
   renderPublicShell();
   const needsPublicRuntimeData = Boolean(document.querySelector("#publicHomeCover, #publicNews, [data-home-visual]"));
-  const cachedData = state.session || needsPublicRuntimeData ? readDataCache() : null;
+  const cachedData = !isResearchOnly() && (state.session || needsPublicRuntimeData) ? readDataCache() : null;
   state.data = cachedData || normalizeLoadedData({});
   state.dataSignature = runtimeDataSignature(state.data);
   if (state.session && !cachedData && sessionIsBlocked()) {
@@ -3692,6 +3705,14 @@ function supabaseApi() {
     },
     async loadRoleData(role = state.session?.role, session = state.session) {
       if (!session?.email) return normalizeLoadedData({});
+      if (isResearchOnly()) {
+        const user = await request("/auth/v1/user", { headers: headers(session.token) });
+        const profiles = await request(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password&id=eq.${encodeURIComponent(user.id)}&limit=1`, { headers: headers(session.token) });
+        if (role !== "admin" || profiles[0]?.role !== "admin" || profiles[0]?.status !== "approved") {
+          throw new Error("El CRM de investigación requiere la cuenta administrativa autorizada. No se ha modificado tu cuenta original.");
+        }
+        return normalizeLoadedData({ profiles });
+      }
       const email = String(session.email || "").trim().toLowerCase();
       const encodedEmail = encodeURIComponent(email);
       const tokenHeaders = headers(session.token);
@@ -3833,6 +3854,19 @@ function supabaseApi() {
         headers: headers(),
         body: JSON.stringify({ email: normalizedEmail, password })
       });
+      if (isResearchOnly()) {
+        const profiles = await request(`/rest/v1/profiles?select=id,email,role,name,status,must_change_password&id=eq.${encodeURIComponent(auth.user.id)}&limit=1`, { headers: headers(auth.access_token) });
+        const profile = profiles[0];
+        if (profile?.role !== "admin" || profile?.status !== "approved") {
+          throw new Error("El CRM de investigación requiere la cuenta administrativa autorizada. No se ha modificado tu cuenta original.");
+        }
+        return {
+          id: profile.id, authId: auth.user.id, email: normalizedEmail,
+          role: profile.role, name: profile.name, ...authSessionCredentials(auth),
+          mustChangePassword: !!profile.must_change_password,
+          bootstrapData: { profiles: [profile] }
+        };
+      }
       const [companies, initialAthletes, initialFounders, profilesById] = await Promise.all([
         request(`/rest/v1/companies?select=id,profile_id,name,contact,owner,interest,website,description,logo_url,status&contact=eq.${encodeURIComponent(normalizedEmail)}&limit=1`, {
           headers: headers(auth.access_token)
@@ -5021,7 +5055,19 @@ function handleDashboardDelegatedActions(event) {
   }
 }
 
+function isResearchOnly() {
+  return document.body.classList.contains("rois-research-only");
+}
+
+function updateResearchLabels() {
+  const en = state.dashboardLanguage === "en";
+  document.querySelector("[data-research-nav]").textContent = en ? "Market research" : "Investigación de mercado";
+  document.querySelector("[data-research-title]").textContent = en ? "Research CRM" : "CRM de investigación";
+}
+
 function showView(name) {
+  // Navigation only: survey reads and RPCs retain their server-side admin checks.
+  if (isResearchOnly() && name !== "home") name = state.session?.role === "admin" ? "admin" : "home";
   document.body.dataset.activeView = name;
   document.documentElement.lang = "es";
   document.querySelectorAll("[data-view]").forEach(view => view.classList.toggle("active", view.dataset.view === name));
@@ -5048,6 +5094,7 @@ function showView(name) {
 }
 
 function showDashboardPanel(targetId) {
+  if (isResearchOnly() && !["admin-crm", "admin-settings"].includes(targetId)) return;
   const targetPanel = document.querySelector(`[data-dashboard-panel="${targetId}"]`);
   if (!targetPanel) return;
   const workspace = targetPanel.closest("[data-dashboard]");
@@ -12219,6 +12266,12 @@ function renderAdminPlans() {
 }
 
 function renderAdminPanel(targetId) {
+  if (isResearchOnly()) {
+    updateResearchLabels();
+    if (targetId === "admin-settings") renderAccountSettings(targetId);
+    else renderAdminCrm();
+    return;
+  }
   const map = {
     "admin-agents": renderAdminAgentAssignments,
     "admin-control": renderAdminControl,
@@ -14504,6 +14557,12 @@ function renderCommercialFollowup() {
 }
 
 function renderAdminCrm() {
+  if (isResearchOnly()) {
+    const host = document.querySelector('[data-dashboard-panel="admin-crm"]');
+    host.innerHTML = window.ROISResearch?.adminMarkup(state.dashboardLanguage) || '<p role="alert">No se pudo cargar la investigación. Recarga la página.</p>';
+    window.ROISResearch?.mountAdmin({ language: state.dashboardLanguage, token: state.session?.token, demo: demoMode });
+    return;
+  }
   const prospects = commercialCrmRecords();
   const legacy = (state.data.crm || []).filter(item => !["company", "creator", "athlete"].includes(String(item.prospect_type || "").toLowerCase()));
   const legacyRows = legacy.map(item => [

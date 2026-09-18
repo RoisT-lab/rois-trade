@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ROIS TRADE | En incubación</title>
-  <meta name="rois-build" content="20260918-incubation" />
+  <meta name="rois-build" content="20260918-research" />
   <meta name="description" content="ROIS TRADE, en fase de incubación e investigación comercial." />
     <link rel="stylesheet" href="./styles.css?v=20260914-agent-workflow" />
   <link rel="stylesheet" href="./brand.css?v=20260914-agent-workflow" />
   <link rel="stylesheet" href="./research.css?v=20260915-copy-links" />
   <link rel="stylesheet" href="./incubation.css?v=20260918" />
 </head>
-<body class="rois-dossier rois-incubation" data-active-view="home">
+<body class="rois-dossier rois-incubation rois-research-only" data-active-view="home">
   <div id="app" class="app-shell">
     <header class="topbar">
       <div class="session-area" id="sessionArea">
@@ -225,65 +225,18 @@
             <span class="rois-signature"><small>COMMERCIAL INTELLIGENCE</small></span>
           </div>
           <nav class="side-nav" data-dashboard-nav="admin">
-            <span class="side-nav-label">Direccion</span>
-            <button type="button" data-dashboard-target="admin-control">Control</button>
-            <span class="side-nav-label">Red</span>
-            <button type="button" data-dashboard-target="admin-users">Usuarios</button>
-            <button type="button" data-dashboard-target="admin-athletes">ROIS HORIZON · Atletas</button>
-            <button type="button" data-dashboard-target="admin-founders">Creadores</button>
-            <button type="button" data-dashboard-target="admin-brand-growth">Impulso creativo</button>
-            <button type="button" data-dashboard-target="admin-athlete-notifications">Notificaciones</button>
-            <span class="side-nav-label">Comercial</span>
-            <button type="button" data-dashboard-target="admin-opportunities">Oportunidades</button>
-            <button type="button" data-dashboard-target="admin-commissions">Comisiones</button>
-            <button type="button" data-dashboard-target="admin-disputes">Disputas</button>
-            <button type="button" data-dashboard-target="admin-corporate-market">Mercado Corporativo</button>
-            <button type="button" data-dashboard-target="admin-events">Eventos</button>
-            <button class="active" type="button" data-dashboard-target="admin-crm">CRM</button>
-            <button type="button" data-dashboard-target="admin-agents">Agentes ROIS</button>
-            <button type="button" data-dashboard-target="admin-revenue">Ingresos</button>
-            <button type="button" data-dashboard-target="admin-payments">Pagos</button>
-            <button type="button" data-dashboard-target="admin-payment-links">Enlaces de pago</button>
-            <span class="side-nav-label">Contenido</span>
-            <button type="button" data-dashboard-target="admin-news">Noticias</button>
-            <button type="button" data-dashboard-target="admin-partners">Centro VIP</button>
-            <button type="button" data-dashboard-target="admin-uploads">Uploads</button>
-            <span class="side-nav-label">Sistema</span>
-            <button type="button" data-dashboard-target="admin-privacy">Privacidad</button>
-            <button type="button" data-dashboard-target="admin-plans">Planes</button>
-            <button type="button" data-dashboard-target="admin-stats">Estadísticas</button>
+            <button class="active" type="button" data-dashboard-target="admin-crm" data-no-translate translate="no" data-research-nav>Investigación de mercado</button>
             <button type="button" data-dashboard-target="admin-settings">Configuración</button>
           </nav>
         </aside>
         <div class="workspace" data-dashboard="admin">
           <div class="workspace-head">
             <div>
-              <p class="eyebrow">Operación interna</p>
-              <h1>Administracion</h1>
+              <p class="eyebrow" data-no-translate translate="no">ROIS TRADE / RESEARCH</p>
+              <h1 data-no-translate translate="no" data-research-title>CRM de investigación</h1>
             </div>
           </div>
-          <section class="dash-section" data-dashboard-panel="admin-control"></section>
-          <section class="dash-section" data-dashboard-panel="admin-users"></section>
-          <section class="dash-section" data-dashboard-panel="admin-athletes"></section>
-          <section class="dash-section" data-dashboard-panel="admin-founders"></section>
-          <section class="dash-section" data-dashboard-panel="admin-brand-growth"></section>
-          <section class="dash-section" data-dashboard-panel="admin-payment-links"></section>
-          <section class="dash-section" data-dashboard-panel="admin-athlete-notifications"></section>
-          <section class="dash-section" data-dashboard-panel="admin-events"></section>
-          <section class="dash-section" data-dashboard-panel="admin-news"></section>
-          <section class="dash-section" data-dashboard-panel="admin-partners"></section>
-          <section class="dash-section" data-dashboard-panel="admin-opportunities"></section>
-          <section class="dash-section" data-dashboard-panel="admin-commissions"></section>
-          <section class="dash-section" data-dashboard-panel="admin-disputes"></section>
-          <section class="dash-section" data-dashboard-panel="admin-corporate-market"></section>
           <section class="dash-section active" data-dashboard-panel="admin-crm"></section>
-          <section class="dash-section" data-dashboard-panel="admin-agents"></section>
-          <section class="dash-section" data-dashboard-panel="admin-revenue"></section>
-          <section class="dash-section" data-dashboard-panel="admin-payments"></section>
-          <section class="dash-section" data-dashboard-panel="admin-uploads"></section>
-          <section class="dash-section" data-dashboard-panel="admin-privacy"></section>
-          <section class="dash-section" data-dashboard-panel="admin-plans"></section>
-          <section class="dash-section" data-dashboard-panel="admin-stats"></section>
           <section class="dash-section" data-dashboard-panel="admin-settings"></section>
         </div>
       </section>
@@ -373,8 +326,8 @@
 
   <script src="./app-config.js?v=20260706-success-fee-only-model" charset="UTF-8"></script>
   <script src="./research-schema.js?v=20260915" charset="UTF-8"></script>
-  <script src="./research.js?v=20260915-copy-links" charset="UTF-8"></script>
-<script src="./app.js?v=20260918-incubation" charset="UTF-8"></script>
+  <script src="./research.js?v=20260918-research" charset="UTF-8"></script>
+<script src="./app.js?v=20260918-research" charset="UTF-8"></script>
 </body>
 </html>
 

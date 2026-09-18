@@ -126,7 +126,12 @@
       for(let offset=0;;){const batch=await request(`${table}?${query}&order=id.asc&limit=200&offset=${offset}`,undefined,token);if(!Array.isArray(batch))throw Error('invalid_response');if(!batch.length)return all;all.push(...batch);offset+=batch.length;}
     };
     try {
-      [records,invitations,companies]=await Promise.all([loadAll('research_responses'),loadAll('research_invitations','select=id,crm_id,recipient_name,created_at,expires_at,responded_at'),loadAll('crm','select=id,name,organization&prospect_type=eq.company')]);
+      [records,invitations,companies]=await Promise.all([loadAll('research_responses'),loadAll('research_invitations','select=id,crm_id,recipient_name,created_at,expires_at,responded_at'),loadAll('crm','select=id,name,organization,source&prospect_type=eq.company')]);
+      // Keep existing invited companies, but do not offer unrelated legacy prospects.
+      if(document.body.classList.contains('rois-research-only')) {
+        const researchIds=new Set([...records,...invitations].map(row=>row.crm_id));
+        companies=companies.filter(company=>company.source==='funding_research_v1'||researchIds.has(company.id));
+      }
     }catch(err){if(!host.isConnected)return;host.querySelector('#research-admin-content').innerHTML=`<p class="research-error">${text(lang,'No se pudo cargar la investigación. Verifica la sesión, la conexión y la migración de base de datos.','Could not load research. Check your session, connection and database migration.')}</p><button type="button" id="research-retry">${text(lang,'Reintentar','Retry')}</button>`;host.querySelector('#research-retry').onclick=()=>mountAdmin(options);return;}
     if(!host.isConnected)return;
     const L=(es,en)=>text(lang,es,en), selects=['country'];

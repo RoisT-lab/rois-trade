@@ -11,6 +11,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
  try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',err=>errors.push(err.message));
   const token='a'.repeat(64);let saved, attempts=0;
+  await page.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
   await page.route('**/rest/v1/rpc/rois_submit_research',route=>{saved=route.request().postDataJSON();attempts++;return route.fulfill({status:attempts===1?503:200,contentType:'application/json',body:JSON.stringify(attempts===1?{message:'temporary failure'}:{status:'saved'})});});
   await page.goto(`${base}/encuesta.html?lang=es#token=${token}`);
   for(const f of S.fields){const el=page.locator(`[name="${f.name}"]`);if(f.options)await el.selectOption(f.options[0].value);else await el.fill(f.name==='country'?'México':`Prueba ${f.name}: crecimiento e innovación`);}
@@ -59,17 +60,8 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
     document.body.dataset.activeView='admin';renderAdminCrm();
   });
   await page.locator('#research-admin').getByText('205 / 205',{exact:true}).waitFor();
-  assert.equal(await page.locator('#admin-crm-invite-fields').isVisible(),false);
-  assert.equal(await page.locator('#admin-crm-invite-toggle').getAttribute('aria-expanded'),'false');
-  await page.locator('#admin-crm-invite-toggle').click();
-  assert.equal(await page.locator('#admin-crm-invite-fields').isVisible(),true);
-  const commercialField=page.locator('#admin-crm-invite-fields input:not([type=hidden])').first();
-  await commercialField.fill('Conservar borrador');
-  await page.locator('#admin-crm-invite-toggle').click();
-  assert.equal(await page.locator('#admin-crm-invite-fields').isVisible(),false);
-  await page.locator('#admin-crm-invite-toggle').click();
-  assert.equal(await commercialField.inputValue(),'Conservar borrador');
-  await page.locator('#admin-crm-invite-toggle').click();
+  assert.equal(await page.locator('#admin-crm-invite-fields,#admin-crm-invite-toggle').count(),0);
+  assert.deepEqual(await page.locator('#adminView [data-dashboard-target]').evaluateAll(nodes=>nodes.map(n=>n.dataset.dashboardTarget)),['admin-crm','admin-settings']);
   assert.equal(await page.locator('#research-results details').count(),20);
   await page.locator('#research-next').click();
   assert.equal(await page.locator('#research-results details').count(),20);
@@ -85,7 +77,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
   await page.locator('#research-admin details').first().locator('summary').click();
   await page.locator('#research-invite [name=company]').fill('QA New Company');
   assert.equal(await page.locator('#research-invite [name=email]').count(),0);
-  assert.equal(await page.locator('#admin-crm-invite-toggle').innerText(),'Send commercial invitation');
+  assert.equal(await page.locator('#admin-crm-invite-toggle').count(),0);
   await page.locator('#research-invite [name=recipient_name]').fill('Álvaro Pérez');
   let invitationPayload;
   await page.route('**/rest/v1/rpc/rois_create_named_research_invitation',route=>{invitationPayload=route.request().postDataJSON();return route.fulfill({contentType:'application/json',body:JSON.stringify({token:'b'.repeat(64),crm_id:'qa-new-crm'})});});
